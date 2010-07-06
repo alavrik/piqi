@@ -1,0 +1,38 @@
+#!/bin/sh
+set -ex
+
+f=$1
+
+
+# pretty print to standard output
+piqi pp $f.piqi
+
+
+# check piqi specification
+piqi check $f.piqi
+
+
+# expand piqi: combine all includes into one .piqi file and apply all extensions
+# (prints to stdout by default)
+piqi expand $f.piqi
+
+
+# convert .piqi specification to piq, basically wrapping piqi in a piq object
+# with type "piqi.org/piqi/piqi"
+piqi convert $f.piqi
+
+
+# wrap piqi specification in piq object and convert the object to .wire format
+piqi convert -t wire $f.piqi
+#
+# convert it back to .piq and print to stdout
+piqi convert $f.piqi.wire
+
+
+# wrap piqi specification in piq object and convert the object to Protocol
+# Buffer message
+piqi convert -t pb $f.piqi
+
+# convert it back to .piq and print to stdout
+piqi convert --piqtype piqi.org/piqi/piqi $f.piqi.pb
+

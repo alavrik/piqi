@@ -1,0 +1,16 @@
+include $(PIQI_ROOT)/make/Makefile.ocaml
+
+RESULT = otest
+
+SOURCES = piqtype.ml piqi.ml piqobj.ml test.ml
+
+
+LIBS = piqirun
+LIBDIRS = $(PIQI_ROOT)/piqirun-ocaml
+INCDIRS = $(PIQI_ROOT)/piqirun-ocaml
+
+
+all: bc #top
+
+
+include $(OCAMLMAKEFILE)

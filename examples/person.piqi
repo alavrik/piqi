@@ -1,0 +1,43 @@
+.record [
+    .name person
+    .field [
+        .name name
+        .type string
+    ]
+    .field [
+        .name id
+        .type int
+    ]
+    .field [
+        .name email
+        .type string
+        .optional
+    ]
+    .field [
+        .name phone
+        .type phone-number
+        .repeated
+    ]
+]
+
+.record [
+    .name phone-number
+    .field [
+        .name number
+        .type string
+    ]
+    .field [
+        .name type
+        .type phone-type
+        .optional
+        .default.home
+    ]
+]
+
+.enum [
+    .name phone-type
+    .option [ .name mobile ]
+    .option [ .name home ]
+    .option [ .name work ]
+]
+

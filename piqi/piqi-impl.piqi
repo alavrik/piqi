@@ -1,0 +1,45 @@
+
+.include [ .module piqi.org/piqi ]
+
+
+.extend [
+    .name import
+
+    .field [
+        .type piqi
+        .optional
+    ]
+]
+
+
+.variant [
+    .name namespace
+    .option [ .type piqi ]
+    .option [ .type import ]
+]
+
+
+.extend [
+    (.name record variant alias list)
+
+    .field [
+        .name parent
+        .type namespace
+        .optional
+    ]
+]
+
+
+.extend [
+    .name piqi
+
+    .field [ .name extended-piqdef .type piqdef .repeated ]
+    .field [ .name resolved-piqdef .type piqdef .repeated ]
+    .field [ .name imported-piqdef .type piqdef .repeated ]
+    .field [ .name resolved-import .type import .repeated ]
+    .field [ .name included-piqi .type piqi .repeated ]
+
+    .field [ .name original-piqi .type piqi .optional ]
+]
+
+

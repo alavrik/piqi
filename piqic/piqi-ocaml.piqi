@@ -1,0 +1,37 @@
+
+
+.include [ .module piqi.org/piqi ]
+
+
+.extend [
+    (.name record field variant option alias list import)
+
+    .field [
+        .name ocaml-name
+        .type string
+        .optional
+    ]
+]
+
+
+.extend [
+    .name piqi
+
+    .field [
+        .name ocaml-module
+        .type string
+        .optional
+    ]
+]
+
+
+.extend [
+    .name alias
+
+    .field [
+        .name ocaml-type
+        .type string
+        .optional
+    ]
+]
+

@@ -1,0 +1,46 @@
+% Google Protocol Buffers extension for piqi
+%
+% This file defines some extensions to base piqi specification enabling fields
+% specific for Protobuf
+% 
+% Copyright 2009, 2010 Anton Lavrik
+
+
+.module piqi.org/piqi-proto
+
+
+.include [ .module piqi.org/piqi-base ]
+
+
+.extend [
+    (.name record field variant option alias list)
+
+    .field [
+        .name proto-name
+        .type string
+        .optional
+    ]
+]
+
+
+.extend [
+    .name piqi
+
+    .field [
+        .name proto-package
+        .type string
+        .optional
+    ]
+]
+
+
+.extend [
+    .name alias
+
+    .field [
+        .name proto-type
+        .type string
+        .optional
+    ]
+]
+

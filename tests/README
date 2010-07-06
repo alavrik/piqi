@@ -1,0 +1,21 @@
+Piqi tests 
+==========
+
+To build, run and re-run the tests, use "make"
+
+
+NOTE: "boot_proto2piqi" is not originally a test. See boot_proto2piqi/README for
+details.
+
+
+Prerequisites
+=============
+
+For "boot_proto2piqi" and "cpp" tests Protocol Buffers headers and .so libraries
+must be available in standard OS paths. If they are installed to a custom path,
+use "export CXXFLAGS= -I <headers path> -L <library path>" to specify their
+locations.
+
+"piqi_proto" test requires access to Protobuf source directory. See
+piqi_proto/README for details.
+

@@ -1,0 +1,85 @@
+% Base piqi specification
+%
+% This file contains the most general piqi specification, i.e. without specific
+% extensions.
+% 
+% Copyright 2009, 2010 Anton Lavrik
+
+
+.module piqi.org/piqi-base
+
+
+.include [ .module piqi.org/piqtype ]
+.include [ .module piqi.org/piqtype-wire ]
+
+
+.ignore-field ocaml-name
+
+
+.record [
+    .name include
+    .ocaml-name "includ"
+
+    .field [
+        .name module
+        .type word
+        .ocaml-name "modname"
+    ]
+]
+
+
+.record [
+    % import <module> as <name>
+    .name import
+
+    .field [
+        .name module
+        .type word
+        .ocaml-name "modname"
+    ]
+
+    .field [
+        .type name
+        .optional
+    ]
+]
+
+
+.record [
+    .name extend
+
+    .field [
+        .type name
+        .repeated % several typedefs can be specified as an extension
+    ]
+
+    .field [
+        .ocaml-name "quote"
+        .type piq-any % an actual extension object
+        .repeated
+    ]
+]
+
+
+.record [
+    .name piqi
+
+    .field [
+        .name module
+        .type word
+        .optional
+        .ocaml-name "modname"
+    ]
+
+    .field [
+        .name ignore-field
+        .type word
+        .repeated
+    ]
+
+    .field [ .type piqdef .repeated ]
+    .field [ .type extend .repeated ]
+    .field [ .type include .repeated ]
+    .field [ .type import .repeated ]
+]
+

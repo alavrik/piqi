@@ -1,0 +1,55 @@
+
+Piq interfaces and tools
+Copyright 2009, 2010 Anton Lavrik
+
+This distribution includes software originally developed by Anton Lavrik as a
+part of the Piqi project (http://piqi.org).
+
+Except where otherwise noted, content of this distribution is licensed under the
+terms of Apache License Version 2 (see "LICENSE" file).
+
+Current distribution includes several third-party components which are used by
+Piqi implementation. They are provided as a part of the distribution for the
+convenience of Piqi users.
+
+Below is the list of the third-party components with their descriptions and
+locations in the directory tree. Look for their license terms in correspondent
+directories.
+
+
+ulex
+====
+        Unicode lexer generator for OCaml written by Alain Frisch.
+
+        Location: deps/ulex-1.1/
+        Homepage: http://alain.frisch.fr/soft.html
+        License: MIT
+
+
+open-in
+=======
+        Camlp4 syntax extension implementing locally open modules written by
+        Alain Frisch.
+
+        Location: camlp4/pa_openin.ml
+        Homepage: http://alain.frisch.fr/soft.html
+        License: Public Domain
+
+
+ocaml-make
+==========
+        Automated compilation of complex OCaml-projects written by Markus Mottl.
+
+        Location: deps/ocaml-make-release-6.29.3
+        Homepage: http://www.ocaml.info/home/ocaml_sources.html
+        License: LGPL
+
+
+easy-format
+===========
+        Pretty-printing library for OCaml written by Martin Jambon.
+
+        Location: deps/easy-format-1.0.0/
+        Homepage: http://martin.jambon.free.fr/easy-format.html 
+        License: BSD
+

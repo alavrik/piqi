@@ -1,0 +1,105 @@
+SUPPORTED PLATFORMS
+===================
+
+Piqi is written in Objective Caml language so theoretically it should work on
+platforms and hardware architectures supported by Objective Caml. See the page
+below for the list of supported platforms:
+
+        http://caml.inria.fr/ocaml/portability.en.html
+
+
+So far, Piqi has been tested only on Debian Linux (Lenny and Squeeze, i386 and
+amd64 architectures).
+
+Current build procedure is likely not going to work on Windows out of the box,
+but it shouldn't be hard to adapt it.
+
+
+PREREQUISITES
+=============
+
+* Objective Caml compiler and standard library
+
+        Recommended (tested) version is 3.11.2. Older versions may not work
+        properly.
+
+        OCaml is available in most Linux distributions. It can also be
+        downloaded from here:
+
+                http://caml.inria.fr/download.en.html
+
+
+* CamlP4 -- Caml Preprocessor and Pretty Printer
+
+        It comes as a part of OCaml source distribution. It should be
+        prepackaged in major Linux distributions as well.
+
+
+* Ocamlfind/Findlib -- library manager for Objective Caml
+
+        If installed separately form prepackaged OCaml distribution, it is
+        recommended to build it from sources after you build/install OCaml. It
+        can be downloaded from here:
+
+                http://projects.camlcity.org/projects/findlib.html
+
+* C compiler
+        
+        GCC works. Other compilers should work if they are able to build OCaml.
+
+
+* GNU make, m4, sed and probably some other tools.
+
+
+On Debian Squeeze, the above dependencies can be installed using the following
+command:
+
+        apt-get install ocaml camlp4-extra ocaml-findlib gcc m4 make sed
+
+
+INSTALLATION INSTRUCTIONS
+=========================
+
+NOTE: these instruction are applicable only to Unix/Linux systems.
+
+
+1. Edit setenv.sh file to set build configuration variables if necessary.
+
+2. Apply build configuration by running
+        
+        . setenv.sh
+
+        or 
+
+        source setenv.sh
+
+3. Make sure that "ocamlfind" program is in PATH
+
+4. Build third-party components
+        
+        cd deps
+        make 
+        cd ..
+
+5. Build piqi
+
+        make
+
+6. Install "piqi" and "piqic" binaries (optional) 
+
+        make install
+
+
+The following steps are necessary only is you are going to use piqi interface
+compiler (piqic) for OCaml.
+
+7. Install piqi runtime library and piqi camlp4 extensions
+
+        make libinstall
+
+
+RUNNING TESTS
+=============
+
+See tests/README for instructions.
+

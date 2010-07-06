@@ -1,0 +1,26 @@
+This is an example of addressbook data structure, data representation and OCaml
+programs for adding a person to the addressbok and listing the contents of the
+addressbook.
+
+It is based on Google Protocol Buffers
+examples:
+        http://protobuf.googlecode.com/svn/trunk/examples/
+        (See README.txt file for details)
+
+
+The data definition file "addressbook.proto.piqi" is converted from the original
+"addressbook.proto".
+
+OCaml programs implement exactly the same functionality as Python, Java and C++
+programs from Protobuf examples.  The data structure and the binary encoding for
+addressbook is fully compatible as well, so OCaml program can read addressbook
+created by Python/C++/Java program and the other way around.
+
+This example contains "addressbook.piq" which is a sample addressbook structured
+represented as piq file. It can also be converted to the binary format using
+this command:
+        piqi convert -t pb addressbook.piq
+
+
+See "./test_ocaml" for more usage examples.
+

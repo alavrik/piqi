@@ -1,0 +1,3 @@
+OCAMLMAKEFILE := $(PIQI_ROOT)/make/OCamlMakefile
+
+# vim:ft=make

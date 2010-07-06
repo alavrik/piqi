@@ -1,0 +1,26 @@
+include Makefile.piqicc_common
+
+
+RESULT = piqi_reboot
+
+#SOURCES += boot.ml
+SOURCES += piqicc_run.ml
+
+
+piqtype.ml: boot/piqdefs.ml
+	./piqi_boot2 | sed -e 's/Piqtype.any/Piqast.any/g;s/Piqtype.parse_any/parse_any/g;s/Piqtype.gen_any/gen_any/g' >piqtype.tmp.ml
+	./piqi_boot | sed -e 's/Piqtype.any/any/g' >>piqtype.tmp.ml
+	rm -f *.cmo *.cmi
+	$(CAMLP4)o -o piqtype.2.ml piqtype.tmp.ml
+	#ln -sf piqtype.1.ml $@
+	echo "(*pp camlp4o -I $$PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)" >$@
+	cat piqtype.2.ml >>$@
+	cat boot/piqdefs.ml >>$@
+
+
+clean::
+	rm -f piqtype.tmp.ml piqtype.2.ml
+
+
+
+include $(OCAMLMAKEFILE)

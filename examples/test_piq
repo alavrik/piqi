@@ -1,0 +1,38 @@
+#!/bin/sh
+set -ex
+
+f=$1
+
+
+# When piqi sees this variable, it prints some extra information on stderr. The
+# same effect can be achieved by specifying "--trace" command-line parameter.
+#
+#export PIQI_TRACE=1
+
+# pretty print to standard output
+piqi pp $f.piq
+
+
+# check piq validity: syntax, then structured validity i.e. type check
+piqi check $f.piq
+
+
+# convert to "piq" encoding and print to stdout. "piq" encoding is used as
+# default ouput encoding. Input encoding is determined by file's extension
+# unless specified explicitly.
+piqi convert $f.piq
+
+
+# the same as previous command, also add default values to all optional fields
+# which are missing in source objects
+piqi convert --add-defaults $f.piq
+
+# convert to wire encoding, writing output to "<source file>.wire" file
+piqi convert -t wire $f.piq
+
+# convert back to .piq
+piqi convert $f.piq.wire 
+
+# convert back to .piq and add defaults
+piqi convert --add-defaults $f.piq.wire 
+

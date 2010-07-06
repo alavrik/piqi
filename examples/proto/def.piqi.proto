@@ -1,0 +1,43 @@
+/*
+This .proto specification was converted from ../def.piqi using the following
+command:
+
+        piqi to-proto def.piqi
+*/
+
+
+message r {
+    required sint32 i = 1;
+    optional string s = 2;
+    optional bytes b = 3 [default = "abc \xff\x00"];
+    repeated double f = 4;
+    optional bool flag = 5;
+    optional r self = 6;
+    optional v v = 7;
+}
+
+enum e {
+    a = 1;
+    b = 2;
+    c = 3;
+}
+
+message v {
+    optional sint32 i = 1;
+    optional r r = 2;
+    optional e e = 3;
+    optional bool flag = 4;
+    optional v_list l = 5;
+}
+
+message v_list {
+    repeated v elem = 1;
+}
+
+message int_list {
+    repeated sint32 elem = 1;
+}
+
+message int_list_list {
+    repeated int_list elem = 1;
+}
