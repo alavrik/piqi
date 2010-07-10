@@ -18,11 +18,6 @@
 0b1111_1111_1111_1111
 
 
-% base 8 integer literal
-
-0o377 -0o777
-
-
 % min and max values for various integer types/encodings
 
 :uint32 0
