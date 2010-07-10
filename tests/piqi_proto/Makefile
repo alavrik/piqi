@@ -5,4 +5,4 @@ all: google/protobuf
 
 
 clean:
-	find google/protobuf \( -name '*.proto.pb*' -or -name '*.piqi*' \) -delete
+	test ! -s google || find google/protobuf \( -name '*.proto.pb*' -or -name '*.piqi*' \) -delete
