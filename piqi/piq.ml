@@ -261,3 +261,18 @@ let write_pb ch (obj :Piqobj.obj) =
   let buf = Piqobj_to_wire.gen_embedded_obj obj in
   Piqirun_gen.to_channel ch buf
 
+
+let write_json ch (obj:obj) =
+  let json =
+    match obj with
+      | Piqtype typename ->
+          `Assoc [ "_piqtype", `String typename ]
+      | Typed_piqobj obj ->
+          Piqobj_to_json.gen_typed_obj obj
+      | Piqobj obj ->
+          Piqobj_to_json.gen_obj obj
+  in
+  Piqi_json_gen.pretty_to_channel ch json;
+  (* XXX: add one extra newline for better readability *)
+  Pervasives.output_char ch '\n'
+

@@ -165,6 +165,11 @@ let convert_file () =
       | "" (* default output encoding is "piq" *)
       | "piq" -> Piq.write_piq
       | "wire" -> Piq.write_wire
+      | "json" ->
+          (* XXX: We need to resolve all defaults before converting to JSON
+           * since it is a dynamic encoding *)
+          flag_add_defaults := true;
+          Piq.write_json
       | "pb" -> write_pb
       | _ -> piqi_error "unknown output encoding"
   in
@@ -177,6 +182,7 @@ let convert_file () =
   in
   let och = Main.open_output ofile in
 
+  (* XXX, TODO: unify this parameter across all readers, i.e. make it global *)
   Piqobj_of_wire.resolve_defaults := !flag_add_defaults;
   Piqobj_of_piq.resolve_defaults := !flag_add_defaults;
 

@@ -5,6 +5,14 @@ include Makefile.piqi_common
 RESULT = piqi
 
 SOURCES += \
+	piqi_json_common.ml \
+	piqi_json_parser.mll \
+	piqi_json_gen.ml \
+	piqi_json.ml \
+	\
+	base64.ml \
+	piqobj_to_json.ml \
+	\
 	piq.ml \
 	\
 	piqi_convert.ml \
