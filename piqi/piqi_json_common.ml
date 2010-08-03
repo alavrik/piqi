@@ -49,9 +49,8 @@ type json =
   [
   | `Null
   | `Bool of bool
-  | `Int of int
-  | `Int64 of int64
-  | `Uint64 of int64
+  | `Int of int64
+  | `Uint of int64 (* big unsigned int64 *)
   | `Intlit of string
   | `Float of float
   | `Floatlit of string

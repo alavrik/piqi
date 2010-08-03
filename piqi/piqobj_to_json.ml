@@ -50,8 +50,8 @@ let make_name name =
 let rec gen_obj (x:Piqobj.obj) :json =
   match x with
     (* built-in types *)
-    | `int x -> `Int64 x
-    | `uint x -> `Uint64 x
+    | `int x -> `Int x
+    | `uint x -> `Uint x
     | `float x -> `Float x
     | `bool x -> `Bool x
     | `string x -> `String x

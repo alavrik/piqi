@@ -126,11 +126,12 @@ let parse_int (obj:T.ast) = match obj with
 
 
 let uint64_to_float x =
-  (* NOTE: this doesn't work correctly for big uint64 falues:
+  if Int64.compare x 0L < 0 (* big unsinged? *)
+  then
+    let s = Printf.sprintf "%Lu" x in
+    float_of_string s
+  else
     Int64.to_float x
-  *)
-  let s = Piq_gen.uint64_to_string x in
-  float_of_string s
 
 
 let parse_float (x:T.ast) = match x with
@@ -289,7 +290,7 @@ and parse_record t x =
     | `list l ->
         incr depth;
         (* NOTE: pass locating information as a separate parameter since empty
-         * list is unboxed and doesn't provide correct locaiton information *)
+         * list is unboxed and doesn't provide correct location information *)
         let loc = x in
         let res = do_parse_record loc t l in
         decr depth;

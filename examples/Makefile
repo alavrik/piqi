@@ -34,4 +34,4 @@ test_complex:
 
 
 clean:
-	rm -f *.pb *.wire *.proto* addressbook.*
+	rm -f *.pb *.wire *.json *.proto* addressbook.*

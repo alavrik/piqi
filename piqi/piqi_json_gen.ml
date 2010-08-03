@@ -120,10 +120,6 @@ let write_int ob x =
   Buffer.add_string ob (string_of_int x)
 
 
-let json_string_of_int i =
-  string_of_int i
-
-
 (*
   Ensure that the float is not printed as an int.
   This is not required by JSON, but useful in order to guarantee
@@ -229,9 +225,8 @@ let rec write_json ob (x : json) =
   match x with
       `Null -> write_null ob ()
     | `Bool b -> write_bool ob b
-    | `Int i -> write_int ob i
-    | `Int64 i -> Buffer.add_string ob (Int64.to_string i)
-    | `Uint64 i -> Buffer.add_string ob (uint64_to_string i)
+    | `Int i -> Buffer.add_string ob (Int64.to_string i)
+    | `Uint i -> Buffer.add_string ob (uint64_to_string i)
     | `Intlit s -> Buffer.add_string ob s
     | `Float f -> write_float ob f
     | `Floatlit s -> Buffer.add_string ob s
@@ -303,9 +298,8 @@ let rec format (x : json) =
   match x with
       `Null -> Atom ("null", atom)
     | `Bool x -> Atom ((if x then "true" else "false"), atom)
-    | `Int x -> Atom (json_string_of_int x, atom)
-    | `Int64 i -> Atom (Int64.to_string i, atom)
-    | `Uint64 i -> Atom (uint64_to_string i, atom)
+    | `Int i -> Atom (Int64.to_string i, atom)
+    | `Uint i -> Atom (uint64_to_string i, atom)
     | `Float x ->
 	let s = json_string_of_float x in
 	Atom (s, atom)

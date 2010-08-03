@@ -127,16 +127,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   let parse_int64 s =
     match s.[0] with
-      | '-' -> `Int64 (Int64.of_string s) (* negative integer *)
-      | _ -> `Uint64 (parse_uint s)
+      | '-' -> `Int (Int64.of_string s) (* negative integer *)
+      | _ -> `Uint (parse_uint s)
 
 
   let make_int s v lexbuf =
-    try `Int (int_of_string s)
+    try parse_int64 s
     with Failure _ ->
-      try parse_int64 s
-      with Failure _ ->
-        lexer_error "Int overflow" v lexbuf
+      lexer_error "Int overflow" v lexbuf
 
 
   let set_file_name v fname =

@@ -12,6 +12,7 @@ SOURCES += \
 	\
 	base64.ml \
 	piqobj_to_json.ml \
+	piqobj_of_json.ml \
 	\
 	piq.ml \
 	\

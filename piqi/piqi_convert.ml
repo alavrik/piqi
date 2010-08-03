@@ -127,6 +127,10 @@ let get_reader = function
   | "piq" ->
       let piq_parser = Piq.open_piq !ifile in
       make_reader Piq.load_piq_obj piq_parser
+  | "json" ->
+      Piqi.init (); (* we process json objects using piqi types *)
+      let json_parser = Piqi_json.open_json !ifile in
+      make_reader Piq.load_json_obj json_parser
   | "piqi" -> 
       make_reader load_piqi !ifile
   | "wire" ->
@@ -204,5 +208,5 @@ let run () =
  
 let _ =
   Main.register_command run "convert"
-    "convert data files between various encodings (.piq, .wire, .pb)"
+    "convert data files between various encodings (.piq, .wire, .pb, .json)"
 

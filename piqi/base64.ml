@@ -358,7 +358,7 @@ distribution.
   ;;
 
 
-  let decode ?(pos=0) ?len ?(url_variant=true) ?(accept_spaces=false) s =
+  let decode ?(pos=0) ?len ?(url_variant=false) ?(accept_spaces=false) s =
     let l = match len with None -> String.length s - pos | Some x -> x in
     let (s,_,_) = decode_prefix s pos l url_variant accept_spaces true false in
     s
