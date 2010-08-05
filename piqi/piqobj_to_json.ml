@@ -99,7 +99,7 @@ and gen_record x =
 
 and gen_field x =
   open F in
-  let name = name_of_field x.piqtype in
+  let name = some_of x.piqtype.T.Field.json_name in
   match x.obj with
     | None -> make_name name
     | Some obj -> make_named name (gen_obj obj)
@@ -113,7 +113,7 @@ and gen_variant x =
 
 and gen_option x =
   open O in
-  let name = name_of_option x.piqtype in
+  let name = some_of x.piqtype.T.Option.json_name in
   match x.obj with
     | None -> make_name name
     | Some obj -> make_named name (gen_obj obj)
@@ -126,7 +126,7 @@ and gen_enum x =
 
 and gen_enum_option x =
   open O in
-  let name = name_of_option x.piqtype in
+  let name = some_of x.piqtype.T.Option.json_name in
   `String name
 
 

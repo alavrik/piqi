@@ -31,6 +31,18 @@ let boot_mode = ref true
 let boot_piqi :T.piqi option ref = ref None
 
 
+(* processing hooks to be run at the end of Piqi module load & processing *)
+let processing_hooks = ref []
+
+let add_processing_hook (f :T.piqi -> unit) =
+  (* run the hook on the boot module if it has been loaded already *)
+  (match !boot_piqi with
+    | None -> ()
+    | Some x -> f x
+  );
+  processing_hooks := f :: !processing_hooks
+
+
 let add_piqdef idtable (piqdef:T.piqdef) = 
   let name = piqdef_name piqdef in
   debug "add_piqdef: %s\n" name;
@@ -934,6 +946,9 @@ let rec process_piqi (piqi: T.piqi) =
 
   piqi.P#extended_piqdef <- extended_defs;
   piqi.P#resolved_piqdef <- resolved_defs;
+
+  (* run registered processing hooks *)
+  List.iter (fun f -> f piqi) !processing_hooks;
   ()
  
 

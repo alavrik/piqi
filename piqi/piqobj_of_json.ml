@@ -125,18 +125,14 @@ and parse_record t = function
 
 
 and do_parse_record loc t l =
-  let required_spec, other_spec =
-    List.partition is_required_field t.T.Record#field in
-  (* parse required fields first *)
+  debug "do_parse_record: %s\n" t.T.Record#name;
+  let fields_spec = t.T.Record#field in
   let fields, rem =
-    List.fold_left (parse_field loc) ([], l) (required_spec @ other_spec) in
+    List.fold_left (parse_field loc) ([], l) fields_spec in
   (* issue warnings on unparsed fields *)
   List.iter handle_unknown_field rem;
   (* put required fields back at the top *)
   R#{ piqtype = t; field = List.rev fields}
-
-
-and is_required_field t = (t.T.Field#mode = `required)
 
 
 and parse_field loc (accu, rem) t =
@@ -150,7 +146,7 @@ and parse_field loc (accu, rem) t =
 
 and do_parse_flag t l =
   open T.Field in
-  let name = name_of_field t in
+  let name = some_of t.json_name in
   debug "do_parse_flag: %s\n" name;
   let res, rem = find_flags name l in
   match res with
@@ -163,7 +159,7 @@ and do_parse_flag t l =
 
 and do_parse_field loc t l =
   open T.Field in
-  let name = name_of_field t in
+  let name = some_of t.json_name in
   debug "do_parse_field: %s\n" name;
   let field_name = t.name in
   let field_type = piqtype (some_of t.typeref) in
@@ -247,7 +243,10 @@ and parse_variant t x =
         let options = t.T.Variant#option in
         let option =
           try
-            let o = List.find (fun o -> name_of_option o = name) options in
+            let o =
+              List.find (fun o ->
+                some_of o.T.Option.json_name = name) options
+            in
             parse_option o value
           with Not_found ->
             error x ("unknown variant option: " ^ name)

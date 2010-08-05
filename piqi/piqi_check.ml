@@ -34,6 +34,8 @@ let speclist = Main.common_speclist @
 
 
 let check_piqi filename =
+  (* in order to check JSON names: *)
+  Piqi_json.init ();
   ignore (Piqi.load_piqi filename)
 
 

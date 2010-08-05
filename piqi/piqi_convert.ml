@@ -123,12 +123,12 @@ let get_reader = function
       let wireobj = Piq.open_pb !ifile in
       make_reader (load_pb piqtype) wireobj
   | _ when !typename <> "" ->
-      piqi_error "--type parameter is applicable only to \"pb\" input encoding"
+      piqi_error "--piqtype parameter is applicable only to \"pb\" input encoding"
   | "piq" ->
       let piq_parser = Piq.open_piq !ifile in
       make_reader Piq.load_piq_obj piq_parser
   | "json" ->
-      Piqi.init (); (* we process json objects using piqi types *)
+      Piqi_json.init ();
       let json_parser = Piqi_json.open_json !ifile in
       make_reader Piq.load_json_obj json_parser
   | "piqi" -> 
@@ -170,6 +170,7 @@ let convert_file () =
       | "piq" -> Piq.write_piq
       | "wire" -> Piq.write_wire
       | "json" ->
+          Piqi_json.init ();
           (* XXX: We need to resolve all defaults before converting to JSON
            * since it is a dynamic encoding *)
           flag_add_defaults := true;
