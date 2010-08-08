@@ -15,7 +15,7 @@
 
 The JSON generator implementation is based on Martin Jambon's "yojson" library.
 The original code was taken from here:
-  svn://scm.ocamlcore.org/svnroot/yojson/trunk/yojson
+  http://martin.jambon.free.fr/yojson.html
 
 Below is the original copyright notice and the license:
 
@@ -73,7 +73,6 @@ let finish_string src start ob =
       src !start (String.length src - !start);
     failwith "oops"
 
-(* TODO, FIXME: unicode *)
 let write_string_body ob s =
   let start = ref 0 in
   for i = 0 to String.length s - 1 do
@@ -162,11 +161,12 @@ let write_float ob x =
 
 
 let write_float ob x =
+  (* Using JavaScript notation for NaN and Infinity *)
   match classify_float x with
     FP_nan ->
-      Buffer.add_string ob "\"0.nan\""
+      Buffer.add_string ob "\"NaN\""
   | FP_infinite ->
-      Buffer.add_string ob (if x > 0. then "\"0.inf\"" else "\"-0.inf\"")
+      Buffer.add_string ob (if x > 0. then "\"Infinity\"" else "\"-Infinity\"")
   | _ ->
       write_float ob x
       (*
@@ -223,7 +223,7 @@ let f_sep ob =
 
 let rec write_json ob (x : json) =
   match x with
-      `Null -> write_null ob ()
+      `Null () -> write_null ob ()
     | `Bool b -> write_bool ob b
     | `Int i -> Buffer.add_string ob (Int64.to_string i)
     | `Uint i -> Buffer.add_string ob (uint64_to_string i)
@@ -296,7 +296,7 @@ let variant = { list with
 
 let rec format (x : json) =
   match x with
-      `Null -> Atom ("null", atom)
+      `Null () -> Atom ("null", atom)
     | `Bool x -> Atom ((if x then "true" else "false"), atom)
     | `Int i -> Atom (Int64.to_string i, atom)
     | `Uint i -> Atom (uint64_to_string i, atom)

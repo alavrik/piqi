@@ -15,7 +15,7 @@
 
 The JSON parser implementation is based on Martin Jambon's "yojson" library.
 The original code was taken from here: 
-  svn://scm.ocamlcore.org/svnroot/yojson/trunk/yojson
+  http://martin.jambon.free.fr/yojson.html
 
 Below is the original copyright notice and the license:
 
@@ -88,25 +88,38 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
     mutable fname : string option;
       (* Name describing the input file *)
+
+    mutable utf8_delta : int;
+      (* bol position correction for multibyte utf8 encoding *)
+
+    mutable loc : Piqloc.loc list;
+      (* the list of JSON element locations in reverse order *)
   }
 
 
-  let custom_error descr v lexbuf =
+  let location v lexbuf =
     let offs = lexbuf.lex_abs_pos in
     let bol = v.bol in
-    let pos1 = offs + lexbuf.lex_start_pos - bol in
-    let _pos2 = max pos1 (offs + lexbuf.lex_curr_pos - bol - 1) in
+    let bytes = offs + lexbuf.lex_start_pos - bol in
     let filename =
       match v.fname with
-	  None -> "" (* XXX, TODO: make it uniform across Piqi *)
-	| Some s -> s
+          None -> "" (* XXX, TODO: make it uniform across Piqi *)
+        | Some s -> s
     in
-    let bytes =
-      if pos1 = _pos2
-      then (pos1+1)
-      else (pos1+1) (* (_pos2+1) *)
-    in
-    let loc = (filename, v.lnum, bytes) in
+    let len = bytes - v.utf8_delta + 1 in (* column positions start from 1 *)
+    (filename, v.lnum, len)
+
+
+  let addloc v lexbuf =
+    if not !Piqi_config.pp_mode
+    then
+      let loc = location v lexbuf in
+      v.loc <- loc :: v.loc
+    else ()
+
+
+  let custom_error descr v lexbuf =
+    let loc = location v lexbuf in
     Piqi_common.error_at loc descr
 
 
@@ -142,11 +155,43 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   let newline v lexbuf =
     v.lnum <- v.lnum + 1;
-    v.bol <- lexbuf.lex_abs_pos + lexbuf.lex_curr_pos
+    v.bol <- lexbuf.lex_abs_pos + lexbuf.lex_curr_pos;
+    v.utf8_delta <- 0; (* reset delta at newline *)
+    ()
 
-  let add_lexeme buf lexbuf =
+
+  (* returning length of utf8 string, i.e. unicode character count *)
+  let utf8_length s pos bytes =
+    let rec aux n i =
+      if i >= pos + bytes
+      then
+        if i = pos + bytes then n else raise Utf8.MalFormed
+      else begin
+        (* check if the next unicode char is correctly encoded in utf8 *)
+        ignore (Utf8.next s i);
+        let w = Utf8.width.(Char.code s.[i]) in
+        if w > 0 then aux (succ n) (i + w)
+        else raise Utf8.MalFormed
+      end
+    in
+    aux 0 pos
+
+
+  let check_adjust_utf8 v lexbuf s start len =
+    let utf8_len =
+      try utf8_length s start len
+      with Utf8.MalFormed ->
+        custom_error "Invalid utf-8 sequence" v lexbuf
+    in
+    v.utf8_delta <- v.utf8_delta + (len - utf8_len)
+
+
+  let add_lexeme v lexbuf =
     let len = lexbuf.lex_curr_pos - lexbuf.lex_start_pos in
-    Buffer.add_substring buf lexbuf.lex_buffer lexbuf.lex_start_pos len
+    let s = lexbuf.lex_buffer in
+    let start = lexbuf.lex_start_pos in
+    check_adjust_utf8 v lexbuf s start len;
+    Buffer.add_substring v.buf s start len
 
   let map_lexeme f lexbuf =
     let len = lexbuf.lex_curr_pos - lexbuf.lex_start_pos in
@@ -158,7 +203,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   exception End_of_object
 }
 
-let space = [' ' '\t' '\r']+
+let space = [' ' '\t']+ | '\r'
+let newline = '\r'?'\n'
 
 let digit = ['0'-'9']
 let nonzero = ['1'-'9']
@@ -173,12 +219,13 @@ let number = '-'? positive_int (frac | exp | frac exp)?
 
 let hex = [ '0'-'9' 'a'-'f' 'A'-'F' ]
 
-let ident = ['a'-'z' 'A'-'Z' (* XXX: *) '_']['a'-'z' 'A'-'Z' '_' '0'-'9']*
+let ident = ['a'-'z' 'A'-'Z' '_']['a'-'z' 'A'-'Z' '_' '0'-'9']*
 
 
 (* taken from http://www.w3.org/2005/03/23-lex-U *)
 (* NOTE: may occur only in strings, thus exluding control characters (1, 0x1f),
  * '"', and '\\' *)
+(*
 let utf8_char =
 (* (* 1 *)   ['\x00'-'\x7F'] -- original class *)
 (* 1 *)   [^ '\x00'-'\x1F' '\x80'-'\xff' '"' '\\']
@@ -192,13 +239,15 @@ let utf8_char =
 (* 9 *) | ( '\xF4'         ['\x80'-'\x8F'] ['\x80'-'\xBF'] ['\x80'-'\xBF'])
 
 (* '"' *)
+*)
 
 
 rule read_json v = parse
-  | "true"      { `Bool true }
-  | "false"     { `Bool false }
-  | "null"      { `Null }
+  | "true"      { addloc v lexbuf; `Bool true }
+  | "false"     { addloc v lexbuf; `Bool false }
+  | "null"      { addloc v lexbuf; `Null () }
   | '"'         {
+                  addloc v lexbuf;
                   if not !Piqi_config.pp_mode
                   then
 	            (Buffer.clear v.buf;
@@ -209,12 +258,14 @@ rule read_json v = parse
                 }
   | '-'? positive_int
                 {
+                  addloc v lexbuf;
                   let s = lexeme lexbuf in
                   if not !Piqi_config.pp_mode
                   then make_int s v lexbuf
                   else `Intlit s
                 }
   | float       {
+                  addloc v lexbuf;
                   if not !Piqi_config.pp_mode
                   then
                     `Float (float_of_string (lexeme lexbuf))
@@ -222,7 +273,9 @@ rule read_json v = parse
                     `Floatlit (lexeme lexbuf)
                 }
 
-  | '{'          { let acc = ref [] in
+  | '{'          {
+                   addloc v lexbuf;
+                   let acc = ref [] in
 		   try
 		     read_space v lexbuf;
 		     read_object_end lexbuf;
@@ -246,7 +299,9 @@ rule read_json v = parse
 		     `Assoc (List.rev !acc)
 		 }
 
-  | '['          { let acc = ref [] in
+  | '['          {
+                   addloc v lexbuf;
+                   let acc = ref [] in
 		   try
 		     read_space v lexbuf;
 		     read_array_end lexbuf;
@@ -262,7 +317,7 @@ rule read_json v = parse
 		     `List (List.rev !acc)
 		 }
 
-  | "\n"         { newline v lexbuf; read_json v lexbuf }
+  | newline      { newline v lexbuf; read_json v lexbuf }
   | space        { read_json v lexbuf }
   | eof          { custom_error "Unexpected end of input" v lexbuf }
   | _            { lexer_error "Invalid token" v lexbuf }
@@ -272,14 +327,11 @@ and finish_string v = parse
     '"'           { Buffer.contents v.buf }
   | '\\'          { finish_escaped_char v lexbuf;
 		    finish_string v lexbuf }
-  (*
-  | [^ '"' '\\']+ -- original 8-bit sequence
-  *)
-  | utf8_char+    { add_lexeme v.buf lexbuf;
+  | [^ '"' '\\' '\x00'-'\x1F']+
+                  { add_lexeme v lexbuf;
 		    finish_string v lexbuf }
   | ['\x00'- '\x1f']
                   { custom_error "Invalid string literal" v lexbuf }
-  | _             { custom_error "Invalid utf-8 sequence" v lexbuf }
   | eof           { custom_error "Unexpected end of input" v lexbuf }
 
 
@@ -301,35 +353,34 @@ and finish_escaped_char v = parse
 
 and finish_stringlit v = parse
     ( '\\' (['"' '\\' '/' 'b' 'f' 'n' 'r' 't'] | 'u' hex hex hex hex)
-    (* | [^'"' '\\'] )* '"' -- original 8-bit sequence *)
-    | utf8_char )* '"'
+    | [^ '"' '\\' '\x00'-'\x1F'])* '"'
          {
            let len = lexbuf.lex_curr_pos - lexbuf.lex_start_pos in
 	   let s = String.create (len+1) in
 	   s.[0] <- '"';
 	   String.blit lexbuf.lex_buffer lexbuf.lex_start_pos s 1 len;
+           check_adjust_utf8 v lexbuf s 1 len;
 	   s
 	 }
   | ['\x00'- '\x1f']
-         { lexer_error "Invalid string literal" v lexbuf }
-  | _    { custom_error "Invalid utf-8 sequence" v lexbuf }
+         { custom_error "Invalid string literal" v lexbuf }
   | eof  { custom_error "Unexpected end of input" v lexbuf }
 
 
 (* Readers expecting a particular JSON construct *)
 
 and read_eof = parse
-    eof       { true }
-  | ""        { false }
+    eof      { true }
+  | ""       { false }
 
 and read_space v = parse
-  | '\n'                     { newline v lexbuf; read_space v lexbuf }
-  | [' ' '\t' '\r']+         { read_space v lexbuf }
-  | ""                       { () }
+  | newline  { newline v lexbuf; read_space v lexbuf }
+  | space    { read_space v lexbuf }
+  | ""       { () }
 
 and read_ident v = parse
   | '"' (ident as s) '"'
-             { s }
+             { addloc v lexbuf; s }
   | _        { lexer_error "Expected string identifier but found" v lexbuf }
   | eof      { custom_error "Unexpected end of input" v lexbuf }
 
@@ -361,7 +412,7 @@ and read_colon v = parse
 
 
 {
-  (* TODO, XXX: detect JSON encoding and make sure that it is utf-8 *)
+  (* XXX: detect JSON encoding and make sure that it is utf-8 *)
 
   let _ = (read_json : lexer_state -> Lexing.lexbuf -> json)
 
@@ -380,15 +431,58 @@ and read_colon v = parse
       buf = buf;
       lnum = lnum;
       bol = 0;
-      fname = fname
+      fname = fname;
+      utf8_delta = 0;
+      loc = [];
     }
+
+
+  let rec save_locations v json =
+    let addloc loc obj = Piqloc.addloc loc obj in
+    let rec aux l x =
+      let h, t =
+        match l with
+          | h::t -> h, t
+          | _ -> assert false
+      in
+      let add x = addloc h x in
+      let addret x = add x; t in
+      match x with
+        | `Null () -> addret x
+        | `Bool b -> addret x
+        | `Int i -> addret x
+        | `Uint i -> addret x
+        | `Intlit s -> addret x
+        | `Float f -> addret x
+        | `Floatlit s -> addret x
+        | `String s -> addret x
+        | `Stringlit s -> addret x
+        | `Assoc l ->
+            add x;
+            List.fold_left
+              (fun l (n, v) ->
+                addloc (List.hd l) n;
+                aux (List.tl l) v) t l
+        | `List l ->
+            add x;
+            List.fold_left (fun t v -> aux t v) t l
+    in
+    if not !Piqi_config.pp_mode
+    then
+      let t = aux (List.rev v.loc) json in
+      v.loc <- []; (* reset the location list *)
+      assert (t = [])
+    else ()
 
 
   let read_next (v, lexbuf) =
     read_space v lexbuf;
     if read_eof lexbuf
     then None
-    else Some (read_json v lexbuf)
+    else
+      let json = read_json v lexbuf in
+      save_locations v json;
+      Some json
 
 
   let read_all json_parser =

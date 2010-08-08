@@ -111,26 +111,39 @@ let make_reader load_f input_param =
   (fun () -> load_f input_param)
 
 
-let make_writer write_f output_param =
-  (fun obj -> write_f output_param obj)
+let init_json_writer enc =
+  Piqi_json.init ();
+  (* XXX: We need to resolve all defaults before converting to JSON
+   * since it is a dynamic encoding *)
+  flag_add_defaults := true;
+  ()
 
- 
+
+let init_json_reader enc =
+  Piqi_json.init ();
+  if !typename <> ""
+  then
+    let piqtype = get_piqtype !typename in
+    Piq.default_piqtype := Some piqtype
+  else ()
+
+
 let get_reader = function
   | "pb" when !typename = "" ->
-      piqi_error "when using \"pb\" as input encoding, --type parameter must be specified"
+      piqi_error "--piqtype parameter must be specified for \"pb\" input encoding"
   | "pb" ->
       let piqtype = get_piqtype !typename in
       let wireobj = Piq.open_pb !ifile in
       make_reader (load_pb piqtype) wireobj
+  | "json" | "piq-json" ->
+      init_json_reader ();
+      let json_parser = Piqi_json.open_json !ifile in
+      make_reader Piq.load_json_obj json_parser
   | _ when !typename <> "" ->
-      piqi_error "--piqtype parameter is applicable only to \"pb\" input encoding"
+      piqi_error "--piqtype parameter is applicable only to \"pb\" or \"json\" input encodings"
   | "piq" ->
       let piq_parser = Piq.open_piq !ifile in
       make_reader Piq.load_piq_obj piq_parser
-  | "json" ->
-      Piqi_json.init ();
-      let json_parser = Piqi_json.open_json !ifile in
-      make_reader Piq.load_json_obj json_parser
   | "piqi" -> 
       make_reader load_piqi !ifile
   | "wire" ->
@@ -152,9 +165,9 @@ let write_pb ch (obj: Piq.obj) =
             Piq.write_pb ch obj
           end
         else
-          piqi_error "converting multiple objects to .bp is disallowed"
+          piqi_error "converting multiple objects to \"bp\" is disallowed"
     | _ ->
-          piqi_error "only typed object can be converted to .pb"
+          piqi_error "only typed object can be converted to \"pb\""
 
 
 let convert_file () =
@@ -170,11 +183,12 @@ let convert_file () =
       | "piq" -> Piq.write_piq
       | "wire" -> Piq.write_wire
       | "json" ->
-          Piqi_json.init ();
-          (* XXX: We need to resolve all defaults before converting to JSON
-           * since it is a dynamic encoding *)
-          flag_add_defaults := true;
+          init_json_writer ();
           Piq.write_json
+      | "piq-json" ->
+          init_json_writer ();
+          output_encoding := "json";
+          Piq.write_piq_json
       | "pb" -> write_pb
       | _ -> piqi_error "unknown output encoding"
   in
@@ -209,5 +223,5 @@ let run () =
  
 let _ =
   Main.register_command run "convert"
-    "convert data files between various encodings (.piq, .wire, .pb, .json)"
+    "convert data files between various encodings (piq, wire, pb, json, piq-json)"
 

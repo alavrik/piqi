@@ -59,14 +59,23 @@ let piqobj_of_ast ?piqtype ast :Piqobj.obj =
 let default_piqtype = ref None
 
 
-let find_piqtype typename =
+let check_piqtype n =
+  if not (Piqi_name.is_valid_typename n)
+  then error n ("invalid type name: " ^ quote n)
+  else ()
+
+
+let find_piqtype ?(check=false) typename =
+  if check
+  then check_piqtype typename;
+
   try Piqi_db.find_piqtype typename
   with Not_found ->
     error typename ("unknown type: " ^ typename)
 
 
-let process_default_piqtype typename =
-  let piqtype = find_piqtype typename in
+let process_default_piqtype ?check typename =
+  let piqtype = find_piqtype ?check typename in
   (* NOTE: silently overriding previous value *)
   default_piqtype := Some piqtype
 
@@ -250,7 +259,7 @@ let open_pb fname =
   buf
 
 
-(* NOTE: that function can be called exactly once *)
+(* NOTE: this function can be called exactly once *)
 let load_pb (piqtype:T.piqtype) wireobj :Piqobj.obj =
   (* TODO: handle runtime wire read errors *)
   Piqobj_of_wire.parse_obj piqtype wireobj
@@ -269,7 +278,13 @@ let write_pb ch (obj :Piqobj.obj) =
   Piqirun_gen.to_channel ch buf
 
 
-let write_json ch (obj:obj) =
+let write_json_obj ch json =
+  Piqi_json_gen.pretty_to_channel ch json;
+  (* XXX: add a newline for better readability *)
+  Pervasives.output_char ch '\n'
+
+
+let write_piq_json ch (obj:obj) =
   let json =
     match obj with
       | Piqtype typename ->
@@ -279,9 +294,15 @@ let write_json ch (obj:obj) =
       | Piqobj obj ->
           Piqobj_to_json.gen_obj obj
   in
-  Piqi_json_gen.pretty_to_channel ch json;
-  (* XXX: add a newline for better readability *)
-  Pervasives.output_char ch '\n'
+  write_json_obj ch json
+
+
+let write_json ch (obj:obj) =
+  match obj with
+    | Typed_piqobj obj | Piqobj obj ->
+        let json = Piqobj_to_json.gen_obj obj in
+        write_json_obj ch json
+    | Piqtype _ -> () (* ignore *)
 
 
 let read_json_ast json_parser :Piqi_json_common.json =
@@ -295,23 +316,22 @@ let piqobj_of_json piqtype json :Piqobj.obj =
   Piqobj_of_json.parse_obj piqtype json
 
 
-(* TODO,XXX: check typenames, as Json parser doesn't perform any checks unlike
- * the Piq parser *)
 let load_json_obj json_parser :obj =
+  (* check typenames, as Json parser doesn't do it unlike the Piq parser *)
+  let check = true in
   let ast = read_json_ast json_parser in
   match ast with
     | `Assoc [ "_piqtype", `String typename ] ->
         (* :piqtype <typename> *)
-        process_default_piqtype typename;
+        process_default_piqtype typename ~check;
         Piqtype typename
     | `Assoc [ "_piqtype", _ ] ->
         error ast "invalid piqtype specification"
-    | `Null ->
-        (* TODO: location can't be associated with unboxed `Null *)
+    | `Null () ->
         error ast "invalid toplevel value: null"
     | `Assoc [ "_piqtype", `String typename;
                "_piqobj", ast ] ->
-        let piqtype = find_piqtype typename in
+        let piqtype = find_piqtype typename ~check in
         let obj = piqobj_of_json piqtype ast in
         Typed_piqobj obj
     | `Assoc (("_piqtype", _ )::_) ->

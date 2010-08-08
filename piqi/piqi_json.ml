@@ -34,9 +34,27 @@ let json_name n =
   Some (json_name' n)
 
 
-(* TODO: check name validity *)
-let check_json_name json_name =
-  ()
+(* check name validity *)
+let check_json_name s =
+  let error () = error s "invalid json-name" in
+
+  if s = ""
+  then error ();
+
+  (match s.[0] with
+    | 'a'..'z' | 'A'..'Z' | '_' -> ()
+    | _ -> error ()
+  );
+
+  for i = 1 to String.length s - 1
+  do
+    match s.[i] with
+      | 'a'..'z'
+      | 'A'..'Z'
+      | '0'..'9'
+      | '_' -> ()
+      | _ -> error ()
+  done
 
 
 (* XXX: use name instead of json_name for foreign types? *)
@@ -62,14 +80,14 @@ let json_name_field x =
   open Field in
   match x.json_name with
     | None -> x.json_name <- json_name_of x.name x.typeref
-    | Some n -> check_json_name x.json_name
+    | Some n -> check_json_name n
 
 
 let json_name_record x =
   open Record in
   (match x.json_name with
      | None -> x.json_name <- json_name x.name
-     | Some n -> check_json_name x.json_name
+     | Some n -> check_json_name n
   )
 
 
@@ -77,14 +95,14 @@ let json_name_option x =
   open Option in
   match x.json_name with
     | None -> x.json_name <- json_name_of x.name x.typeref
-    | Some n -> check_json_name x.json_name
+    | Some n -> check_json_name n
 
 
 let json_name_variant x =
   open Variant in
   (match x.json_name with
      | None -> x.json_name <- json_name x.name
-     | Some n -> check_json_name x.json_name
+     | Some n -> check_json_name n
   )
 
 
@@ -92,14 +110,14 @@ let json_name_alias x =
   open Alias in
   match x.json_name with
     | None -> x.json_name <- json_name x.name
-    | Some n -> check_json_name x.json_name
+    | Some n -> check_json_name n
 
 
 let json_name_list x =
   open L in
   match x.json_name with
     | None -> x.json_name <- json_name x.name
-    | Some n -> check_json_name x.json_name
+    | Some n -> check_json_name n
 
 
 let json_name_piqdef = function

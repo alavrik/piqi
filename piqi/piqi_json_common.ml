@@ -15,7 +15,7 @@
 
 This code is based on Martin Jambon's "yojson" library.
 The original code was taken from here:
-  svn://scm.ocamlcore.org/svnroot/yojson/trunk/yojson
+  http://martin.jambon.free.fr/yojson.html
 
 Below is the original copyright notice and the license:
 
@@ -47,7 +47,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 type json =
   [
-  | `Null
+  | `Null of unit (* using unit to turn Null into a boxed value *)
   | `Bool of bool
   | `Int of int64
   | `Uint of int64 (* big unsigned int64 *)

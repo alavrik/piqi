@@ -44,7 +44,7 @@ let make_named name value =
 
 
 let make_name name =
-  name, `Null
+  name, `Null ()
 
 
 let rec gen_obj (x:Piqobj.obj) :json =

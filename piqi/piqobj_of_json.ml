@@ -56,9 +56,9 @@ let parse_float (x:json) = match x with
   | `Int x -> Int64.to_float x
   | `Uint x -> Piqobj_of_piq.uint64_to_float x
   | `Float x -> x
-  | `String "0.nan" -> Pervasives.nan
-  | `String "0.inf" -> Pervasives.infinity
-  | `String "-0.inf" -> Pervasives.neg_infinity
+  | `String "NaN" -> Pervasives.nan
+  | `String "Infinity" -> Pervasives.infinity
+  | `String "-Infinity" -> Pervasives.neg_infinity
   | o -> error o "float constant expected"
 
 
@@ -208,7 +208,7 @@ and find_fields (name:string) (l:(string*json) list) :(json list * (string*json)
 and find_flags (name:string) (l:(string*json) list) :(string list * (string*json) list) =
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
-    | (n, `Null)::t when n = name -> aux (n::accu) rem t
+    | (n, `Null ())::t when n = name -> aux (n::accu) rem t
     | (n, _)::t when n = name ->
         error n "value can not be specified for a flag"
     | h::t -> aux accu (h::rem) t
@@ -261,11 +261,11 @@ and parse_variant t x =
 and parse_option t x =
   open T.Option in
   match t.typeref, x with
-    | None, `Null ->
+    | None, `Null () ->
         O#{ piqtype = t; obj = None }
     | None, _ ->
         error x "null value expected"
-    | Some _, `Null ->
+    | Some _, `Null () ->
         error x "non-null value expected"
     | Some typeref, _ ->
         let option_type = piqtype typeref in

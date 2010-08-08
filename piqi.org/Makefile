@@ -36,7 +36,7 @@ test_piqi_piqi:
 	piqi expand piqi.piqi > p.piqi
 	piqi convert -t pb p.piqi
 	protoc --decode=piqi_org.piqi.piqi piqi.piqi.proto < p.piqi.pb > p.piqi.text
-	piqi convert -t json p.piqi
+	piqi convert -t piq-json p.piqi
 	piqi convert p.piqi.json >/dev/null
 
 

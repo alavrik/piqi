@@ -70,6 +70,9 @@ let uint64_to_string x =
 
 (* NOTE, XXX: copied from pervasives.ml *)
 external ocaml_format_float: string -> float -> string = "caml_format_float"
+
+(* TODO: ensure floating point reversibility. See piqi_json_gen.ml for details
+ *)
 let string_of_float x =
   ocaml_format_float "%.12g" x
 

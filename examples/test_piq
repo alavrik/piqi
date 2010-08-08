@@ -36,8 +36,8 @@ piqi convert $f.piq.wire
 # convert back to .piq and add defaults
 piqi convert --add-defaults $f.piq.wire 
 
-# convert to json encoding, writing output to "<source file>.json" file
-piqi convert -t json $f.piq
+# convert to piq-json encoding, writing output to "<source file>.json" file
+piqi convert -t piq-json $f.piq
 
 # convert back to .piq
 piqi convert $f.piq.json
