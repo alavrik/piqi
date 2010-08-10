@@ -116,7 +116,7 @@ and parse_any x =
 
 and parse_record t = function
   | (`Assoc l) as x ->
-      (* NOTE: pass locating information as a separate parameter since empty
+      (* NOTE: passing locating information as a separate parameter since empty
        * list is unboxed and doesn't provide correct location information *)
       let loc = x in
       do_parse_record loc t l
@@ -219,7 +219,8 @@ and find_flags (name:string) (l:(string*json) list) :(string list * (string*json
 and parse_optional_field name field_name field_type default l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> None, rem
+    | [] -> None, rem (* XXX: allowing field to be acutally missing *)
+    | [`Null ()] -> None, rem
     | [x] -> Some (parse_obj field_type x), rem
     | _::o::_ -> error_duplicate o name
 
@@ -229,11 +230,12 @@ and parse_optional_field name field_name field_type default l =
 and parse_repeated_field name field_name field_type l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> [], rem
-    | l ->
-        (* use strict parsing *)
-        let res = List.map (parse_obj field_type) res in
+    | [] -> [], rem (* XXX: allowing repeated field to be acutally missing *)
+    | [`List l] ->
+        let res = List.map (parse_obj field_type) l in
         res, rem
+    | [x] -> error x "array expected"
+    | _::o::_ -> error_duplicate o name
 
 
 and parse_variant t x =

@@ -93,16 +93,29 @@ and gen_any x =
 
 and gen_record x =
   open R in
-  let fields = x.field in
-  `Assoc (List.map gen_field fields)
+  let field_types = x.piqtype.T.Record.field in
+  `Assoc (List.map (gen_field x.field) field_types)
 
 
-and gen_field x =
+and gen_field fields t =
+  open T.Field in
+  let name = some_of t.json_name in
   open F in
-  let name = some_of x.piqtype.T.Field.json_name in
-  match x.obj with
-    | None -> make_name name
-    | Some obj -> make_named name (gen_obj obj)
+  let pred f = f.piqtype == t in
+  match t.mode with
+    | `required | `optional ->
+        (try
+          let f = List.find pred fields in
+          (match f.obj with
+             | None -> make_name name (* flag *)
+             | Some obj -> make_named name (gen_obj obj)
+          )
+        with
+          Not_found -> make_name name (* optional *) )
+    | `repeated ->
+        let fields = List.find_all pred fields in
+        let json_fields = List.map (fun f -> gen_obj (some_of f.obj)) fields in
+        make_named name (`List json_fields)
 
 
 and gen_variant x =
