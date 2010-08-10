@@ -82,7 +82,7 @@ let cleanup () =
 
 
 let cleanup_on_error () =
-  cleanup ();
+  (try cleanup () with _ -> ());
   (* delete output file *)
   if !och != stdout
   then delete_file !ofile;
