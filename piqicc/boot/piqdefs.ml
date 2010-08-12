@@ -77,7 +77,7 @@ let piqdef_list =
               ocaml_name = None; code = None;
             };
             F#{
-              name = Some "ignore-field";
+              name = Some "custom-field";
               typeref = Some `word;
               mode = `repeated;
               default = None;

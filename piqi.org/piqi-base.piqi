@@ -13,7 +13,7 @@
 .include [ .module piqi.org/piqtype-wire ]
 
 
-.ignore-field ocaml-name
+.custom-field ocaml-name
 
 
 .record [
@@ -72,7 +72,7 @@
     ]
 
     .field [
-        .name ignore-field
+        .name custom-field
         .type word
         .repeated
     ]

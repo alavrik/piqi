@@ -9,7 +9,7 @@
 .include [ .module piqi.org/piqast ]
 
 
-.ignore-field ocaml-name
+.custom-field ocaml-name
 
 
 .variant [

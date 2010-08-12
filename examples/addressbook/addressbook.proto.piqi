@@ -6,7 +6,7 @@
 % "person-phone-name" record. This is necessary because "type" is a keyword in
 % OCaml
 
-.ignore-field ocaml-name
+.custom-field ocaml-name
 
 
 .proto-package "tutorial"

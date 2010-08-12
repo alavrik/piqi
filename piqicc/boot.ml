@@ -30,7 +30,7 @@ let boot () =
       import = [];
       extend = [];
 
-      ignore_field = [];
+      custom_field = [];
 
       extended_piqdef = T.piqdef_list;
       resolved_piqdef = T.piqdef_list;

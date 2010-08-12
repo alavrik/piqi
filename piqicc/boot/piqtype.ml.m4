@@ -187,7 +187,7 @@ and DEFRECORD(Piqi,
     mutable import : Import.t list;
     mutable extend : Extend.t list;
 
-    mutable ignore_field : string list;
+    mutable custom_field : string list;
 
     mutable extended_piqdef : Piqtype.piqdef list;
     mutable resolved_piqdef : Piqtype.piqdef list;

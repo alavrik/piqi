@@ -51,7 +51,7 @@ let unresolve_piqi piqi =
 
     includ = [];
     import = [];
-    ignore_field = [];
+    custom_field = [];
 
     (* strip all piqi-impl (implementation related) extensions *)
     extended_piqdef = [];
@@ -106,7 +106,7 @@ let expand_piqi ch filename =
   (* moving other stuff at the top *)
   top.P#import <- imports;
   (* XXX: they are already ignored during the expansion
-  top.P#ignore_field <- ignored_fields;
+  top.P#custom_field <- custom_fields;
   *)
   print_piqi ch top;
 

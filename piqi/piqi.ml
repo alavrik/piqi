@@ -706,8 +706,8 @@ let get_imports modules =
 
 
 (*
-let get_ignored_fields modules =
-  let l = flatmap (fun x -> x.P#ignore_field) modules in
+let get_custom_fields modules =
+  let l = flatmap (fun x -> x.P#custom_field) modules in
   uniq l
 *)
 
@@ -897,7 +897,7 @@ let rec process_piqi (piqi: T.piqi) =
     match !boot_piqi with
       | Some x when !Config.noboot = false ->
           (* NOTE: boot defs should be already extended *)
-          x.P#extended_piqdef, x.P#ignore_field
+          x.P#extended_piqdef, x.P#custom_field
       | _ ->
           (* boot module is being processed right now, or --noboot command-line
            * option was specified *)
@@ -910,7 +910,7 @@ let rec process_piqi (piqi: T.piqi) =
   (* get all extensions *)
   let extensions = get_extensions modules in
 
-  let ignored_fields = piqi.P#ignore_field @ boot_ignored_fields in
+  let ignored_fields = piqi.P#custom_field @ boot_ignored_fields in
   check_unknown_fields unknown_fields ignored_fields;
 
   (* expand all extensions over all definitions *)

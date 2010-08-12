@@ -20,5 +20,5 @@
 .include [ .module piqi.org/piqi-json ]
 
 
-.ignore-field ocaml-module
+.custom-field ocaml-module
 
