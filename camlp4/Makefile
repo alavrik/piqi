@@ -7,11 +7,15 @@ RESULT = piqi
 INCDIRS = +camlp4
 PRE_TARGETS = \
 	META \
+	pa_labelscope.ml pa_openin.ml \
 	pa_labelscope.cmo pa_labelscope.cmi \
 	pa_openin.cmo pa_openin.cmi
 
 
 LIBINSTALL_FILES = $(PRE_TARGETS)
+
+
+OCAML_VERSION = $(shell ocamlfind ocamlc -version | sed -e 's/\.[0-9]\+$$//')
 
 
 all: $(PRE_TARGETS)
@@ -23,6 +27,10 @@ uninstall: libuninstall
 
 META: META.templ ../VERSION
 	echo "version = \"`cat ../VERSION`\"" > $@; cat $< >> $@
+
+
+%.ml: $(OCAML_VERSION)/%.ml
+	ln -s $< $@
 
 
 include $(OCAMLMAKEFILE)
