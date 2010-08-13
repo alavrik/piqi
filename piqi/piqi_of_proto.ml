@@ -136,7 +136,7 @@ let make_piqi_name path =
 
 
 let gen_enum_value path x =
-  open ProtoEnumValue in
+  let open ProtoEnumValue in
   let name = some_of x.name in
   let piqi_name = format_name name in
   let proto_name =
@@ -158,7 +158,7 @@ let gen_enum_value path x =
 
 
 let gen_enum ?(path=[]) x =
-  open ProtoEnum in
+  let open ProtoEnum in
   let new_path = (some_of x.name) :: path in
   let name = make_piqi_name new_path in
   let consts = List.map (gen_enum_value path) x.value in
@@ -358,7 +358,7 @@ let gen_field_type idtable p_type type_name =
 
 (* NOTE: path is used only for nested extensions *)
 let gen_field_internals idtable ?(path=[]) x =
-  open ProtoField in
+  let open ProtoField in
   let label = gen_field_label (some_of x.label) in
   let type_name = gen_field_type idtable x.p_type x.type_name in
   let default = gen_default x.p_type x.default_value in
@@ -397,7 +397,7 @@ let gen_field idtable ?path x =
 
 (* NOTE: path is used only for nested extensions *)
 let gen_extension idtable ?path x =
-  open ProtoField in
+  let open ProtoField in
   let type_name = gen_type idtable (some_of x.extendee) in
   iod "\n" [
     ios ".extend [";
@@ -408,7 +408,7 @@ let gen_extension idtable ?path x =
 
 
 let rec gen_message idtable ?(path=[]) x =
-  open ProtoMessage in
+  let open ProtoMessage in
   let path = (some_of x.name) :: path in
   let name = make_piqi_name path in
   let fields = List.map (gen_field idtable) x.field in
@@ -462,7 +462,7 @@ let gen_import idtable fname =
 
 
 let process_enum idtable ?(path=[]) x =
-  open ProtoEnum in
+  let open ProtoEnum in
   begin
     let path = (some_of x.name) :: path in
     let proto_name = make_proto_name path in
@@ -472,7 +472,7 @@ let process_enum idtable ?(path=[]) x =
 
 
 let rec process_message idtable ?(path=[]) x =
-  open ProtoMessage in
+  let open ProtoMessage in
   begin
     let path = (some_of x.name) :: path in
     let proto_name = make_proto_name path in
@@ -485,7 +485,7 @@ let rec process_message idtable ?(path=[]) x =
 
 
 let process_proto idtable (x:ProtoFile.t) =
-  open ProtoFile in
+  let open ProtoFile in
   begin
     Idtable.enter_package idtable x.package (some_of x.name);
     List.iter (process_message idtable) x.message_type;
@@ -538,7 +538,7 @@ let name_imports idtable filenames =
 
 
 let gen_proto idtable (x:ProtoFile.t) =
-  open ProtoFile in
+  let open ProtoFile in
   begin
     process_proto idtable x;
     name_imports idtable x.dependency;
@@ -569,7 +569,7 @@ let process_imported_proto idtable x =
 
 
 let process_proto_set (x:ProtoFileSet.t) =
-  open ProtoFileSet in
+  let open ProtoFileSet in
   let idtable = Idtable.empty in
   let rec aux = function
     | [] -> piqi_error "input FileDescriptorSet is empty"

@@ -145,7 +145,7 @@ and parse_field loc (accu, rem) t =
 
 
 and do_parse_flag t l =
-  open T.Field in
+  let open T.Field in
   let name = some_of t.json_name in
   debug "do_parse_flag: %s\n" name;
   let res, rem = find_flags name l in
@@ -158,7 +158,7 @@ and do_parse_flag t l =
 
 
 and do_parse_field loc t l =
-  open T.Field in
+  let open T.Field in
   let name = some_of t.json_name in
   debug "do_parse_field: %s\n" name;
   let field_name = t.name in
@@ -261,7 +261,7 @@ and parse_variant t x =
 
 
 and parse_option t x =
-  open T.Option in
+  let open T.Option in
   match t.typeref, x with
     | None, `Null () ->
         O#{ piqtype = t; obj = None }
@@ -305,7 +305,7 @@ and parse_list t x =
 
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t x =
-  open T.Alias in
+  let open T.Alias in
   let obj_type = piqtype t.typeref in
   debug "parse_alias: %s\n" t.T.Alias#name;
   let obj = parse_obj obj_type x in

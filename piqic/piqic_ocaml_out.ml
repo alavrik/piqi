@@ -87,7 +87,7 @@ let gen_mode f =
 
 
 let gen_field rname f =
-  open Field in
+  let open Field in
   let fname = mlname_of_field f in
   let ffname = (* fully-qualified field name *)
     iod "." [ios "x"; ios rname; ios fname]
@@ -156,7 +156,7 @@ let gen_record r =
 
 
 let gen_const c =
-  open Option in
+  let open Option in
   iod " " [
     ios "|"; gen_const_name (some_of c.ocaml_name); ios "->";
       ios "Piqirun_gen.gen_varint32 code";
@@ -165,7 +165,7 @@ let gen_const c =
 
 
 let gen_enum e =
-  open Enum in
+  let open Enum in
   let consts = List.map gen_const e.option in
   iod " "
     [
@@ -178,7 +178,7 @@ let gen_enum e =
 
 
 let rec gen_option o =
-  open Option in
+  let open Option in
   match o.ocaml_name, o.typeref with
     | Some mln, None -> (* gen true *)
         iod " " [
@@ -201,7 +201,7 @@ let rec gen_option o =
 
 
 let gen_variant v =
-  open Variant in
+  let open Variant in
   let options = List.map gen_option v.option in
   iod " "
     [
@@ -213,7 +213,7 @@ let gen_variant v =
 
 
 let gen_alias a =
-  open Alias in
+  let open Alias in
   iod " " [
     ios "gen_" ^^ ios (some_of a.ocaml_name);
     ios "code x =";
@@ -230,7 +230,7 @@ let gen_gen_list t =
 
 
 let gen_list l =
-  open L in
+  let open L in
   iod " " [
     ios "gen_" ^^ ios (some_of l.ocaml_name);
     ios "code x =";
@@ -247,7 +247,7 @@ let gen_def = function
 
 
 let gen_alias a = 
-  open Alias in
+  let open Alias in
   if a.typeref = `any && not !depends_on_piq_any
   then []
   else [gen_alias a]

@@ -82,7 +82,7 @@ let rec typename (t:T.piqtype) =
 
 
 and gen_alias x =
-  open Alias in
+  let open Alias in
   match x.proto_type with
     | Some x -> x
     | None ->
@@ -120,11 +120,11 @@ let protoname_of name typeref =
 
 
 let protoname_of_field f =
-  open F in protoname_of f.proto_name f.typeref
+  let open F in protoname_of f.proto_name f.typeref
 
 
 let protoname_of_option o =
-  open O in protoname_of o.proto_name o.typeref
+  let open O in protoname_of o.proto_name o.typeref
 
 
 let string_of_mode = function
@@ -175,7 +175,7 @@ let rec gen_default_obj (x:Piqobj.obj) =
 
 (* using the same technique as in Piqi.resolve_field_default *)
 let gen_default x =
-  open F in
+  let open F in
   match x.default, x.typeref with
     | Some {T.Any.ast = Some ast }, Some typeref ->
         let piqtype = C.piqtype typeref in
@@ -185,7 +185,7 @@ let gen_default x =
 
 
 let gen_field f = 
-  open F in
+  let open F in
   let fdef = iod " " (* field definition *)
     [
       ios (string_of_mode f.mode);
@@ -198,7 +198,7 @@ let gen_field f =
 
 
 let gen_record r =
-  open R in
+  let open R in
   (* field definition list *) 
   let fdefs = List.map gen_field r.field in
   let rdef = iol
@@ -212,14 +212,14 @@ let gen_record r =
 
 
 let gen_const c =
-  open O in
+  let open O in
   iod " " [
     ios (some_of c.proto_name); ios "="; gen_code c.code ^^ ios ";";
   ]
 
 
 let gen_enum e =
-  open E in
+  let open E in
   let const_defs = List.map gen_const e.option in
   iol
     [
@@ -230,7 +230,7 @@ let gen_enum e =
 
 
 let gen_option o =
-  open Option in
+  let open Option in
   iod " " [
     ios "optional"; gen_typeref' o.typeref;
       protoname_of_option o; ios "="; gen_code o.code ^^ ios ";";
@@ -238,7 +238,7 @@ let gen_option o =
 
 
 let gen_variant v =
-  open Variant in
+  let open Variant in
   (* field definition list *) 
   let vdefs = List.map gen_option v.option in
   let vdef = iol
@@ -252,7 +252,7 @@ let gen_variant v =
 
 
 let gen_list l =
-  open L in
+  let open L in
   let ldef = iol
     [
       ios "message "; ios (some_of l.proto_name);
@@ -298,7 +298,7 @@ let gen_import_path modname =
 
 
 let gen_import x =
-  open Import in
+  let open Import in
   (* XXX: save filename in import record rather than resolving x.modname to
    * filename each time? *)
   iod " " [
@@ -313,7 +313,7 @@ let gen_imports l =
 
 
 let gen_piqi (piqi:T.piqi) =
-  open P in
+  let open P in
   let package =
     match piqi.P.proto_package with
       | None -> iol [] (* no package name *)
@@ -361,40 +361,40 @@ let protoname' n =
 
 
 let protoname_field x =
-  open Field in
+  let open Field in
   if x.proto_name = None then x.proto_name <- protoname' x.name
 
 
 let protoname_record x =
-  open Record in
+  let open Record in
   (if x.proto_name = None then x.proto_name <- protoname x.name;
    List.iter protoname_field x.field)
 
 
 let protoname_option x =
-  open Option in
+  let open Option in
   if x.proto_name = None then x.proto_name <- protoname' x.name
 
 
 let protoname_variant x =
-  open Variant in
+  let open Variant in
   (if x.proto_name = None then x.proto_name <- protoname x.name;
    List.iter protoname_option x.option)
 
 
 let protoname_enum x =
-  open Enum in
+  let open Enum in
   (if x.proto_name = None then x.proto_name <- protoname x.name;
    List.iter protoname_option x.option)
 
 
 let protoname_alias x =
-  open Alias in
+  let open Alias in
   if x.proto_name = None then x.proto_name <- protoname x.name
 
 
 let protoname_list x =
-  open L in
+  let open L in
   if x.proto_name = None then x.proto_name <- protoname x.name
 
 
@@ -426,7 +426,7 @@ let proto_modname n =
 
 
 let rec protoname_piqi (piqi:T.piqi) =
-  open P in
+  let open P in
   begin
     (*
     if piqi.proto_package = None then piqi.proto_package <- proto_modname piqi.modname;
@@ -441,7 +441,7 @@ and protoname_imports imports = List.iter protoname_import imports
 
 
 and protoname_import import =
-  open Import in
+  let open Import in
   begin
     protoname_piqi (some_of import.piqi)
   end

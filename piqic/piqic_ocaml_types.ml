@@ -99,7 +99,7 @@ let rec gen_piqtype t ocaml_type =
 
 
 and gen_aliastype a =
-  open Alias in
+  let open Alias in
   let ocaml_name = some_of a.ocaml_name in
   let typename = gen_typeref a.typeref ?ocaml_type:a.ocaml_type in
   if ocaml_name = typename
@@ -136,15 +136,15 @@ let mlname_of name typeref =
 (* XXX: move this functionality to mlname_*. mlname assignment should be done
  * once rahter than calling it from every place where it is needed *)
 let mlname_of_field f =
-  open F in mlname_of f.ocaml_name f.typeref
+  let open F in mlname_of f.ocaml_name f.typeref
 
 
 let mlname_of_option o =
-  open O in mlname_of o.ocaml_name o.typeref
+  let open O in mlname_of o.ocaml_name o.typeref
 
 
 let gen_field f = 
-  open F in
+  let open F in
   let fdef = iod " " (* field definition *)
     [
       ios "mutable"; (* defining all fields as mutable at the moment *)
@@ -201,7 +201,7 @@ let gen_enum e =
 
 
 let gen_option o =
-  open Option in
+  let open Option in
   match o.ocaml_name, o.typeref with
     | None, Some ((`variant _v) as _x) ->
         (* FIXME, TODO: for some reason ocaml complains about fully
@@ -217,19 +217,19 @@ let gen_option o =
 
 
 let gen_alias a =
-  open Alias in
+  let open Alias in
   iol [
     ios (some_of a.ocaml_name); ios " = ";
       ios_gen_typeref a.typeref ?ocaml_type:a.ocaml_type ]
 
 
 let gen_list l =
-  open L in
+  let open L in
   iol [ ios (some_of l.ocaml_name); ios " = "; ios_gen_typeref l.typeref; ios " list" ]
 
 
 let gen_variant v =
-  open Variant in
+  let open Variant in
   let var_defs =
     iod "|" (List.map gen_option v.option)
   in iol [
@@ -254,7 +254,7 @@ let gen_def = function
 
 
 let gen_alias a =
-  open Alias in
+  let open Alias in
   let name = some_of a.ocaml_name in
   let typename = gen_typeref a.typeref ?ocaml_type:a.ocaml_type in
   if name = typename
@@ -321,7 +321,7 @@ let gen_defs (defs:T.piqdef list) =
 
 
 let gen_import x =
-  open Import in
+  let open Import in
   let piqi = some_of x.piqi in
   iod " " [
     ios "module"; ios (some_of x.ocaml_name); ios "=";

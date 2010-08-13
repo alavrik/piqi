@@ -77,14 +77,14 @@ let json_name_of name typeref =
 
 
 let json_name_field x =
-  open Field in
+  let open Field in
   match x.json_name with
     | None -> x.json_name <- json_name_of x.name x.typeref
     | Some n -> check_json_name n
 
 
 let json_name_record x =
-  open Record in
+  let open Record in
   (match x.json_name with
      | None -> x.json_name <- json_name x.name
      | Some n -> check_json_name n
@@ -92,14 +92,14 @@ let json_name_record x =
 
 
 let json_name_option x =
-  open Option in
+  let open Option in
   match x.json_name with
     | None -> x.json_name <- json_name_of x.name x.typeref
     | Some n -> check_json_name n
 
 
 let json_name_variant x =
-  open Variant in
+  let open Variant in
   (match x.json_name with
      | None -> x.json_name <- json_name x.name
      | Some n -> check_json_name n
@@ -107,14 +107,14 @@ let json_name_variant x =
 
 
 let json_name_alias x =
-  open Alias in
+  let open Alias in
   match x.json_name with
     | None -> x.json_name <- json_name x.name
     | Some n -> check_json_name n
 
 
 let json_name_list x =
-  open L in
+  let open L in
   match x.json_name with
     | None -> x.json_name <- json_name x.name
     | Some n -> check_json_name n
@@ -148,7 +148,7 @@ let json_name_defs defs =
 
 
 let json_name_piqi (piqi:T.piqi) =
-  open P in
+  let open P in
   json_name_defs piqi.P#resolved_piqdef
 
 

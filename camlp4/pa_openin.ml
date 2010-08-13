@@ -1,6 +1,9 @@
 (*pp camlp4of *)
 (* This code is in public domain. Written by Alain Frisch.  2006-05-16.
    Updated by Till Varoquaux. 2007-05-2.
+
+   Updated by Anton Lavrik to make syntax compatible with OCaml 3.12.0.
+   2010-08-12.
 *)
 
 open Camlp4.PreCast
@@ -17,7 +20,7 @@ EXTEND Gram
  GLOBAL: expr;
 
  expr: LEVEL ";" [
-  ["open"; me = module_expr; "in"; e = expr LEVEL "top" ->
+  ["let"; "open"; me = module_expr; "in"; e = expr LEVEL "top" ->
      begin match me with
        | <:module_expr< $id:i$ >> -> 
 	   local_struct _loc <:str_item< open $i$ >> e

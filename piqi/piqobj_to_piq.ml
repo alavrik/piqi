@@ -65,7 +65,7 @@ let gen_binary s =
 
 
 let gen_any x =
-  open Any in
+  let open Any in
   (* XXX: is it always defined? *)
 
   (* TODO: handle typed *)
@@ -73,7 +73,7 @@ let gen_any x =
 
 
 let make_named name value =
-  open T in
+  let open T in
   `named Named#{name = name; value = value}
 
 
@@ -112,13 +112,13 @@ and gen_typed_obj x =
 
 
 and gen_record x =
-  open R in
+  let open R in
   let fields = x.field in
   `list (List.map gen_field fields)
 
 
 and gen_field x =
-  open F in
+  let open F in
   let name = name_of_field x.piqtype in
   let res =
     match x.obj with
@@ -128,12 +128,12 @@ and gen_field x =
 
 
 and gen_variant x =
-  open V in
+  let open V in
   gen_option x.option
 
 
 and gen_option x =
-  open O in
+  let open O in
   let name = name_of_option x.piqtype in
   let res =
     match x.obj with
@@ -146,12 +146,12 @@ and gen_enum x = gen_variant x
 
 
 and gen_list x = 
-  open L in
+  let open L in
   `list (List.map gen_obj x.obj)
 
 
 and gen_alias x =
-  open A in
+  let open A in
   match x.obj with
     | `alias x -> gen_alias x
     | x -> gen_obj x

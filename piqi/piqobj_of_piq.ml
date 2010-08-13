@@ -328,7 +328,7 @@ and parse_field loc (accu, rem) t =
 
 
 and do_parse_flag t l =
-  open T.Field in
+  let open T.Field in
   let name = name_of_field t in
   debug "do_parse_flag: %s\n" name;
   let res, rem = find_flags name l in
@@ -342,7 +342,7 @@ and do_parse_flag t l =
 
 
 and do_parse_field loc t l =
-  open T.Field in
+  let open T.Field in
   let name = name_of_field t in
   debug "do_parse_field: %s\n" name;
   let field_name = t.name in
@@ -494,14 +494,14 @@ and parse_variant t x =
     (* recurse through included co-variants *)
     (* XXX: aliased variants are contra-variants? *)
     let is_covariant o =
-      open T.Option in
+      let open T.Option in
       match o.name, o.typeref with
         | None, Some (`variant _) -> true (* co-variant *)
         | None, Some (`enum _) -> true (* co-variant *)
         | _ -> false (* contra-variant *)
     in
     let get_covariant o =
-      open T.Option in
+      let open T.Option in
       let v =
         match o.typeref with
           | Some (`variant v) -> v
@@ -537,7 +537,7 @@ and parse_covariant (o, v) x =
 
 and parse_name_option options name =
   let f o =
-    open T.Option in
+    let open T.Option in
     match o.name, o.typeref with
       | Some n, Some _ when n = name ->
           error name "option value expected" 
@@ -550,7 +550,7 @@ and parse_name_option options name =
 
 and parse_named_option options name x =
   let f o =
-    open T.Option in
+    let open T.Option in
     match o.name, o.typeref with
       | Some n, None when n = name ->
           error x "unexpected option value"
@@ -561,7 +561,7 @@ and parse_named_option options name x =
 
 
 and make_option_finder f o =
-  open T.Option in
+  let open T.Option in
   match o.typeref with
     | None -> false
     | Some x -> f (unalias (piqtype x))

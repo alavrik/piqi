@@ -113,7 +113,7 @@ let piqdef_name (piqdef:T.piqdef) =
 
 
 let piqi_typename (t:T.piqtype) =
-  open T in 
+  let open T in
   (* XXX: built-in types should't be used at that stage *)
   match t with
     | `int -> "int"
@@ -138,7 +138,7 @@ let piqi_typerefname t =
 
 
 let name_of_field f =
-  open T.Field in
+  let open T.Field in
   match f.name, f.typeref with
     | Some n, _ -> n
     | None, Some t -> piqi_typerefname t
@@ -146,7 +146,7 @@ let name_of_field f =
 
 
 let name_of_option o =
-  open T.Option in
+  let open T.Option in
   match o.name, o.typeref with
     | Some n, _ -> n
     | None, Some t -> piqi_typerefname t

@@ -68,7 +68,7 @@ let esc x = ios "_" ^^ ios x
 
 (* let gen_field_cons = Gen_i_piq.gen_field_cons *)
 let gen_field_cons rname f =
-  open Field in
+  let open Field in
   let fname = mlname_of_field f in
   let ffname = (* fully-qualified field name *)
     iol [ios rname; ios "."; ios fname]
@@ -78,7 +78,7 @@ let gen_field_cons rname f =
 
 
 let gen_field_parser f =
-  open Field in
+  let open Field in
   let fname = mlname_of_field f in
   let mode = gen_mode f in
   let fcons =
@@ -135,7 +135,7 @@ let gen_record r =
 
 
 let gen_const c =
-  open Option in
+  let open Option in
   (* NOTE: using int32 codes which can't be represented on 32-bit and 64-bit
    * uniformely *)
   let code_str = gen_code c.code in
@@ -170,7 +170,7 @@ let gen_const c =
 
 
 let gen_enum e =
-  open Enum in
+  let open Enum in
   let consts = List.map gen_const e.option in
   iod " "
     [
@@ -185,7 +185,7 @@ let gen_enum e =
 
 
 let rec gen_option varname o =
-  open Option in
+  let open Option in
   match o.ocaml_name, o.typeref with
     | Some mln, None -> (* boolean true *)
         iod " " [
@@ -214,7 +214,7 @@ let rec gen_option varname o =
 
 
 let gen_variant v =
-  open Variant in
+  let open Variant in
   let options = List.map (gen_option (some_of v.ocaml_name)) v.option in
   iod " "
     [
@@ -229,7 +229,7 @@ let gen_variant v =
 
 
 let gen_alias a =
-  open Alias in
+  let open Alias in
   iod " "
     [
       ios "parse_" ^^ ios (some_of a.ocaml_name); ios "x =";
@@ -249,7 +249,7 @@ let gen_parse_list t =
 
 
 let gen_list l =
-  open L in
+  let open L in
   iod " "
     [
       ios "parse_" ^^ ios (some_of l.ocaml_name); ios "x =";
@@ -266,7 +266,7 @@ let gen_def = function
 
 
 let gen_alias a = 
-  open Alias in
+  let open Alias in
   if a.typeref = `any && not !depends_on_piq_any
   then []
   else [gen_alias a]

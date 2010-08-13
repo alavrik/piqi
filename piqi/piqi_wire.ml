@@ -94,7 +94,7 @@ let incr i =
 
 
 let addcodes_field code f =
-  open T.Field in
+  let open T.Field in
   match f.code with
     | None -> (* assign previously unassigned code *)
         f.code <- Some !code; incr code
@@ -102,7 +102,7 @@ let addcodes_field code f =
 
 
 let addcodes_option code o =
-  open T.Option in
+  let open T.Option in
   match o.code with
     | None -> (* assign previously unassigned code *)
         o.code <- Some !code; incr code
@@ -110,7 +110,7 @@ let addcodes_option code o =
 
 
 let addcodes_enum_option code o =
-  open T.Option in
+  let open T.Option in
   match o.code with
     | None -> (* assign previously unassigned code *)
         o.code <- Some !code; code := Int32.succ !code
@@ -140,7 +140,7 @@ let check_enum_codes codes =
 
 
 let addcodes_record r =
-  open T.Record in
+  let open T.Record in
   let fields = r.field in
   if List.exists (fun x -> x.T.Field#code <> None) fields
   then
@@ -161,7 +161,7 @@ let addcodes_record r =
 
 
 let addcodes_variant v =
-  open T.Variant in
+  let open T.Variant in
   let options = v.option in
   if List.exists (fun x -> x.T.Option#code <> None) options
   then
@@ -182,7 +182,7 @@ let addcodes_variant v =
 
 
 let addcodes_enum v =
-  open T.Variant in
+  let open T.Variant in
   let options = v.option in
   if List.exists (fun x -> x.T.Option#code <> None) options
   then

@@ -70,40 +70,40 @@ let check_ocaml_name name ocaml_name =
 
 
 let mlname_field x =
-  open Field in
+  let open Field in
   if x.ocaml_name = None then x.ocaml_name <- mlname' x.name
 
 
 let mlname_record x =
-  open Record in
+  let open Record in
   (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
    List.iter mlname_field x.field)
 
 
 let mlname_option x =
-  open Option in
+  let open Option in
   if x.ocaml_name = None then x.ocaml_name <- mlname' x.name
 
 
 let mlname_variant x =
-  open Variant in
+  let open Variant in
   (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
    List.iter mlname_option x.option)
 
 
 let mlname_enum x =
-  open Enum in
+  let open Enum in
   (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
    List.iter mlname_option x.option)
 
 
 let mlname_alias x =
-  open Alias in
+  let open Alias in
   if x.ocaml_name = None then x.ocaml_name <- mlname x.name
 
 
 let mlname_list x =
-  open L in
+  let open L in
   if x.ocaml_name = None then x.ocaml_name <- mlname x.name
 
 
@@ -123,7 +123,7 @@ let mlmodname n =
 
 
 let rec mlname_piqi (piqi:T.piqi) =
-  open P in
+  let open P in
   begin
     if piqi.ocaml_module = None then piqi.ocaml_module <- mlmodname piqi.modname;
     mlname_defs piqi.P#resolved_piqdef;
@@ -134,7 +134,7 @@ let rec mlname_piqi (piqi:T.piqi) =
 and mlname_imports imports = List.iter mlname_import imports
 
 and mlname_import import =
-  open Import in
+  let open Import in
   begin
     mlname_piqi (some_of import.piqi);
     import.ocaml_name <- Some (ocaml_ucname (some_of import.name))

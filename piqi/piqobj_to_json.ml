@@ -77,7 +77,7 @@ and gen_typed_obj x =
 
 
 and gen_any x =
-  open Any in
+  let open Any in
   (* XXX: is ast always defined? *)
 
   (* TODO: handle typed *)
@@ -92,15 +92,15 @@ and gen_any x =
 
 
 and gen_record x =
-  open R in
+  let open R in
   let field_types = x.piqtype.T.Record.field in
   `Assoc (List.map (gen_field x.field) field_types)
 
 
 and gen_field fields t =
-  open T.Field in
+  let open T.Field in
   let name = some_of t.json_name in
-  open F in
+  let open F in
   let pred f = f.piqtype == t in
   match t.mode with
     | `required | `optional ->
@@ -119,13 +119,13 @@ and gen_field fields t =
 
 
 and gen_variant x =
-  open V in
+  let open V in
   let o = gen_option x.option in
   `Assoc [o]
 
 
 and gen_option x =
-  open O in
+  let open O in
   let name = some_of x.piqtype.T.Option.json_name in
   match x.obj with
     | None -> make_name name
@@ -133,23 +133,23 @@ and gen_option x =
 
 
 and gen_enum x =
-  open V in
+  let open V in
   gen_enum_option x.option
 
 
 and gen_enum_option x =
-  open O in
+  let open O in
   let name = some_of x.piqtype.T.Option.json_name in
   `String name
 
 
 and gen_list x = 
-  open L in
+  let open L in
   `List (List.map gen_obj x.obj)
 
 
 and gen_alias x =
-  open A in
+  let open A in
   match x.obj with
     | `alias x -> gen_alias x
     | x -> gen_obj x

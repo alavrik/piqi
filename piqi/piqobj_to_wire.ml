@@ -105,7 +105,7 @@ let compare_field_type a b =
 
 
 let compare_field a b =
-  open F in
+  let open F in
   compare_field_type a.piqtype b.piqtype
 
 
@@ -158,7 +158,7 @@ and gen_binobj ?(named=true) x =
 
 
 and gen_any code x =
-  open Any in
+  let open Any in
   begin
     (* don't generate if x.any.bin already exists *)
     (if x.any.T.Any.binobj = None &&
@@ -177,14 +177,14 @@ and gen_any code x =
 
 
 and gen_record code x =
-  open R in
+  let open R in
   (* TODO, XXX: doing ordering at every generation step is inefficient *)
   let fields = order_fields x.field in
   Gen.gen_record code (List.map gen_field fields)
 
 
 and gen_field x =
-  open F in
+  let open F in
   let code = Int32.to_int (some_of x.piqtype.T.Field#code) in
   match x.obj with
     | None ->
@@ -196,13 +196,13 @@ and gen_field x =
 
 
 and gen_variant code x =
-  open V in
+  let open V in
   (* generate a record with a single field which represents variant's option *)
   Gen.gen_record code [gen_option x.option]
 
 
 and gen_option x =
-  open O in
+  let open O in
   let code = Int32.to_int (some_of x.piqtype.T.Option#code) in
   match x.obj with
     | None ->
@@ -214,12 +214,12 @@ and gen_option x =
 
 
 and gen_enum code x =
-  open E in
+  let open E in
   gen_enum_option code x.option
 
 
 and gen_enum_option code x =
-  open O in
+  let open O in
   let value = some_of x.piqtype.T.Option#code in
   (*
   Gen.gen_varint code value
@@ -228,12 +228,12 @@ and gen_enum_option code x =
 
 
 and gen_list code x = 
-  open L in
+  let open L in
   Gen.gen_list gen_obj code x.obj
 
 
 and gen_alias ?wire_type code x =
-  open A in
+  let open A in
   let this_wire_type = x.piqtype.T.Alias#wire_type in
   (* wire-type defined in this alias trumps wire-type passed by the upper
    * definition *)

@@ -176,7 +176,7 @@ and parse_field (accu, rem) t =
 
 
 and do_parse_flag t l =
-  open T.Field in
+  let open T.Field in
   let code = Int32.to_int (some_of t.code) in
   let res, rem = Parser.parse_flag code l in
   match res with
@@ -194,7 +194,7 @@ and do_parse_flag t l =
 
 
 and do_parse_field t l =
-  open T.Field in
+  let open T.Field in
   let code = Int32.to_int (some_of t.code) in
   let field_type = piqtype (some_of t.typeref) in
   let parse_f = parse_obj field_type in
@@ -256,7 +256,7 @@ and parse_variant t x =
 
 
 and parse_option t x =
-  open T.Option in
+  let open T.Option in
   match t.typeref with
     | None ->
         if Parser.parse_bool x = true
@@ -312,7 +312,7 @@ and parse_alias0 t x =
 
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t ?wire_type x =
-  open T.Alias in
+  let open T.Alias in
   let this_wire_type = t.wire_type in
   (* wire-type defined in this alias trumps wire-type passed by the upper
    * definition *)

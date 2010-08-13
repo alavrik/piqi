@@ -61,7 +61,7 @@ let add_piqdefs idtable defs =
 
 
 let add_imported_piqdef idtable (piqdef:T.piqdef) =
-  open Import in
+  let open Import in
   let import = 
     match get_parent piqdef with
       | `import x -> x
@@ -94,7 +94,7 @@ let resolve_typeref map t =
 
 (* XXX: is there a way to avoid code duplicaton here? *)
 let resolve_field_typeref map f =
-  open F in
+  let open F in
   match f.typeref with
     | None -> () (* flag *)
     | Some t ->
@@ -102,7 +102,7 @@ let resolve_field_typeref map f =
 
 
 let resolve_option_typeref map o =
-  open O in
+  let open O in
   match o.typeref with
     | None -> ()
     | Some t ->
@@ -167,7 +167,7 @@ let check_no_builtin_type obj t =
 
 
 let check_field f =
-  open Field in
+  let open Field in
   begin
     begin
     check_opt_name f.name;
@@ -201,7 +201,7 @@ let check_record r =
 
 
 let check_option o =
-  open Option in
+  let open Option in
   begin
     check_opt_name o.name;
     match o.name, o.typeref with
@@ -223,7 +223,7 @@ let check_variant v =
 
 
 let check_enum_option x =
-  open O in
+  let open O in
   begin
     (* consts name must be defined and types must not *)
     if x.name = None
@@ -256,7 +256,7 @@ let check_wire_type a wt =
 
 
 let check_alias a =
-  open A in
+  let open A in
   begin
     check_typeref a a.typeref;
     (*
@@ -266,7 +266,7 @@ let check_alias a =
 
 
 let check_list l =
-  open L in
+  let open L in
   begin
     check_no_builtin_type l l.typeref
   end
@@ -284,7 +284,7 @@ let check_def def =
 
 let check_resolved_alias a = 
   (* TODO: check for alias loops *)
-  open A in
+  let open A in
   begin
     (* check for wire-types compatibility with piq types *)
     match a.wire_type with
@@ -310,7 +310,7 @@ let check_resolved_def def =
 
 
 let check_extension x =
-  open Extend in
+  let open Extend in
   begin
     if x.name = []
     then error x ("extension doesn't specify any names");
@@ -334,7 +334,7 @@ let debug_loc prefix =
 
 
 let resolve_field_default idtable x =
-  open F in
+  let open F in
   match x.default, x.typeref with
     | None, _ -> () (* no default *)
     | Some {T.Any.binobj = Some _ }, _ ->
@@ -551,7 +551,7 @@ let check_modname x =
 
 
 let check_assign_module_name ?modname fname (piqi:T.piqi) =
-  open P in
+  let open P in
   match piqi.modname, modname with
     | Some x, Some x' ->
         check_modname x;
@@ -580,7 +580,7 @@ let check_assign_module_name ?modname fname (piqi:T.piqi) =
 (* XXX: demand explicit import name to avoid potential problems after renaming
  * imported module name? *)
 let assign_import_name x piqi =
-  open Import in
+  let open Import in
   match x.name with
     | Some x -> (* import name is already defined *)
         check_name x
@@ -752,7 +752,7 @@ let check_imports piqi =
 
 (* resolve extension names to correspondent piqdefs *)
 let process_extension idtable x =
-  open Extend in
+  let open Extend in
   let names = x.name in
   List.map (fun name -> (find_def idtable name, x)) names
 
@@ -1016,7 +1016,7 @@ and load_dependecies (piqi:T.piqi) =
 and load_imports l = List.iter load_import l
 
 and load_import x =
-  open Import in (
+  let open Import in (
   trace "import: %s\n" x.Import.modname;
   (* load imported module *)
   let piqi = load_piqi_module x.modname in
@@ -1029,7 +1029,7 @@ and load_import x =
 and load_includes l = List.map load_include l
 
 and load_include x =
-  open Includ in (
+  let open Includ in (
   trace "include: %s\n" x.Includ.modname;
   (* load included piqi module if it isn't already *)
   let piqi = load_piqi_module x.modname in
