@@ -1,0 +1,29 @@
+Piqi 0.5.1 (August 17, 2010)
+============================
+
+Major changes include support for JSON encoding and providing compatibility
+with OCaml 3.12.0.
+
+Piqi tools:
+
+  - "piqi convert" command now supports two new encodings: "json" (plain JSON)
+    and "piq-json" (JSON with Piq type annotation for top-level objects).
+  - A new command: "piqi json-pp" for pretty-printing JSON files.
+
+Piqi language:
+
+  - Added support for "json-name" property for type definitions, fields and
+    options. When specified, it will be used as a name for correspondent JSON
+    field names instead of "name".
+  - Renamed "ignore-field" top-level directive to "custom-field".
+
+Other changes:
+
+  - Provided compatibility with the latest OCaml release (3.12.0). Improved
+    support for older OCaml versions >= 3.10.
+
+
+Piqi 0.5.0 (July 9, 2010)
+=========================
+
+First public release.
