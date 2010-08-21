@@ -203,8 +203,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   exception End_of_object
 }
 
-let space = [' ' '\t']+ | '\r'
-let newline = '\r'?'\n'
+let space = [' ' '\t' '\r']+
 
 let digit = ['0'-'9']
 let nonzero = ['1'-'9']
@@ -317,7 +316,7 @@ rule read_json v = parse
 		     `List (List.rev !acc)
 		 }
 
-  | newline      { newline v lexbuf; read_json v lexbuf }
+  | '\n'         { newline v lexbuf; read_json v lexbuf }
   | space        { read_json v lexbuf }
   | eof          { custom_error "Unexpected end of input" v lexbuf }
   | _            { lexer_error "Invalid token" v lexbuf }
@@ -374,7 +373,7 @@ and read_eof = parse
   | ""       { false }
 
 and read_space v = parse
-  | newline  { newline v lexbuf; read_space v lexbuf }
+  | '\n'     { newline v lexbuf; read_space v lexbuf }
   | space    { read_space v lexbuf }
   | ""       { () }
 
