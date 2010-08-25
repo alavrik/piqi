@@ -13,6 +13,11 @@ SOURCES += \
 	piqic_ocaml_in.ml \
 	piqic_ocaml.ml \
 	\
+	piqic_erlang_types.ml \
+	piqic_erlang_out.ml \
+	piqic_erlang_in.ml \
+	piqic_erlang.ml \
+	\
 	piqic_run.ml \
 
 
@@ -29,8 +34,8 @@ all: debug #nc
 debug: dc top
 
 
-piqtype.ml: piqic.piqi piqi-ocaml.piqi
-	$(PIQICC) $(PIQICC_FLAGS) -o $@.tmp.ml $<
+piqtype.ml: $(wildcard *.piqi)
+	$(PIQICC) $(PIQICC_FLAGS) -o $@.tmp.ml piqic.piqi
 	$(CAMLP4)o -o $@ $@.tmp.ml
 
 
