@@ -158,7 +158,7 @@ let gen_record r =
 let gen_const c =
   let open Option in
   iod " " [
-    ios "|"; gen_const_name (some_of c.ocaml_name); ios "->";
+    ios "|"; gen_pvar_name (some_of c.ocaml_name); ios "->";
       ios "Piqirun_gen.gen_varint32 code";
       gen_code c.code ^^ ios "l"; (* ocaml int32 literal *)
   ]
@@ -186,7 +186,7 @@ let rec gen_option o =
             gen_cc "refer x;";
             ios "Piqirun_gen.gen_bool"; gen_code o.code; ios "true";
         ]
-    | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) -> (* XXX *)
+    | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
         iod " " [
           ios "| (#" ^^ ios (piqdef_mlname t); ios " as x) ->";
             gen_gen_typeref t; gen_code o.code; ios "x";

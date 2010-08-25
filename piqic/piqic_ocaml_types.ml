@@ -182,28 +182,12 @@ let gen_record_mod r =
 
 let gen_pvar_name name = 
   ios "`" ^^ ios name
-  (* ios (String.capitalize name) *)
-
-
-(* XXX: make it configurable: wether to generater var or pvar *)
-let gen_const_name = gen_pvar_name
-
-
-let gen_const x =
-  gen_const_name (some_of x.Option#ocaml_name)
-
-
-let gen_enum e =
-  let const_defs =
-    iod "|" (List.map gen_const e.Enum#option)
-  (* XXX: what about const values -- do we need them in OCaml? *)
-  in iol [ios (some_of e.Enum#ocaml_name); ios "= ["; const_defs; ios "]"]
 
 
 let gen_option o =
   let open Option in
   match o.ocaml_name, o.typeref with
-    | None, Some ((`variant _v) as _x) ->
+    | None, Some ((`variant _v) as _x) | None, Some ((`enum _v) as _x) ->
         (* FIXME, TODO: for some reason ocaml complains about fully
          * qualified polymorphic variants in recursive modules:
           ios_gen_typeref _x
@@ -247,8 +231,7 @@ let gen_record r =
 
 let gen_def = function
   | `record t -> gen_record t
-  | `variant t -> gen_variant t
-  | `enum t -> gen_enum t
+  | `variant t | `enum t -> gen_variant t
   | `list t -> gen_list t
   | _ -> assert false
 

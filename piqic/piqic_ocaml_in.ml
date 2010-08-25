@@ -150,7 +150,7 @@ let gen_const c =
     ios "Piqirun_parser.Varint x " ^^
       ios "when Sys.word_size = 64 && Int64.of_int x = " ^^ code_str ^^ ios "L"
   in
-  let name = gen_const_name (some_of c.ocaml_name) in
+  let name = gen_pvar_name (some_of c.ocaml_name) in
   let make_expr pattern =
     iod " " [ios "| "; pattern; ios "->"; name]
   in
@@ -194,7 +194,7 @@ let rec gen_option varname o =
             gen_cc "let count = next_count() in refer count";
             gen_pvar_name mln;
         ]
-    | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) -> (* XXX *)
+    | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
         iod " " [
           ios "|"; gen_code o.code; ios ", x ->";
             ios "("; gen_parse_typeref t; ios "x :>"; ios varname; ios ")"
