@@ -3,6 +3,9 @@
 .include [ .module piqi.org/piqi-boot ]
 
 
+.custom-field ocaml-type
+
+
 .extend [
     (.name int uint)
     .ocaml-type "int"
