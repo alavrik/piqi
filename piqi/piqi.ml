@@ -628,10 +628,15 @@ let mlobj_of_ast piqtype wire_parser ast =
   let saved_resolve_defaults = !Piqobj_of_piq.resolve_defaults in
   Piqobj_of_piq.resolve_defaults := true;
 
+  (* XXX: find a better way to set this option *)
+  Piqobj_of_piq.delay_unknown_warnings := true;
+
   let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
   let binobj = Piqobj_to_wire.gen_binobj piqobj ~named:false in
   let _name, t = Piqirun_parser.parse_binobj binobj in
   let mlobj = wire_parser t in
+
+  Piqobj_of_piq.delay_unknown_warnings := false;
 
   Piqobj_of_piq.resolve_defaults := saved_resolve_defaults;
 
@@ -641,17 +646,10 @@ let mlobj_of_ast piqtype wire_parser ast =
 
 let parse_piqi ast =
   (* XXX: handle errors *)
-
-  (* XXX: find a better way to set this option *)
-  Piqobj_of_piq.delay_unknown_warnings := true;
-
   debug "parse_piqi(0)\n";
   (* use prepared static "piqi" definition to parse the ast *)
   let res = mlobj_of_ast piqi_def T.parse_piqi ast in
   debug "parse_piqi(1)\n";
-
-  Piqobj_of_piq.delay_unknown_warnings := false;
-
   res
 
 
@@ -664,11 +662,21 @@ let rec uniqq = function
       if List.memq h t then t else h :: t
 
 
+(* leave the first of the duplicate elements in the list instead of the last *)
+let uniqq l =
+  List.rev (uniqq (List.rev l))
+
+
 let rec uniq = function
   | [] -> []
   | h::t ->
       let t = uniq t in
       if List.mem h t then t else h :: t
+
+
+(* leave the first of the duplicate elements in the list instead of the last *)
+let uniq l =
+  List.rev (uniq (List.rev l))
 
 
 (* get the list of unique piqi includes by traversing recursively through
@@ -705,25 +713,35 @@ let get_imports modules =
   flatmap (fun x -> x.P#resolved_import) modules
 
 
-(*
 let get_custom_fields modules =
   let l = flatmap (fun x -> x.P#custom_field) modules in
   uniq l
-*)
 
 
-let check_unknown_field ignored_fields x =
+let is_unknown_field custom_fields x =
   match x with
-    | `named {T.Named.name = name} ->
-        if List.mem name ignored_fields
-        then ()
-        else Piqobj_of_piq.warn_unknown_field x
-    | _ ->
-        Piqobj_of_piq.warn_unknown_field x
+    | `named {T.Named.name = name} | `name name ->
+        if List.mem name custom_fields
+        then false (* field is a custom field, i.e. "known" *)
+        else true
+    | _ -> true
 
 
-let check_unknown_fields unknown_fields ignored_fields =
-  List.iter (check_unknown_field ignored_fields) unknown_fields
+let check_unknown_fields ?prepend unknown_fields custom_fields =
+  let unknown_fields =
+    List.filter (is_unknown_field custom_fields) unknown_fields
+  in
+
+  let warn x =
+    (* call the function for printing prepending warning message *)
+    (match prepend with
+      | Some f -> f ()
+      | None -> ());
+    Piqobj_of_piq.warn_unknown_field x
+  in
+
+  (* print warnings *)
+  List.iter warn unknown_fields
 
 
 let check_imports piqi =
@@ -784,7 +802,7 @@ let group_pairs l =
   in aux [] l
 
 
-let apply_extensions piqdef extensions =
+let apply_extensions piqdef extensions custom_fields =
   let trace' = !Piqloc.trace in
   (* Piqloc.trace := false; *)
   debug "apply_extensions(0)\n";
@@ -811,15 +829,33 @@ let apply_extensions piqdef extensions =
           * piqdefs are named containers *)
          assert false
   in
+  let context_str = "while applying extensions to this definition ..." in
   debug "apply_extensions(1)\n";
-  let extended_piqdef = mlobj_of_ast piqdef_def T.parse_piqdef extended_piqdef_ast in
+  let extended_piqdef =
+    try
+      mlobj_of_ast piqdef_def T.parse_piqdef extended_piqdef_ast
+    with (C.Error _) as e ->
+      (* TODO, XXX: one error line is printed now, another (original) error
+       * later -- it is inconsistent *)
+      (
+        prerr_endline (C.error_string piqdef context_str);
+        (* re-raise the original exception after printing some context info *)
+        raise e
+      )
+  in
   debug "apply_extensions(2)\n";
   Piqloc.trace := trace';
+
+  (* get unparsed extension fields fields *)
+  let unknown_fields = Piqobj_of_piq.get_unknown_fields () in
+  check_unknown_fields unknown_fields custom_fields
+    ~prepend:(fun () -> C.warning piqdef context_str);
+
   extended_piqdef
 
 
 (* expand extensions, i.e. extend exising definitions with extensions *)
-let expand_extensions defs extensions =
+let expand_extensions defs extensions custom_fields =
   let idtable = Idtable.empty in
   let idtable = add_piqdefs idtable defs in
   (* get a list of (piqdef, extensions) pairs from all extensiosn by resolving
@@ -830,7 +866,7 @@ let expand_extensions defs extensions =
   let groups = group_pairs l in
   let extended_defs =
     List.map (fun (piqdef, extensions) ->
-      apply_extensions piqdef extensions) groups
+      apply_extensions piqdef extensions custom_fields) groups
   in
   let involved_defs = List.map (fun (def, _) -> def) groups in
   let untouched_defs =
@@ -893,7 +929,7 @@ let rec process_piqi (piqi: T.piqi) =
   let idtable = add_imported_piqdefs idtable imported_defs in
 
   (* boot defintions *)
-  let boot_defs, boot_ignored_fields = 
+  let boot_defs, boot_custom_fields =
     match !boot_piqi with
       | Some x when !Config.noboot = false ->
           (* NOTE: boot defs should be already extended *)
@@ -910,8 +946,10 @@ let rec process_piqi (piqi: T.piqi) =
   (* get all extensions *)
   let extensions = get_extensions modules in
 
-  let ignored_fields = piqi.P#custom_field @ boot_ignored_fields in
-  check_unknown_fields unknown_fields ignored_fields;
+  (* NOTE: for local definitions we're considering custom fields defined only
+   * in this module *)
+  let custom_fields = piqi.P#custom_field @ boot_custom_fields in
+  check_unknown_fields unknown_fields custom_fields;
 
   (* expand all extensions over all definitions *)
   (* NOTE, DOC: boot defs can not be extended *)
@@ -926,7 +964,10 @@ let rec process_piqi (piqi: T.piqi) =
 
           List.iter check_extension piqi.P#extend;
 
-          expand_extensions defs extensions
+          (* NOTE: for extensions we're considering all custom fields from all
+           * included modules *)
+          let custom_fields = custom_fields @ (get_custom_fields modules) in
+          expand_extensions defs extensions custom_fields
   in
 
   (* implicitly add defintions from the boot module to the current module *)
@@ -1131,7 +1172,16 @@ let convert_obj new_piqtype obj =
   Piqobj_of_piq.resolve_defaults := false;
   (* serialize to ast and read back as a differnt piqtype *)
   let ast = Piqobj_to_piq.gen_obj obj in
+
+  (* XXX: setting this option in order to delay, and then ignore all parsing
+   * warnings *)
+  Piqobj_of_piq.delay_unknown_warnings := true;
+
   let res = Piqobj_of_piq.parse_obj new_piqtype ast in
+
+  (* reset all warnings *)
+  ignore (Piqobj_of_piq.get_unknown_fields ());
+
   trace_leave ();
   res
 
