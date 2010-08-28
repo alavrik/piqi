@@ -18,25 +18,6 @@
 open Piqi_common 
 
 
-let list_of_string s =
-  let n = String.length s in
-  let rec aux i =
-    if i < n
-    then s.[i] :: (aux (i+1))
-    else []
-  in aux 0
-
-
-let string_of_list l =
-  let s = String.create (List.length l) in
-  let rec aux i = function
-    | [] -> ()
-    | h::t ->
-        s.[i] <- h; aux (i+1) t
-  in
-  aux 0 l; s
-
-
 let normalize_list l =
   let isupper c = (c >= 'A' && c <= 'Z') in
   let tolower c =  Char.chr (Char.code c + 32) in
