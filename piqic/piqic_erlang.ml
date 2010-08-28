@@ -36,7 +36,7 @@ let erlang_name n =
 
 
 let erlang_lcname n = (* lowercase *)
-  (* XXX: normalize instead of just lowercasing? *)
+  (* XXX, TODO: normalize instead of just lowercasing? *)
   String.lowercase (erlang_name n)
 
 
@@ -101,13 +101,13 @@ let erlname_defs (defs:T.piqdef list) =
   List.iter erlname_piqdef defs
 
 let erl_modname n =
+  (* TODO *)
   erlname (some_of n)
 
 
 let rec erlname_piqi (piqi:T.piqi) =
   let open P in
   begin
-    (* XXX: use filename instead? *)
     if piqi.erlang_module = None
     then piqi.erlang_module <- erl_modname piqi.modname;
     erlname_defs piqi.P#resolved_piqdef;
@@ -165,7 +165,7 @@ let piqic (piqi: T.piqi) =
 
   (* call piq interface compiler for Erlang *)
   let types = Piqic_erlang_types.gen_piqi piqi in
-  let def = String.uppercase modname ^ "_HRL__" in
+  let def = "__" ^ String.uppercase modname ^ "_HRL__" in
   let def = ios def in
   let code = iol [
     ios "-ifndef("; def; ios ")."; eol;

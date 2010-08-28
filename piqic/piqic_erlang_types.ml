@@ -252,9 +252,8 @@ let gen_defs (defs:T.piqdef list) =
 let gen_import x =
   let open Import in
   let piqi = some_of x.piqi in
-  (* TODO, FIXME *)
   iol [
-    ios "-include("; ioq (some_of piqi.P#erlang_module); ios ")";
+    ios "-include("; ioq (some_of piqi.P#erlang_module); ios ").";
     eol;
   ]
 
@@ -262,7 +261,7 @@ let gen_import x =
 let gen_imports l =
   let l = List.map gen_import l in
   let piqtype_incl = 
-    if !depends_on_piq_any
+    if !depends_on_piq_any && !top_modname <> "piqtype"
     then ios "-include(\"piqtype.hrl\").\n\n"
     else iol []
   in

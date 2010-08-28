@@ -51,18 +51,17 @@ and gen_parse_typeref ?erlang_type ?wire_type (t:T.typeref) =
   gen_parse_type erlang_type wire_type (piqtype t)
 
 
-let erl_str_escape x =
-  (* FIXME, TODO: Erlang *)
-  String.escaped x
-
-
 (* XXX: parse defaults once at boot time rather than each time when we need to
  * parse a field *)
 let gen_default = function
   | None -> ios "'undefined'"
   | Some {T.Any.binobj = Some x} ->
+      let codes =
+        List.map (fun x ->
+          ios (string_of_int (Char.code x))) (list_of_string x)
+      in
       iol [
-        ios "<<"; ioq (erl_str_escape x); ios ">>";
+        ios "<<"; iod "," codes; ios ">>";
       ]
   | _ ->
       assert false (* binobj should be defined by that time *)

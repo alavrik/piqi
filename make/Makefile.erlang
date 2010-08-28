@@ -1,0 +1,27 @@
+
+.SUFFIXES: .erl .beam
+.PHONY: beams clean
+
+
+ERLC = erlc
+#ERLC_FLAGS = #-W +debug_info +warn_missing_spec
+
+
+ifndef EBIN_DIR
+	EBIN_DIR = ../ebin
+endif
+
+
+BEAMS = $(ERL_SOURCES:%.erl=$(EBIN_DIR)/%.beam)
+
+
+beams: $(BEAMS)
+
+
+$(EBIN_DIR)/%.beam: %.erl
+	$(ERLC) $(ERLC_FLAGS) -o $(EBIN_DIR) $<
+
+
+clean::
+	rm -f $(BEAMS)
+
