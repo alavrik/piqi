@@ -17,7 +17,7 @@
 
  
 (*
- * generation of Erlang -record(...) and -type(...) defintions
+ * generation of Erlang -record(...) and -type(...) definitions
  *)
 
 open Piqi_common
@@ -34,7 +34,6 @@ let top_modname = ref ""
 let depends_on_piq_any = ref false
 
 
-(* XXX: is single underscore ok? *)
 let scoped_name name = !top_modname ^ "_" ^ name
 
 

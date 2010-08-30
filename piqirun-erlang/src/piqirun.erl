@@ -49,6 +49,8 @@
 -module(piqirun).
 -compile(export_all).
 
+-include("../include/piqirun.hrl").
+
 
 -define(TYPE_VARINT, 0).
 -define(TYPE_64BIT, 1).
@@ -58,20 +60,39 @@
 -define(TYPE_32BIT, 5).
 
 
-% TODO: tags
+-type(field_type() ::
+    ?TYPE_VARINT | ?TYPE_64BIT | ?TYPE_STRING |
+    ?TYPE_START_GROUP | ?TYPE_END_GROUP | ?TYPE_32BIT
+).
+
+
+% TODO: specs
 
 
 %% @hidden
+-spec encode_field_tag/2 :: (
+    Code :: pos_integer(),
+    FieldType :: field_type()) -> iolist().
+
 encode_field_tag(Code, FieldType) when Code band 16#3fffffff =:= Code ->
     encode_varint((Code bsl 3) bor FieldType).
 
 
 %% @hidden
+%% NOTE: `Integer` MUST be >= 0
+-spec encode_varint_field/2 :: (
+    Code :: pos_integer(),
+    Integer :: non_neg_integer()) -> iolist().
+
 encode_varint_field(Code, Integer) ->
     [encode_field_tag(Code, ?TYPE_VARINT), encode_varint(Integer)].
 
 
 %% @hidden
+%% NOTE: `I` MUST be >= 0
+-spec encode_varint/1 :: (
+    I :: non_neg_integer()) -> iolist().
+
 encode_varint(I) ->
     encode_varint(I, []).
 
@@ -101,12 +122,56 @@ decode_varint(<<1:1, I:7, Rest/binary>>, Acc) ->
     decode_varint(Rest, [I | Acc]).
 
 
+-spec gen_record/2 :: (
+    Code :: pos_integer(),
+    Fields :: [iolist()] ) -> iolist().
 
-integer_to_varint(Code, X) when X >= 0 ->
-    integer_to_signed_varint(Code, X).
+gen_record(Code, Fields) ->
+    [
+        encode_field_tag(Code, ?TYPE_STRING),
+        encode_varint(iolist_size(Fields)),
+        Fields
+    ].
 
-integer_to_signed_varint(Code, X) ->
+
+-spec gen_variant/2 :: (
+    Code :: pos_integer(),
+    X :: iolist() ) -> iolist().
+
+gen_variant(Code, X) ->
+    gen_record(Code, [X]).
+
+
+-spec gen_list/3 :: (
+    Code :: pos_integer(),
+    GenValue :: fun( (any()) -> iolist() ),
+    L :: [any()] ) -> iolist().
+
+gen_list(Code, GenValue, L) ->
+    % NOTE: using "1" as list element's code
+    gen_record(Code, [GenValue(1, X) || X <- L]).
+
+
+gen_req_field(Code, GenValue, X) ->
+    GenValue(Code, X).
+
+
+gen_opt_field(_Code, _GenValue, 'undefined') -> [];
+gen_opt_field(Code, GenValue, X) ->
+    GenValue(Code, X).
+
+
+gen_rep_field(Code, GenValue, L) ->
+    [GenValue(Code, X) || X <- L].
+
+
+non_neg_integer_to_varint(Code, X) when X >= 0 ->
     encode_varint_field(Code, X).
+
+integer_to_signed_varint(Code, X) when X >= 0 ->
+    encode_varint_field(Code, X);
+integer_to_signed_varint(Code, X) -> % when X < 0
+    encode_varint_field(Code, X + (1 bsl 64)).
 
 
 integer_to_zigzag_varint(Code, X) when X >= 0 ->
@@ -121,14 +186,17 @@ boolean_to_varint(Code, false) ->
     encode_varint_field(Code, 0).
 
 
-integer_to_fixed32(Code, X) when X >= 0 ->
+gen_bool(Code, X) -> boolean_to_varint(Code, X).
+
+
+non_neg_integer_to_fixed32(Code, X) when X >= 0 ->
     integer_to_signed_fixed32(Code, X).
 
 integer_to_signed_fixed32(Code, X) ->
     [encode_field_tag(Code, ?TYPE_32BIT), <<X:32/little-integer>>].
 
 
-integer_to_fixed64(Code, X) when X >= 0 ->
+non_neg_integer_to_fixed64(Code, X) when X >= 0 ->
     integer_to_signed_fixed64(Code, X).
 
 integer_to_signed_fixed64(Code, X) ->
@@ -182,8 +250,11 @@ parse_field(Bytes) ->
 
 
 parse_record({'block', Bytes}) ->
-    parse_record_buf(Bytes, []).
+    parse_record_buf(Bytes).
 
+
+parse_record_buf(Bytes) ->
+    parse_record_buf(Bytes, []).
 
 parse_record_buf(<<>>, Accu) ->
     lists:reverse(Accu);
@@ -192,13 +263,116 @@ parse_record_buf(Bytes, Accu) ->
     parse_record_buf(Rest, [Value | Accu]).
 
 
-parse_variant(Bytes) ->
-    [Res] = parse_record(Bytes),
+parse_variant(X) ->
+    [Res] = parse_record(X),
     Res.
 
 
-integer_of_varint(X) when is_integer(X) -> X.
+parse_list(ParseValue, X) ->
+    L = parse_record(X),
+    % NOTE: expecting "1" as list element's code
+    [ ParseValue(Y) || {1, Y} <- L ].
 
+
+% find record field by code
+find_fields(Code, L) ->
+    find_fields(Code, L, [], []).
+
+
+find_fields(_Code, [], Accu, Rest) ->
+    {lists:reverse(Accu), lists:reverse(Rest)};
+find_fields(Code, [{Code, X} | T], Accu, Rest) ->
+    find_fields(Code, T, [X | Accu], Rest);
+find_fields(Code, [H | T], Accu, Rest) ->
+    find_fields(Code, T, Accu, [H | Rest]).
+
+
+% strings are encoded as variable-length blocks 
+parse_string({'block', X}) -> X.
+
+
+parse_binobj(Binobj) ->
+    L = parse_record_buf(Binobj),
+    case L of
+        [{2, X}] -> % anonymous binobj
+            {'undefined', X};
+        [{1, Nameobj}, {2, X}] -> % named binobj
+            Name = parse_string(Nameobj),
+            {Name, X}
+    end.
+
+
+parse_default(X) ->
+  {_, Res} = parse_binobj(X),
+  Res.
+
+
+error(X) ->
+    throw({'piqirun_error', X}).
+
+
+
+parse_req_field(Code, ParseValue, L) ->
+    case parse_opt_field(Code, ParseValue, L) of
+        {'undefined', _Rest} -> error({'missing_field', Code});
+        X -> X
+    end.
+
+
+parse_opt_field(Code, ParseValue, L, Default) ->
+    case parse_opt_field(Code, ParseValue, L) of
+        {'undefined', _Rest} -> ParseValue(parse_default(Default));
+        X -> X
+    end.
+
+
+parse_opt_field(Code, ParseValue, L) ->
+    {Fields, Rest} = find_fields(Code, L),
+    Res = 
+        case Fields of
+            [] -> 'undefined';
+            [X|_] ->
+                % NOTE: handling field duplicates without failure
+                % XXX, TODO: produce a warning
+                ParseValue(X)
+        end,
+    {Res, Rest}.
+
+
+parse_flag(Code, L) ->
+    % flags are represeted as booleans
+    case parse_opt_field(Code, fun parse_bool/1, L) of
+        {'undefined', _Rest} -> false;
+        X = {true, _} -> X;
+        {false, _} -> error({'invalid_flag_encoding', Code})
+    end.
+
+
+parse_rep_field(Code, ParseValue, L) ->
+    {Fields, Rest} = find_fields(Code, L),
+    Res = [ ParseValue(X) || X <- Fields ],
+    {Res, Rest}.
+
+
+% XXX, TODO: print warnings on unrecognized fields
+check_unparsed_fields(_L) -> ok.
+
+error_enum_const(X) -> error({'unknown_enum_const', X}).
+
+error_enum_obj(X) -> error({'invalid_enum_object', X}).
+
+error_option(_X, Code) -> error({'unknown_option', Code}).
+
+
+
+-spec non_neg_integer_of_varint/1 :: (
+    piqirun_buffer()) -> non_neg_integer().
+
+non_neg_integer_of_varint(X) when is_integer(X) -> X.
+
+
+-spec integer_of_signed_varint/1 :: (
+    piqirun_buffer()) -> integer().
 
 integer_of_signed_varint(X)
         when is_integer(X) andalso (X band 16#8000000000000000 =/= 0) ->
@@ -206,20 +380,32 @@ integer_of_signed_varint(X)
 integer_of_signed_varint(X) -> X.
 
 
+-spec integer_of_zigzag_varint/1 :: (
+    piqirun_buffer()) -> integer().
+
 integer_of_zigzag_varint(X) when is_integer(X) ->
     (X bsr 1) bxor (-(X band 1)).
 
+
+-spec boolean_of_varint/1 :: (
+    piqirun_buffer()) -> boolean().
 
 boolean_of_varint(1) -> true;
 boolean_of_varint(0) -> false.
 
 
-integer_of_fixed32(<<X:32/little-unsigned-integer>>) -> X.
+-spec parse_bool/1 :: (
+    piqirun_buffer()) -> boolean().
+
+parse_bool(X) -> boolean_of_varint(X).
+
+
+non_neg_integer_of_fixed32(<<X:32/little-unsigned-integer>>) -> X.
 
 integer_of_signed_fixed32(<<X:32/little-signed-integer>>) -> X.
 
 
-integer_of_fixed64(<<X:64/little-unsigned-integer>>) -> X.
+non_neg_integer_of_fixed64(<<X:64/little-unsigned-integer>>) -> X.
 
 integer_of_signed_fixed64(<<X:64/little-signed-integer>>) -> X.
 

@@ -6,11 +6,20 @@
 
 
 .extend [
-    (.name int uint)
-    (.name int32 uint32 int32-fixed uint32-fixed proto-int32)
-    (.name int64 uint64 int64-fixed uint64-fixed proto-int64)
+    (.name int)
+    (.name int32 int32-fixed proto-int32)
+    (.name int64 int64-fixed proto-int64)
 
     .erlang-type "integer"
+]
+
+
+.extend [
+    (.name uint)
+    (.name uint32 uint32-fixed)
+    (.name uint64 uint64-fixed)
+
+    .erlang-type "non_neg_integer"
 ]
 
 

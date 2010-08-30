@@ -35,9 +35,9 @@ let erlang_name n =
   dashes_to_underscores n
 
 
-let erlang_lcname n = (* lowercase *)
-  (* XXX, TODO: normalize instead of just lowercasing? *)
-  String.lowercase (erlang_name n)
+let erlang_lcname n = (* uncapitalize *)
+  (* XXX, TODO: normalize instead of just uncapitalizing? *)
+  String.uncapitalize (erlang_name n)
 
 
 let erlname n =
@@ -189,6 +189,7 @@ let piqic (piqi: T.piqi) =
     ios "-module("; ios modname; ios ")."; eol;
     ios "-compile([export_all])."; eol;
     eol;
+    ios "-include_lib(\"piqirun/include/piqirun.hrl\")."; eol;
     ios "-include("; ioq (modname ^ ".hrl"); ios ")."; eol;
     eol;
     code_gen; eol;

@@ -1,9 +1,11 @@
 
 .SUFFIXES: .erl .beam
-.PHONY: beams clean
+.SECONDARY: .erl
+.PHONY: beams ebin clean
 
 
 ERLC = erlc
+ERL = erl
 #ERLC_FLAGS = #-W +debug_info +warn_missing_spec
 
 
@@ -12,16 +14,26 @@ ifndef EBIN_DIR
 endif
 
 
-BEAMS = $(ERL_SOURCES:%.erl=$(EBIN_DIR)/%.beam)
+ERL_OBJECTS = $(ERL_SOURCES:%.erl=$(EBIN_DIR)/%.beam)
+APP_FILES := $(wildcard *.app)
+EBIN_FILES = $(ERL_OBJECTS) $(APP_FILES:%.app=$(EBIN_DIR)/%.app)
+ERL_MODULES = $(ERL_SOURCES:%.erl=%)
 
 
-beams: $(BEAMS)
+ebin: beams $(EBIN_FILES)
+
+
+beams: $(PRE_TARGET) $(ERL_OBJECTS)
 
 
 $(EBIN_DIR)/%.beam: %.erl
 	$(ERLC) $(ERLC_FLAGS) -o $(EBIN_DIR) $<
 
 
+$(EBIN_DIR)/%.app: %.app
+	cp $< $@
+
+
 clean::
-	rm -f $(BEAMS)
+	rm -f $(ERL_OBJECTS) $(PRE_TARGET)
 

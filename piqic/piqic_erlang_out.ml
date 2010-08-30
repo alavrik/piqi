@@ -80,7 +80,6 @@ and gen_gen_typeref ?erlang_type ?wire_type t =
 let gen_mode f =
   match f.F#mode with
     | `required -> "req"
-    | `optional when f.F#default <> None -> "req" (* optional + default *)
     | `optional -> "opt"
     | `repeated -> "rep"
 
@@ -97,23 +96,25 @@ let gen_field rname f =
       | Some typeref ->
           (* field generation code *)
           iol
-            [ 
+            [
               ios "piqirun:gen_" ^^ ios mode ^^ ios "_field(";
                 gen_code f.code; ios ", ";
                 ios "fun "; gen_gen_typeref typeref; ios "/2, ";
-                ffname; ios ")"
+                ffname;
+              ios ")"
             ]
       | None ->
           (* flag generation code *)
           iod " " [
             ios "piqirun:gen_bool(";
-            gen_code f.code; ios ", ";
-              ffname; ios ")";
+              gen_code f.code; ios ", ";
+              ffname;
+            ios ")";
           ]
   in fgen
 
 
-(* TODO, FIXME: unify with erlangc, piqobj_to_wire or preorder while processing
+(* TODO, FIXME: unify with ocamlc, piqobj_to_wire or preorder while processing
  *)
 (* preorder fields by their field's codes *)
 let order_fields fields =
@@ -150,7 +151,7 @@ let gen_const c =
   let open Option in
   iol [
     ios (some_of c.erlang_name); ios " -> ";
-      ios "piqirun:gen_varint32(Code, "; gen_code c.code; ios ")"
+      ios "piqirun:encode_varint(Code, "; gen_code c.code; ios ")"
   ]
 
 
@@ -246,30 +247,43 @@ let gen_list l =
   iol [
     ios "gen_" ^^ ios (some_of l.erlang_name);
     ios "(Code, X) ->"; indent;
-      ios "piqirun:gen_list(";
-        ios "fun "; gen_gen_typeref l.typeref; ios "/2, Code, X).";
+      ios "piqirun:gen_list(Code, ";
+        ios "fun "; gen_gen_typeref l.typeref; ios "/2, X).";
     unindent; eol;
   ]
 
 
-let gen_def = function
-  | `alias t -> gen_alias t
-  | `record t -> gen_record t
-  | `variant t -> gen_variant t
-  | `enum t -> gen_enum t
-  | `list t -> gen_list t
+let gen_spec x =
+  iol [
+    ios "-spec gen_"; ios (piqdef_erlname x); ios "/2 :: (";
+      ios "Code :: pos_integer(), ";
+      ios "X :: "; ios_gen_typeref (x :> T.typeref); ios ") -> ";
+    ios "iolist().";
+  ]
 
 
-let gen_alias a = 
+let gen_def x =
+  let generator =
+    match x with
+      | `alias t -> gen_alias t
+      | `record t -> gen_record t
+      | `variant t -> gen_variant t
+      | `enum t -> gen_enum t
+      | `list t -> gen_list t
+  in iol [
+    gen_spec x; eol;
+    generator;
+  ]
+
+
+let gen_def x =
   let open Alias in
-  if a.typeref = `any && not !depends_on_piq_any
-  then []
-  else [gen_alias a]
-
-
-let gen_def = function
-  | `alias x -> gen_alias x
-  | x -> [gen_def x]
+  match x with
+    | `alias a ->
+        if a.typeref = `any && not !depends_on_piq_any
+        then []
+        else [gen_def x]
+    | _ -> [gen_def x]
 
 
 let gen_defs (defs:T.piqdef list) =

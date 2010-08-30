@@ -53,14 +53,16 @@ and gen_parse_typeref ?erlang_type ?wire_type (t:T.typeref) =
 
 (* XXX: parse defaults once at boot time rather than each time when we need to
  * parse a field *)
+(* TODO: preparse binobj *)
 let gen_default = function
-  | None -> ios "'undefined'"
+  | None -> iol []
   | Some {T.Any.binobj = Some x} ->
       let codes =
         List.map (fun x ->
           ios (string_of_int (Char.code x))) (list_of_string x)
       in
       iol [
+        ios ", "; (* separate Default from the previous parameter *)
         ios "<<"; iod "," codes; ios ">>";
       ]
   | _ ->
@@ -94,7 +96,7 @@ let gen_field_parser i f =
             ios "piqirun:parse_" ^^ ios mode ^^ ios "_field(";
               gen_code f.code; ios ", ";
               ios "fun "; gen_parse_typeref typeref; ios "/1, ";
-              rest i; ios ", ";
+              rest i;
               gen_default f.default;
             ios ")";
           ]
@@ -141,17 +143,17 @@ let gen_const c =
   let open Option in
   let code_str = gen_code c.code in
   iol [
-    ios "{varint, "; code_str; ios "} -> "; ios (some_of c.erlang_name);
+    code_str; ios " -> "; ios (some_of c.erlang_name);
   ]
 
 
 let gen_enum e =
   let open Enum in
   let consts = List.map gen_const e.option in
-  let cases = consts @ [
-    ios "{varint, Y} -> piqirun:error_enum_const(Y)";
-    ios "_ -> piqirun:error_enum_obj(X)";
-  ]
+  let cases =
+    [ ios "Y when not is_integer(Y) -> piqirun:error_enum_const(Y)" ] @
+    consts @
+    [ ios "_ -> piqirun:error_enum_obj(X)" ]
   in
   iol [
     ios "parse_" ^^ ios (some_of e.erlang_name); ios "(X) ->"; indent;
@@ -166,9 +168,9 @@ let gen_enum e =
 let rec gen_option o =
   let open Option in
   match o.erlang_name, o.typeref with
-    | Some ename, None -> (* boolean true *)
+    | Some ename, None -> (* expecting boolean true for a flag *)
         iol [
-          ios "{"; gen_code o.code; ios ", {varint, 1}}"; ios " -> "; ios ename;
+          ios "{"; gen_code o.code; ios ", 1}"; ios " -> "; ios ename;
         ]
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
         iol [
@@ -190,7 +192,7 @@ let gen_variant v =
   let open Variant in
   let options = List.map gen_option v.option in
   let cases = options @ [
-    ios "{Code, Obj} -> piqirun:error_variant(Obj, Code)";
+    ios "{Code, Obj} -> piqirun:error_option(Obj, Code)";
   ]
   in
   iol [
@@ -223,24 +225,37 @@ let gen_list l =
   ]
 
 
-let gen_def = function
-  | `record t -> gen_record t
-  | `variant t -> gen_variant t
-  | `enum t -> gen_enum t
-  | `list t -> gen_list t
-  | `alias t -> gen_alias t
+let gen_spec x =
+  iol [
+    ios "-spec parse_"; ios (piqdef_erlname x); ios "/1 :: (";
+      ios "X :: "; ios "piqirun_buffer()"; ios ") -> ";
+    ios_gen_typeref (x :> T.typeref);
+    ios ".";
+  ]
 
 
-let gen_alias a = 
+let gen_def x =
+  let generator =
+    match x with
+      | `alias t -> gen_alias t
+      | `record t -> gen_record t
+      | `variant t -> gen_variant t
+      | `enum t -> gen_enum t
+      | `list t -> gen_list t
+  in iol [
+    gen_spec x; eol;
+    generator;
+  ]
+
+
+let gen_def x =
   let open Alias in
-  if a.typeref = `any && not !depends_on_piq_any
-  then []
-  else [gen_alias a]
-
-
-let gen_def = function
-  | `alias x -> gen_alias x
-  | x -> [gen_def x]
+  match x with
+    | `alias a ->
+        if a.typeref = `any && not !depends_on_piq_any
+        then []
+        else [gen_def x]
+    | _ -> [gen_def x]
 
 
 let gen_defs (defs:T.piqdef list) =
