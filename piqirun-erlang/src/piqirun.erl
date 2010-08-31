@@ -72,7 +72,7 @@
 %% @hidden
 -spec encode_field_tag/2 :: (
     Code :: pos_integer(),
-    FieldType :: field_type()) -> iolist().
+    FieldType :: field_type()) -> binary().
 
 encode_field_tag(Code, FieldType) when Code band 16#3fffffff =:= Code ->
     encode_varint((Code bsl 3) bor FieldType).
@@ -91,7 +91,7 @@ encode_varint_field(Code, Integer) ->
 %% @hidden
 %% NOTE: `I` MUST be >= 0
 -spec encode_varint/1 :: (
-    I :: non_neg_integer()) -> iolist().
+    I :: non_neg_integer()) -> binary().
 
 encode_varint(I) ->
     encode_varint(I, []).
@@ -126,6 +126,16 @@ decode_varint(<<1:1, I:7, Rest/binary>>, Acc) ->
     Code :: pos_integer(),
     Fields :: [iolist()] ) -> iolist().
 
+-spec gen_variant/2 :: (
+    Code :: pos_integer(),
+    X :: iolist() ) -> iolist().
+
+-spec gen_list/3 :: (
+    Code :: pos_integer(),
+    GenValue :: encode_fun(),
+    L :: [any()] ) -> iolist().
+
+
 gen_record(Code, Fields) ->
     [
         encode_field_tag(Code, ?TYPE_STRING),
@@ -134,22 +144,33 @@ gen_record(Code, Fields) ->
     ].
 
 
--spec gen_variant/2 :: (
-    Code :: pos_integer(),
-    X :: iolist() ) -> iolist().
-
 gen_variant(Code, X) ->
     gen_record(Code, [X]).
 
 
--spec gen_list/3 :: (
-    Code :: pos_integer(),
-    GenValue :: fun( (any()) -> iolist() ),
-    L :: [any()] ) -> iolist().
-
 gen_list(Code, GenValue, L) ->
     % NOTE: using "1" as list element's code
     gen_record(Code, [GenValue(1, X) || X <- L]).
+
+
+
+-type encode_fun() ::
+     fun( (Code :: pos_integer(), Value :: any()) -> iolist() ).
+
+-spec gen_req_field/3 :: (
+    Code :: pos_integer(),
+    GenValue :: encode_fun(),
+    X :: any() ) -> iolist().
+
+-spec gen_opt_field/3 :: (
+    Code :: pos_integer(),
+    GenValue :: encode_fun(),
+    X :: 'undefined' | any() ) -> iolist().
+
+-spec gen_rep_field/3 :: (
+    Code :: pos_integer(),
+    GenValue :: encode_fun(),
+    X :: [any()] ) -> iolist().
 
 
 gen_req_field(Code, GenValue, X) ->
@@ -163,6 +184,55 @@ gen_opt_field(Code, GenValue, X) ->
 
 gen_rep_field(Code, GenValue, L) ->
     [GenValue(Code, X) || X <- L].
+
+
+-spec non_neg_integer_to_varint/2 :: (
+    Code :: pos_integer(),
+    X :: non_neg_integer()) -> iolist().
+
+-spec integer_to_signed_varint/2 :: (
+    Code :: pos_integer(),
+    X :: integer()) -> iolist().
+
+-spec integer_to_zigzag_varint/2 :: (
+    Code :: pos_integer(),
+    X :: integer()) -> iolist().
+
+-spec boolean_to_varint/2 :: (
+    Code :: pos_integer(),
+    X :: boolean()) -> iolist().
+
+-spec gen_bool/2 :: (
+    Code :: pos_integer(),
+    X :: boolean()) -> iolist().
+
+-spec non_neg_integer_to_fixed32/2 :: (
+    Code :: pos_integer(),
+    X :: non_neg_integer()) -> iolist().
+
+-spec integer_to_signed_fixed32/2 :: (
+    Code :: pos_integer(),
+    X :: integer()) -> iolist().
+
+-spec non_neg_integer_to_fixed64/2 :: (
+    Code :: pos_integer(),
+    X :: non_neg_integer()) -> iolist().
+
+-spec integer_to_signed_fixed64/2 :: (
+    Code :: pos_integer(),
+    X :: non_neg_integer()) -> iolist().
+
+-spec float_to_fixed64/2 :: (
+    Code :: pos_integer(),
+    X :: float() | integer() ) -> iolist().
+
+-spec float_to_fixed32/2 :: (
+    Code :: pos_integer(),
+    X :: float() | integer() ) -> iolist().
+
+-spec binary_to_block/2 :: (
+    Code :: pos_integer(),
+    X :: binary() | string() ) -> iolist().
 
 
 non_neg_integer_to_varint(Code, X) when X >= 0 ->
@@ -225,12 +295,21 @@ binary_to_block(Code, X) when is_list(X) ->
 % Decoders and parsers
 %
 
+-type parsed_field() ::
+    {FieldCode :: pos_integer(), FieldValue :: piqirun_buffer()}.
+
+-spec parse_field_header/1 :: ( Bytes :: binary() ) ->
+    {Code :: pos_integer(), WireType :: field_type(), Rest :: binary()}.
+
 parse_field_header(Bytes) ->
     {Tag, Rest} = decode_varint(Bytes),
     Code = Tag bsr 3,
     WireType = Tag band 7,
     {Code, WireType, Rest}.
 
+
+-spec parse_field/1 :: (
+    Bytes :: binary() ) -> {parsed_field(), Rest :: binary()}.
 
 parse_field(Bytes) ->
     {FieldCode, WireType, Content} = parse_field_header(Bytes),
@@ -247,6 +326,20 @@ parse_field(Bytes) ->
                 split_binary(Content, 4)
         end,
     {{FieldCode, FieldValue}, Rest}.
+
+
+-spec parse_record/1 :: (
+    piqirun_buffer() ) -> [ parsed_field() ].
+
+-spec parse_record_buf/1 :: (
+    Bytes :: binary() ) -> [ parsed_field() ].
+
+-spec parse_variant/1 :: (
+    piqirun_buffer() ) -> parsed_field().
+
+-spec parse_list/2 :: (
+    ParseValue :: fun (( piqirun_buffer() ) -> any()),
+    piqirun_buffer() ) -> [ any() ].
 
 
 parse_record({'block', Bytes}) ->
@@ -274,6 +367,11 @@ parse_list(ParseValue, X) ->
     [ ParseValue(Y) || {1, Y} <- L ].
 
 
+-spec find_fields/2 :: (
+        Code :: pos_integer(),
+        L :: [ parsed_field() ] ) ->
+    { Found ::[ piqirun_buffer() ], Rest :: [ parsed_field() ]}.
+
 % find record field by code
 find_fields(Code, L) ->
     find_fields(Code, L, [], []).
@@ -288,7 +386,7 @@ find_fields(Code, [H | T], Accu, Rest) ->
 
 
 % strings are encoded as variable-length blocks 
-parse_string({'block', X}) -> X.
+parse_string(X) -> binary_of_block(X).
 
 
 parse_binobj(Binobj) ->
@@ -307,9 +405,38 @@ parse_default(X) ->
   Res.
 
 
+-spec error/1 :: (any()) -> no_return().
+
 error(X) ->
     throw({'piqirun_error', X}).
 
+
+-type decode_fun() :: fun( (piqirun_buffer()) -> any() ).
+
+-spec parse_req_field/3 :: (
+    Code :: pos_integer(),
+    ParseValue :: decode_fun(),
+    L :: [parsed_field()] ) -> { Res :: any(), Rest :: [parsed_field()] }.
+
+-spec parse_opt_field/3 :: (
+    Code :: pos_integer(),
+    ParseValue :: decode_fun(),
+    L :: [parsed_field()] ) -> { Res :: 'undefined' | any(), Rest :: [parsed_field()] }.
+
+-spec parse_opt_field/4 :: (
+    Code :: pos_integer(),
+    ParseValue :: decode_fun(),
+    L :: [parsed_field()],
+    Default :: binary() ) -> { Res :: any(), Rest :: [parsed_field()] }.
+
+-spec parse_rep_field/3 :: (
+    Code :: pos_integer(),
+    ParseValue :: decode_fun(),
+    L :: [parsed_field()] ) -> { Res :: [any()], Rest :: [parsed_field()] }.
+
+-spec parse_flag/2 :: (
+    Code :: pos_integer(),
+    L :: [parsed_field()] ) -> { Res :: boolean(), Rest :: [parsed_field()] }.
 
 
 parse_req_field(Code, ParseValue, L) ->
@@ -342,8 +469,8 @@ parse_opt_field(Code, ParseValue, L) ->
 parse_flag(Code, L) ->
     % flags are represeted as booleans
     case parse_opt_field(Code, fun parse_bool/1, L) of
-        {'undefined', _Rest} -> false;
-        X = {true, _} -> X;
+        {'undefined', Rest} -> {false, Rest};
+        X = {true, _Rest} -> X;
         {false, _} -> error({'invalid_flag_encoding', Code})
     end.
 
@@ -368,11 +495,42 @@ error_option(_X, Code) -> error({'unknown_option', Code}).
 -spec non_neg_integer_of_varint/1 :: (
     piqirun_buffer()) -> non_neg_integer().
 
-non_neg_integer_of_varint(X) when is_integer(X) -> X.
-
-
 -spec integer_of_signed_varint/1 :: (
     piqirun_buffer()) -> integer().
+
+-spec integer_of_zigzag_varint/1 :: (
+    piqirun_buffer()) -> integer().
+
+-spec boolean_of_varint/1 :: (
+    piqirun_buffer()) -> boolean().
+
+-spec parse_bool/1 :: (
+    piqirun_buffer()) -> boolean().
+
+-spec non_neg_integer_of_fixed32/1 :: (
+    piqirun_buffer()) -> non_neg_integer().
+
+-spec integer_of_signed_fixed32/1 :: (
+    piqirun_buffer()) -> integer().
+
+-spec non_neg_integer_of_fixed64/1 :: (
+    piqirun_buffer()) -> non_neg_integer().
+
+-spec integer_of_signed_fixed64/1 :: (
+    piqirun_buffer()) -> integer().
+
+-spec float_of_fixed64/1 :: (
+    piqirun_buffer()) -> float().
+
+-spec float_of_fixed32/1 :: (
+    piqirun_buffer()) -> float().
+
+-spec binary_of_block/1 :: (
+    piqirun_buffer()) -> binary().
+
+
+non_neg_integer_of_varint(X) when is_integer(X) -> X.
+
 
 integer_of_signed_varint(X)
         when is_integer(X) andalso (X band 16#8000000000000000 =/= 0) ->
@@ -380,22 +538,13 @@ integer_of_signed_varint(X)
 integer_of_signed_varint(X) -> X.
 
 
--spec integer_of_zigzag_varint/1 :: (
-    piqirun_buffer()) -> integer().
-
 integer_of_zigzag_varint(X) when is_integer(X) ->
     (X bsr 1) bxor (-(X band 1)).
 
 
--spec boolean_of_varint/1 :: (
-    piqirun_buffer()) -> boolean().
-
 boolean_of_varint(1) -> true;
 boolean_of_varint(0) -> false.
 
-
--spec parse_bool/1 :: (
-    piqirun_buffer()) -> boolean().
 
 parse_bool(X) -> boolean_of_varint(X).
 

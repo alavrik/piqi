@@ -151,7 +151,7 @@ let gen_const c =
   let open Option in
   iol [
     ios (some_of c.erlang_name); ios " -> ";
-      ios "piqirun:encode_varint(Code, "; gen_code c.code; ios ")"
+      ios "piqirun:encode_varint_field(Code, "; gen_code c.code; ios ")"
   ]
 
 

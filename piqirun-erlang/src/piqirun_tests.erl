@@ -16,6 +16,9 @@
 %% Unit-tests for Piqi Erlang Runtime library
 %% 
 -module(piqirun_tests).
+
+-ifndef(DIALYZER).
+
 -include_lib("eunit/include/eunit.hrl").
 
 
@@ -99,3 +102,4 @@ fixed64_test_() ->
     [ gen_test_type(X, non_neg_integer_to_fixed64, non_neg_integer_of_fixed64)
       || X <- uint64_input() ].
 
+-endif.

@@ -13,11 +13,19 @@ ifndef EBIN_DIR
 	EBIN_DIR = ../ebin
 endif
 
+ifndef TEST_DIR
+	TEST_DIR = .
+endif
+
 
 ERL_OBJECTS = $(ERL_SOURCES:%.erl=$(EBIN_DIR)/%.beam)
 APP_FILES := $(wildcard *.app)
 EBIN_FILES = $(ERL_OBJECTS) $(APP_FILES:%.app=$(EBIN_DIR)/%.app)
 ERL_MODULES = $(ERL_SOURCES:%.erl=%)
+
+
+TEST_PLT=$(TEST_DIR)/dialyzer_plt
+TEST_LOG=$(TEST_DIR)/dialyzer.log
 
 
 ebin: beams $(EBIN_FILES)
@@ -35,5 +43,23 @@ $(EBIN_DIR)/%.app: %.app
 
 
 clean::
-	rm -f $(ERL_OBJECTS) $(PRE_TARGET)
+	rm -f $(ERL_OBJECTS) $(PRE_TARGET) $(TEST_PLT) $(TEST_LOG)
+
+
+#
+# Dilyzer-releated rules
+#
+
+$(TEST_PLT):
+	mkdir -p $(TEST_DIR)
+	cp $(DIALYZER_PLT) $(TEST_PLT)
+	dialyzer --plt $(TEST_PLT) --add_to_plt
+
+
+clean_plt:
+	rm $(TEST_PLT)
+
+
+dialyzer: $(TEST_PLT)
+	dialyzer --src --plt $(TEST_PLT) -DNOTEST -DDIALYZER -r . | tee $(TEST_LOG)
 
