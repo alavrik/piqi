@@ -71,7 +71,7 @@
 
 %% @hidden
 -spec encode_field_tag/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     FieldType :: field_type()) -> binary().
 
 encode_field_tag(Code, FieldType) when Code band 16#3fffffff =:= Code ->
@@ -81,7 +81,7 @@ encode_field_tag(Code, FieldType) when Code band 16#3fffffff =:= Code ->
 %% @hidden
 %% NOTE: `Integer` MUST be >= 0
 -spec encode_varint_field/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     Integer :: non_neg_integer()) -> iolist().
 
 encode_varint_field(Code, Integer) ->
@@ -123,25 +123,28 @@ decode_varint(<<1:1, I:7, Rest/binary>>, Acc) ->
 
 
 -spec gen_record/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     Fields :: [iolist()] ) -> iolist().
 
 -spec gen_variant/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: iolist() ) -> iolist().
 
 -spec gen_list/3 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     GenValue :: encode_fun(),
     L :: [any()] ) -> iolist().
 
 
 gen_record(Code, Fields) ->
-    [
-        encode_field_tag(Code, ?TYPE_STRING),
-        encode_varint(iolist_size(Fields)),
-        Fields
-    ].
+    Header =
+        case Code of
+            'undefined' -> []; % do not generate record header
+            _ ->
+                [ encode_field_tag(Code, ?TYPE_STRING),
+                  encode_varint(iolist_size(Fields)) ]
+        end,
+    [ Header, Fields ].
 
 
 gen_variant(Code, X) ->
@@ -155,20 +158,20 @@ gen_list(Code, GenValue, L) ->
 
 
 -type encode_fun() ::
-     fun( (Code :: pos_integer(), Value :: any()) -> iolist() ).
+     fun( (Code :: piqirun_code(), Value :: any()) -> iolist() ).
 
 -spec gen_req_field/3 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     GenValue :: encode_fun(),
     X :: any() ) -> iolist().
 
 -spec gen_opt_field/3 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     GenValue :: encode_fun(),
     X :: 'undefined' | any() ) -> iolist().
 
 -spec gen_rep_field/3 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     GenValue :: encode_fun(),
     X :: [any()] ) -> iolist().
 
@@ -187,51 +190,51 @@ gen_rep_field(Code, GenValue, L) ->
 
 
 -spec non_neg_integer_to_varint/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: non_neg_integer()) -> iolist().
 
 -spec integer_to_signed_varint/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: integer()) -> iolist().
 
 -spec integer_to_zigzag_varint/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: integer()) -> iolist().
 
 -spec boolean_to_varint/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: boolean()) -> iolist().
 
 -spec gen_bool/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: boolean()) -> iolist().
 
 -spec non_neg_integer_to_fixed32/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: non_neg_integer()) -> iolist().
 
 -spec integer_to_signed_fixed32/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: integer()) -> iolist().
 
 -spec non_neg_integer_to_fixed64/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: non_neg_integer()) -> iolist().
 
 -spec integer_to_signed_fixed64/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: non_neg_integer()) -> iolist().
 
 -spec float_to_fixed64/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: float() | integer() ) -> iolist().
 
 -spec float_to_fixed32/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: float() | integer() ) -> iolist().
 
 -spec binary_to_block/2 :: (
-    Code :: pos_integer(),
+    Code :: piqirun_code(),
     X :: binary() | string() ) -> iolist().
 
 
@@ -448,7 +451,9 @@ parse_req_field(Code, ParseValue, L) ->
 
 parse_opt_field(Code, ParseValue, L, Default) ->
     case parse_opt_field(Code, ParseValue, L) of
-        {'undefined', _Rest} -> ParseValue(parse_default(Default));
+        {'undefined', Rest} ->
+            Res = ParseValue(parse_default(Default)),
+            {Res, Rest};
         X -> X
     end.
 

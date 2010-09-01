@@ -256,7 +256,7 @@ let gen_list l =
 let gen_spec x =
   iol [
     ios "-spec gen_"; ios (piqdef_erlname x); ios "/2 :: (";
-      ios "Code :: pos_integer(), ";
+      ios "Code :: piqirun_code(), ";
       ios "X :: "; ios_gen_typeref (x :> T.typeref); ios ") -> ";
     ios "iolist().";
   ]

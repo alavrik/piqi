@@ -24,6 +24,11 @@ EBIN_FILES = $(ERL_OBJECTS) $(APP_FILES:%.app=$(EBIN_DIR)/%.app)
 ERL_MODULES = $(ERL_SOURCES:%.erl=%)
 
 
+ERL_PA = $(ERL_APP_PATH:%=-pa %*/ebin)
+#ERL_INCLUDES = $(ERL_APP_PATH:%=-I %*/)
+ERLC_FLAGS += $(ERL_PA)
+
+
 TEST_PLT=$(TEST_DIR)/dialyzer_plt
 TEST_LOG=$(TEST_DIR)/dialyzer.log
 
@@ -61,5 +66,5 @@ clean_plt:
 
 
 dialyzer: $(TEST_PLT)
-	dialyzer --src --plt $(TEST_PLT) -DNOTEST -DDIALYZER -r . | tee $(TEST_LOG)
+	dialyzer --src --plt $(TEST_PLT) $(ERL_PA) -DNOTEST -DDIALYZER -r . | tee $(TEST_LOG)
 
