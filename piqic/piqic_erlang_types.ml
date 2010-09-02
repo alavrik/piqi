@@ -66,7 +66,8 @@ let rec gen_piqtype t erlang_type =
           | `int -> "integer"
           | `float -> "float"
           | `bool -> "boolean"
-          | `string | `word | `binary | `text -> "binary"
+          | `string | `word | `text -> "string"
+          | `binary -> "binary"
           | `any -> "piqtype_any" (* XXX *)
           | `record r -> gen_deftype r.R#parent r.R#erlang_name
           | `variant v -> gen_deftype v.V#parent v.V#erlang_name
@@ -89,16 +90,30 @@ and gen_typeref ?erlang_type (t:T.typeref) =
   gen_piqtype (piqtype t) erlang_type
 
 
-let ios_gen_typeref ?erlang_type t =
+let ios_gen_in_typeref ?erlang_type t =
   let n = gen_typeref ?erlang_type t in
+  (* recognized the fact that strings are actually parsed as binaries *)
+  let n =
+    if n = "string" then "binary" else n
+  in
   ios n ^^ ios "()"
+
+
+let ios_gen_out_typeref ?erlang_type t =
+  let n = gen_typeref ?erlang_type t in
+  (* allow more flexible typing in certain cases: loosen type restrictions for
+   * convenience *)
+  match n with
+    | "string" -> ios "string() | binary()"
+    | "float" -> ios "number()"
+    | _ -> ios n ^^ ios "()"
 
 
 let gen_field_type fl ft =
   match ft with
     | None -> ios "boolean()"; (* flags are represented as booleans *)
     | Some ft ->
-      let deftype = ios_gen_typeref ft in
+      let deftype = ios_gen_out_typeref ft in
       match fl with
         | `required -> deftype
         | `optional -> deftype
@@ -167,7 +182,7 @@ let gen_option o =
           ios "{";
             ios n;
             ios ", ";
-            ios_gen_typeref t;
+            ios_gen_out_typeref t;
           ios "}";
         ]
     | Some _, None ->
@@ -191,7 +206,7 @@ let gen_variant v =
 let gen_alias a =
   let open Alias in
   let name = some_of a.erlang_name in
-  let type_expr = ios_gen_typeref a.typeref ?erlang_type:a.erlang_type in
+  let type_expr = ios_gen_out_typeref a.typeref ?erlang_type:a.erlang_type in
   gen_type name type_expr
 
 
@@ -200,7 +215,7 @@ let gen_list l =
   let name = some_of l.erlang_name in
   let type_expr =
     iol [
-      ios "["; ios_gen_typeref l.typeref; ios "]";
+      ios "["; ios_gen_out_typeref l.typeref; ios "]";
     ]
   in
   gen_type name type_expr
@@ -219,7 +234,7 @@ let gen_alias a =
   let name = some_of a.erlang_name in
   let typename = gen_typeref a.typeref ?erlang_type:a.erlang_type in
   if name = typename
-  then [] (* don't generate syclic type abbreviation *)
+  then [] (* don't generate syclic type definitions *)
   else
     match a.typeref with
       | `any when not !depends_on_piq_any ->

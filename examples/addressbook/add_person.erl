@@ -47,13 +47,13 @@ prompt_for_address(AddressBook) ->
     Id = list_to_integer(read_line()),
 
     print_endline("Enter name: "),
-    Name = list_to_binary(read_line()),
+    Name = read_line(),
 
     print_endline("Enter email address (blank for none): "),
     Email =
         case read_line() of
             "" -> 'undefined';
-            X -> list_to_binary(X)
+            X -> X
         end,
 
     print_endline("Enter a phone number (or leave blank to finish): "),
@@ -79,7 +79,7 @@ read_phone_numbers(Accu) ->
         Number ->
             PhoneType = read_phone_type(),
             Res = #addressbook_person_phone_number{
-                number = list_to_binary(Number),
+                number = Number,
                 type = PhoneType
             },
             read_phone_numbers([Res|Accu])

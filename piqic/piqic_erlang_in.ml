@@ -229,7 +229,7 @@ let gen_spec x =
   iol [
     ios "-spec parse_"; ios (piqdef_erlname x); ios "/1 :: (";
       ios "X :: "; ios "piqirun_buffer()"; ios ") -> ";
-    ios_gen_typeref (x :> T.typeref);
+    ios_gen_in_typeref (x :> T.typeref);
     ios ".";
   ]
 

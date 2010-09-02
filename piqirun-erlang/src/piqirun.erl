@@ -227,15 +227,29 @@ gen_rep_field(Code, GenValue, L) ->
 
 -spec float_to_fixed64/2 :: (
     Code :: piqirun_code(),
-    X :: float() | integer() ) -> iolist().
+    X :: number() ) -> iolist().
 
 -spec float_to_fixed32/2 :: (
     Code :: piqirun_code(),
-    X :: float() | integer() ) -> iolist().
+    X :: number() ) -> iolist().
 
 -spec binary_to_block/2 :: (
     Code :: piqirun_code(),
-    X :: binary() | string() ) -> iolist().
+    X :: binary() ) -> iolist().
+
+
+% NOTE, XXX: in fact, accepting chardata() defined in unicode(3erl) manpage as
+% follows:
+%
+% unicode_binary() = binary() with characters encoded in UTF-8 coding standard
+% unicode_char() = integer() representing valid unicode codepoint
+%
+% chardata() = charlist() | unicode_binary()
+% charlist() = [unicode_char() | unicode_binary() | charlist()]
+%
+-spec string_to_block/2 :: (
+    Code :: piqirun_code(),
+    X :: string() | binary() ) -> iolist().
 
 
 non_neg_integer_to_varint(Code, X) when X >= 0 ->
@@ -289,9 +303,12 @@ float_to_fixed32(Code, X) when is_integer(X) ->
 
 
 binary_to_block(Code, X) when is_binary(X) ->
-    [encode_field_tag(Code, ?TYPE_STRING), encode_varint(size(X)), X];
-binary_to_block(Code, X) when is_list(X) ->
-    binary_to_block(Code, list_to_binary(X)).
+    [encode_field_tag(Code, ?TYPE_STRING), encode_varint(size(X)), X].
+
+
+string_to_block(Code, X) when is_list(X); is_binary(X) ->
+    Utf8_bytes = unicode:characters_to_binary(X),
+    binary_to_block(Code, Utf8_bytes).
 
 
 %
@@ -388,17 +405,14 @@ find_fields(Code, [H | T], Accu, Rest) ->
     find_fields(Code, T, Accu, [H | Rest]).
 
 
-% strings are encoded as variable-length blocks 
-parse_string(X) -> binary_of_block(X).
-
-
 parse_binobj(Binobj) ->
     L = parse_record_buf(Binobj),
     case L of
         [{2, X}] -> % anonymous binobj
             {'undefined', X};
         [{1, Nameobj}, {2, X}] -> % named binobj
-            Name = parse_string(Nameobj),
+            % strings are encoded as variable-length blocks
+            Name = string_of_block(Nameobj),
             {Name, X}
     end.
 
@@ -533,6 +547,9 @@ error_option(_X, Code) -> error({'unknown_option', Code}).
 -spec binary_of_block/1 :: (
     piqirun_buffer()) -> binary().
 
+-spec string_of_block/1 :: (
+    piqirun_buffer()) -> binary().
+
 
 non_neg_integer_of_varint(X) when is_integer(X) -> X.
 
@@ -570,4 +587,6 @@ float_of_fixed32(<<X:32/little-float>>) -> X + 0.0.
 
 
 binary_of_block({'block', X}) -> X.
+
+string_of_block(X) -> binary_of_block(X).
 
