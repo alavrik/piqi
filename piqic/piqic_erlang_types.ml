@@ -90,8 +90,15 @@ and gen_typeref ?erlang_type (t:T.typeref) =
   gen_piqtype (piqtype t) erlang_type
 
 
-let ios_gen_in_typeref ?erlang_type t =
-  let n = gen_typeref ?erlang_type t in
+let ios_gen_in_typeref t =
+  let rec unalias = function
+    | `alias t when t.A#erlang_type = None ->
+        unalias t.A#typeref
+    | t -> t
+  in
+  (* un-alias to avoid Dialyzer complaints like this one: "... states that the
+   * function might also return string() but the inferred return is binary()" *)
+  let n = gen_typeref (unalias t) in
   (* recognized the fact that strings are actually parsed as binaries *)
   let n =
     if n = "string" then "binary" else n
