@@ -137,11 +137,13 @@ let erlname_of_option o =
 
 let gen_field f = 
   let open F in
-  let fdef = iod " " (* field definition *)
+  let fdef = iol (* field definition *)
     [
       ios (erlname_of_field f);
-      ios "::";
-      gen_field_type f.mode f.typeref; (* XXX: f.default; *)
+      (* initialize repreated fields as [] *)
+      (if f.mode = `repeated then ios " = []" else ios "");
+      ios " :: ";
+      gen_field_type f.mode f.typeref;
     ]
   in fdef
 

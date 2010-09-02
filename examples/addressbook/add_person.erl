@@ -22,7 +22,9 @@ run([Argv0, Filename]) ->
                 end;
             {error, _} ->
                 io:format("~s: File not found.  Creating a new file.~n", [Argv0]),
-                #addressbook_address_book{person = []}
+                % NOTE: as repeated fields are initialized to [] by default,
+                % there is no need to do that explicitly (i.e. "person = []")
+                #addressbook_address_book{}
         end,
 
     % Add an address.
