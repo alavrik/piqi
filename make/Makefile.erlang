@@ -43,7 +43,7 @@ ebin: beams $(EBIN_FILES)
 beams: $(PRE_TARGET) $(ERL_OBJECTS)
 
 
-$(EBIN_DIR)/%.beam: %.erl
+$(EBIN_DIR)/%.beam: %.erl $(ERL_HEADERS)
 	$(ERLC) $(ERLC_FLAGS) -o $(EBIN_DIR) $<
 
 

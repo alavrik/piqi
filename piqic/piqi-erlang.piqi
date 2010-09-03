@@ -22,6 +22,12 @@
         .type string
         .optional
     ]
+
+    .field [
+        .name erlang-type-prefix
+        .type string
+        .optional
+    ]
 ]
 
 

@@ -25,16 +25,17 @@ open Iolist
 
 
 (* toplevel Erlang modname for the module which is currently being compiled *)
-(* TODO: this is a dirty method for sharing the setting across all
+(* TODO: this is a dirty method for sharing settings across all
  * piqic_erlang_* modules *)
 let top_modname = ref ""
+let type_prefix = ref ""
 
 (* if no definition uses "piq_any" type, piq_any aliase will be excluded in
  * order to avoid unnecessary dependency on Piqtype module *)
 let depends_on_piq_any = ref false
 
 
-let scoped_name name = !top_modname ^ "_" ^ name
+let scoped_name name = !type_prefix ^ name
 
 
 let piqdef_erlname = function
@@ -52,8 +53,9 @@ let gen_deftype parent erlang_name =
   let erlang_name = some_of erlang_name in
   match parent with
     | Some (`import x) -> (* imported name *)
-        let erlang_modname = some_of x.Import#erlang_name in
-        (erlang_modname ^ "_" ^ erlang_name)
+        let piqi = some_of x.Import#piqi in
+        let type_prefix = some_of piqi.P#erlang_type_prefix in
+        (type_prefix ^ erlang_name)
     | _ -> (* local name *)
         scoped_name erlang_name
 

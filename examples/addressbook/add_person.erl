@@ -24,7 +24,7 @@ run([Argv0, Filename]) ->
                 io:format("~s: File not found.  Creating a new file.~n", [Argv0]),
                 % NOTE: as repeated fields are initialized to [] by default,
                 % there is no need to do that explicitly (i.e. "person = []")
-                #addressbook_address_book{}
+                #address_book{}
         end,
 
     % Add an address.
@@ -60,15 +60,15 @@ prompt_for_address(AddressBook) ->
 
     print_endline("Enter a phone number (or leave blank to finish): "),
     PhoneNumbers = read_phone_numbers(),
-    Person = #addressbook_person{
+    Person = #person{
         id = Id,
         name = Name,
         email = Email,
         phone = PhoneNumbers
     },
     % AddressBook
-    #addressbook_address_book{
-        person = AddressBook#addressbook_address_book.person ++ [Person]
+    #address_book{
+        person = AddressBook#address_book.person ++ [Person]
     }.
 
 
@@ -80,7 +80,7 @@ read_phone_numbers(Accu) ->
         "" -> lists:reverse(Accu);
         Number ->
             PhoneType = read_phone_type(),
-            Res = #addressbook_person_phone_number{
+            Res = #person_phone_number{
                 number = Number,
                 type = PhoneType
             },

@@ -110,8 +110,14 @@ let rec erlname_piqi (piqi:T.piqi) =
   begin
     if piqi.erlang_module = None
     then piqi.erlang_module <- erl_modname piqi.modname;
+
+    (* if type prefix is not defined by user, set it to
+     * <erlang-module-name> "_" *)
+    if piqi.erlang_type_prefix = None
+    then piqi.erlang_type_prefix <- Some (some_of piqi.erlang_module ^ "_");
+
     erlname_defs piqi.P#resolved_piqdef;
-    erlname_defs piqi.P#imported_piqdef;
+    erlname_defs piqi.P#imported_piqdef; (* XXX: why do we need that? *)
     erlname_imports piqi.P#resolved_import;
   end
 
@@ -158,6 +164,7 @@ let piqic (piqi: T.piqi) =
   (* set current module's name *)
   let modname = some_of piqi.P#erlang_module in
   Piqic_erlang_types.top_modname := some_of piqi.P#erlang_module;
+  Piqic_erlang_types.type_prefix := some_of piqi.P#erlang_type_prefix;
 
   (* open output .hrl file *)
   let ofile = modname ^ ".hrl" in

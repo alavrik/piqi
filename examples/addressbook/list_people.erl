@@ -20,12 +20,12 @@ run(_) ->
 
 % Iterates though all people in the AddressBook and prints info about them.
 list_people(X) ->
-    #addressbook_address_book{person = People} = X,
+    #address_book{person = People} = X,
     lists:foreach(fun list_person/1, People).
 
 
 list_person(X) ->
-    #addressbook_person{
+    #person{
         name = Name,
         id = Id,
         email = Email,
@@ -42,7 +42,7 @@ print_email(Email) ->
 
 
 print_phone_number(X) ->
-    #addressbook_person_phone_number{
+    #person_phone_number{
         number = Number,
         type = PhoneType } = X,
     case PhoneType of
