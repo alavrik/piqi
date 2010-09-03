@@ -278,7 +278,7 @@ let gen_import x =
   let open Import in
   let piqi = some_of x.piqi in
   iol [
-    ios "-include("; ioq (some_of piqi.P#erlang_module); ios ").";
+    ios "-include("; ioq (some_of piqi.P#erlang_module ^ ".hrl"); ios ").";
     eol;
   ]
 
