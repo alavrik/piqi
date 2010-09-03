@@ -23,7 +23,15 @@ libuninstall:
 	$(MAKE) -C camlp4 libuninstall
 
 
-clean::
+erlang:
+	$(MAKE) -C piqirun-erlang
+
+
+erlang-clean:
+	$(MAKE) -C piqirun-erlang clean
+
+
+clean:: erlang-clean
 	$(MAKE) -C deps clean
 	$(MAKE) -C tests clean
 
