@@ -12,7 +12,7 @@ run([Argv0, Filename]) ->
         % Read the existing address book.
         case file:read_file(Filename) of
             {ok, InBytes} ->
-                Buf = {'block', InBytes},
+                Buf = piqirun:init_from_binary(InBytes),
                 try
                     addressbook:parse_address_book(Buf)
                 catch

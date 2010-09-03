@@ -1,7 +1,7 @@
 
 .SUFFIXES: .erl .beam
 .SECONDARY: .erl
-.PHONY: beams ebin clean
+.PHONY: beams ebin clean dialyzer dialyzer-clean
 
 
 ERLC = erlc
@@ -32,6 +32,10 @@ ERLC_FLAGS += $(ERL_PA)
 TEST_PLT=$(TEST_DIR)/dialyzer_plt
 TEST_LOG=$(TEST_DIR)/dialyzer.log
 
+DIALYZER = dialyzer
+DIALYZER_FLAGS += --src --plt $(TEST_PLT) $(ERL_PA) -DNOTEST -DDIALYZER -r .
+#DIALYZER_FLAGS += -Wno_return -Wno_unused -Wunmatched_returns
+
 
 ebin: beams $(EBIN_FILES)
 
@@ -47,8 +51,8 @@ $(EBIN_DIR)/%.app: %.app
 	cp $< $@
 
 
-clean::
-	rm -f $(ERL_OBJECTS) $(PRE_TARGET) $(TEST_PLT) $(TEST_LOG)
+clean:: dialyzer-clean
+	rm -f $(ERL_OBJECTS) $(PRE_TARGET)
 
 
 #
@@ -61,10 +65,10 @@ $(TEST_PLT):
 	dialyzer --plt $(TEST_PLT) --add_to_plt
 
 
-clean_plt:
-	rm $(TEST_PLT)
+dialyzer-clean:
+	rm -f $(TEST_PLT) $(TEST_LOG)
 
 
-dialyzer: $(TEST_PLT)
-	dialyzer --src --plt $(TEST_PLT) $(ERL_PA) -DNOTEST -DDIALYZER -r . | tee $(TEST_LOG)
+dialyzer: beams $(TEST_PLT)
+	$(DIALYZER) $(DIALYZER_FLAGS) | tee $(TEST_LOG)
 

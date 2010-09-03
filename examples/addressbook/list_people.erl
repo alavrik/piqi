@@ -9,7 +9,7 @@
 run([Filename]) ->
     % Read the existing address book.
     {ok, Bytes} = file:read_file(Filename),
-    Buf = {'block', Bytes},
+    Buf = piqirun:init_from_binary(Bytes),
     AddressBook = addressbook:parse_address_book(Buf),
     list_people(AddressBook),
     ok;

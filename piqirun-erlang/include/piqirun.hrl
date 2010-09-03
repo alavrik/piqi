@@ -32,9 +32,9 @@
 %    int64-fixed, uint64-fixed, float64
 %
 % {block, binary()} represents a variable-length block which is used for
-% encoding:
+% encoding the following types:
 %
-%    binaries, strings, records, variants
+%    binaries, strings, records, variants, lists
 %
 -type piqirun_buffer() :: non_neg_integer() | binary() | {'block', binary()}.
 
