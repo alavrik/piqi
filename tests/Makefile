@@ -11,5 +11,16 @@ DIRS = \
        piqi.org \
 
 
-clean::
+.PHONY: erlang erlang-clean
+
+erlang:
+	$(MAKE) -C addressbook test-erlang
+	$(MAKE) -C erlang
+
+
+erlang-clean:
+	$(MAKE) -C erlang clean
+
+
+clean:: erlang-clean
 

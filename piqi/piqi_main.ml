@@ -53,6 +53,10 @@ let open_output = function
         piqi_error ("failed to open output file: " ^ s)
 
 
+let close_output () =
+  close_out !och
+
+
 let close () =
   if !och != stdout
   then close_out !och;

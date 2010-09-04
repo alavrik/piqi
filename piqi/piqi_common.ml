@@ -91,6 +91,25 @@ let underscores_to_dashes s =
   string_subst_char s '_' '-'
 
 
+let list_of_string s =
+  let n = String.length s in
+  let rec aux i =
+    if i < n
+    then s.[i] :: (aux (i+1))
+    else []
+  in aux 0
+
+
+let string_of_list l =
+  let s = String.create (List.length l) in
+  let rec aux i = function
+    | [] -> ()
+    | h::t ->
+        s.[i] <- h; aux (i+1) t
+  in
+  aux 0 l; s
+
+
 let get_parent (piqdef:T.piqdef) :T.namespace =
   let parent =
     match piqdef with

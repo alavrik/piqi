@@ -4,5 +4,6 @@
 
 
 .include [ .module piqic/piqi-ocaml ]
+.include [ .module piqic/piqi-erlang ]
 
 

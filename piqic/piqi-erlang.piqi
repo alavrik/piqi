@@ -1,0 +1,43 @@
+
+
+.include [ .module piqi.org/piqi ]
+
+
+.extend [
+    (.name record field variant option alias list import)
+
+    .field [
+        .name erlang-name
+        .type string
+        .optional
+    ]
+]
+
+
+.extend [
+    .name piqi
+
+    .field [
+        .name erlang-module
+        .type string
+        .optional
+    ]
+
+    .field [
+        .name erlang-type-prefix
+        .type string
+        .optional
+    ]
+]
+
+
+.extend [
+    .name alias
+
+    .field [
+        .name erlang-type
+        .type string
+        .optional
+    ]
+]
+
