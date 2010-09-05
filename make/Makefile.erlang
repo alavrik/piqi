@@ -19,8 +19,7 @@ endif
 
 
 ERL_OBJECTS = $(ERL_SOURCES:%.erl=$(EBIN_DIR)/%.beam)
-APP_FILES := $(wildcard *.app)
-EBIN_FILES = $(ERL_OBJECTS) $(APP_FILES:%.app=$(EBIN_DIR)/%.app)
+EBIN_FILES = $(ERL_OBJECTS) $(ERL_APP_FILE:%.app=$(EBIN_DIR)/%.app)
 ERL_MODULES = $(ERL_SOURCES:%.erl=%)
 
 
@@ -52,7 +51,7 @@ $(EBIN_DIR)/%.app: %.app
 
 
 clean:: dialyzer-clean
-	rm -f $(ERL_OBJECTS) $(PRE_TARGET)
+	rm -f $(EBIN_FILES) $(PRE_TARGET)
 
 
 #
