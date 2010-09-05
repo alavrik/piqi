@@ -40,6 +40,10 @@ let boot () =
       original_piqi = None;
     }
   in
+  (* set up parent namespace to piqi defs since some Piqi code requires it to be
+   * initialized *)
+  List.iter (fun def -> set_parent def (`piqi piqi)) T.piqdef_list;
+
   (* call piq interface compiler for ocaml *)
   Piqic_ocaml_types.cc_mode := true;
   Piqic_ocaml.piqic piqi stdout;

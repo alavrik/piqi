@@ -45,9 +45,6 @@ module Piqitable = Idtable
 let loaded_map = ref Piqitable.empty
 
 
-(* To be set up later to boot piqi when it gets loaded in Piqi module *) 
-let boot_piqi :T.piqi option ref = ref None
-
 (* To be set up later to Piqi.load_piqi_module; we do this since OCaml doesn't
  * support recursive toplevel modules *)
 let piqi_loader :(string -> T.piqi) option ref = ref None

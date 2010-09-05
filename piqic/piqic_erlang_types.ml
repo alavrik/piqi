@@ -21,6 +21,7 @@
  *)
 
 open Piqi_common
+open Piqic_common
 open Iolist
 
 
@@ -29,10 +30,6 @@ open Iolist
  * piqic_erlang_* modules *)
 let top_modname = ref ""
 let type_prefix = ref ""
-
-(* if no definition uses "piq_any" type, piq_any aliase will be excluded in
- * order to avoid unnecessary dependency on Piqtype module *)
-let depends_on_piq_any = ref false
 
 
 let scoped_name name = !type_prefix ^ name

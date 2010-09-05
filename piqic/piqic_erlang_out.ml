@@ -22,6 +22,7 @@
  *)
 
 open Piqi_common
+open Piqic_common
 open Iolist
 
 
@@ -32,28 +33,17 @@ open Piqic_erlang_types
 module W = Piqi_wire
 
 
-(* TODO: move to Piqic_common/Piqi_wire? *)
-let gen_code = function
-  | None -> assert false
-  | Some code -> ios (Int32.to_string code)
-  (*
-  | Some code -> ios (string_of_int code)
-  *)
-
-
 let gen_erlang_type_name t ot =
   gen_piqtype t ot
 
 
 let gen_parent x =
-  try 
-    match get_parent x with
-      | `import x -> (* imported name *)
-          let piqi = some_of x.Import.piqi in
-          let erlang_modname = some_of piqi.P#erlang_module in
-          ios erlang_modname ^^ ios ":"
-      | _ -> iol []
-  with _ -> iol [] (* NOTE, FIXME: during boot parent is not assigned *)
+  match get_parent x with
+    | `import x -> (* imported name *)
+        let piqi = some_of x.Import.piqi in
+        let erlang_modname = some_of piqi.P#erlang_module in
+        ios erlang_modname ^^ ios ":"
+    | _ -> iol []
 
 
 let rec gen_gen_type erlang_type wire_type x =
@@ -114,25 +104,10 @@ let gen_field rname f =
   in fgen
 
 
-(* TODO, FIXME: unify with ocamlc, piqobj_to_wire or preorder while processing
- *)
-(* preorder fields by their field's codes *)
-let order_fields fields =
-    List.sort
-      (fun a b ->
-        match a.F#code, b.F#code with
-          | Some a, Some b -> Int32.to_int (Int32.sub a b)
-          (*
-          | Some a, Some b -> a - b
-          *)
-          | _ -> assert false) fields
-
-
 let gen_record r =
   let rname = scoped_name (some_of r.R#erlang_name) in
-
-  (* preorder fields by their field's codes *)
-  let fields = order_fields r.R#field in
+  (* NOTE: fields are already ordered by their codes when Piqi is loaded *)
+  let fields = r.R#field in
   let fgens = (* field generators list *)
     List.map (gen_field rname) fields
   in (* gen_<record-name> function delcaration *)

@@ -21,6 +21,7 @@
  *)
 
 
+module C = Piqi_common
 open Piqi_common
 open Iolist
 
@@ -70,7 +71,7 @@ let embed_boot_modules ch =
     if !Piqi_config.boot_file <> ""
     then
       (* boot module is already loaded *)
-      some_of !Piqi.boot_piqi
+      some_of !C.boot_piqi
     else
       (* fall back to using the default boot module *)
       Piqi.load_piqi_module "piqi.org/piqi-boot"
@@ -117,7 +118,7 @@ let piqicc ch fname =
   let piqdef_type' = (piqdef_def' :> T.piqtype) in
 
   (* unresolved, but expanded piqdef list *)
-  let boot_piqi = some_of !Piqi.boot_piqi in
+  let boot_piqi = some_of !C.boot_piqi in
   let piqdef_list = boot_piqi.P#extended_piqdef @ piqi.P#extended_piqdef in
 
   let piqdef_list' =

@@ -22,6 +22,7 @@
  *)
 
 open Piqi_common
+open Piqic_common
 open Iolist
 
 
@@ -53,7 +54,7 @@ and gen_parse_typeref ?ocaml_type ?wire_type (t:T.typeref) =
   gen_parse_type ocaml_type wire_type (piqtype t)
 
 
-(* XXX: parse defaults once at boot time rather than each time when we need to
+(* TODO: parse defaults once at boot time rather than each time when we need to
  * parse a field *)
 let gen_default = function
   | None -> iol []
@@ -109,9 +110,8 @@ let gen_field_parser f =
 let gen_record r =
   (* fully-qualified capitalized record name *)
   let rname = capitalize (some_of r.R#ocaml_name) in
-  (* preorder fields by their field's codes *)
-  let fields = order_fields r.R#field in
-  (* gen_<record-name> function delcaration *)
+  (* NOTE: fields are already ordered by their codes when Piqi is loaded *)
+  let fields = r.R#field in
   let fconsl = (* field constructor list *)
     List.map (gen_field_cons rname) fields
   in

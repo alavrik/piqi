@@ -27,10 +27,6 @@ module Idtable = Piqi_db.Idtable
 let boot_mode = ref true
 
 
-(* lazily loaded representation of piqi-boot.piqi (see below) *)
-let boot_piqi :T.piqi option ref = ref None
-
-
 (* processing hooks to be run at the end of Piqi module load & processing *)
 let processing_hooks = ref []
 
@@ -875,16 +871,6 @@ let expand_extensions defs extensions custom_fields =
   untouched_defs @ extended_defs
 
 
-let set_parent (def:T.piqdef) (parent:T.namespace) =
-  let parent = Some parent in
-  match def with
-    | `record x -> x.R#parent <- parent
-    | `variant x -> x.V#parent <- parent
-    | `enum x -> x.E#parent <- parent
-    | `alias x -> x.A#parent <- parent
-    | `list x -> x.L#parent <- parent
-
-
 let get_imported_defs imports =
   let aux x = 
     let piqi = some_of x.Import#piqi in
@@ -1138,9 +1124,8 @@ let init () =
   match !boot_piqi with
     | None ->
         let piqi = load_boot_piqi () in
-        boot_piqi := Some piqi;
         (* init boot module and piqi loader for Piqi_db *)
-        Piqi_db.boot_piqi := Some piqi;
+        boot_piqi := Some piqi;
         Piqi_db.piqi_loader := Some load_piqi_module;
     | Some _ ->
         () (* already initialized *)

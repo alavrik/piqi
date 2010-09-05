@@ -117,7 +117,7 @@ and try_parse_binobj ?piqtype binobj =
       match name, piqtype with
         | None, Some t -> t
         | Some n, Some t ->
-            let n'= Piqobj_common.full_piqi_typename t in
+            let n'= C.full_piqi_typename t in
             if n = n'
             then t
             else

@@ -144,28 +144,11 @@ and mlname_import import =
 open Iolist
 
 
-let depends_on_piq_any x =
-  let is_any x = (unalias (piqtype x)) = `any in
-  let is_any_opt = function
-    | Some x -> is_any x
-    | None -> false
-  in
-  match x with
-    | `record x -> List.exists (fun x -> is_any_opt x.F#typeref) x.R#field
-    | `variant x -> List.exists (fun x -> is_any_opt x.O#typeref) x.V#option
-    | `list x -> is_any x.L#typeref
-    | `enum _ -> false
-    | `alias _ -> false (* don't check aliases, we do unalias instead *)
-
-
 let piqic (piqi: T.piqi) ch =
+  piqic_common piqi;
+
   (* set ocaml names which are not specified by user *)
   mlname_piqi piqi;
-
-  (* if no definition uses "piq_any" type, piq_any aliase will be excluded in
-   * order to avoid unnecessary dependency on Piqtype module *)
-  Piqic_ocaml_types.depends_on_piq_any :=
-    List.exists depends_on_piq_any piqi.P#resolved_piqdef;
 
   (* set current module's name *)
   Piqic_ocaml_types.top_modname := some_of piqi.P#ocaml_module;

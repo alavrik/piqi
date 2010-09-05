@@ -47,6 +47,10 @@ module Config = Piqi_config
 module Iolist = Piqi_iolist
 
 
+(* lazily loaded representation of piqi-boot.piqi (see piqi.ml for details) *)
+let boot_piqi :T.piqi option ref = ref None
+
+
 let some_of = function
   | Some x -> x
   | None -> assert false
@@ -122,6 +126,22 @@ let get_parent (piqdef:T.piqdef) :T.namespace =
   some_of parent
 
 
+let set_parent (def:T.piqdef) (parent:T.namespace) =
+  let parent = Some parent in
+  match def with
+    | `record x -> x.R#parent <- parent
+    | `variant x -> x.V#parent <- parent
+    | `enum x -> x.E#parent <- parent
+    | `alias x -> x.A#parent <- parent
+    | `list x -> x.L#parent <- parent
+
+
+let get_parent_piqi (parent:T.namespace) :T.piqi =
+  match parent with
+    | `import x -> some_of x.Import#piqi
+    | `piqi x -> x
+
+
 let piqdef_name (piqdef:T.piqdef) =
   match piqdef with
     | `record x -> x.R#name
@@ -144,6 +164,23 @@ let piqi_typename (t:T.piqtype) =
     | `text -> "piq-text"
     | `any -> "piq-any"
     | #T.piqdef as x -> piqdef_name x
+
+
+let full_piqi_typename x =
+  let name = piqi_typename x in
+  match x with
+    | #T.piqdef as def ->
+        let parent = get_parent def in
+        let piqi = get_parent_piqi parent in
+        if piqi == some_of !boot_piqi
+        then name
+        else
+          let parent_name = some_of piqi.P#modname in
+          parent_name ^ "/" ^ name
+    | _ -> (* built-in type *)
+        (* XXX: normally built-in types should be used at the time when this
+         * funciton is used *)
+        name
 
 
 let piqtype (t:T.typeref) :T.piqtype =

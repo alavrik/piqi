@@ -21,6 +21,7 @@
  *)
 
 open Piqi_common
+open Piqic_common
 open Iolist
 
 
@@ -47,10 +48,6 @@ let gen_cc_cond a b =
 (* TODO: this is a dirty method for sharing the setting across all
  * piqic_ocaml_* modules *)
 let top_modname = ref ""
-
-(* if no definition uses "piq_any" type, piq_any aliase will be excluded in
- * order to avoid unnecessary dependency on Piqtype module *)
-let depends_on_piq_any = ref false
 
 
 let scoped_name name = !top_modname ^ "." ^ name

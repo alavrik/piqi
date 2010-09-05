@@ -22,6 +22,7 @@
  *)
 
 open Piqi_common
+open Piqic_common
 open Iolist
 
 
@@ -32,27 +33,16 @@ open Piqic_ocaml_types
 module W = Piqi_wire
 
 
-(* XXX: move to Piqic_common/Piqi_wire? *)
-let gen_code = function
-  | None -> assert false
-  | Some code -> ios (Int32.to_string code)
-  (*
-  | Some code -> ios (string_of_int code)
-  *)
-
-
 let gen_ocaml_type_name t ot =
   gen_piqtype t ot
 
 
 let gen_parent x =
-  try 
-    match get_parent x with
-      | `import x -> (* imported name *)
-          let ocaml_modname = some_of x.Import#ocaml_name in
-          ios ocaml_modname ^^ ios "."
-      | _ -> iol []
-  with _ -> iol [] (* NOTE, FIXME: during boot parent is not assigned *)
+  match get_parent x with
+    | `import x -> (* imported name *)
+        let ocaml_modname = some_of x.Import#ocaml_name in
+        ios ocaml_modname ^^ ios "."
+    | _ -> iol []
 
 
 let rec gen_gen_type ocaml_type wire_type x =
@@ -114,23 +104,11 @@ let gen_field rname f =
   in (fname, fgen)
 
 
-(* preorder fields by their field's codes *)
-let order_fields fields =
-    List.sort
-      (fun a b ->
-        match a.F#code, b.F#code with
-          | Some a, Some b -> Int32.to_int (Int32.sub a b)
-          (*
-          | Some a, Some b -> a - b
-          *)
-          | _ -> assert false) fields
-
-
 let gen_record r =
   (* fully-qualified capitalized record name *)
   let rname = capitalize (some_of r.R#ocaml_name) in
-  (* preorder fields by their field's codes *)
-  let fields = order_fields r.R#field in
+  (* NOTE: fields are already ordered by their codes when Piqi is loaded *)
+  let fields = r.R#field in
   let fgens = (* field generators list *)
     List.map (gen_field rname) fields
   in

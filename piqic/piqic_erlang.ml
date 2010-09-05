@@ -137,31 +137,13 @@ module Main = Piqi_main
 open Main
 
 
-(* TODO: move to common *)
-let depends_on_piq_any x =
-  let is_any x = (unalias (piqtype x)) = `any in
-  let is_any_opt = function
-    | Some x -> is_any x
-    | None -> false
-  in
-  match x with
-    | `record x -> List.exists (fun x -> is_any_opt x.F#typeref) x.R#field
-    | `variant x -> List.exists (fun x -> is_any_opt x.O#typeref) x.V#option
-    | `list x -> is_any x.L#typeref
-    | `enum _ -> false
-    | `alias _ -> false (* don't check aliases, we do unalias instead *)
-
-
 let piqic (piqi: T.piqi) =
+  piqic_common piqi;
+
   (* set Erlang names which are not specified by user *)
   erlname_piqi piqi;
 
-  (* if no definition uses "piq_any" type, piq_any aliase will be excluded in
-   * order to avoid unnecessary dependency on Piqtype module *)
-  Piqic_erlang_types.depends_on_piq_any :=
-    List.exists depends_on_piq_any piqi.P#resolved_piqdef;
-
-  (* set current module's name *)
+  (* set current module's name and type prefix *)
   let modname = some_of piqi.P#erlang_module in
   Piqic_erlang_types.top_modname := some_of piqi.P#erlang_module;
   Piqic_erlang_types.type_prefix := some_of piqi.P#erlang_type_prefix;
@@ -194,7 +176,7 @@ let piqic (piqi: T.piqi) =
   let code_parse = Piqic_erlang_in.gen_piqi piqi in
   let code = iol [
     ios "-module("; ios modname; ios ")."; eol;
-    ios "-compile([export_all])."; eol;
+    ios "-compile(export_all)."; eol;
     eol;
     ios "-include_lib(\"piqirun/include/piqirun.hrl\")."; eol;
     ios "-include("; ioq (modname ^ ".hrl"); ios ")."; eol;

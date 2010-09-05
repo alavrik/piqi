@@ -50,40 +50,7 @@ let type_of (x:Piqobj.obj) :T.piqtype =
     | `alias x -> `alias x.A#piqtype
 
 
-let get_parent_piqi (parent:T.namespace) :T.piqi =
-  match parent with
-    | `import x -> some_of x.Import#piqi
-    | `piqi x -> x
-
-
-(* TODO: move to piqi_common *)
-let full_piqi_typename x =
-  let name = piqi_typename x in
-  match x with
-    | #T.piqdef as def ->
-        (try
-          let parent = get_parent def in
-          let piqi = get_parent_piqi parent in
-          if piqi == some_of !Piqi_db.boot_piqi
-          then name
-          else
-            let parent_name = some_of piqi.P#modname in
-            parent_name ^ "/" ^ name
-        with
-          Assert_failure _ ->
-            (* parent is undefined for boot defs in T.piqdefs *)
-            (* TODO: provide a better resolution for this situation, like for
-             * example recognizing piqicc mode rather than catching the
-             * exception; or, provide a fake piqi (like in Boot.boot) and add it
-             * as a parent *)
-            name)
-    | _ -> (* built-in type *)
-        (* XXX: normally built-in types should be used at the time when this
-         * funciton is used *)
-        name
-
-
 let full_typename x =
-  full_piqi_typename (type_of x)
+  C.full_piqi_typename (type_of x)
 
 

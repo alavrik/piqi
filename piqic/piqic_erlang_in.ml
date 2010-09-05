@@ -22,6 +22,7 @@
  *)
 
 open Piqi_common
+open Piqic_common
 open Iolist
 
 
@@ -53,7 +54,6 @@ and gen_parse_typeref ?erlang_type ?wire_type (t:T.typeref) =
 
 (* XXX: parse defaults once at boot time rather than each time when we need to
  * parse a field *)
-(* TODO: preparse binobj *)
 let gen_default = function
   | None -> iol []
   | Some {T.Any.binobj = Some x} ->
@@ -116,9 +116,8 @@ let gen_field_parser i f =
 
 let gen_record r =
   let name = some_of r.R#erlang_name in
-  (* preorder fields by their field's codes *)
-  let fields = order_fields r.R#field in
-
+  (* NOTE: fields are already ordered by their codes when Piqi is loaded *)
+  let fields = r.R#field in
   let fconsl = (* field constructor list *)
     List.map gen_field_cons fields
   in

@@ -107,7 +107,7 @@ module rec Piqtype: DEFTYPES(
 and DEFRECORD(Record,
   <<
     mutable name : string;
-    field : Piqtype.field list;
+    mutable field : Piqtype.field list;
 
     mutable ocaml_name : string option;
     mutable parent : Piqtype.namespace option;

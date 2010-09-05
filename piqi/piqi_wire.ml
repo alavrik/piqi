@@ -139,6 +139,15 @@ let check_enum_codes codes =
         warning code ("duplicate enum wire code: " ^ Int32.to_string code)
 
 
+(* order fields by their field's codes *)
+let order_fields fields =
+  List.sort
+    (fun a b ->
+      match a.F#code, b.F#code with
+        | Some a, Some b -> Int32.to_int (Int32.sub a b) (* a - b *)
+        | _ -> assert false) fields
+
+
 let addcodes_record r =
   let open T.Record in
   let fields = r.field in
@@ -150,7 +159,11 @@ let addcodes_record r =
       else
         (* all field codes are assigned *)
         let codes = List.map (fun x -> some_of x.T.Field#code) fields in
-        check_codes codes
+        check_codes codes;
+
+        (* (re-)order fields by their codes to speed-up further processing *)
+        if !do_resolve
+        then r.field <- order_fields fields
     end
   else 
     if !do_resolve
