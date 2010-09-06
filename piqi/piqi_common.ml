@@ -50,6 +50,11 @@ module Iolist = Piqi_iolist
 (* lazily loaded representation of piqi-boot.piqi (see piqi.ml for details) *)
 let boot_piqi :T.piqi option ref = ref None
 
+let is_boot_piqi p =
+  match !boot_piqi with
+    | None -> false
+    | Some x -> p == x
+
 
 let some_of = function
   | Some x -> x
@@ -112,6 +117,32 @@ let string_of_list l =
         s.[i] <- h; aux (i+1) t
   in
   aux 0 l; s
+
+
+(* NOTE: naive, non-tail recursive. Remove duplicates from the list using
+ * reference equality, preserves the initial order *)
+let rec uniqq = function
+  | [] -> []
+  | h::t ->
+      let t = uniqq t in
+      if List.memq h t then t else h :: t
+
+
+(* leave the first of the duplicate elements in the list instead of the last *)
+let uniqq l =
+  List.rev (uniqq (List.rev l))
+
+
+let rec uniq = function
+  | [] -> []
+  | h::t ->
+      let t = uniq t in
+      if List.mem h t then t else h :: t
+
+
+(* leave the first of the duplicate elements in the list instead of the last *)
+let uniq l =
+  List.rev (uniq (List.rev l))
 
 
 let get_parent (piqdef:T.piqdef) :T.namespace =

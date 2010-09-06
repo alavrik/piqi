@@ -48,9 +48,63 @@ let check_depends_on_piq_any x =
 let depends_on_piq_any = ref false
 
 
+let is_boot_def def =
+  match get_parent def with
+    | `piqi p -> is_boot_piqi p
+    | _ -> false
+
+
+let get_boot_defs seen_defs def =
+  let get_boot_def = function
+    | #T.piqdef as x when is_boot_def x ->
+        if List.memq x seen_defs (* previously seen boot def? *)
+        then []
+        else [x]
+    | _ -> []
+  in
+  let get_boot_def_opt = function
+    | Some x -> get_boot_def x
+    | None -> []
+  in
+  match def with
+    | `record x -> flatmap (fun x -> get_boot_def_opt x.F#typeref) x.R#field
+    | `variant x -> flatmap (fun x -> get_boot_def_opt x.O#typeref) x.V#option
+    | `list x -> get_boot_def x.L#typeref
+    | `enum _ -> []
+    | `alias a -> get_boot_def a.A#typeref
+
+
+(* get all boot defintions used by (i.e. reacheable from) the module's
+ * definitions *)
+let get_boot_dependencies piqi =
+  if !boot_piqi = None
+  then []
+  else
+    let rec aux accu root_defs =
+      let new_boot_defs = flatmap (get_boot_defs accu) root_defs in
+      if new_boot_defs = []
+      then accu
+      else
+        let accu = uniqq (new_boot_defs @ accu) in
+        aux accu new_boot_defs
+    in
+    aux [] piqi.P#resolved_piqdef
+
+
 let piqic_common piqi =
   (* if no definition uses "piq_any" type, piq_any aliase will be excluded in
    * order to avoid unnecessary dependency on Piqtype module *)
   depends_on_piq_any :=
-    List.exists check_depends_on_piq_any piqi.P#resolved_piqdef
+    List.exists check_depends_on_piq_any piqi.P#resolved_piqdef;
+
+  (* implicitly add defintions from the boot module to the current module *)
+  let boot_defs = get_boot_dependencies piqi in
+
+  (* NOTE: alternatively, we could just include all boot defintions like that,
+   * but this will produce some unnecessary (unused) parsers, generators and
+   * type defintions:
+   * let boot_defs = (some_of !boot_piqi).P#resolved_piqdef in
+   *)
+  piqi.P#resolved_piqdef <- boot_defs @ piqi.P#resolved_piqdef;
+  ()
 

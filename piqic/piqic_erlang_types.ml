@@ -77,12 +77,11 @@ let rec gen_piqtype t erlang_type =
 
 and gen_aliastype a =
   let open Alias in
-  match a.typeref with
-    | #T.piqdef | `any ->
-        gen_deftype a.parent a.erlang_name
-    | _ ->
-        (* there aren't aliases for built-in types *)
+  match some_of a.parent with
+    | `piqi p when is_boot_piqi p ->
         gen_typeref a.typeref ?erlang_type:a.erlang_type
+    | _ ->
+        gen_deftype a.parent a.erlang_name
 
 
 and gen_typeref ?erlang_type (t:T.typeref) =
@@ -233,31 +232,20 @@ let gen_def = function
   | `record t -> gen_record t
   | `variant t | `enum t -> gen_variant t
   | `list t -> gen_list t
-  | _ -> assert false
-
-
-(* XXX: skip generating boot aliases if they are not used within the module? *)
-let gen_alias a =
-  let open Alias in
-  let name = some_of a.erlang_name in
-  let typename = gen_typeref a.typeref ?erlang_type:a.erlang_type in
-  if name = typename
-  then [] (* don't generate syclic type definitions *)
-  else
-    match a.typeref with
-      | `any when not !depends_on_piq_any ->
-          (* don't generate alias for "any" if nobody uses it (in order to avoid
-           * unnecessary dependency Piqtype module *)
-          []
-      | #T.piqdef | `any -> [ gen_alias a ]
-      | _ ->
-          (* don't generate aliases for built-in types *)
-          []
-
-
-let gen_def = function (* gen everything except records *)
   | `alias t -> gen_alias t
-  | t -> [gen_def t]
+
+
+let gen_def x =
+  let open Alias in
+  match x with
+    | `alias a ->
+        (* skip generation of aliases from the boot module *)
+        (match some_of a.parent with
+          | `piqi p when is_boot_piqi p -> []
+          | _ -> [gen_def x]
+        )
+    | _ ->
+        [gen_def x]
 
 
 let gen_defs (defs:T.piqdef list) =

@@ -649,32 +649,6 @@ let parse_piqi ast =
   res
 
 
-(* NOTE: naive, non-tail recursive. Remove duplicates from the list using
- * reference equality, preserves the initial order *)
-let rec uniqq = function
-  | [] -> []
-  | h::t ->
-      let t = uniqq t in
-      if List.memq h t then t else h :: t
-
-
-(* leave the first of the duplicate elements in the list instead of the last *)
-let uniqq l =
-  List.rev (uniqq (List.rev l))
-
-
-let rec uniq = function
-  | [] -> []
-  | h::t ->
-      let t = uniq t in
-      if List.mem h t then t else h :: t
-
-
-(* leave the first of the duplicate elements in the list instead of the last *)
-let uniq l =
-  List.rev (uniq (List.rev l))
-
-
 (* get the list of unique piqi includes by traversing recursively through
  * include tree; the input piqi module will be put as the last element of the
  * list *)
@@ -919,12 +893,14 @@ let rec process_piqi (piqi: T.piqi) =
     match !boot_piqi with
       | Some x when !Config.noboot = false ->
           (* NOTE: boot defs should be already extended *)
-          x.P#extended_piqdef, x.P#custom_field
+          x.P#resolved_piqdef, x.P#custom_field
       | _ ->
           (* boot module is being processed right now, or --noboot command-line
            * option was specified *)
           [], []
   in
+  (* add defintions from the boot module to the idtable *)
+  let idtable = add_piqdefs idtable boot_defs in
 
   (* get all definitions from all included modules and the current module *)
   let defs = get_piqdefs modules in
@@ -946,7 +922,7 @@ let rec process_piqi (piqi: T.piqi) =
           (* defs should be correct before extending them *)
           (* XXX: can they become correct after extension while being
            * incorrect before? *)
-          check_defs idtable (boot_defs @ defs);
+          check_defs idtable defs;
 
           List.iter check_extension piqi.P#extend;
 
@@ -955,14 +931,8 @@ let rec process_piqi (piqi: T.piqi) =
           let custom_fields = custom_fields @ (get_custom_fields modules) in
           expand_extensions defs extensions custom_fields
   in
-
-  (* implicitly add defintions from the boot module to the current module *)
-  (* XXX: can we avoid adding them, insead referring to them during type resolve
-   * stage? *)
-  let resolved_defs = boot_defs @ extended_defs in
-
   (* preserve the original defintions *)
-  let resolved_defs = copy_defs resolved_defs in
+  let resolved_defs = copy_defs extended_defs in
 
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)

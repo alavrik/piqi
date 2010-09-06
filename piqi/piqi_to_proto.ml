@@ -448,6 +448,15 @@ and protoname_import import =
 
 
 let piqi_to_proto (piqi: T.piqi) ch =
+  (* implicitly add defintions (aliases) from the boot module to the current
+   * module *)
+  let boot_defs =
+    match !boot_piqi with
+      | None -> []
+      | Some x -> x. P#resolved_piqdef
+  in
+  piqi.P#resolved_piqdef <- boot_defs @ piqi.P#resolved_piqdef;
+
   (* set proto names which are not specified by user *)
   protoname_piqi piqi;
   let code = gen_piqi piqi in

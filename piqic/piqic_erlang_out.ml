@@ -258,7 +258,8 @@ let gen_def x =
         if a.typeref = `any && not !depends_on_piq_any
         then []
         else [gen_def x]
-    | _ -> [gen_def x]
+    | _ ->
+        [gen_def x]
 
 
 let gen_defs (defs:T.piqdef list) =
