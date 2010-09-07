@@ -42,7 +42,7 @@ let _ =
     );
   (* Read the existing address book. *)
   let ch = open_in Sys.argv.(1) in
-  let buf = Piqirun.Block.init_from_channel ch in
+  let buf = Piqirun.init_from_channel ch in
   let address_book = parse_address_book buf in
   close_in ch;
 

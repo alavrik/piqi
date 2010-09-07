@@ -169,25 +169,18 @@ type t =
   | Block of IBuf.t
 
 
+(* initializers for embedded records/variants (i.e. their contents start without
+ * any leading headers/delimiters/separators) *)
 let init_from_channel ch =
-  IBuf.of_channel ch
+  Block (IBuf.of_channel ch)
 
 
 let init_from_string s =
-  IBuf.of_string s
+  Block (IBuf.of_string s)
 
 
 let is_empty buf =
   IBuf.is_empty buf
-
-
-(* initializers for embedded records/variants (i.e. their contents start without
- * any leading headers/delimiters/separators) *)
-module Block =
-  struct
-    let init_from_channel ch = Block (init_from_channel ch)
-    let init_from_string s = Block (init_from_string s)
-  end
 
 
 let error_variant obj code =
@@ -501,7 +494,7 @@ let find_fields code l =
 
 
 let parse_binobj binobj =
-  let buf = init_from_string binobj in
+  let buf = IBuf.of_string binobj in
   let l = parse_record_buf buf in
   match l with
     | [(2, piqobj)] -> (* anonymous binobj *)

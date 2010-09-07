@@ -133,7 +133,7 @@ let open_wire fname =
   init ();
   trace "opening .wire file: %s\n" fname;
   let ch = Piqi_main.open_input fname in
-  let buf = Piqirun.init_from_channel ch in
+  let buf = Piqirun.IBuf.of_channel ch in
   buf
 
 
@@ -255,7 +255,7 @@ let write_wire ch (obj :obj) =
 let open_pb fname =
   trace "opening .pb file: %s\n" fname;
   let ch = Piqi_main.open_input fname in
-  let buf = Piqirun.Block.init_from_channel ch in
+  let buf = Piqirun.init_from_channel ch in
   buf
 
 

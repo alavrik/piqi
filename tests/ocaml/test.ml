@@ -1,7 +1,7 @@
 
 let t () =
   let ich = open_in "piqi.piqi.pb" in
-  let buf = Piqirun.Block.init_from_channel ich in
+  let buf = Piqirun.init_from_channel ich in
   let piqi = Piqi.parse_piqi buf in
 
   let och = open_out "piqi.piqi.pb.pb" in
