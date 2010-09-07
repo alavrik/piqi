@@ -14,11 +14,7 @@
    limitations under the License.
 *)
 
-open Piqirun_parser
-open Piqirun_gen
-
-module IBuf = Piqirun_parser.Buf
-module OBuf = Piqirun_gen.Buf
+open Piqirun
 
 
 (* superposition operator *)

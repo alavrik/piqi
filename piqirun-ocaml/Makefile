@@ -4,14 +4,12 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 RESULT = piqirun
 
 
-SOURCES = \
-	piqirun_parser.ml \
-	piqirun_gen.ml \
+SOURCES = piqirun.ml
 
 
 LIBINSTALL_FILES = \
         $(RESULT).cma $(RESULT).cmxa \
-	piqirun_gen.cmi  piqirun_parser.cmi
+	piqirun.cmi
 
 
 # LIBS =

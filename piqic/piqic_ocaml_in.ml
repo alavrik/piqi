@@ -43,7 +43,7 @@ let rec gen_parse_type ocaml_type wire_type x =
     | _ -> (* gen parsers for built-in types *)
         iol [
           gen_cc "(fun x -> let count = next_count() in refer count (";
-            ios "Piqirun_parser.";
+            ios "Piqirun.";
             ios (gen_ocaml_type_name x ocaml_type);
             ios "_of_";
             ios (W.get_wire_type_name x wire_type);
@@ -89,7 +89,7 @@ let gen_field_parser f =
         iod " "
           [
             (* "parse_(req|opt|rep)_field" function invocation *)
-            ios "Piqirun_parser.parse_" ^^ ios mode ^^ ios "_field";
+            ios "Piqirun.parse_" ^^ ios mode ^^ ios "_field";
               gen_code f.code;
               gen_parse_typeref typeref; ios " x";
               gen_default f.default;
@@ -99,7 +99,7 @@ let gen_field_parser f =
         iod " " [ 
           (* NOTE: providing special handling for boxed values, see "refer" *)
           gen_cc "(let count = next_count() in refer count";
-          ios "Piqirun_parser.parse_flag"; gen_code f.code; ios " x";
+          ios "Piqirun.parse_flag"; gen_code f.code; ios " x";
           gen_cc ")";
         ]
   in
@@ -121,13 +121,13 @@ let gen_record r =
   let rcons = (* record constructor *)
     iol [
       ios "let "; iod " in let " fparserl;
-      ios " in Piqirun_parser.check_unparsed_fields x; {"; iol fconsl; ios "}";
+      ios " in Piqirun.check_unparsed_fields x; {"; iol fconsl; ios "}";
     ]
   in (* parse_<record-name> function delcaration *)
   iod " "
     [
       ios "parse_" ^^ ios (some_of r.R#ocaml_name); ios "x =";
-      ios "let x = Piqirun_parser.parse_record x in";
+      ios "let x = Piqirun.parse_record x in";
       gen_cc "let count = next_count() in refer count (";
       rcons;
       gen_cc ")";
@@ -141,13 +141,13 @@ let gen_const c =
   let code_str = gen_code c.code in
   let code = some_of c.code in
   let varint_pattern =
-    ios "Piqirun_parser.Varint " ^^ code_str
+    ios "Piqirun.Varint " ^^ code_str
   in
   let varint64_pattern =
-    ios "Piqirun_parser.Varint64 " ^^ code_str ^^ ios "L"
+    ios "Piqirun.Varint64 " ^^ code_str ^^ ios "L"
   in
   let varint_safe_pattern =
-    ios "Piqirun_parser.Varint x " ^^
+    ios "Piqirun.Varint x " ^^
       ios "when Sys.word_size = 64 && Int64.of_int x = " ^^ code_str ^^ ios "L"
   in
   let name = gen_pvar_name (some_of c.ocaml_name) in
@@ -178,8 +178,8 @@ let gen_enum e =
       gen_cc "let count = next_count() in refer count (";
         ios "match x with";
         iol consts;
-        ios "| Piqirun_parser.Varint x -> Piqirun_parser.error_enum_const x";
-        ios "| obj -> Piqirun_parser.error_enum_obj obj";
+        ios "| Piqirun.Varint x -> Piqirun.error_enum_const x";
+        ios "| obj -> Piqirun.error_enum_obj obj";
       gen_cc ")";
     ]
 
@@ -189,7 +189,7 @@ let rec gen_option varname o =
   match o.ocaml_name, o.typeref with
     | Some mln, None -> (* boolean true *)
         iod " " [
-          ios "|"; gen_code o.code; ios ", Piqirun_parser.Varint 1"; ios "->";
+          ios "|"; gen_code o.code; ios ", Piqirun.Varint 1"; ios "->";
             (* NOTE: providing special handling for boxed values, see "refer" *)
             gen_cc "let count = next_count() in refer count";
             gen_pvar_name mln;
@@ -219,11 +219,11 @@ let gen_variant v =
   iod " "
     [
       ios "parse_" ^^ ios (some_of v.ocaml_name); ios "x =";
-      ios "let x = Piqirun_parser.parse_variant x in";
+      ios "let x = Piqirun.parse_variant x in";
         gen_cc "let count = next_count() in refer count (";
         ios "match x with";
           iod " " options;
-          ios "| code, obj -> Piqirun_parser.error_variant obj code";
+          ios "| code, obj -> Piqirun.error_variant obj code";
           gen_cc ")";
     ]
 
@@ -242,7 +242,7 @@ let gen_parse_list t =
   iol [
     ios "(";
       gen_cc "let count = next_count() in refer count (";
-        ios "Piqirun_parser.parse_list (" ^^ gen_parse_typeref t ^^ ios ")";
+        ios "Piqirun.parse_list (" ^^ gen_parse_typeref t ^^ ios ")";
       gen_cc ")";
     ios ")";
   ]

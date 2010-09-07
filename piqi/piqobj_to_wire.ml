@@ -33,9 +33,6 @@ module L = Piqobj.List
 module W = Piqi_wire
 
 
-module Gen = Piqirun_gen
-
-
 (* providing special handling for boxed objects, since they are not
  * actual references and can not be uniquely identified. Moreover they can
  * mask integers which are used for enumerating objects *)
@@ -56,13 +53,13 @@ let gen_int ?wire_type code x =
   let wire_type = W.get_wire_type `int wire_type in
   let gen_f =
     match wire_type with
-      | `varint -> Gen.int64_to_varint
-      | `zigzag_varint -> Gen.int64_to_zigzag_varint
-      | `fixed32 -> Gen.int64_to_fixed32
-      | `fixed64 -> Gen.int64_to_fixed64
-      | `signed_varint -> Gen.int64_to_signed_varint
-      | `signed_fixed32 -> Gen.int64_to_signed_fixed32
-      | `signed_fixed64 -> Gen.int64_to_signed_fixed64
+      | `varint -> Piqirun.int64_to_varint
+      | `zigzag_varint -> Piqirun.int64_to_zigzag_varint
+      | `fixed32 -> Piqirun.int64_to_fixed32
+      | `fixed64 -> Piqirun.int64_to_fixed64
+      | `signed_varint -> Piqirun.int64_to_signed_varint
+      | `signed_fixed32 -> Piqirun.int64_to_signed_fixed32
+      | `signed_fixed64 -> Piqirun.int64_to_signed_fixed64
       | `block -> assert false (* XXX *)
   in
   gen_f code x
@@ -72,15 +69,15 @@ let gen_float ?wire_type code x =
   let wire_type = W.get_wire_type `float wire_type in
   let gen_f =
     match wire_type with
-      | `fixed32 -> Gen.float_to_fixed32
-      | `fixed64 -> Gen.float_to_fixed64
+      | `fixed32 -> Piqirun.float_to_fixed32
+      | `fixed64 -> Piqirun.float_to_fixed64
       | _ -> assert false (* XXX *)
   in
   gen_f code x
 
 
-let gen_bool = Gen.gen_bool
-let gen_string = Gen.gen_string
+let gen_bool = Piqirun.gen_bool
+let gen_string = Piqirun.gen_string
 
 
 let gen_int ?wire_type code x =
@@ -151,10 +148,10 @@ and gen_embedded_obj obj =
 and gen_binobj ?(named=true) x = 
   if not named 
   then
-    Gen.gen_binobj gen_obj x
+    Piqirun.gen_binobj gen_obj x
   else
     let name = Piqobj_common.full_typename x in
-    Gen.gen_binobj gen_obj x ~name
+    Piqirun.gen_binobj gen_obj x ~name
 
 
 and gen_any code x =
@@ -180,7 +177,7 @@ and gen_record code x =
   let open R in
   (* TODO, XXX: doing ordering at every generation step is inefficient *)
   let fields = order_fields x.field in
-  Gen.gen_record code (List.map gen_field fields)
+  Piqirun.gen_record code (List.map gen_field fields)
 
 
 and gen_field x =
@@ -191,14 +188,14 @@ and gen_field x =
         (* using true for encoding flags -- the same encoding as for options
          * (see below) *)
         refer x;
-        Gen.gen_bool code true
+        Piqirun.gen_bool code true
     | Some obj -> gen_obj code obj
 
 
 and gen_variant code x =
   let open V in
   (* generate a record with a single field which represents variant's option *)
-  Gen.gen_record code [gen_option x.option]
+  Piqirun.gen_record code [gen_option x.option]
 
 
 and gen_option x =
@@ -208,7 +205,7 @@ and gen_option x =
     | None ->
         (* using true for encoding options w/o value *)
         refer x;
-        Gen.gen_bool code true
+        Piqirun.gen_bool code true
     | Some obj ->
         gen_obj code obj
 
@@ -222,14 +219,14 @@ and gen_enum_option code x =
   let open O in
   let value = some_of x.piqtype.T.Option#code in
   (*
-  Gen.gen_varint code value
+  Piqirun.gen_varint code value
   *)
-  Gen.int32_to_varint code value
+  Piqirun.int32_to_varint code value
 
 
 and gen_list code x = 
   let open L in
-  Gen.gen_list gen_obj code x.obj
+  Piqirun.gen_list gen_obj code x.obj
 
 
 and gen_alias ?wire_type code x =

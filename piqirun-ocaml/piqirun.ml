@@ -22,6 +22,11 @@
  *)
 
 
+(*
+ * Runtime support for parsers (decoders).
+ *
+ *)
+
 exception Error of int * string
 
 
@@ -45,7 +50,7 @@ let error obj s =
   buf_error loc s
 
 
-module Buf =
+module IBuf =
   struct
     type string_buf = 
       {
@@ -161,19 +166,19 @@ type t =
   | Varint64 of int64 (* used if int width is not enough *)
   | Int32 of int32
   | Int64 of int64
-  | Block of Buf.t
+  | Block of IBuf.t
 
 
 let init_from_channel ch =
-  Buf.of_channel ch
+  IBuf.of_channel ch
 
 
 let init_from_string s =
-  Buf.of_string s
+  IBuf.of_string s
 
 
 let is_empty buf =
-  Buf.is_empty buf
+  IBuf.is_empty buf
 
 
 (* initializers for embedded records/variants (i.e. their contents start without
@@ -328,11 +333,11 @@ let validate_string s = s (* TODO: validate utf8-encoded string *)
 
 
 let parse_string obj = 
-  validate_string (Buf.to_string (expect_block obj))
+  validate_string (IBuf.to_string (expect_block obj))
 
 
 let parse_binary obj =
-  Buf.to_string (expect_block obj)
+  IBuf.to_string (expect_block obj)
 
 
 let string_of_block = parse_string
@@ -341,7 +346,7 @@ let text_of_block = parse_string (* text is encoded as string *)
 
 
 let next_varint_byte buf =
-    let x = Char.code (Buf.next buf) in
+    let x = Char.code (IBuf.next buf) in
     (* msb indicating that more bytes will follow *)
     let msb = x land 0x80 in
     let x = x land 0x7f in
@@ -354,7 +359,7 @@ let parse_varint64 i buf msb x partial_res =
     let y = Int64.shift_left x (i*7) in
     if (Int64.shift_right_logical y (i*7)) <> x
     then
-      Buf.error buf "integer overflow while reading varint"
+      IBuf.error buf "integer overflow while reading varint"
     else
       let res = Int64.logor res y in
       if msb = 0
@@ -390,7 +395,7 @@ let parse_fixed32 buf =
   let res = ref 0l in
   for i = 0 to 3
   do
-    let x = Char.code (Buf.next buf) in
+    let x = Char.code (IBuf.next buf) in
     let x = Int32.of_int x in
     let x = Int32.shift_left x (i*8) in
     res := Int32.logor !res x
@@ -401,7 +406,7 @@ let parse_fixed64 buf =
   let res = ref 0L in
   for i = 0 to 7
   do
-    let x = Char.code (Buf.next buf) in
+    let x = Char.code (IBuf.next buf) in
     let x = Int64.of_int x in
     let x = Int64.shift_left x (i*8) in
     res := Int64.logor !res x
@@ -412,10 +417,10 @@ let parse_block buf =
   (* XXX: is there a length limit or it is implementation specific? *)
   match parse_varint buf with
     | Varint length when length >= 0 ->
-        let res = Buf.next_block buf length in
+        let res = IBuf.next_block buf length in
         Block res
     | Varint _ | Varint64 _ -> 
-        Buf.error buf "block length is too big"
+        IBuf.error buf "block length is too big"
     | _ -> assert false
 
 
@@ -424,7 +429,7 @@ let check_field_code buf i =
    * i >= 19000 && i < 20000
    *)
   if i >= 1 lsl 29 || i < 1
-  then Buf.error buf "field code is out of valid range"
+  then IBuf.error buf "field code is out of valid range"
   else ()
 
 
@@ -440,7 +445,7 @@ let parse_field_header buf =
         wire_type, field_code
 
     | Varint64 key when Int64.logand key 0xffff_ffff_0000_0000L <> 0L ->
-        Buf.error buf "field code is too big"
+        IBuf.error buf "field code is too big"
     | Varint64 key ->
         let wire_type = Int64.to_int (Int64.logand key 7L) in
         let field_code = Int64.to_int (Int64.shift_right_logical key 3) in
@@ -457,15 +462,15 @@ let parse_field buf =
       | 1 -> parse_fixed64 buf
       | 2 -> parse_block buf
       | 5 -> parse_fixed32 buf
-      | 3 | 4 -> Buf.error buf "groups are not supported"
-      | _ -> Buf.error buf ("unknown wire type " ^ string_of_int wire_type)
+      | 3 | 4 -> IBuf.error buf "groups are not supported"
+      | _ -> IBuf.error buf ("unknown wire type " ^ string_of_int wire_type)
   in
   (field_code, field_value)
 
 
 let parse_record_buf buf =
   let rec aux accu =
-    if Buf.is_empty buf
+    if IBuf.is_empty buf
     then List.rev accu
     else
       let field = parse_field buf in
@@ -559,3 +564,339 @@ let parse_list parse_value obj =
   let l = parse_record obj in
   List.map parse_elem l
 
+
+(*
+ * Runtime support for generators (encoders).
+ *
+ *)
+
+module OBuf =
+  struct
+    (* auxiliary iolist type and related primitives *)
+    type t =
+        Ios of string
+      | Iol of t list
+      | Iob of char
+
+
+    let ios x = Ios x
+    let iol l = Iol l
+    let iob b = Iob b
+
+
+    (* iolist buf output *)
+    let to_buffer0 buf l =
+      let rec aux = function
+        | Ios s -> Buffer.add_string buf s
+        | Iol l -> List.iter aux l
+        | Iob b -> Buffer.add_char buf b
+      in aux l
+
+
+    (* iolist output size *)
+    let size l =
+      let rec aux = function
+        | Ios s -> String.length s
+        | Iol l -> List.fold_left (fun accu x -> accu + (aux x)) 0 l
+        | Iob _ -> 1
+      in aux l
+
+
+    let to_string l =
+      let buf = Buffer.create (size l) in
+      to_buffer0 buf l;
+      Buffer.contents buf
+
+
+    let to_buffer l =
+      let buf = Buffer.create 80 in
+      to_buffer0 buf l;
+      buf
+
+
+    let to_channel ch code =
+      let buf = to_buffer code in
+      Buffer.output_buffer ch buf
+  end
+
+
+open OBuf
+
+
+let to_string = OBuf.to_string
+let to_buffer = OBuf.to_buffer
+let to_channel = OBuf.to_channel
+
+
+let iob i = (* IO char represented as Ios '_' *)
+  iob (Char.chr i)
+
+
+let gen_varint_value64 x =
+  let rec aux x =
+    let b = Int64.to_int (Int64.logand x 0x7FL) in (* base 128 *)
+    let rem = Int64.shift_right_logical x 7 in
+    (* Printf.printf "x: %LX, byte: %X, rem: %LX\n" x b rem; *)
+    if rem = 0L
+    then [iob b]
+    else
+      begin
+        (* set msb indicating that more bytes will follow *)
+        let b = b lor 0x80 in
+        (iob b) :: (aux rem)
+      end
+  in iol (aux x)
+
+
+let gen_unsigned_varint_value x =
+  let rec aux x =
+    let b = x land 0x7F in (* base 128 *)
+    let rem = x lsr 7 in
+    if rem = 0
+    then [iob b]
+    else
+      begin
+        (* set msb indicating that more bytes will follow *)
+        let b = b lor 0x80 in
+        (iob b) :: (aux rem)
+      end
+  in iol (aux x)
+
+
+let gen_varint_value x =
+  (* negative varints are encoded as bit-complement 64-bit varints, always
+   * producing 10-bytes long value *)
+  if x < 0
+  then gen_varint_value64 (Int64.of_int x)
+  else gen_unsigned_varint_value x
+
+
+let gen_unsigned_varint_value32 x =
+  let rec aux x =
+    let b = Int32.to_int (Int32.logand x 0x7Fl) in (* base 128 *)
+    let rem = Int32.shift_right_logical x 7 in
+    if rem = 0l
+    then [iob b]
+    else
+      begin
+        (* set msb indicating that more bytes will follow *)
+        let b = b lor 0x80 in
+        (iob b) :: (aux rem)
+      end
+  in iol (aux x)
+
+
+let gen_varint_value32 x =
+  (* negative varints are encoded as bit-complement 64-bit varints, always
+   * producing 10-bytes long value *)
+  if Int32.logand x 0x8000_0000l <> 0l (* x < 0? *)
+  then gen_varint_value64 (Int64.of_int32 x)
+  else gen_unsigned_varint_value32 x
+
+
+let gen_key ktype code =
+  if code = -1 (* special code meaning that key sould not be generated *)
+  then iol []
+  else gen_unsigned_varint_value (ktype lor (code lsl 3))
+
+
+let gen_varint code x =
+  iol [
+    gen_key 0 code;
+    gen_varint_value x;
+  ]
+
+let gen_unsigned_varint code x =
+  iol [
+    gen_key 0 code;
+    gen_unsigned_varint_value x;
+  ]
+
+let gen_varint32 code x =
+  iol [
+    gen_key 0 code;
+    gen_varint_value32 x;
+  ]
+
+let gen_unsigned_varint32 code x =
+  iol [
+    gen_key 0 code;
+    gen_unsigned_varint_value32 x;
+  ]
+
+let gen_varint64 code x =
+  iol [
+    gen_key 0 code;
+    gen_varint_value64 x;
+  ]
+
+
+let gen_fixed32 code x = (* little-endian *)
+  let s = String.create 4 in
+  let x = ref x in
+  for i = 0 to 3
+  do
+    let b = Char.chr (Int32.to_int (Int32.logand !x 0xFFl)) in
+    s.[i] <- b;
+    x := Int32.shift_right_logical !x 8
+  done;
+  iol [
+    gen_key 5 code;
+    ios s;
+  ]
+
+
+let gen_fixed64 code x = (* little-endian *)
+  let s = String.create 8 in
+  let x = ref x in
+  for i = 0 to 7
+  do
+    let b = Char.chr (Int64.to_int (Int64.logand !x 0xFFL)) in
+    s.[i] <- b;
+    x := Int64.shift_right_logical !x 8
+  done;
+  iol [
+    gen_key 1 code;
+    ios s;
+  ]
+
+
+let int_to_varint code x =
+  gen_varint code x
+
+let int_to_zigzag_varint code x =
+  (* encode signed integer using ZigZag encoding;
+   * NOTE: using arithmetic right shift *)
+  let x = (x lsl 1) lxor (x asr 62) in (* NOTE: can use lesser value than 62 on 32 bit? *)
+  gen_unsigned_varint code x
+
+
+let int64_to_varint code x =
+  gen_varint64 code x
+
+let int64_to_zigzag_varint code x =
+  (* encode signed integer using ZigZag encoding;
+   * NOTE: using arithmetic right shift *)
+  let x = Int64.logxor (Int64.shift_left x 1) (Int64.shift_right x 63) in
+  int64_to_varint code x
+
+let int64_to_fixed64 code x =
+  gen_fixed64 code x
+
+let int64_to_fixed32 code x =
+  gen_fixed32 code (Int64.to_int32 x)
+
+
+let int32_to_varint code x =
+  gen_varint32 code x
+
+let int32_to_zigzag_varint code x =
+  (* encode signed integer using ZigZag encoding;
+   * NOTE: using arithmetic right shift *)
+  let x = Int32.logxor (Int32.shift_left x 1) (Int32.shift_right x 31) in
+  gen_unsigned_varint32 code x
+
+
+let int32_to_fixed32 code x =
+  gen_fixed32 code x
+
+let int32_to_fixed64 code x =
+  gen_fixed64 code (Int64.of_int32 x)
+
+
+let int_to_fixed32 code x =
+  gen_fixed32 code (Int32.of_int x)
+
+let int_to_fixed64 code x =
+  gen_fixed64 code (Int64.of_int x)
+
+
+let int32_to_signed_fixed32 = int32_to_fixed32
+let int64_to_signed_fixed64 = int64_to_fixed64
+let int32_to_signed_fixed64 = int32_to_fixed64
+let int64_to_signed_fixed32 = int64_to_fixed32
+
+let int_to_signed_varint = int_to_varint
+let int32_to_signed_varint = int32_to_varint
+let int64_to_signed_varint = int64_to_varint
+
+
+let float_to_fixed32 code x =
+  (* XXX *)
+  gen_fixed32 code (Int32.bits_of_float x)
+
+let float_to_fixed64 code x =
+  (* XXX *)
+  gen_fixed64 code (Int64.bits_of_float x)
+
+(* let gen_float = float_to_fixed64 *)
+
+
+let bool_to_varint code = function
+  | true -> gen_unsigned_varint code 1
+  | false -> gen_unsigned_varint code 0
+
+let gen_bool = bool_to_varint 
+
+
+let gen_string code s = 
+  (* special code meaning that key and length sould not be generated *)
+  let contents = ios s in
+  if code = -1
+  then contents
+  else
+    iol [
+      gen_key 2 code;
+      gen_unsigned_varint_value (String.length s);
+      contents;
+    ]
+
+
+let string_to_block = gen_string
+let binary_to_block = gen_string (* binaries use the same encoding as strings *)
+let word_to_block = gen_string (* word is encoded as string *)
+let text_to_block = gen_string (* text is encoded as string *)
+
+
+let gen_req_field code f x = f code x
+
+
+let gen_opt_field code f = function
+  | Some x -> f code x
+  | None -> Iol []
+
+
+let gen_rep_field code f l =
+  iol (List.map (fun x -> f code x) l)
+
+
+let gen_record code contents =
+  let contents = iol contents in
+  (* special code meaning that key and length sould not be generated *)
+  if code = -1
+  then contents
+  else
+    iol [
+      gen_key 2 code;
+      (* the length of consequent data *)
+      gen_unsigned_varint_value (OBuf.size contents);
+      contents;
+    ]
+
+
+(* generate binary representation of <type>_list .proto structure *)
+let gen_list f code l =
+  (* NOTE: using "1" as list element code *)
+  let contents = List.map (f 1) l in
+  gen_record code contents
+
+
+let gen_binobj gen_obj ?name x =
+  let obj = gen_obj 2 x in
+  let l =
+    match name with
+      | Some name -> iol [ gen_string 1 name; obj ]
+      | None -> obj
+  in
+  (* return the rusult encoded as a binary string *)
+  OBuf.to_string l

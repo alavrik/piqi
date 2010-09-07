@@ -33,9 +33,6 @@ module L = Piqobj.List
 module W = Piqi_wire
 
 
-module Parser = Piqirun_parser
-
-
 let next_count = Piqloc.next_icount
 
 
@@ -60,13 +57,13 @@ let parse_int ?wire_type x =
   let r0 = reference0 in
   let wire_type = W.get_wire_type `int wire_type in
   match wire_type with
-    | `varint -> `uint (r0 Parser.int64_of_varint x)
-    | `zigzag_varint -> `int (r0 Parser.int64_of_zigzag_varint x)
-    | `fixed32 -> `uint (r0 Parser.int64_of_fixed32 x)
-    | `fixed64 -> `uint (r0 Parser.int64_of_fixed64 x)
-    | `signed_varint -> `int (r0 Parser.int64_of_signed_varint x)
-    | `signed_fixed32 -> `int (r0 Parser.int64_of_signed_fixed32 x)
-    | `signed_fixed64 -> `int (r0 Parser.int64_of_signed_fixed64 x)
+    | `varint -> `uint (r0 Piqirun.int64_of_varint x)
+    | `zigzag_varint -> `int (r0 Piqirun.int64_of_zigzag_varint x)
+    | `fixed32 -> `uint (r0 Piqirun.int64_of_fixed32 x)
+    | `fixed64 -> `uint (r0 Piqirun.int64_of_fixed64 x)
+    | `signed_varint -> `int (r0 Piqirun.int64_of_signed_varint x)
+    | `signed_fixed32 -> `int (r0 Piqirun.int64_of_signed_fixed32 x)
+    | `signed_fixed64 -> `int (r0 Piqirun.int64_of_signed_fixed64 x)
     | `block -> assert false (* XXX *)
 
 
@@ -74,8 +71,8 @@ let parse_float ?wire_type x =
   let r0 = reference0 in
   let wire_type = W.get_wire_type `float wire_type in
   match wire_type with
-    | `fixed32 -> r0 Parser.float_of_fixed32 x
-    | `fixed64 -> r0 Parser.float_of_fixed64 x
+    | `fixed32 -> r0 Piqirun.float_of_fixed32 x
+    | `fixed64 -> r0 Piqirun.float_of_fixed64 x
     | _ -> assert false (* XXX *)
 
 
@@ -86,11 +83,11 @@ let rec parse_obj0 (t:T.piqtype) x :Piqobj.obj =
     (* built-in types *)
     | `int -> parse_int x
     | `float -> `float (parse_float x)
-    | `bool -> `bool (r0 Parser.parse_bool x)
-    | `string -> `string (r0 Parser.parse_string x)
-    | `binary -> `binary (r0 Parser.parse_binary x)
-    | `word -> `word (r0 Parser.parse_string x)
-    | `text -> `text (r0 Parser.parse_string x)
+    | `bool -> `bool (r0 Piqirun.parse_bool x)
+    | `string -> `string (r0 Piqirun.parse_string x)
+    | `binary -> `binary (r0 Piqirun.parse_binary x)
+    | `word -> `word (r0 Piqirun.parse_string x)
+    | `text -> `text (r0 Piqirun.parse_string x)
     | `any -> `any (parse_any x)
     (* custom types *)
     | `record t -> `record (r parse_record t x)
@@ -109,7 +106,7 @@ and parse_obj t x =
 
 
 and try_parse_binobj ?piqtype binobj =
-  let name, x = Parser.parse_binobj binobj in
+  let name, x = Piqirun.parse_binobj binobj in
   if name = None && piqtype = None
   then None (* type of binary object is unknown *)
   else
@@ -158,11 +155,11 @@ and parse_any x =
 
 
 and parse_record t x =
-  let l = Parser.parse_record x in
+  let l = Piqirun.parse_record x in
   (* XXX: (pre-)order fields spec by field codes for better efficiency? *)
   let fields_spec = t.T.Record#field in
   let fields, rem = List.fold_left parse_field ([], l) fields_spec in
-  Parser.check_unparsed_fields rem;
+  Piqirun.check_unparsed_fields rem;
   R#{ piqtype = t; field = List.rev fields}
 
 
@@ -178,7 +175,7 @@ and parse_field (accu, rem) t =
 and do_parse_flag t l =
   let open T.Field in
   let code = Int32.to_int (some_of t.code) in
-  let res, rem = Parser.parse_flag code l in
+  let res, rem = Piqirun.parse_flag code l in
   match res with
     | false -> [], rem
     | true ->
@@ -225,24 +222,24 @@ and do_parse_field t l =
 
 
 and parse_required_field code parse_f l =
-  Parser.parse_req_field code parse_f l
+  Piqirun.parse_req_field code parse_f l
 
 
 and parse_optional_field code parse_f default l =
   match default with
-    | None -> Parser.parse_opt_field code parse_f l
+    | None -> Piqirun.parse_opt_field code parse_f l
     | Some x ->
         let default = some_of x.T.Any.binobj in
-        let res, rem = Parser.parse_req_field code parse_f l ~default in
+        let res, rem = Piqirun.parse_req_field code parse_f l ~default in
         Some res, rem
 
 
 and parse_repeated_field code parse_f l =
-  Parser.parse_rep_field code parse_f l
+  Piqirun.parse_rep_field code parse_f l
 
 
 and parse_variant t x =
-  let code, obj = Parser.parse_variant x in
+  let code, obj = Piqirun.parse_variant x in
   let code32 = Int32.of_int code in
   let options = t.T.Variant#option in
   let option =
@@ -250,7 +247,7 @@ and parse_variant t x =
       let o = List.find (fun o -> some_of o.T.Option#code = code32) options in
       parse_option o obj
     with Not_found ->
-      Parser.error_variant x code
+      Piqirun.error_variant x code
   in
   V#{ piqtype = t; option = option }
 
@@ -259,7 +256,7 @@ and parse_option t x =
   let open T.Option in
   match t.typeref with
     | None ->
-        if Parser.parse_bool x = true
+        if Piqirun.parse_bool x = true
         then
           let res = O#{ piqtype = t; obj = None } in
           (* skip boolean used to encode empty option value *)
@@ -276,14 +273,14 @@ and parse_option t x =
 
 and parse_enum t x =
   match x with
-    | Parser.Varint code ->
+    | Piqirun.Varint code ->
         let code = Int32.of_int code in
         do_parse_enum t x code
-    | Parser.Varint64 code ->
+    | Piqirun.Varint64 code ->
         let code = Int64.to_int32 code in
         do_parse_enum t x code
     | _ ->
-        Parser.error_enum_obj x
+        Piqirun.error_enum_obj x
 
 
 and do_parse_enum t x code32 =
@@ -295,14 +292,14 @@ and do_parse_enum t x code32 =
       (* add location reference which is equal to the enum location *)
       Piqloc.addrefret !Piqloc.icount res
     with Not_found ->
-      Parser.error_enum_const x
+      Piqirun.error_enum_const x
   in
   V#{ piqtype = t; option = option }
 
 
 and parse_list t x = 
   let obj_type = piqtype t.T.Piqlist#typeref in
-  let contents = Parser.parse_list (parse_obj obj_type) x in
+  let contents = Piqirun.parse_list (parse_obj obj_type) x in
   L#{ piqtype = t; obj = contents }
 
 

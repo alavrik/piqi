@@ -80,7 +80,7 @@ let _ =
     try
       (* Read the existing address book. *)
       let ch = open_in Sys.argv.(1) in
-      let buf = Piqirun_parser.Block.init_from_channel ch in
+      let buf = Piqirun.Block.init_from_channel ch in
       let res = A.parse_address_book buf in
       close_in ch;
       res
@@ -88,7 +88,7 @@ let _ =
       | Sys_error _ ->
           Printf.printf "%s: File not found.  Creating a new file.\n" Sys.argv.(0);
           A.Address_book#{person = []}
-      | Piqirun_parser.Error _ ->
+      | Piqirun.Error _ ->
           Printf.eprintf "Failed to parse address book.\n";
           exit (-1)
   in
@@ -102,6 +102,6 @@ let _ =
    * generator not to generate the header (code/tag/len) -- just generate the
    * contents *)
   let data = A.gen_address_book (-1) address_book in
-  Piqirun_gen.to_channel och data;
+  Piqirun.to_channel och data;
   close_out och
 

@@ -589,7 +589,7 @@ let assign_import_name x piqi =
 
 let mlobj_to_ast piqtype wire_generator mlobj =
   debug_loc "mlobj_to_ast(0)";
-  let binobj = Piqirun_gen.gen_binobj wire_generator mlobj in
+  let binobj = Piqirun.gen_binobj wire_generator mlobj in
   debug_loc "mlobj_to_ast(1.5)";
 
   (* dont' resolve defaults when reading wire;
@@ -629,7 +629,7 @@ let mlobj_of_ast piqtype wire_parser ast =
 
   let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
   let binobj = Piqobj_to_wire.gen_binobj piqobj ~named:false in
-  let _name, t = Piqirun_parser.parse_binobj binobj in
+  let _name, t = Piqirun.parse_binobj binobj in
   let mlobj = wire_parser t in
 
   Piqobj_of_piq.delay_unknown_warnings := false;

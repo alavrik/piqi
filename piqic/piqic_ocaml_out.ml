@@ -57,7 +57,7 @@ let rec gen_gen_type ocaml_type wire_type x =
     | _ -> (* gen generators for built-in types *)
         iol [
           gen_cc "(reference ";
-          ios "Piqirun_gen.";
+          ios "Piqirun.";
           ios (gen_ocaml_type_name x ocaml_type);
           ios "_to_";
           ios (W.get_wire_type_name x wire_type);
@@ -89,7 +89,7 @@ let gen_field rname f =
           (* field generation code *)
           iod " "
             [ 
-              ios "Piqirun_gen.gen_" ^^ ios mode ^^ ios "_field";
+              ios "Piqirun.gen_" ^^ ios mode ^^ ios "_field";
                 gen_code f.code;
                 gen_gen_typeref typeref;
                 ffname
@@ -98,7 +98,7 @@ let gen_field rname f =
           (* flag generation code *)
           iod " " [
             gen_cc "(refer x;";
-            ios "Piqirun_gen.gen_bool"; gen_code f.code; ffname;
+            ios "Piqirun.gen_bool"; gen_code f.code; ffname;
             gen_cc ")";
           ]
   in (fname, fgen)
@@ -128,7 +128,7 @@ let gen_record r =
         gen_cc "refer x;";
         iod " in " fgens_code;
         ios "in";
-        ios "Piqirun_gen.gen_record code"; 
+        ios "Piqirun.gen_record code"; 
         ios "["; iod ";" (List.map esc fnames); ios "]";
     ]
 
@@ -137,7 +137,7 @@ let gen_const c =
   let open Option in
   iod " " [
     ios "|"; gen_pvar_name (some_of c.ocaml_name); ios "->";
-      ios "Piqirun_gen.gen_varint32 code";
+      ios "Piqirun.gen_varint32 code";
       gen_code c.code ^^ ios "l"; (* ocaml int32 literal *)
   ]
 
@@ -162,7 +162,7 @@ let rec gen_option o =
         iod " " [
           ios "|"; gen_pvar_name mln; ios "->";
             gen_cc "refer x;";
-            ios "Piqirun_gen.gen_bool"; gen_code o.code; ios "true";
+            ios "Piqirun.gen_bool"; gen_code o.code; ios "true";
         ]
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
         iod " " [
@@ -186,7 +186,7 @@ let gen_variant v =
       ios "gen_" ^^ ios (some_of v.ocaml_name);
       ios "code (x:" ^^ ios_gen_typeref (`variant v) ^^ ios ") =";
       gen_cc "refer x;";
-      ios "Piqirun_gen.gen_record code [(match x with"; iol options; ios ")]";
+      ios "Piqirun.gen_record code [(match x with"; iol options; ios ")]";
     ]
 
 
@@ -203,7 +203,7 @@ let gen_alias a =
 let gen_gen_list t =
   iol [
     gen_cc "reference ";
-    ios "(Piqirun_gen.gen_list (" ^^ gen_gen_typeref t ^^ ios "))"
+    ios "(Piqirun.gen_list (" ^^ gen_gen_typeref t ^^ ios "))"
   ]
 
 

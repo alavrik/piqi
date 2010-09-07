@@ -133,15 +133,15 @@ let open_wire fname =
   init ();
   trace "opening .wire file: %s\n" fname;
   let ch = Piqi_main.open_input fname in
-  let buf = Piqirun_parser.init_from_channel ch in
+  let buf = Piqirun.init_from_channel ch in
   buf
 
 
 let read_wire_field buf =
   (* TODO: handle runtime wire read errors *)
-  if Piqirun_parser.is_empty buf
+  if Piqirun.is_empty buf
   then raise EOF
-  else Piqirun_parser.parse_field buf
+  else Piqirun.parse_field buf
 
 
 let piqtypes = ref []
@@ -184,7 +184,7 @@ let rec load_wire_obj buf :obj =
   let field_code, field_obj = read_wire_field buf in
   match field_code with
     | c when c mod 2 = 1 ->
-        let typename = Piqirun_parser.parse_string field_obj in
+        let typename = Piqirun.parse_string field_obj in
         process_piqtype c typename;
         if c = 1
         then
@@ -214,12 +214,12 @@ let next_out_code = ref 2
 
 
 let gen_piqtype code typename =
-  Piqirun_gen.gen_string code typename
+  Piqirun.gen_string code typename
 
 
 let write_piqtype ch code typename =
   let data = gen_piqtype code typename in
-  Piqirun_gen.to_channel ch data
+  Piqirun.to_channel ch data
 
 
 let find_add_piqtype_code ch name =
@@ -249,13 +249,13 @@ let write_wire ch (obj :obj) =
           let code = find_add_piqtype_code ch typename in
           Piqobj_to_wire.gen_obj code obj
   in
-  Piqirun_gen.to_channel ch data
+  Piqirun.to_channel ch data
 
 
 let open_pb fname =
   trace "opening .pb file: %s\n" fname;
   let ch = Piqi_main.open_input fname in
-  let buf = Piqirun_parser.Block.init_from_channel ch in
+  let buf = Piqirun.Block.init_from_channel ch in
   buf
 
 
@@ -275,7 +275,7 @@ let write_pb ch (obj :Piqobj.obj) =
   );
 
   let buf = Piqobj_to_wire.gen_embedded_obj obj in
-  Piqirun_gen.to_channel ch buf
+  Piqirun.to_channel ch buf
 
 
 let write_json_obj ch json =

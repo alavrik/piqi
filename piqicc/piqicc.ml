@@ -90,7 +90,7 @@ let is_piqdef_def = function
 
 let gen_piqdef from_type to_type (x:T.piqdef) =
   (* piqdef -> binobj --(convert_binobj)--> binobj' *)
-  let binobj = Piqirun_gen.gen_binobj T.gen_piqdef x in
+  let binobj = Piqirun.gen_binobj T.gen_piqdef x in
   let binobj' = Piqi.convert_binobj from_type to_type binobj in
 
   let repr = String.escaped binobj' in
@@ -126,7 +126,7 @@ let piqicc ch fname =
   in
   let code = iod " " [
     ios "let parse_piqdef_binobj x = ";
-      ios "let _name, piqwire = Piqirun_parser.parse_binobj x in";
+      ios "let _name, piqwire = Piqirun.parse_binobj x in";
       ios "parse_piqdef piqwire";
     eol;
 
