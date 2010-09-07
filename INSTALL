@@ -1,9 +1,9 @@
 SUPPORTED PLATFORMS
 ===================
 
-Piqi is written in Objective Caml language so theoretically it should work on
-platforms and hardware architectures supported by Objective Caml. See the page
-below for the list of supported platforms:
+Piqi is written in OCaml language so in theory it should work on platforms and
+hardware architectures supported by OCaml. See the page below for the list of
+supported platforms:
 
         http://caml.inria.fr/ocaml/portability.en.html
 
@@ -18,7 +18,7 @@ but it shouldn't be hard to adapt it.
 PREREQUISITES
 =============
 
-* Objective Caml compiler and standard library
+* OCaml compiler and standard library
 
         Recommended (tested) versions are 3.11.2 and 3.12.0. Older OCaml
         versions >= 3.10 should work as well.
@@ -35,7 +35,7 @@ PREREQUISITES
         prepackaged in major Linux distributions as well.
 
 
-* Ocamlfind/Findlib -- library manager for Objective Caml
+* Ocamlfind/Findlib -- library manager for OCaml
 
         If installed separately form prepackaged OCaml distribution, it is
         recommended to build it from sources after you build/install OCaml. It
@@ -81,7 +81,7 @@ NOTE: these instruction are applicable only to Unix/Linux systems.
         make 
         cd ..
 
-5. Build piqi
+5. Build Piqi
 
         make
 
@@ -90,12 +90,25 @@ NOTE: these instruction are applicable only to Unix/Linux systems.
         make install
 
 
-The following steps are necessary only is you are going to use piqi interface
-compiler (piqic) for OCaml.
+The following step is necessary only is you are going to use Piqi as a data
+serialization system for OCaml.
 
-7. Install piqi runtime library and piqi camlp4 extensions
+7. Install Piqi runtime library for OCaml and Piqi camlp4 extensions
 
-        make libinstall
+        make ocaml-install
+
+
+The following step is necessary only is you are going to use Piqi as a data
+serialization system for Erlang.
+
+
+8. Build Piqi runtime library for Erlang
+
+        make erlang
+
+        Note that there is no support for installing the library, but binary
+        build as well as sources are located in "piqirun-erlang" directory which
+        has an OTP-compliant structure.
 
 
 RUNNING TESTS

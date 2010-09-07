@@ -19,3 +19,12 @@ locations.
 "piqi_proto" test requires access to Protobuf source directory. See
 piqi_proto/README for details.
 
+
+Erlang-specific tests
+=====================
+
+To run Erlang-specific tests, use "make erlang" command.
+
+Erlang tests depend on Piqi runtime library, which can be built by running
+"make erlang" command from the top-level directory of the current distribution.
+

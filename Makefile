@@ -13,12 +13,12 @@ install:
 	install piqic/piqic $(PIQI_PREFIX)/bin
 
 
-libinstall:
+ocaml-install:
 	$(MAKE) -C piqirun-ocaml libinstall
 	$(MAKE) -C camlp4 libinstall
 
 
-libuninstall:
+ocaml-uninstall:
 	$(MAKE) -C piqirun-ocaml libuninstall
 	$(MAKE) -C camlp4 libuninstall
 
