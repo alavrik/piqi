@@ -28,10 +28,18 @@ open Piqic_common
  * set ocaml names if not specified by user
  *)
 
+let _ =
+  (* normalize Piqi identifiers unless overrided by the command-line option *)
+  flag_normalize := true
+
 
 (* ocaml name of piqi name *)
 let ocaml_name n =
-  let n = Piqi_name.get_local_name n in (* cut module path *)
+  let n =
+    if !flag_normalize
+    then Piqi_name.normalize_name n
+    else n
+  in
   dashes_to_underscores n
 
 
@@ -43,30 +51,15 @@ let ocaml_ucname n = (* uppercase *)
   String.capitalize (ocaml_name n)
 
 
-let ocaml_name n = (* preserve the original name *)
-  ocaml_name (String.copy n)
-
-
 let mlname n =
   Some (ocaml_lcname n)
 
 
 (* variant of mlname for optional names *)
 let mlname' n =
-  (* XXX: ocaml name must be resolved here or later as it is implemented now? *)
   match n with
     | None -> n
     | Some n -> mlname n
-
-
-(* XXX: check name validity *)
-let check_ocaml_name name ocaml_name =
-  if name = None && ocaml_name <> None
-  then ()
-  (* XXX
-     error ocaml_name
-       "language-specific names can not be used without piqi name"
-  *)
 
 
 let mlname_field x =
@@ -118,14 +111,18 @@ let mlname_piqdef = function
 let mlname_defs (defs:T.piqdef list) =
   List.iter mlname_piqdef defs
 
+
 let mlmodname n =
-  Some (ocaml_ucname (some_of n))
+  let n = Piqi_name.get_local_name n in (* cut module path *)
+  Some (ocaml_ucname n)
 
 
 let rec mlname_piqi (piqi:T.piqi) =
   let open P in
   begin
-    if piqi.ocaml_module = None then piqi.ocaml_module <- mlmodname piqi.modname;
+    if piqi.ocaml_module = None
+    then piqi.ocaml_module <- mlmodname (some_of piqi.modname);
+
     mlname_defs piqi.P#resolved_piqdef;
     mlname_defs piqi.P#imported_piqdef;
     mlname_imports piqi.P#resolved_import;
@@ -215,14 +212,14 @@ let piqic_file ifile =
     begin
       (* prettyprint generated OCaml code using Camlp4 *)
       let tmp_file = modname ^ ".tmp.ml" in
-      Main.add_tmp_file tmp_file;
       (try
         let tmp_ch = open_out tmp_file in
         piqic piqi tmp_ch;
         close_out tmp_ch;
       with Sys_error s ->
         piqi_error ("error writing temporary file: " ^ s));
-      ocaml_pretty_print tmp_file ofile
+      ocaml_pretty_print tmp_file ofile;
+      Main.add_tmp_file tmp_file;
     end
 
 
@@ -237,6 +234,7 @@ let speclist = Main.common_speclist @
     "--pp", Arg.Set flag_pp,
       "pretty-print output using CamlP4 (camlp4o)"; 
 
+    arg__normalize;
     arg__leave_tmp_files;
   ]
 

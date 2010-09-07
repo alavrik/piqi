@@ -126,7 +126,7 @@ let make_proto_name path =
 
 let format_name n =
   if !flag_normalize
-  then Piqi_pp.normalize_name n
+  then Piqi_name.normalize_name n
   else underscores_to_dashes n
 
 

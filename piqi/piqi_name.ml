@@ -102,3 +102,44 @@ let is_valid_typename ?allow x =
   let modname, typename = split_name x in
   some is_valid_modname modname && is_valid_name typename ?allow
 
+
+let normalize_list l =
+  let isupper c = (c >= 'A' && c <= 'Z') in
+  let tolower c =  Char.chr (Char.code c + 32) in
+  let rec aux hump accu = function
+    | [] -> List.rev accu
+    | h::t when h = '_' || h = '-' ->
+        aux true ('-'::accu) t
+    | h::t when isupper h && not hump -> (* first hump character *)
+        aux true ((tolower h)::'-'::accu) t
+    | h::t when isupper h && hump -> (* another hump character *)
+        aux hump ((tolower h)::accu) t
+    | h::t when h = '.' || h = ':' || h = '/' ->
+        aux true (h::accu) t
+    | h::t -> (* end of hump *)
+        aux false (h::accu) t
+  in
+  match l with
+    | [] -> []
+    | h::_ -> aux (isupper h) [] l
+
+
+(* check if the name is normal, i.e. no uppercase characters and no hyphens *)
+let is_normal_name s =
+  let len = String.length s in
+  let rec aux i =
+    if i = len
+    then true (* the name is normal *)
+    else
+      match s.[i] with
+        | 'A'..'Z' | '_' -> false
+        | _ -> aux (i+1)
+  in
+  aux 0
+
+
+let normalize_name s =
+  if is_normal_name s
+  then s
+  else string_of_list (normalize_list (list_of_string s))
+

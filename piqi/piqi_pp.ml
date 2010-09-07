@@ -18,31 +18,6 @@
 open Piqi_common 
 
 
-let normalize_list l =
-  let isupper c = (c >= 'A' && c <= 'Z') in
-  let tolower c =  Char.chr (Char.code c + 32) in
-  let rec aux hump accu = function
-    | [] -> List.rev accu
-    | h::t when h = '_' || h = '-' ->
-        aux true ('-'::accu) t
-    | h::t when isupper h && not hump -> (* first hump character *)
-        aux true ((tolower h)::'-'::accu) t
-    | h::t when isupper h && hump -> (* another hump character *)
-        aux hump ((tolower h)::accu) t
-    | h::t when h = '.' || h = ':' || h = '/' ->
-        aux true (h::accu) t
-    | h::t -> (* end of hump *)
-        aux false (h::accu) t
-  in
-  match l with
-    | [] -> []
-    | h::_ -> aux (isupper h) [] l
-
-
-let normalize_name s =
-  string_of_list (normalize_list (list_of_string s))
-
-
 let map_words (x:T.ast) f =
   let rec aux = function
     | `word s -> `word (f s)
@@ -60,7 +35,7 @@ let map_words (x:T.ast) f =
 
 
 let normalize ast =
-  map_words ast normalize_name
+  map_words ast Piqi_name.normalize_name
 
 
 module Main = Piqi_main

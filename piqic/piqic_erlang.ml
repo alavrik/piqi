@@ -28,20 +28,23 @@ open Piqic_common
  * set Erlang names if not specified by user
  *)
 
+let _ =
+  (* normalize Piqi identifiers unless overrided by the command-line option *)
+  flag_normalize := true
+
 
 (* Erlang name of piqi name *)
 let erlang_name n =
-  let n = Piqi_name.get_local_name n in (* cut module path *)
+  let n =
+    if !flag_normalize
+    then Piqi_name.normalize_name n
+    else String.uncapitalize n
+  in
   dashes_to_underscores n
 
 
-let erlang_lcname n = (* uncapitalize *)
-  (* XXX, TODO: normalize instead of just uncapitalizing? *)
-  String.uncapitalize (erlang_name n)
-
-
 let erlname n =
-  Some (erlang_lcname n)
+  Some (erlang_name n)
 
 
 (* variant of erlname for optional names *)
@@ -101,15 +104,15 @@ let erlname_defs (defs:T.piqdef list) =
   List.iter erlname_piqdef defs
 
 let erl_modname n =
-  (* TODO *)
-  erlname (some_of n)
+  let n = Piqi_name.get_local_name n in (* cut module path *)
+  Some (erlang_name n)
 
 
 let rec erlname_piqi (piqi:T.piqi) =
   let open P in
   begin
     if piqi.erlang_module = None
-    then piqi.erlang_module <- erl_modname piqi.modname;
+    then piqi.erlang_module <- erl_modname (some_of piqi.modname);
 
     (* if type prefix is not defined by user, set it to
      * <erlang-module-name> "_" *)
@@ -209,6 +212,7 @@ let usage = "Usage: piqic erlang [options] <.piqi file>\nOptions:"
 let speclist = Main.common_speclist @
   [
     arg_C;
+    arg__normalize;
   ]
 
 

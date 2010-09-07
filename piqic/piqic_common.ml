@@ -108,3 +108,11 @@ let piqic_common piqi =
   piqi.P#resolved_piqdef <- boot_defs @ piqi.P#resolved_piqdef;
   ()
 
+
+(* common command-line arguments processing *)
+let flag_normalize = ref false
+
+let arg__normalize =
+  "--normalize", Arg.Bool (fun x -> flag_normalize := x),
+    "<true|false> normalize identifiers (default: true)"
+
