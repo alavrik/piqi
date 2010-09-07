@@ -14,7 +14,6 @@ data. It includes:
         * Tools for validating, pretty-printing and converting data between
         Piq, JSON and portable binary encoding.
 
-
 As a data serialization system, Piqi follows a static approach, when high-level
 data specification is used to generate static code for serializing and
 deserializing data structures.
