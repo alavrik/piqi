@@ -172,7 +172,13 @@ let parse_word (x:T.ast) = match x with
 
 (* some common errors *)
 let error_exp_list obj = error obj "list expected"
-let error_duplicate obj name = error obj  ("duplicate field " ^ quote name)
+
+let check_duplicate name tail =
+  match tail with
+    | [] -> ()
+    | l ->
+        List.iter (fun obj ->
+          warning obj ("duplicate field " ^ quote name)) l
 
 
 let warn_unknown_field x =
@@ -334,11 +340,11 @@ and do_parse_flag t l =
   let res, rem = find_flags name l in
   match res with
     | [] -> [], rem
-    | [x] ->
+    | x::tail ->
+        check_duplicate name tail;
         let res = F#{ piqtype = t; obj = None } in
         Piqloc.addref x res;
         [res], rem
-    | _::o::_ -> error_duplicate o name
 
 
 and do_parse_field loc t l =
@@ -384,8 +390,9 @@ and parse_required_field loc name field_name field_type l =
             | Some x -> x, rem
             | None -> error loc ("missing field " ^ quote name)
         end
-    | [x] -> parse_obj field_type x, rem
-    | _::o::_ -> error_duplicate o name
+    | x::tail ->
+        check_duplicate name tail;
+        parse_obj field_type x, rem
 
 
 (* find field by name, return found fields and remaining fields *)
@@ -438,8 +445,9 @@ and parse_optional_field name field_name field_type default l =
                 Some (parse_obj field_type default_ast), l (* parse default *)
             | _ -> res, rem
         end
-    | [x] -> Some (parse_obj field_type x), rem
-    | _::o::_ -> error_duplicate o name
+    | x::tail ->
+        check_duplicate name tail;
+        Some (parse_obj field_type x), rem
 
 
 (* parse repeated variant field allowing variant names if field name is

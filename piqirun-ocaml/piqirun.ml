@@ -187,8 +187,7 @@ let error_variant obj code =
   error obj ("unknown variant: " ^ string_of_int code)
 let error_missing obj code =
   error obj  ("missing field " ^ string_of_int code)
-let error_duplicate obj code =
-  error obj  ("duplicate field " ^ string_of_int code)
+
 let error_enum_obj obj = error obj "enum (varint) expected"
 let error_enum_const obj = error obj "unknown enum constant"
 
@@ -511,6 +510,15 @@ let parse_default x =
   piqobj
 
 
+let check_duplicate code tail =
+  match tail with
+    | [] -> ()
+    | obj::_ -> ()
+        (* XXX: issue warnings on duplicate fields?
+        error obj  ("duplicate field " ^ string_of_int code)
+        *)
+
+
 (* XXX, NOTE: using default with requried or optional-default fields *)
 let parse_req_field code parse_value ?default l =
   let res, rem = find_fields code l in
@@ -519,16 +527,18 @@ let parse_req_field code parse_value ?default l =
         (match default with
            | Some x -> parse_value (parse_default x), rem
            | None -> error_missing l code)
-    | [x] -> parse_value x, rem
-    | _::o::_ -> error_duplicate o code
+    | x::t ->
+        check_duplicate code t;
+        parse_value x, rem
 
 
 let parse_opt_field code parse_value l =
   let res, rem = find_fields code l in
   match res with
     | [] -> None, l
-    | [x] -> Some (parse_value x), rem
-    | _::o::_ -> error_duplicate o code
+    | x::t ->
+        check_duplicate code t;
+        Some (parse_value x), rem
 
 
 let parse_rep_field code parse_value l =
@@ -540,11 +550,11 @@ let parse_flag code l =
   let res, rem = find_fields code l in
   match res with
     | [] -> false, l
-    | [x] ->
+    | x::t ->
+        check_duplicate code t;
         (match parse_bool x with
           | true -> true, rem
           | false -> error x "invalid encoding for a flag")
-    | _::o::_ -> error_duplicate o code
 
 
 let parse_list parse_value obj =
