@@ -15,10 +15,13 @@ PRE_TARGETS = \
 LIBINSTALL_FILES = $(PRE_TARGETS)
 
 
-OCAML_VERSION = $(shell ocamlfind ocamlc -version | sed -e 's/\.[0-9]\+$$//')
+OCAML_VERSION = $(shell ocamlfind ocamlc -version | sed -e 's/^\([0-9]*\.[0-9]*\)\..*/\1/')
 
 
-all: $(PRE_TARGETS)
+all: supported_ocaml_version $(PRE_TARGETS)
+
+
+supported_ocaml_version: $(OCAML_VERSION)
 
 
 install: libinstall
@@ -26,6 +29,7 @@ uninstall: libuninstall
 
 
 META: META.templ ../VERSION
+	@echo "Building CamlP4 extensions for OCaml $(OCAML_VERSION)"
 	echo "version = \"`cat ../VERSION`\"" > $@; cat $< >> $@
 
 

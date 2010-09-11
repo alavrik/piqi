@@ -9,7 +9,7 @@ all: $(RESULT) test
 
 
 $(RESULT): proto2piqi.cc main.cc
-	$(CXX) $(CXXFLAGS) -o $@ $^ -lprotoc -lpthread
+	$(CXX) $(CXXFLAGS) -o $@ $^ -lprotobuf -lprotoc -lpthread
 
 
 .PHONY: clean test
@@ -17,8 +17,8 @@ $(RESULT): proto2piqi.cc main.cc
 
 clean:
 	rm -f *.o $(RESULT)
-	find -name '*.pb*' -exec rm {} \;
-	find -name '*.piqi*' -exec rm {} \;
+	rm -f *.pb*
+	rm -f *.piqi*
 
 
 test: $(TEST)
