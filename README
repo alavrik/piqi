@@ -4,7 +4,7 @@ OVERVIEW
 Piqi is a set of languages and open-source tools for working with structured
 data. It includes:
 
-        * Cross-language data serialization system compatible with Google
+        * A cross-language data serialization system compatible with Google
         Protocol Buffers. It allows programs implemented in various languages to
         exchange and persist data in a portable manner.
 
