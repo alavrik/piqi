@@ -36,10 +36,14 @@ DIALYZER_FLAGS += --src --plt $(TEST_PLT) $(ERL_PA) -DNOTEST -DDIALYZER -r .
 #DIALYZER_FLAGS += -Wno_return -Wno_unused -Wunmatched_returns
 
 
-ebin: beams $(EBIN_FILES)
+ebin: $(EBIN_DIR) beams $(EBIN_FILES)
 
 
 beams: $(PRE_TARGET) $(ERL_OBJECTS)
+
+
+#$(EBIN_DIR):
+#	mkdir -p $(EBIN_DIR)
 
 
 $(EBIN_DIR)/%.beam: %.erl $(ERL_HEADERS)
