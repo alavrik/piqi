@@ -1,3 +1,43 @@
+Piqi 0.5.2 (September 13, 2010)
+===============================
+
+Added Erlang support:
+
+  - "piqic erlang" -- a new piqic backend for for generating Erlang type
+    specifications and encoding/decoding functions.
+  - "piqirun-erlang" -- runtime support library.
+
+piqic:
+
+  - (ocaml, erlang) Normalize Piqi identifiers by default, i.e. convert
+    "CamlCase" identifiers to "caml-case".
+  - (ocaml, erlang) Don't generate codecs and types for unused defintions from
+    the boot module.
+
+piqirun-ocaml:
+
+  Backward incompatible changes:
+
+  - Combined piqirun-ocaml library into one "piqirun" OCaml module (previously
+    there were two: "piqirun_gen" and "piqirun_parse").
+  - Improved piqirun-ocaml buffer initialization interface (unified it with
+    piqirun-erlang).
+
+  Other changes:
+
+  - Ignore duplicate fields instead of producing an error.
+
+Piqi tools:
+
+  - Generate warnings instead of errors on duplicate fields when reading from
+    Piq format.
+  - Ignore duplicate fields when reading from wire format.
+
+Platform support:
+
+  - Now builds and runs on Mac OS X (fixed some build portability problems).
+
+
 Piqi 0.5.1 (August 17, 2010)
 ============================
 
