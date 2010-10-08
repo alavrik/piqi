@@ -1,3 +1,4 @@
+(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010 Anton Lavrik
 
@@ -85,7 +86,94 @@ let rec prettyprint_list ch ast_list =
   in aux ast_list
 
 
-let prettyprint_piqi_ast ch ast =
+let transform_ast path f (ast:T.ast) =
+  let rec aux p = function
+    | `list l when p = [] -> (* leaf node *)
+        (* f replaces, removes element, or splices elements of the list *)
+        let res = flatmap f l in
+        `list res
+    | x when p = [] -> (* leaf node *)
+        (* expecting f to replace the existing value, no other modifications
+         * such as removal or splicing is allowed in this context *)
+        (match f x with [res] -> res | _ -> assert false)
+    | `list l ->
+        (* haven't reached the leaf node => continue tree traversal *)
+        let res = List.map (aux p) l in
+        `list res
+    | `named {T.Named.name = n; T.Named.value = v} when List.hd p = n ->
+        (* found path element => continue tree traversal *)
+        let res = T.Named#{name = n; value = aux (List.tl p) v} in
+        `named res
+    | x -> x
+  in
+  aux path ast
+
+
+(* simplify piqi ast: *)
+let simplify_piqi_ast (ast:T.ast) =
+  let tr = transform_ast in
+  (* map piqdef.x -> x *)
+  let rm_piqdef =
+    tr [] (
+      function
+        | `named {T.Named.name = "piqdef"; T.Named.value = v} -> [v]
+        | x -> [x]
+    )
+  (* del record/field/mode.required *)
+  (* map record/field/mode x -> x *)
+  and tr_field_mode_required =
+    tr ["record"; "field"] (
+      function
+        | `named {T.Named.name = "mode"; T.Named.value = `name "required"} -> []
+        | `named {T.Named.name = "mode"; T.Named.value = (`name _) as x} -> [x]
+        | x -> [x]
+    )
+  (* map extend/.piq-any x -> x *)
+  and tr_extend_piq_any =
+    tr ["extend"] (
+      function
+        | `named {T.Named.name = "piq-any"; T.Named.value = v} -> [v]
+        | x -> [x]
+    )
+  (* //type.name x -> type.x *)
+  and tr_type_name_common path =
+    tr path (
+      function
+        | `named ({T.Named.name = "type"; T.Named.value = `named {T.Named.name = "name"; T.Named.value = v}} as x) ->
+            let res = `named T.Named#{x with value = v} in
+            [res]
+        | x -> [x]
+    )
+  in
+  (* map record/field/type.name x -> type x *)
+  let tr_record_field_type_name = tr_type_name_common ["record"; "field"]
+  (* map variant/option/type.name x -> type x *)
+  and tr_variant_option_type_name  = tr_type_name_common ["variant"; "option"]
+  (* map enum/option/type.name x -> type x *)
+  and tr_enum_option_type_name = tr_type_name_common ["enum"; "option"]
+  (* map alias/type.name x -> type x *)
+  and tr_alias_type_name = tr_type_name_common ["alias"]
+  (* map list/type.name x -> type x *)
+  and tr_list_type_name = tr_type_name_common ["list"]
+  in
+  let (|>) a f = f a in
+  ast |>
+  rm_piqdef |>
+  tr_field_mode_required |>
+  tr_extend_piq_any |>
+  tr_record_field_type_name |>
+  tr_variant_option_type_name |>
+  tr_enum_option_type_name |>
+  tr_alias_type_name |>
+  tr_list_type_name
+
+
+let prettyprint_piqi_ast ?(simplify=false) ch ast =
+  let ast =
+    if simplify
+    then simplify_piqi_ast ast
+    else ast
+  in
   match ast with
     | `list l -> prettyprint_list ch l
     | _ -> assert false

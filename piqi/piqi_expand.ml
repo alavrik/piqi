@@ -68,7 +68,7 @@ let unresolve_piqi piqi =
 
 let print_piqi ch piqi =
   let ast = piqi_to_ast piqi in
-  Piqi_pp.prettyprint_piqi_ast ch ast
+  Piqi_pp.prettyprint_piqi_ast ch ast ~simplify:true
 
 
 let print_modname ch modname =
