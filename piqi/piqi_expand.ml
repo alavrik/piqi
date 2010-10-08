@@ -42,7 +42,10 @@ let unresolve_piqi piqi =
     piqdef =
       if !flag_expand_includes
       then piqi.piqdef 
-      else piqi.extended_piqdef;
+      else
+        (* extended piqdef will be printed only once for the first included
+         * module (see below) *)
+        [];
 
     extend =
       if !flag_expand_includes
@@ -105,6 +108,8 @@ let expand_piqi ch filename =
   print_proto_package ch piqi.P#proto_package;
   (* moving other stuff at the top *)
   top.P#import <- imports;
+  if not !flag_expand_includes
+  then top.P#piqdef <- piqi.P#extended_piqdef;
   (* XXX: they are already ignored during the expansion
   top.P#custom_field <- custom_fields;
   *)

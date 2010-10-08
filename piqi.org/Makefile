@@ -34,6 +34,9 @@ test_piqi:
 test_piqi_piqi:
 	piqi to-proto piqi.piqi
 	piqi expand piqi.piqi > p.piqi
+	piqi check p.piqi
+	piqi expand --includes-only piqi.piqi > pp.piqi
+	piqi check pp.piqi
 	piqi convert -t pb p.piqi
 	protoc --decode=piqi_org.piqi.piqi piqi.piqi.proto < p.piqi.pb > p.piqi.text
 	piqi convert -t piq-json p.piqi
@@ -46,5 +49,5 @@ test_piqtype_core:
 
 
 clean:
-	rm -f p.piqi p.piqi.text *.proto *.wire *.pb *.json piqtype-core.piq
+	rm -f p.piqi pp.piqi p.piqi.text *.proto *.wire *.pb *.json piqtype-core.piq
 
