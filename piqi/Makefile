@@ -20,6 +20,7 @@ SOURCES += \
 	piqi_check.ml \
 	piqi_pp.ml \
 	piqi_expand.ml \
+	piqi_light.ml \
 	\
 	piqi_to_proto.ml \
 	\
