@@ -20,43 +20,27 @@ module C = Piqi_common
 open C
 
 
-module Main = Piqi_main
-open Main
-
-
-(* command-line arguments *)
-let flag_expand_includes = ref false
-
-
 let piqi_to_ast piqi =
   Piqi.mlobj_to_ast Piqi.piqi_def T.gen_piqi piqi
 
 
-let unresolve_piqi piqi =
-  P#{
-    (* piqi with *)
+let print_piqi ch piqi =
+  let ast = piqi_to_ast piqi in
+  Piqi_pp.prettyprint_piqi_ast ch ast ~simplify:true
 
-    modname = None;
-    proto_package = None;
 
-    piqdef =
-      if !flag_expand_includes
-      then piqi.piqdef 
-      else
-        (* extended piqdef will be printed only once for the first included
-         * module (see below) *)
-        [];
-
-    extend =
-      if !flag_expand_includes
-      then piqi.P#extend
-      else [];
-
+let init_res_piqi orig_piqi =
+  let open P in
+  {
+    modname = orig_piqi.modname;
+    proto_package = orig_piqi.proto_package;
+    piqdef = [];
+    extend = [];
     includ = [];
     import = [];
     custom_field = [];
 
-    (* strip all piqi-impl (implementation related) extensions *)
+    (* piqi-impl (implementation related) extensions *)
     extended_piqdef = [];
     resolved_piqdef = [];
     imported_piqdef = [];
@@ -66,60 +50,39 @@ let unresolve_piqi piqi =
   }
 
 
-let print_piqi ch piqi =
-  let ast = piqi_to_ast piqi in
-  Piqi_pp.prettyprint_piqi_ast ch ast ~simplify:true
+let expand_piqi ?(includes_only=false) piqi =
+  let open P in
+  let all_piqi = piqi.included_piqi in
+  let orig_piqi = some_of piqi.original_piqi in
 
+  (* create a new piqi module from the original piqi module *)
+  let res_piqi = init_res_piqi orig_piqi in
 
-let print_modname ch modname =
-  match modname with
-    | Some x ->
-        (* original name *)
-        output_string ch (".module " ^ x);
-        output_string ch "\n\n"
-    | None -> ()
-
-
-let print_proto_package ch = function
-  | Some x ->
-      output_string ch (".proto-package " ^ quote x);
-      output_string ch "\n\n"
-  | None -> ()
-
-
-let expand_piqi ch filename =
-  (* TODO: don't resolve defaults: i.e. for field.mode *)
-
-  (* TODO: tranform output AST to produce nicer results: strip optional filed
-   * names, etc *)
-  let piqi = Piqi.load_piqi filename in
-
-  let all_piqi = piqi.P#included_piqi in
-  let orig_piqi = some_of piqi.P#original_piqi in
-
+  (* copy all imports to the resulting module *)
   let imports = Piqi.get_imports all_piqi in
-  (* XXX: they are already ignored during the expansion
-  let ignored_fields = Piqi.get_ignored_fields all_piqi in
-  *)
+  res_piqi.import <- imports;
 
-  (* print the top-level module *)
-  let top = unresolve_piqi (List.hd all_piqi) in
-  print_modname ch orig_piqi.P#modname;
-  print_proto_package ch piqi.P#proto_package;
-  (* moving other stuff at the top *)
-  top.P#import <- imports;
-  if not !flag_expand_includes
-  then top.P#piqdef <- piqi.P#extended_piqdef;
-  (* XXX: they are already ignored during the expansion
-  top.P#custom_field <- custom_fields;
-  *)
-  print_piqi ch top;
+  (* copy all definitions to the resulting module *)
+  res_piqi.piqdef <-
+    if includes_only
+    then Piqi.get_piqdefs all_piqi
+    else piqi.extended_piqdef;
 
-  (* print the rest of includes *)
-  List.iter (fun x ->
-    let x = unresolve_piqi x in
-    print_piqi ch x) (List.tl all_piqi)
+  (* copy all extensions to the resulting module *)
+  res_piqi.extend <-
+    if includes_only
+    then Piqi.get_extensions all_piqi
+    else [];
 
+  res_piqi
+
+
+module Main = Piqi_main
+open Main
+
+
+(* command-line arguments *)
+let flag_includes_only = ref false
 
 let usage = "Usage: piqi expand [options] <.piqi file> [output file]\nOptions:"
 
@@ -127,14 +90,16 @@ let speclist = Main.common_speclist @
   [
     arg_o;
 
-   "--includes-only", Arg.Set flag_expand_includes,
+   "--includes-only", Arg.Set flag_includes_only,
      "expand only includes (don't expand extensions)";
   ]
 
 
 let expand_file filename =
   let ch = Main.open_output !ofile in
-  expand_piqi ch filename
+  let piqi = Piqi.load_piqi filename in
+  let res_piqi = expand_piqi piqi ~includes_only:!flag_includes_only in
+  print_piqi ch res_piqi
 
 
 let run () =
