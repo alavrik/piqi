@@ -170,9 +170,12 @@ let gen_record_mod r =
         rcons;
         ios "end";
       ios "=";
+        ios modname;
+        (* full version:
         ios "struct"; (* structure *)
         rcons;
         ios "end";
+        *)
     ]
   in rdef
 
@@ -281,9 +284,12 @@ let gen_defs (defs:T.piqdef list) =
         odef;
         ios "end";
       ios "=";
+        ios !top_modname;
+        (* full version:
         ios "struct"; (* structure *)
         odef;
         ios "end";
+        *)
     ]
   in
   let defs = [odef] @ mod_defs in
