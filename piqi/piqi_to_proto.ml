@@ -152,7 +152,7 @@ let rec gen_default_obj (x:Piqobj.obj) =
     | `float x ->
         (* XXX: check overflow, issue a warning if the written value when read
          * back makes a different float value *)
-        (* XXX: is Ocaml's floating point notation accepted by protoc ok? *)
+        (* FIXME: is Ocaml's floating point notation accepted by protoc ok? *)
         make_default (Piq_gen.string_of_float x)
     | `bool true -> make_default "true"
     | `bool false -> make_default "false"
@@ -473,7 +473,11 @@ let piqi_to_proto_file ifile =
   if not (Filename.check_suffix ifile ".piqi")
   then piqi_error "input file name must have '.piqi' extension";
 
-  let ofile = ifile ^ ".proto" in
+  let ofile =
+    if !ofile <> ""
+    then !ofile
+    else ifile ^ ".proto"
+  in
   let ch = Main.open_output ofile in
 
   piqi_to_proto piqi ch
@@ -483,6 +487,7 @@ let usage = "Usage: piqi to-proto [options] <.piqi file>\nOptions:"
 
 let speclist = Main.common_speclist @
   [
+    arg_o;
   ]
 
 

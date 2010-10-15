@@ -591,6 +591,8 @@ let usage = "Usage: piqi of-proto [options] <.proto file>\nOptions:"
 
 let speclist =
   [
+    arg_o;
+
    "-I", Arg.String add_path,
      "<dir> add directory to the list of .proto search paths (passed to protoc)";
 
@@ -640,7 +642,11 @@ let proto_to_piqi ifile =
   (* XXX: check file has either .proto or .piqi.proto extensions without
    * any extra leading extensions *)
 
-  let ofile = ifile ^ ".piqi" in
+  let ofile =
+    if !ofile <> ""
+    then !ofile
+    else ifile ^ ".piqi"
+  in
   let ch = Main.open_output ofile in
 
   let wirefile = ifile ^ ".pb" in
