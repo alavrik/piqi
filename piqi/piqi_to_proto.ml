@@ -150,9 +150,8 @@ let rec gen_default_obj (x:Piqobj.obj) =
     | `uint x ->
         make_default (Printf.sprintf "%Lu" x)
     | `float x ->
-        (* XXX: check overflow, issue a warning if the written value when read
-         * back makes a different float value *)
-        (* FIXME: is Ocaml's floating point notation accepted by protoc ok? *)
+        (* NOTE: This is correct, since Ocaml follows the same notation for
+         * floats as in Protobuf's ".proto" files: nan, * inf, -inf *)
         make_default (Piq_gen.string_of_float x)
     | `bool true -> make_default "true"
     | `bool false -> make_default "false"

@@ -100,84 +100,24 @@ let json_string_of_string s =
   write_string ob s;
   Buffer.contents ob
 
-let test_string () =
-  let s = String.create 256 in
-  for i = 0 to 255 do
-    s.[i] <- Char.chr i
-  done;
-  json_string_of_string s
-
-
-let write_null ob () =
-  Buffer.add_string ob "null"
-
-let write_bool ob x =
-  Buffer.add_string ob (if x then "true" else "false")
-
-
-let write_int ob x =
-  Buffer.add_string ob (string_of_int x)
-
-
-(*
-  Ensure that the float is not printed as an int.
-  This is not required by JSON, but useful in order to guarantee
-  reversibility.
-*)
-let float_needs_period s =
-  try
-    for i = 0 to String.length s - 1 do
-      match s.[i] with
-	  '0'..'9' | '-' -> ()
-	| _ -> raise Exit
-    done;
-    true
-  with Exit ->
-    false
-
-(*
-  Both write_float_fast and write_float guarantee
-  that a sufficient number of digits are printed in order to 
-  allow reversibility.
-
-  The _fast version is faster but often produces unnecessarily long numbers.
-*)
-let write_float_fast ob x =
-  let s = Printf.sprintf "%.17g" x in
-  Buffer.add_string ob s;
-  if float_needs_period s then
-    Buffer.add_string ob ".0"
-
-
-let write_float ob x =
-  let s1 = Printf.sprintf "%.16g" x in
-  let s =
-    if float_of_string s1 = x then s1
-    else Printf.sprintf "%.17g" x
-  in
-  Buffer.add_string ob s;
-  if float_needs_period s then
-    Buffer.add_string ob ".0"
-
-
-let write_float ob x =
-  (* Using JavaScript notation for NaN and Infinity *)
-  match classify_float x with
-    FP_nan ->
-      Buffer.add_string ob "\"NaN\""
-  | FP_infinite ->
-      Buffer.add_string ob (if x > 0. then "\"Infinity\"" else "\"-Infinity\"")
-  | _ ->
-      write_float ob x
-      (*
-      write_float_fast ob x
-      *)
-
 
 let json_string_of_float x =
-  let ob = Buffer.create 20 in
-  write_float ob x;
-  Buffer.contents ob
+  (* Using JavaScript notation for NaN and Infinity *)
+  match Pervasives.classify_float x with
+    | FP_nan ->
+        "\"NaN\""
+    | FP_infinite ->
+        if x > 0. then "\"Infinity\"" else "\"-Infinity\""
+    | _ ->
+        Piq_gen.string_of_float x
+
+
+let write_float ob x =
+  match Pervasives.classify_float x with
+    | FP_nan | FP_infinite ->
+        Buffer.add_string ob (json_string_of_float x)
+    | _ ->
+        Piq_gen.write_float ob x
 
 
 let test_float () =
@@ -223,8 +163,8 @@ let f_sep ob =
 
 let rec write_json ob (x : json) =
   match x with
-      `Null () -> write_null ob ()
-    | `Bool b -> write_bool ob b
+      `Null () -> Buffer.add_string ob "null"
+    | `Bool b -> Buffer.add_string ob (if b then "true" else "false")
     | `Int i -> Buffer.add_string ob (Int64.to_string i)
     | `Uint i -> Buffer.add_string ob (uint64_to_string i)
     | `Intlit s -> Buffer.add_string ob s

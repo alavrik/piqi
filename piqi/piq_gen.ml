@@ -67,13 +67,56 @@ let uint64_to_string x =
   else Printf.sprintf "0x%Lx" x
 
 
-(* NOTE, XXX: copied from pervasives.ml *)
-external ocaml_format_float: string -> float -> string = "caml_format_float"
+(* This method for printing floats is borrowed from Martin Jambon's Yojson
+ * library, see piqi_json_gen.ml for details. *)
+(*
+  Ensure that the float is not printed as an int.
+  This is not required by JSON, but useful in order to guarantee
+  reversibility.
+*)
+let float_needs_period s =
+  try
+    for i = 0 to String.length s - 1 do
+      match s.[i] with
+	  '0'..'9' | '-' -> ()
+	| _ -> raise Exit
+    done;
+    true
+  with Exit ->
+    false
 
-(* TODO: ensure floating point reversibility. See piqi_json_gen.ml for details
- *)
+(*
+  Both write_float_fast and write_float guarantee
+  that a sufficient number of digits are printed in order to 
+  allow reversibility.
+
+  The _fast version is faster but often produces unnecessarily long numbers.
+*)
+
+let write_float ob x =
+  let s1 = Printf.sprintf "%.16g" x in
+  let s =
+    if float_of_string s1 = x then s1
+    else Printf.sprintf "%.17g" x
+  in
+  Buffer.add_string ob s;
+  if float_needs_period s then
+    Buffer.add_string ob ".0"
+
+(*
+let write_float_fast ob x =
+  let s = Printf.sprintf "%.17g" x in
+  Buffer.add_string ob s;
+  if float_needs_period s then
+    Buffer.add_string ob ".0"
+
+let write_float = write_float_fast
+*)
+
 let string_of_float x =
-  ocaml_format_float "%.12g" x
+  let ob = Buffer.create 20 in
+  write_float ob x;
+  Buffer.contents ob
 
 
 (* XXX: providing custom version since Pervasives.string_of_float will add
