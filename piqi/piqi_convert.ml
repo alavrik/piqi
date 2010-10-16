@@ -210,6 +210,8 @@ let convert_file () =
     while true
     do
       let obj = reader () in
+      (* reset location db to allow GC to collect previously read objects *)
+      Piqloc.reset ();
       writer och obj
     done
   with

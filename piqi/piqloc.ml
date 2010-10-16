@@ -131,3 +131,13 @@ let next_icount () =
 let next_ocount () =
   let res = !ocount in incr ocount; res
 
+
+(* Discard location information. This allows GC to reclaim memory used by data
+ * objects that are not referenced from anywhere else other than from location
+ * db *)
+let reset () =
+  db := [];
+  icount := 0;
+  ocount := 0;
+  ()
+

@@ -189,7 +189,10 @@ let open_json fname =
 
 
 let read_json_obj json_parser =
-  Piqi_json_parser.read_next json_parser
+  let res = Piqi_json_parser.read_next json_parser in
+  (* reset location db to allow GC to collect previously read objects *)
+  Piqloc.reset ();
+  res
 
 
 let prettyprint_json ch json_parser =

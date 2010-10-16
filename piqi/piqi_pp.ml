@@ -199,7 +199,10 @@ let open_piq fname =
 
 
 let read_piq_obj piq_parser =
-  Piq_parser.read_next piq_parser
+  let res = Piq_parser.read_next piq_parser in
+  (* reset location db to allow GC to collect previously read objects *)
+  Piqloc.reset ();
+  res
 
 
 let prettyprint_piq ch piq_parser =
