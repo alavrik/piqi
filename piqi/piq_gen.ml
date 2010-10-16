@@ -20,23 +20,22 @@ open Piqi_common
 open Iolist 
 
 
-(* split utf8 string into individual lines treating '\n' as a separator *)
+(* split (utf8) string into individual lines treating '\n' as a separator *)
 let split_text s =
-  let a = Utf8.to_int_array s 0 (String.length s) in
   let rec aux len i accu =
     if i < 0
     then
-      let s = Utf8.from_int_array a 0 len in
-      s::accu
+      let res = String.sub s 0 len in
+      res::accu
     else
-      if a.(i) = Char.code '\n'
+      if s.[i] = '\n'
       then
-        let s = Utf8.from_int_array a (i + 1) len in
-        aux 0 (i - 1) (s::accu)
+        let res = String.sub s (i + 1) len in
+        aux 0 (i - 1) (res::accu)
       else
         aux (len + 1) (i - 1) accu
   in
-  aux 0 (Array.length a - 1) []
+  aux 0 (String.length s - 1) []
 
 
 let make_text_line s =

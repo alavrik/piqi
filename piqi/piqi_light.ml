@@ -48,9 +48,11 @@ let gen_default = function
       let str = Piq_gen.to_string ast in
       if String.contains str '\n' (* multiline? *)
       then
+        let lines = Piq_gen.split_text str in
+        let lines = List.map ios lines in
         iol [
           ios " ="; indent;
-            ios str;
+            iod "\n" lines;
           unindent;
         ]
       else
