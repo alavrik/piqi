@@ -17,9 +17,11 @@ test_complex:
 
 	./test_piq person
 	./test_piqi person
+	./test_piqi_proto person
 
 	./test_piqi def
 	./test_piqi_proto def
+	./test_piq list
 
 	./test_piq flag
 
@@ -27,7 +29,8 @@ test_complex:
 	./test_piqi_proto record-variant-list
 	./test_piq record-variant-list
 
-	ln -sf addressbook/addressbook.proto.piqi .
+	ln -sf addressbook/addressbook.proto .
+	piqi of-proto --normalize addressbook.proto
 	ln -sf addressbook/addressbook.piq .
 	./test_piqi addressbook.proto
 	./test_piq addressbook
