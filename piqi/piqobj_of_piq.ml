@@ -84,7 +84,7 @@ let add_unknown_field x =
 
 
 let get_unknown_fields () =
-  let res = !unknown_fields in
+  let res = List.rev !unknown_fields in
   (* reset unkown field list state *)
   unknown_fields := [];
   delay_unknown_warnings := false;
