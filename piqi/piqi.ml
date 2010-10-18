@@ -680,6 +680,10 @@ let get_extensions modules =
 
 
 let get_imports modules =
+  flatmap (fun x -> x.P#import) modules
+
+
+let get_resolved_imports modules =
   flatmap (fun x -> x.P#resolved_import) modules
 
 
@@ -875,7 +879,7 @@ let rec process_piqi (piqi: T.piqi) =
   piqi.P#included_piqi <- modules;
 
   (* get all imports from this module and included modules *)
-  let resolved_imports = get_imports modules in
+  let resolved_imports = get_resolved_imports modules in
   piqi.P#resolved_import <- resolved_imports;
 
   (* check for duplicates & looped imports including self-import loop *)
