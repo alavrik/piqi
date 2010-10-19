@@ -1,3 +1,30 @@
+Piqi 0.5.3 (October 19, 2010)
+=============================
+
+Added initial support for Piqi-light -- lightweight EBNF-like syntax for Piqi
+data definition language.
+
+Piqi tools:
+
+  - New "piqi light" command for printing .piqi in Piqi-light syntax.
+  - Improved pretty-printing of .piqi by transforming output Piq AST. Mainly
+    affects "piqi expand".
+  - Added support for "-o" option to "piqi to-proto", "piqi of-proto" commands.
+  - Improved floats reversibility in Piq (unified this part with JSON
+    generator). Affects "proto convert -t piq".
+
+piqic:
+
+  - (ocaml) Simplified generated OCaml type definitions.
+
+Bug fixes:
+
+  - Timely reset location DB to allow garbage collection of objects. Affects
+    "piqi convert" and "piqi pp".
+  - Fixed several problems with "piqi expand".
+  - Fixed printing order for "unknown field" warnings.
+
+
 Piqi 0.5.2 (September 13, 2010)
 ===============================
 
