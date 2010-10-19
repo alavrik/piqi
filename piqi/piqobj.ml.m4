@@ -14,6 +14,7 @@
    limitations under the License.
 *)
 
+(* XXX: replace this handwritten file by "piqobj.piqi" after boostrap stage. *)
 
 (*
 m4 macro definitions:

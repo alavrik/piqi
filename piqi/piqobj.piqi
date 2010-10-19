@@ -1,3 +1,8 @@
+% Internal representation of Piq data
+%
+% Copyright 2009, 2010 Anton Lavrik
+
+
 .import [ .module piqi.org/piqtype ]
 
 
@@ -140,3 +145,5 @@
     .type variant
 ]
 
+
+.custom-field ocaml-name

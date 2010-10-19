@@ -29,6 +29,8 @@ test_complex:
 	./test_piqi_proto record-variant-list
 	./test_piq record-variant-list
 
+	./test_piqi piqobj
+
 	ln -sf addressbook/addressbook.proto .
 	piqi of-proto --normalize addressbook.proto
 	ln -sf addressbook/addressbook.piq .
