@@ -95,9 +95,6 @@ let gen_string = reference gen_string
 let compare_field_type a b =
   match a.T.Field#code, b.T.Field#code with
     | Some a, Some b -> Int32.to_int (Int32.sub a b)
-    (*
-    | Some a, Some b -> a - b
-    *)
     | _ -> assert false
 
 

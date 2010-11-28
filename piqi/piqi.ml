@@ -329,7 +329,7 @@ let debug_loc prefix =
   debug "%s out count = %d, in count = %d\n" prefix !Piqloc.ocount !Piqloc.icount
 
 
-let resolve_field_default idtable x =
+let resolve_field_default x =
   let open F in
   match x.default, x.typeref with
     | None, _ -> () (* no default *)
@@ -361,9 +361,9 @@ let resolve_field_default idtable x =
         assert false (* either binobj or ast have to be defined *)
 
 
-let resolve_defaults idtable = function
+let resolve_defaults = function
   | `record x ->
-      List.iter (resolve_field_default idtable) x.R#field
+      List.iter resolve_field_default x.R#field
   | _ -> ()
 
 
@@ -418,11 +418,11 @@ let resolve_defs idtable (defs:T.piqdef list) =
    * types in aliases *)
   List.iter check_resolved_def defs;
 
-  (* assign wire codes; if the are unassigned *)
+  (* assign wire codes; if they are unassigned *)
   Piqi_wire.add_codes defs;
 
-  (* resolve defaults ANY to OBJ using field types *)
-  List.iter (resolve_defaults idtable) defs;
+  (* resolve defaults ANY to OBJ using field types and codes *)
+  List.iter resolve_defaults defs;
 
   (* return updated idtable *)
   idtable

@@ -109,14 +109,16 @@ let piqicc ch fname =
   *)
   (* current definition *)
   (* XXX: handle Not_found *)
-  let piqdef_def = List.find is_piqdef_def T.piqdef_list in
-  let piqdef_type = (piqdef_def :> T.piqtype) in
-
+  let piqdef_type =
+    let piqdef_def = List.find is_piqdef_def T.piqdef_list in
+    (piqdef_def :> T.piqtype)
+  in
   (* new definition *)
   (* XXX: handle Not_found *)
-  let piqdef_def' = List.find is_piqdef_def piqi.P#resolved_piqdef in
-  let piqdef_type' = (piqdef_def' :> T.piqtype) in
-
+  let piqdef_type' =
+    let piqdef_def' = List.find is_piqdef_def piqi.P#resolved_piqdef in
+    (piqdef_def' :> T.piqtype)
+  in
   (* unresolved, but expanded piqdef list *)
   let boot_piqi = some_of !C.boot_piqi in
   let piqdef_list = boot_piqi.P#extended_piqdef @ piqi.P#extended_piqdef in

@@ -111,6 +111,7 @@ and DEFRECORD(Record,
 
     mutable ocaml_name : string option;
     mutable parent : Piqtype.namespace option;
+    mutable wire_field : Piqtype.field list; (* fields ordered by wire code *)
   >>)
 and DEFRECORD(Field,
   <<

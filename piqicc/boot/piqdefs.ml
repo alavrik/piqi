@@ -32,6 +32,7 @@ let piqdef_list =
         name = "piqi";
         ocaml_name = None;
         parent = None;
+        wire_field = [];
         field =
           [
             F#{
@@ -186,6 +187,7 @@ let piqdef_list =
         name = "record";
         ocaml_name = None;
         parent = None;
+        wire_field = [];
         field =
           [
             F#{
@@ -216,6 +218,13 @@ let piqdef_list =
               default = None;
               ocaml_name = None; code = None;
             };
+            F#{
+              name = Some "wire-field";
+              typeref = Some (`name "field");
+              mode = `repeated;
+              default = None;
+              ocaml_name = None; code = None;
+            };
           ]
       };
     `record
@@ -223,6 +232,7 @@ let piqdef_list =
         name = "field";
         ocaml_name = None;
         parent = None;
+        wire_field = [];
         field =
           [
             F#{
@@ -287,6 +297,7 @@ let piqdef_list =
         name = "variant";
         ocaml_name = None;
         parent = None;
+        wire_field = [];
         field =
           [
             F#{
@@ -324,6 +335,7 @@ let piqdef_list =
         name = "option";
         ocaml_name = None;
         parent = None;
+        wire_field = [];
         field =
           [
             F#{
@@ -377,6 +389,7 @@ let piqdef_list =
         name = "alias";
         ocaml_name = None;
         parent = None;
+        wire_field = [];
         field =
           [
             F#{
@@ -428,6 +441,7 @@ let piqdef_list =
         name = "list";
         ocaml_name = Some "piqlist";
         parent = None;
+        wire_field = [];
         field =
           [
             F#{
@@ -465,6 +479,7 @@ let piqdef_list =
         name = "include";
         ocaml_name = Some "includ";
         parent = None;
+        wire_field = [];
         field =
           [
             F#{
@@ -488,6 +503,7 @@ let piqdef_list =
         name = "import";
         ocaml_name = None;
         parent = None;
+        wire_field = [];
         field =
           [
             F#{
@@ -525,6 +541,7 @@ let piqdef_list =
         name = "extend";
         ocaml_name = None;
         parent = None;
+        wire_field = [];
         field =
           [
             F#{

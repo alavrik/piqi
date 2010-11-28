@@ -161,15 +161,17 @@ let addcodes_record r =
         let codes = List.map (fun x -> some_of x.T.Field#code) fields in
         check_codes codes;
 
-        (* (re-)order fields by their codes to speed-up further processing *)
+        (* pre-order fields by their codes to speed-up further processing *)
         if !do_resolve
-        then r.field <- order_fields fields
+        then r.wire_field <- order_fields fields
     end
   else 
     if !do_resolve
     then
       let code = ref 1l in (* assign codes *)
-      List.iter (addcodes_field code) fields
+      List.iter (addcodes_field code) fields;
+      if !do_resolve
+      then r.wire_field <- fields (* the order of fields remains the same *)
     else ()
 
 

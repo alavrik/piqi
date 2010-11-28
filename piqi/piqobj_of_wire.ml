@@ -156,8 +156,8 @@ and parse_any x =
 
 and parse_record t x =
   let l = Piqirun.parse_record x in
-  (* XXX: (pre-)order fields spec by field codes for better efficiency? *)
-  let fields_spec = t.T.Record#field in
+  (* NOTE: fields are pre-order by wire code *)
+  let fields_spec = t.T.Record#wire_field in
   let fields, rem = List.fold_left parse_field ([], l) fields_spec in
   Piqirun.check_unparsed_fields rem;
   R#{ piqtype = t; field = List.rev fields}

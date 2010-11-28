@@ -81,6 +81,24 @@ let make_name name =
   `name name
 
 
+(* (re-)order fields according to their positions in the original piqi spec *)
+let order_record_fields t piqobj_fields =
+  let find_fields ft l =
+    List.partition (fun x -> x.F.piqtype == ft) l
+  in
+  let res, _rem =
+    List.fold_left
+      (fun (accu, rem) x -> (* folder *)
+        let res, rem' = find_fields x rem in
+        (List.rev_append res accu, rem'))
+
+      ([], piqobj_fields) (* accu *)
+
+      t.T.Record#field (* list to fold *)
+  in
+  List.rev res
+
+
 let rec gen_obj0 (x:Piqobj.obj) :T.ast =
   match x with
     (* built-in types *)
@@ -113,7 +131,8 @@ and gen_typed_obj x =
 
 and gen_record x =
   let open R in
-  let fields = x.field in
+  (* TODO, XXX: doing ordering at every generation step is inefficient *)
+  let fields = order_record_fields x.piqtype x.field in
   `list (List.map gen_field fields)
 
 

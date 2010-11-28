@@ -31,6 +31,18 @@
 
 
 .extend [
+    .name record
+
+    % record's fields ordered by integer wire code
+    .field [
+        .name wire-field
+        .type field
+        .repeated
+    ]
+]
+
+
+.extend [
     .name piqi
 
     .field [ .name extended-piqdef .type piqdef .repeated ]

@@ -108,7 +108,7 @@ let gen_record r =
   (* fully-qualified capitalized record name *)
   let rname = capitalize (some_of r.R#ocaml_name) in
   (* NOTE: fields are already ordered by their codes when Piqi is loaded *)
-  let fields = r.R#field in
+  let fields = r.R#wire_field in
   let fgens = (* field generators list *)
     List.map (gen_field rname) fields
   in
