@@ -109,12 +109,12 @@
     .name any
 
     .field [
-        .name binobj
-        .type binary
+        .type ast
         .optional
     ]
     .field [
-        .type ast
+        .name binobj
+        .type binary
         .optional
     ]
 ]
