@@ -468,33 +468,6 @@ let _ =
   end
 
 
-(* find piqi file in search paths given its (relative) splitted name *)
-let find_piqi_file modname =
-  let name = Piqi_file.make_os_path modname in (* revert slashes on Windows *)
-  let found_dir = ref "" and found_name = ref "" in
-  let check_file dir ext =
-    let name = name ^ ext in
-    let file_name = Filename.concat dir name in
-    let res = Sys.file_exists file_name in
-    if res then (found_dir := dir; found_name := name);
-    res
-  in
-  if List.exists (fun dir ->
-      if check_file dir ".piqi"
-      then true
-      else check_file dir ".proto.piqi") !Piqi_config.paths
-  then
-    !found_dir, !found_name
-  else
-    error modname ("piqi file is not found in path: " ^ quote name)
-
-
-let find_piqi modname =
-  (* NOTE: now supporting only local namespace *)
-  let dir, fname = find_piqi_file modname in
-  Filename.concat dir fname
-
-
 let read_piqi_common fname piq_parser :T.ast =
   (* don't expand abbreviations until we construct the containing object *)
   let res = Piq_parser.read_all piq_parser ~expand_abbr:false in
@@ -995,9 +968,16 @@ and load_piqi_ast ?modname fname (ast :T.ast) =
 
 and load_piqi_module modname =
   check_modname modname;
+  (* check if the module is already loaded *)
   try Piqi_db.find_piqi modname
   with Not_found ->
-    let fname = find_piqi modname in
+    let fname =
+      try
+        Piqi_file.find_piqi modname
+      with
+        Not_found ->
+          error modname ("piqi module is not found: " ^ quote modname)
+    in
     let piqi = load_piqi_file fname ~modname in
     piqi
 
@@ -1035,12 +1015,6 @@ and load_include x =
   (* load included piqi module if it isn't already *)
   let piqi = load_piqi_module x.modname in
   piqi)
-
-
-let load_piqi_module modname =
-  trace "loading module: %s\n" modname;
-  let piqi = load_piqi_module modname in
-  piqi
 
 
 let load_piqi_boot_module (modname, content) =
@@ -1100,7 +1074,7 @@ let init () =
         let piqi = load_boot_piqi () in
         (* init boot module and piqi loader for Piqi_db *)
         boot_piqi := Some piqi;
-        Piqi_db.piqi_loader := Some load_piqi_module;
+        Piqi_db.piqi_loader := Some load_piqi_file;
     | Some _ ->
         () (* already initialized *)
 

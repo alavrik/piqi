@@ -280,7 +280,7 @@ let gen_defs (defs:T.piqdef list) =
 
 (* gen import path based on piqi modname *)
 let gen_import_path modname =
-  let _dir, fname = Piqi.find_piqi_file modname in
+  let _dir, fname = Piqi_file.find_piqi_file modname in
   (*
   (* XXX: revert slashes on Windows *)
   let fname = Piqi_file.make_os_path fname in

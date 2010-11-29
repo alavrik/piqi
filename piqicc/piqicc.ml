@@ -39,10 +39,10 @@ let embed_module ch piqi =
   let modname = some_of piqi.P#modname in
   let fname = 
     try
-      Piqi.find_piqi modname
+      Piqi_file.find_piqi modname
     with
       (* TODO: remove this nasty hack *)
-      _ -> !Piqi_config.boot_file
+      Not_found -> !Piqi_config.boot_file
   in
   let content = read_file fname in
 
