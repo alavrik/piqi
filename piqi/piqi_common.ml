@@ -220,8 +220,10 @@ let piqtype (t:T.typeref) :T.piqtype =
     | (#T.piqtype as t) -> t
 
 
-let piqi_typerefname t =
-  piqi_typename (piqtype t)
+let piqi_typerefname (t:T.typeref) =
+  match t with
+    | `name x -> x
+    | (#T.piqtype as t) -> piqi_typename t
 
 
 let name_of_field f =

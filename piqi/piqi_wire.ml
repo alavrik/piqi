@@ -235,3 +235,70 @@ let check_codes defs =
   do_resolve := true;
   ()
 
+
+(*
+ * Add codes for fields and options based on field/option name hash codes.
+ *)
+
+
+let rec hashcode name =
+  let accu = ref 0 in
+  for i = 0 to String.length name - 1 do
+    accu := 223 * !accu + Char.code name.[i]
+  done;
+  (* reduce to 29 bits *)
+  let res = !accu land (1 lsl 29 - 1) in
+  if (res >= 19000 && res < 20000) || res = 0 (* invalid code values *)
+  then
+    (* recalculate hashcode on (name ^ "@") *)
+    hashcode (name ^ "@")
+  else res
+
+
+let hashcode' x =
+  let res = Int32.of_int (hashcode x) in
+  Some res
+
+
+let add_hashcodes_field f =
+  let open T.Field in
+  f.code <- hashcode' (name_of_field f)
+
+
+let add_hashcodes_option o =
+  let open T.Option in
+  o.code <- hashcode' (name_of_option o)
+
+
+let add_hashcodes_record r =
+  let open T.Record in
+  (* NOTE: silently overriding existing codes *)
+  List.iter add_hashcodes_field r.field
+
+
+let add_hashcodes_variant v =
+  let open T.Variant in
+  (* NOTE: silently overriding existing codes *)
+  List.iter add_hashcodes_option v.option
+
+
+let add_hashcodes_def def =
+  match def with
+    | `record x -> add_hashcodes_record x
+    | `variant x | `enum x ->
+        (* NOTE: we don't bother creating hashcodes for enum options separately,
+         * althought the range for enum options is wider -- 32 bits as opposed to
+         * 29 bits for field and enum options' codes *)
+        add_hashcodes_variant x
+    | _ -> ()
+
+
+(* Add hash-based field and option codes instead of auto-enumerated ones.
+ *
+ * NOTE: Assigned hashcodes will be checked for hash conflicts at a later stage
+ * by calling Piqi_wire.add_codes() from Piqi module as usual. This will ensure
+ * we didn't get any hash conflicts and, also, reorder record fields by codes.
+ *)
+let add_hashcodes (defs: T.piqdef list) =
+  List.iter add_hashcodes_def defs
+

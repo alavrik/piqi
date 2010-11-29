@@ -436,6 +436,9 @@ let check_defs idtable defs =
  * booting code; preparing the initial statically defined piqi defintions
  *)
 let boot () = 
+  (* add hash-based field and option codes instead of auto-enumerated ones *)
+  Piqi_wire.add_hashcodes T.piqdef_list;
+
   let idtable = Idtable.empty in
   ignore (resolve_defs idtable T.piqdef_list)
 
@@ -937,6 +940,15 @@ let rec process_piqi (piqi: T.piqi) =
   in
   (* preserve the original defintions *)
   let resolved_defs = copy_defs extended_defs in
+
+  (* if the module includes (or is itself) piqi.org/piqtype, use hash-based
+   * field and option codes instead of auto-enumerated ones
+   *
+   * XXX, TODO: cache this information -- there's no need to compute this
+   * information agagin for each parent module
+   *)
+  if List.exists (fun x -> x.P#modname = Some "piqi.org/piqtype") modules
+  then Piqi_wire.add_hashcodes resolved_defs;
 
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)

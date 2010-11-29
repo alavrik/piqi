@@ -52,11 +52,25 @@ let boot () =
 
 
 let boot2 () = 
+  (*
+  Piqi_config.debug_level := 2;
+  *)
+
   (* set piqi boot module *)
   Piqi_config.boot_file := "boot/piqi-boot.piqi";
 
   let fname = "../piqi.org/piqast.piqi" in
   let piqi = Piqi.load_piqi fname in
+
+  (* add hash-based field and option codes instead of auto-enumerated ones
+   *
+   * NOTE: at later boot stages and in general, this is handled automatically
+   * in Piqi module
+   *)
+  Piqi_wire.add_hashcodes piqi.P#resolved_piqdef;
+  (* check for hash conflicts and pre-order fields by hash codes *)
+  Piqi_wire.add_codes piqi.P#resolved_piqdef;
+
   (* call piq interface compiler for ocaml *)
   Piqic_ocaml_types.cc_mode := true;
   Piqic_ocaml.piqic piqi stdout;
