@@ -169,17 +169,17 @@ let rec gen_option o =
   match o.erlang_name, o.typeref with
     | Some ename, None -> (* expecting boolean true for a flag *)
         iol [
-          ios "{"; gen_code o.code; ios ", 1}"; ios " -> "; ios ename;
+          gen_code o.code; ios " when Obj == 1 -> "; ios ename;
         ]
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
         iol [
-          ios "{"; gen_code o.code; ios ", Obj} -> ";
+          gen_code o.code; ios " -> ";
             gen_parse_typeref t; ios "(Obj)";
         ]
     | _, Some t ->
         let ename = erlname_of_option o in
         iol [
-          ios "{"; gen_code o.code; ios ", Obj} -> ";
+          gen_code o.code; ios " -> ";
             ios "{"; ios ename; ios ", ";
               gen_parse_typeref t; ios "(Obj)";
             ios "}";
@@ -191,12 +191,13 @@ let gen_variant v =
   let open Variant in
   let options = List.map gen_option v.option in
   let cases = options @ [
-    ios "{Code, Obj} -> piqirun:error_option(Obj, Code)";
+    ios "_ -> piqirun:error_option(Obj, Code)";
   ]
   in
   iol [
     ios "parse_" ^^ ios (some_of v.erlang_name); ios "(X) ->"; indent;
-      ios "case piqirun:parse_variant(X) of"; indent;
+      ios "{Code, Obj} = piqirun:parse_variant(X),"; eol;
+      ios "case Code of"; indent;
         iod ";\n        " cases;
         unindent; eol;
       ios "end.";
