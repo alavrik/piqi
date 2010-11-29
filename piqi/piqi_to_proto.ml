@@ -70,7 +70,7 @@ let rec typename (t:T.piqtype) =
         gen_alias t
     | `any ->
         is_any_used := true;
-        (* TODO,XXX: protoc has a bug: when compiling C++ stubs it doesn't
+        (* NOTE: protoc has a bug: when compiling C++ stubs it doesn't
          * convert proto names into fully qualified C++ names,
          * e.g. wire_type is converted to piqi::piqi::wire_type -- and not
          * ::piqi::piqi::wire_type. Non-fully qualified name in case of
@@ -78,7 +78,7 @@ let rec typename (t:T.piqtype) =
          *
          * Thus, adding "_org" suffix to the top namespace for now.
          *)
-        ".piqi_org.piqi.any"
+        ".piqi_org.piqtype.any"
 
 
 and gen_alias x =
@@ -318,14 +318,14 @@ let gen_piqi (piqi:T.piqi) =
       | None -> iol [] (* no package name *)
       | Some n -> iol [ios "package "; ios n; ios ";"; eol; eol]
   in
-  (* XXX: add import "piqi.org/piqi.piqi.proto" if 'any' typeref is used *)
+  (* add import "piqi.org/piqtype.piqi.proto" if 'any' typeref is used *)
   is_any_used := false;
   let defs = gen_defs piqi.P#resolved_piqdef in
   let piqi_import = 
-    if !is_any_used && some_of piqi.modname <> "piqi.org/piqi"
+    if !is_any_used && piqi.modname <> Some "piqi.org/piqtype"
     then
       iol [
-        ios "import \"piqi.org/piqi.piqi.proto\";";
+        ios "import \"piqi.org/piqtype.piqi.proto\";";
         eol;
       ]
     else iol []

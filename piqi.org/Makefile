@@ -33,12 +33,13 @@ test_piqi:
 
 test_piqi_piqi:
 	piqi to-proto piqi.piqi
+	piqi to-proto piqtype.piqi
 	piqi expand piqi.piqi > p.piqi
 	piqi check p.piqi
 	piqi expand --includes-only piqi.piqi > pp.piqi
 	piqi check pp.piqi
 	piqi convert -t pb p.piqi
-	protoc --decode=piqi_org.piqi.piqi piqi.piqi.proto < p.piqi.pb > p.piqi.text
+	protoc -I.. -I. --decode=piqi_org.piqi.piqi piqi.piqi.proto < p.piqi.pb > p.piqi.text
 	piqi convert -t piq-json p.piqi
 	piqi convert p.piqi.json >/dev/null
 

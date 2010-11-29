@@ -5,6 +5,8 @@
 
 .module piqi.org/piqtype
 
+.proto-package "piqi_org.piqtype"
+
 
 .include [ .module piqi.org/piqast ]
 

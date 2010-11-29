@@ -2,6 +2,7 @@ all: prep test
 
 
 prep:
+	rm -f piqi.org; ln -s . piqi.org
 	ln -sf ../../piqi.org/piqi.piqi .
 	ln -sf ../../piqi.org/piqtype.piqi .
 	piqi expand piqi.piqi > piqi-expanded.piqi
@@ -10,7 +11,9 @@ prep:
 
 test:
 	piqi to-proto piqi.piqi
+	piqi to-proto piqtype.piqi
 	protoc --cpp_out=. piqi.piqi.proto
+	protoc --cpp_out=. piqi.org/piqtype.piqi.proto
 	$(MAKE) -f Makefile.cpp
 	#protoc --decode=piqi_org.piqi.piqi piqi.piqi.proto < piqi.piqi.pb > t.ptext
 	./ctest > t.ptext1
