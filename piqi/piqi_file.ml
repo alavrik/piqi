@@ -62,3 +62,32 @@ let make_os_path name =
         string_subst_char name '/' '\\'
     | _ -> name
 
+
+(* find piqi file in search paths given its (relative) splitted name *)
+let find_piqi_file modname =
+  let name = make_os_path modname in (* revert slashes on Windows *)
+  let found_dir = ref "" and found_name = ref "" in
+  let check_file dir ext =
+    let name = name ^ ext in
+    let file_name = Filename.concat dir name in
+    let res = Sys.file_exists file_name in
+    if res then (found_dir := dir; found_name := name);
+    res
+  in
+  if List.exists (fun dir ->
+      if check_file dir ".piqi"
+      then true
+      else check_file dir ".proto.piqi") !Piqi_config.paths
+  then
+    !found_dir, !found_name
+  else
+    (trace "piqi file is not found in path: %s\n" (quote name);
+     raise Not_found
+    )
+
+
+let find_piqi modname =
+  (* NOTE: now supporting only local namespace *)
+  let dir, fname = find_piqi_file modname in
+  Filename.concat dir fname
+

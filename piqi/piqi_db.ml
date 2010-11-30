@@ -45,36 +45,43 @@ module Piqitable = Idtable
 let loaded_map = ref Piqitable.empty
 
 
-(* To be set up later to Piqi.load_piqi_module; we do this since OCaml doesn't
- * support recursive toplevel modules *)
-let piqi_loader :(string -> T.piqi) option ref = ref None
-
-
-let load_piqi_module modname =
-  let load = some_of !piqi_loader in
-  (* XXX
-  (* reset Config.noboot option, we can't use this option for dependent types
-   * and modules *)
-  let saved_noboot = !Config.noboot in
-  Config.noboot := false;
-  *)
-  let piqi = load modname in
-  (*
-  Config.noboot := saved_noboot;
-  *)
-  piqi
-
-
 let add_piqi modname piqi =
   loaded_map := Piqitable.add !loaded_map modname piqi
 
 
+(* find already loaded module by name *)
 let find_piqi modname :T.piqi =
   Piqitable.find !loaded_map modname
 
 
 let find_local_piqdef piqi name =
   List.find (fun x -> name = piqdef_name x) piqi.P#resolved_piqdef
+
+
+(* To be set up later to Piqi.load_piqi_file; we do this since OCaml doesn't
+ * support recursive toplevel modules *)
+let piqi_loader :(?modname:string -> string -> T.piqi) option ref = ref None
+
+
+let find_load_piqi_module modname =
+  (* check if the module is already loaded, and return it right away *)
+  try find_piqi modname
+  with
+    Not_found ->
+      trace "piqi_db: loading module: %s\n" modname;
+      let fname = Piqi_file.find_piqi modname in (* can raise Not_found *)
+      (* XXX
+      (* reset Config.noboot option, we can't use this option for dependent types
+       * and modules *)
+      let saved_noboot = !Config.noboot in
+      Config.noboot := false;
+      *)
+      let load_piqi_file = some_of !piqi_loader in
+      let piqi = load_piqi_file ~modname fname in
+      (*
+      Config.noboot := saved_noboot;
+      *)
+      piqi
 
 
 let find_piqdef name =
@@ -86,7 +93,7 @@ let find_piqdef name =
           trace "looking for type: %s\n" name;
           trace_enter ();
           (* XXX: handle load errors *)
-          let piqi = load_piqi_module m in
+          let piqi = find_load_piqi_module m in
           trace_leave ();
           piqi
       | None -> (* built-in or local type *)

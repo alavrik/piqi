@@ -189,20 +189,20 @@ let rec gen_option varname o =
   match o.ocaml_name, o.typeref with
     | Some mln, None -> (* boolean true *)
         iod " " [
-          ios "|"; gen_code o.code; ios ", Piqirun.Varint 1"; ios "->";
+          ios "|"; gen_code o.code; ios "when x = Piqirun.Varint 1"; ios "->";
             (* NOTE: providing special handling for boxed values, see "refer" *)
             gen_cc "let count = next_count() in refer count";
             gen_pvar_name mln;
         ]
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
         iod " " [
-          ios "|"; gen_code o.code; ios ", x ->";
+          ios "|"; gen_code o.code; ios "->";
             ios "("; gen_parse_typeref t; ios "x :>"; ios varname; ios ")"
         ]
     | _, Some t ->
         let n = mlname_of_option o in
         iod " " [
-          ios "|"; gen_code o.code; ios ", x ->";
+          ios "|"; gen_code o.code; ios "->";
             ios "let res = ";
               gen_cc "let count = curr_count() in refer count (";
               gen_parse_typeref t; ios "x";
@@ -219,11 +219,11 @@ let gen_variant v =
   iod " "
     [
       ios "parse_" ^^ ios (some_of v.ocaml_name); ios "x =";
-      ios "let x = Piqirun.parse_variant x in";
+      ios "let code, x = Piqirun.parse_variant x in";
         gen_cc "let count = next_count() in refer count (";
-        ios "match x with";
+        ios "match code with";
           iod " " options;
-          ios "| code, obj -> Piqirun.error_variant obj code";
+          ios "| _ -> Piqirun.error_variant x code";
           gen_cc ")";
     ]
 
