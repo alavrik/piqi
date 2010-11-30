@@ -89,11 +89,18 @@ let is_piqdef_def = function
 
 
 let gen_piqdef from_type to_type (x:T.piqdef) =
-  (* piqdef -> binobj --(convert_binobj)--> binobj' *)
+  (* piqdef -> binobj *)
   let binobj = Piqirun.gen_binobj T.gen_piqdef x in
-  let binobj' = Piqi.convert_binobj from_type to_type binobj in
+  let repr = String.escaped binobj in
 
+  (* NOTE: with field and option codes based on name hashes there's no need to
+   * do this sophisticated conversion:
+   *
+  (* piqdef -> binobj --(convert_binobj)--> binobj' *)
+  let binobj' = Piqi.convert_binobj from_type to_type binobj in
   let repr = String.escaped binobj' in
+  *)
+
   ioq repr
 
 
