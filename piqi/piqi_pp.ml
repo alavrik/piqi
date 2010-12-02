@@ -168,15 +168,23 @@ let simplify_piqi_ast (ast:T.ast) =
   tr_list_type_name
 
 
-let prettyprint_piqi_ast ?(simplify=false) ch ast =
-  let ast =
-    if simplify
-    then simplify_piqi_ast ast
-    else ast
-  in
+let prettyprint_piqi_ast ch ast =
   match ast with
     | `list l -> prettyprint_list ch l
     | _ -> assert false
+
+
+let piqi_to_ast ?(simplify=false) piqi =
+  (* XXX, TODO: move this call to Piqi.gen_piqi? *)
+  let ast = Piqi.mlobj_to_ast !Piqi.piqi_def T.gen_piqi piqi in
+  if simplify
+  then simplify_piqi_ast ast
+  else ast
+
+
+let prettyprint_piqi ch (piqi:T.piqi) =
+  let ast = piqi_to_ast piqi ~simplify:true in
+  prettyprint_piqi_ast ch ast
 
 
 let transform_ast ast =

@@ -603,3 +603,26 @@ let piqdef_list =
       };
   ]
 
+
+let piqi =
+  Piqi#{
+    (* using piqi.org/piqtype instead of piqi.org/piqi to generate hashcodes
+     * otherwise, serial wire codes would be generated *)
+    modname = Some "piqi.org/piqtype";
+    ocaml_module = Some "Piqtype";
+
+    piqdef = piqdef_list;
+    includ = [];
+    import = [];
+    extend = [];
+
+    custom_field = [];
+
+    extended_piqdef = [];
+    resolved_piqdef = [];
+    imported_piqdef = [];
+    resolved_import = [];
+    included_piqi = [];
+    original_piqi = None;
+  }
+

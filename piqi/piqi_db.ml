@@ -45,7 +45,20 @@ module Piqitable = Idtable
 let loaded_map = ref Piqitable.empty
 
 
-let add_piqi modname piqi =
+let add_piqi piqi =
+  let modname = some_of piqi.P#modname in
+  trace "piqi_db: caching piqi module \"%s\"\n" modname;
+
+  (* check for name override/conflict *)
+  (* XXX: prohibit override? *)
+  (
+    try
+      let prev_piqi = Piqitable.find !loaded_map modname in
+      warning piqi ("redefinition of module " ^ quote modname);
+      warning prev_piqi "previous definition is here";
+    with Not_found -> ()
+  );
+
   loaded_map := Piqitable.add !loaded_map modname piqi
 
 

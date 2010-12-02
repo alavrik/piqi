@@ -14,11 +14,11 @@ SOURCES += \
 	piqobj_to_json.ml \
 	piqobj_of_json.ml \
 	\
+	piqi_pp.ml \
 	piq.ml \
 	\
 	piqi_convert.ml \
 	piqi_check.ml \
-	piqi_pp.ml \
 	piqi_expand.ml \
 	piqi_light.ml \
 	\

@@ -1,4 +1,7 @@
-% Version of piqi-boot.piqi for booting piqi compiler compiler
+% Version of piqi.org/piqi-boot.piqi for booting piqi compiler compiler. We have
+% to use a different module because we need "ocaml-type" properties. They are
+% normally defined in a separate module as extensions to aliases defined in
+% piqi.org/piqi-boot.piqi, but at boot stage, Piqi doesn't support extensions.
 %
 %  Copyright 2009, 2010 Anton Lavrik
 

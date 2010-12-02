@@ -35,6 +35,7 @@ type obj =
   | Piqtype of string
   | Typed_piqobj of Piqobj.obj
   | Piqobj of Piqobj.obj
+  | Piqi of T.piqi
 
 
 let open_piq fname =
@@ -80,8 +81,14 @@ let process_default_piqtype ?check typename =
   default_piqtype := Some piqtype
 
 
-let load_piq_obj piq_parser :obj =
+let load_piqi fname ast =
+  let piqi = Piqi.load_piqi_ast fname ast in
+  piqi
+
+
+let rec load_piq_obj piq_parser :obj =
   let ast = read_piq_ast piq_parser in
+  let fname, _ = piq_parser in (* TODO: improve getting a filename from parser *)
   match ast with
     | `typed {T.Typed.typename = "piqtype";
               T.Typed.value = {T.Any.ast = Some (`word typename)}} ->
@@ -90,6 +97,13 @@ let load_piq_obj piq_parser :obj =
         Piqtype typename
     | `typed {T.Typed.typename = "piqtype"} ->
         error ast "invalid piqtype specification"
+    | `typed {T.Typed.typename = "piqi";
+              T.Typed.value = {T.Any.ast = Some ((`list _) as ast)}} ->
+        (* :piqi <piqi-spec> *)
+        let piqi = load_piqi fname ast in
+        Piqi piqi
+    | `typed {T.Typed.typename = "piqi"} ->
+        error ast "invalid piqi specification"
     | `typename x ->
         error x "invalid piq object"
     | `typed _ ->
@@ -114,11 +128,28 @@ let make_piqtype typename =
   }
 
 
+
+let original_piqi piqi =
+  some_of piqi.P#original_piqi
+
+let make_piqi piqi =
+  let piqi_ast = Piqi_pp.piqi_to_ast (original_piqi piqi) ~simplify:true in
+  `typed {
+    T.Typed.typename = "piqi";
+    T.Typed.value = {
+      T.Any.ast = Some piqi_ast;
+      T.Any.binobj = None;
+    }
+  }
+
+
 let write_piq ch (obj:obj) =
   let ast =
     match obj with
       | Piqtype typename ->
           make_piqtype typename
+      | Piqi piqi ->
+          make_piqi piqi
       | Typed_piqobj obj ->
           Piqobj_to_piq.gen_typed_obj obj
       | Piqobj obj ->
@@ -170,6 +201,24 @@ let find_piqtype_by_code code =
         ("invalid field code when reading .wire: " ^ string_of_int code)
 
 
+(* using max code value as a wire code for Piqi
+ *
+ * XXX: alternatively, we could use an invalid value like 0, or lowest possible
+ * code, i.e. 1 *)
+let piqi_spec_wire_code = (1 lsl 29) - 1
+
+
+let piqi_to_wire piqi =
+  T.gen_piqi piqi_spec_wire_code (original_piqi piqi)
+
+
+let piqi_of_wire bin =
+  let piqi = T.parse_piqi bin in
+  let fname = "" in (* TODO *)
+  Piqi.process_piqi fname piqi;
+  piqi
+
+
 let process_piqtype code typename =
   let piqtype =
     try Piqi_db.find_piqtype typename
@@ -183,6 +232,9 @@ let process_piqtype code typename =
 let rec load_wire_obj buf :obj =
   let field_code, field_obj = read_wire_field buf in
   match field_code with
+    | c when c = piqi_spec_wire_code -> (* embedded Piqi spec *)
+        let piqi = piqi_of_wire field_obj in
+        Piqi piqi
     | c when c mod 2 = 1 ->
         let typename = Piqirun.parse_string field_obj in
         process_piqtype c typename;
@@ -240,6 +292,8 @@ let find_add_piqtype_code ch name =
 let write_wire ch (obj :obj) =
   let data =
     match obj with
+      | Piqi piqi ->
+          piqi_to_wire piqi
       | Piqtype typename ->
           gen_piqtype 1 typename
       | Piqobj obj ->
@@ -278,6 +332,37 @@ let write_pb ch (obj :Piqobj.obj) =
   Piqirun.to_channel ch buf
 
 
+let piqi_of_json json =
+  let piqtype = !Piqi.piqi_def in
+  let wire_parser = T.parse_piqi in
+
+  (* dont' resolve defaults when reading Json;
+   * preseve the original setting *)
+  let saved_resolve_defaults = !Piqobj_of_json.resolve_defaults in
+  Piqobj_of_json.resolve_defaults := true;
+
+  let piqobj = Piqobj_of_json.parse_obj piqtype json in
+
+  Piqobj_of_json.resolve_defaults := saved_resolve_defaults;
+
+  let piqi = Piqi.mlobj_of_piqobj wire_parser piqobj in
+
+  let fname = "" in (* TODO *)
+  Piqi.process_piqi fname piqi;
+  piqi
+
+
+let piqi_to_json piqi =
+  let piqtype = !Piqi.piqi_def in
+  let wire_generator = T.gen_piqi in
+
+  let piqobj =
+    Piqi.mlobj_to_piqobj piqtype wire_generator piqi
+  in
+  let json = Piqobj_to_json.gen_obj piqobj in
+  json
+
+
 let write_json_obj ch json =
   Piqi_json_gen.pretty_to_channel ch json;
   (* XXX: add a newline for better readability *)
@@ -287,6 +372,9 @@ let write_json_obj ch json =
 let write_piq_json ch (obj:obj) =
   let json =
     match obj with
+      | Piqi piqi -> (* embedded Piqi spec *)
+          let json = piqi_to_json (original_piqi piqi) in
+          `Assoc [ "_piqi", json ]
       | Piqtype typename ->
           `Assoc [ "_piqtype", `String typename ]
       | Typed_piqobj obj ->
@@ -302,7 +390,7 @@ let write_json ch (obj:obj) =
     | Typed_piqobj obj | Piqobj obj ->
         let json = Piqobj_to_json.gen_obj obj in
         write_json_obj ch json
-    | Piqtype _ -> () (* ignore *)
+    | Piqtype _ | Piqi _ -> () (* ignore *)
 
 
 let read_json_ast json_parser :Piqi_json_common.json =
@@ -327,6 +415,12 @@ let load_json_obj json_parser :obj =
         Piqtype typename
     | `Assoc [ "_piqtype", _ ] ->
         error ast "invalid piqtype specification"
+    | `Assoc [ "_piqi", ((`Assoc _) as json_ast) ] ->
+        (* :piqi <typename> *)
+        let piqi = piqi_of_json json_ast in
+        Piqi piqi
+    | `Assoc [ "_piqi", _ ] ->
+        error ast "invalid piqi specification"
     | `Null () ->
         error ast "invalid toplevel value: null"
     | `Assoc [ "_piqtype", `String typename;

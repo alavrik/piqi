@@ -65,17 +65,10 @@ let get_piqtype typename =
     piqi_error ("unknown type: " ^ typename)
 
 
-(* TODO:
- * load piqi, convert it to ast then parse to obj using piqi.org/piqi/piqi
- * OR
- * load piqi, convert it back to obj using embedded piqi.org/piqi/piqi
- * OR
- * load piqi, while loading piqi memorise inetrmediate piqobj
- *
- * embed piqi.org/piqi anyway *)
 let do_load_piqi fname =
+  Piqi.init (); (* TODO: get rid of it, see Piq.init for details *)
   let ast = Piqi.read_piqi fname in
-  let piqtype = get_piqtype "piqi.org/piqi/piqi" in
+  let piqtype = !Piqi.piqi_def in
   let obj = Piqobj_of_piq.parse_obj piqtype ast in
   obj
 
@@ -165,9 +158,12 @@ let write_pb ch (obj: Piq.obj) =
             Piq.write_pb ch obj
           end
         else
-          piqi_error "converting multiple objects to \"bp\" is disallowed"
+          piqi_error "converting more than one object to \"pb\" is not allowed"
+    | Piq.Piqi _ ->
+        (* skip embedded Piqi specification XXX: print a warning? *)
+        ()
     | _ ->
-          piqi_error "only typed object can be converted to \"pb\""
+        piqi_error "only typed object can be converted to \"pb\""
 
 
 let convert_file () =
@@ -207,6 +203,7 @@ let convert_file () =
 
   (* main convert cycle *)
   try 
+    trace "piqi convert: main loop\n";
     while true
     do
       let obj = reader () in

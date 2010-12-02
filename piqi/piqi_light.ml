@@ -175,16 +175,10 @@ let gen_includes l =
   ]
 
 
-let _find_def name =
-  let x = List.find
-    (function
-      | `record {Record.name = n} when n = name -> true
-      | _ -> false) T.piqdef_list
-  in
-  (x :> T.piqtype)
+(* boot code *)
 
-let field_def = _find_def "field"
-let option_def = _find_def "option"
+let field_def = Piqi.find_embedded_piqtype "field"
+let option_def = Piqi.find_embedded_piqtype "option"
 
 
 let gen_extension_item x =

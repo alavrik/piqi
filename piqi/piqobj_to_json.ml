@@ -32,11 +32,9 @@ module Any = Piqobj.Any
 module L = Piqobj.List
 
 
-let is_ast_def = function
-  | `variant {C.V.name = "ast"} -> true
-  | _ -> false
-
-let ast_def = Piqi._find_def is_ast_def
+(* boot code *)
+(* XXX: move ast def to Piqi module? *)
+let ast_def = Piqi.find_embedded_piqtype "ast"
 
 
 let make_named name value =

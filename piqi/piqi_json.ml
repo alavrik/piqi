@@ -161,7 +161,8 @@ let init () =
 
 (* boot code *)
 let _ =
-  json_name_defs T.piqdef_list
+  (* XXX, TODO: shouldn't it be called from init () ? *)
+  json_name_defs T.piqi.P#resolved_piqdef
 
 
 module Main = Piqi_main

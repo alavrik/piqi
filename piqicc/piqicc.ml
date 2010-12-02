@@ -83,81 +83,61 @@ let embed_boot_modules ch =
   List.iter (embed_module ch) (List.rev modules)
 
 
-let is_piqdef_def = function
-  | `variant {V.name = "piqdef"} -> true
-  | _ -> false
-
-
-let gen_piqdef (x:T.piqdef) =
-(*
-let gen_piqdef from_type to_type (x:T.piqdef) =
-*)
-  (* piqdef -> binobj *)
-  let binobj = Piqirun.gen_binobj T.gen_piqdef x in
-  let repr = String.escaped binobj in
-
-  (* NOTE: with field and option codes based on name hashes there's no need to
-   * do this sophisticated conversion:
-   *
-  (* piqdef -> binobj --(convert_binobj)--> binobj' *)
-  let binobj' = Piqi.convert_binobj from_type to_type binobj in
-  let repr = String.escaped binobj' in
-  *)
-
-  ioq repr
-
-
 (* piq interface compiler compile *)
 let piqicc ch piqi_fname piqi_impl_fname =
-  trace "loading piqi spec from: %s\n" piqi_fname;
+  trace "piqicc: loading piqi spec from: %s\n" piqi_fname;
   let piqi = Piqi.load_piqi piqi_fname in
 
-  trace "loading piqi-impl spec from: %s\n" piqi_impl_fname;
+  trace "piqicc: loading piqi-impl spec from: %s\n" piqi_impl_fname;
   let piqi_impl = Piqi.load_piqi piqi_impl_fname in
 
-  trace "piqi compiling compiler\n";
+  trace "piqicc: piqi compiling compiler\n";
   (* TODO,XXX:
-    * report failed to find piqi definition error
     * report invalid module name?
     * check & report piqi incompatibility
   *)
-  (*
-  (* current definition *)
-  (* XXX: handle Not_found *)
-  let piqdef_type =
-    let piqdef_def = List.find is_piqdef_def T.piqdef_list in
-    (piqdef_def :> T.piqtype)
-  in
-  (* new definition *)
-  (* XXX: handle Not_found *)
-  let piqdef_type' =
-    let piqdef_def' = List.find is_piqdef_def piqi.P#resolved_piqdef in
-    (piqdef_def' :> T.piqtype)
-  in
-  *)
-  (* unresolved, but expanded piqdef list *)
   let boot_piqi = some_of !C.boot_piqi in
-  let piqdef_list = boot_piqi.P#extended_piqdef @ piqi.P#extended_piqdef in
 
-  let bin_piqdef_list = List.map gen_piqdef piqdef_list
-    (*
-    List.map (gen_piqdef piqdef_type piqdef_type') piqdef_list
-    *)
+  (* prepare embedded Piqi spec *)
+  let piqi = P#{
+    (some_of piqi.original_piqi) with
+      (* using piqi.org/piqtype instead of piqi.org/piqi to generate hashcodes
+       * otherwise, serial wire codes would be generated *)
+      modname = Some "piqi.org/piqtype";
+      ocaml_module = None; (* XXX *)
+
+      (* unresolved, but expanded piqdef list *)
+      piqdef = boot_piqi.P#extended_piqdef @ piqi.P#extended_piqdef;
+      includ = [];
+      import = [];
+      extend = [];
+
+      (*
+      custom_field = [];
+
+      extended_piqdef = [];
+      resolved_piqdef = [];
+      imported_piqdef = [];
+      resolved_import = [];
+      included_piqi = [];
+      original_piqi = None;
+      *)
+  }
   in
+  let piqi_binobj = Piqirun.gen_binobj T.gen_piqi piqi in
+
   let code = iod " " [
-    ios "let parse_piqdef_binobj x = ";
+    ios "let parse_piqi_binobj x = ";
       ios "let _name, piqwire = Piqirun.parse_binobj x in";
-      ios "parse_piqdef piqwire";
+      ios "parse_piqi piqwire";
     eol;
 
-    ios "let piqdef_list : piqdef list =";
-      ios "let piqdef_list_repr = [";
-          iod "; " bin_piqdef_list;
-        ios "]";
-      ios "in List.map parse_piqdef_binobj piqdef_list_repr";
+    ios "let piqi = ";
+      ios "let piqi_binobj = "; ioq (String.escaped piqi_binobj);
+      ios "in parse_piqi_binobj piqi_binobj";
     eol;
-  ] in
-
+  ]
+  in
   (* call piq interface compiler for ocaml *)
   (* TODO: move it to Piqic_config module *)
   Piqic_ocaml_types.cc_mode := true;

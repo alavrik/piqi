@@ -4,7 +4,7 @@ include Makefile.piqicc_common
 RESULT = piqicc
 
 
-SOURCES += piqicc_run.ml
+SOURCES += piqicc.ml piqicc_run.ml
 
 
 PIQIC_FLAGS = -I $(PIQI_ROOT)

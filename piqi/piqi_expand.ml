@@ -20,15 +20,6 @@ module C = Piqi_common
 open C
 
 
-let piqi_to_ast piqi =
-  Piqi.mlobj_to_ast Piqi.piqi_def T.gen_piqi piqi
-
-
-let print_piqi ch piqi =
-  let ast = piqi_to_ast piqi in
-  Piqi_pp.prettyprint_piqi_ast ch ast ~simplify:true
-
-
 let init_res_piqi orig_piqi =
   let open P in
   {
@@ -99,7 +90,7 @@ let expand_file filename =
   let ch = Main.open_output !ofile in
   let piqi = Piqi.load_piqi filename in
   let res_piqi = expand_piqi piqi ~includes_only:!flag_includes_only in
-  print_piqi ch res_piqi
+  Piqi_pp.prettyprint_piqi ch res_piqi
 
 
 let run () =
