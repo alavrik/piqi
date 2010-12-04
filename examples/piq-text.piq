@@ -1,11 +1,11 @@
 :piqtype piq-text
 
 % text literal are separated between subsequent text literals either by some
-% other lexical element or by empty verical space
+% other lexical element or by empty vertical space
 
 # single-line verbatim text
 
-# muliti-line verbatim test
+# multi-line verbatim test
 # here's another line
 #
 # and another one

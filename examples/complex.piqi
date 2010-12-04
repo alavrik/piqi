@@ -1,5 +1,5 @@
 
-% a handful type abbreviation
+% a handy type abbreviation
 .alias [
     .name t
     .type complex

@@ -1,6 +1,6 @@
 
 
-% this is a record defintion
+% this is a record definition
 .record [
     .name r
 
@@ -39,7 +39,7 @@
         .repeated
     ]
 
-    % this is a flag, its presence in the record is meaninfull by itself, it
+    % this is a flag, its presence in the record is meaningful by itself, it
     % doesn't carry any additional value
     .field [
         .name flag
@@ -76,7 +76,7 @@
 ]
 
 
-% defintion of a variant
+% definition of a variant
 .variant [
     .name v
 

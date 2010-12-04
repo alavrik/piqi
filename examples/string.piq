@@ -9,7 +9,7 @@
 
 :string "\x74\x79\x70\x65"
 
-% NOTE: octal escape codes are unsupportd (e.g. "\000\123")
+% NOTE: octal escape codes are unsupported (e.g. "\000\123")
 
 
 % binary values must not contain Unicode characters with codes > 127, any ASCII
