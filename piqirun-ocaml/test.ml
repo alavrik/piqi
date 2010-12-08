@@ -62,6 +62,10 @@ let test_fixed_int64 x =
   assert (x = (int64_of_fixed64 ** parse_fixed64 ** test_parse ** int64_to_fixed64 (-1)) x)
 
 
+let test_key x =
+  assert (x = ((fun x -> let _, code = parse_field_header x in code) ** test_parse ** gen_key 0) x)
+
+
 let int_input =
   [
     0; 1; 2; 3; -1; -2; -3;
@@ -92,6 +96,11 @@ let int64_input =
   ]
 
 
+let max_key = (1 lsl 29) - 1
+
+let key_input = [ 1; 2; 3; max_key - 1; max_key ]
+
+
 (* TODO:
  * tests for malformed/broken/unexpectedly terminated input
  * tests for OCaml's type overflows
@@ -110,6 +119,7 @@ let test _ =
   List.iter test_fixed_int32 int32_input;
   List.iter test_fixed_int64 int64_input;
 
+  List.iter test_key key_input;
   ()
 
 
