@@ -700,7 +700,20 @@ let gen_varint_value32 x =
 let gen_key ktype code =
   if code = -1 (* special code meaning that key sould not be generated *)
   then iol []
-  else gen_unsigned_varint_value (ktype lor (code lsl 3))
+  else
+    begin
+      (* make sure that the field code is in the valid range *)
+      assert (code < 1 lsl 29 && code >= 1);
+      if code land (1 lsl 28) <> 0 && Sys.word_size == 32
+      then
+        (* prevent an overflow of 31-bit OCaml integer on 32-bit platform *)
+        let ktype = Int32.of_int ktype in
+        let code = Int32.of_int code in
+        let x = Int32.logor ktype (Int32.shift_left code 3) in
+        gen_unsigned_varint_value32 x
+      else
+        gen_unsigned_varint_value (ktype lor (code lsl 3))
+    end
 
 
 let gen_varint code x =
