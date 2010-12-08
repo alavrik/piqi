@@ -34,6 +34,8 @@ let boot2 () =
 
   (* set piqi boot module *)
   Piqi_config.boot_file := "boot/piqi-boot.piqi";
+  (* reload the boot module from the file *)
+  Piqi.load_boot_piqi ();
 
   let fname = "../piqi.org/piqast.piqi" in
   let piqi = Piqi.load_piqi fname in

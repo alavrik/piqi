@@ -85,6 +85,10 @@ let embed_boot_modules ch =
 
 (* piq interface compiler compile *)
 let piqicc ch piqi_fname piqi_impl_fname =
+  trace "piqicc(0)";
+  (* reload the boot module from file if it was specified using --boot option *)
+  Piqi.load_boot_piqi ();
+
   trace "piqicc: loading piqi spec from: %s\n" piqi_fname;
   let piqi = Piqi.load_piqi piqi_fname in
 

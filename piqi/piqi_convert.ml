@@ -58,15 +58,12 @@ let get_piqtype typename =
   then 
     piqi_error ("invalid type name: " ^ typename);
 
-  Piqi.init (); (* TODO: get rid of it, see Piq.init for details *)
-
   try Piqi_db.find_piqtype typename
   with Not_found ->
     piqi_error ("unknown type: " ^ typename)
 
 
 let do_load_piqi fname =
-  Piqi.init (); (* TODO: get rid of it, see Piq.init for details *)
   let ast = Piqi.read_piqi fname in
   let piqtype = !Piqi.piqi_def in
   let obj = Piqobj_of_piq.parse_obj piqtype ast in

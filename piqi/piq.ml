@@ -22,12 +22,6 @@ module C = Piqi_common
 open C
 
 
-let init () = 
-  (* TODO: remove init() by moving it to the boot stage, see
-   * Piqi.load_piqi for details *)
-  Piqi.init ()
-
-
 exception EOF
 
 (* piq stream object *)
@@ -39,7 +33,6 @@ type obj =
 
 
 let open_piq fname =
-  init ();
   trace "opening .piq file: %s\n" fname;
   let ch = Piqi_main.open_input fname in
   let piq_parser = Piq_parser.init_from_channel fname ch in
@@ -161,7 +154,6 @@ let write_piq ch (obj:obj) =
 
 
 let open_wire fname =
-  init ();
   trace "opening .wire file: %s\n" fname;
   let ch = Piqi_main.open_input fname in
   let buf = Piqirun.IBuf.of_channel ch in
