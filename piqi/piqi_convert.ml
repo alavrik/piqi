@@ -54,13 +54,17 @@ let speclist = Main.common_speclist @
 
 
 let get_piqtype typename =
-  if not (Piqi_name.is_valid_typename typename)
-  then 
-    piqi_error ("invalid type name: " ^ typename);
+  if typename = "piqi" (* special case *)
+  then !Piqi.piqi_def (* return Piqi type from embedded self-definition *)
+  else (
+    if not (Piqi_name.is_valid_typename typename)
+    then
+      piqi_error ("invalid type name: " ^ typename);
 
-  try Piqi_db.find_piqtype typename
-  with Not_found ->
-    piqi_error ("unknown type: " ^ typename)
+    try Piqi_db.find_piqtype typename
+    with Not_found ->
+      piqi_error ("unknown type: " ^ typename)
+  )
 
 
 let do_load_piqi fname =
@@ -77,8 +81,10 @@ let load_piqi fname :Piq.obj =
   then
     begin
       first_load := false;
-      let obj = do_load_piqi fname in
-      Piq.Typed_piqobj obj
+      (* NOTE, XXX: here also loading, processing and validating all the
+       * module's dependencies *)
+      let piqi = Piqi.load_piqi fname in
+      Piq.Piqi piqi
     end
   else
     raise Piq.EOF (* mimic the behaviour of Piq. loaders *)
@@ -90,11 +96,24 @@ let load_pb piqtype wireobj :Piq.obj =
   then
     begin
       first_load := false;
-      let obj = Piq.load_pb piqtype wireobj in
-      Piq.Typed_piqobj obj
+      Piq.load_pb piqtype wireobj
     end
   else
+    (* XXX: print a warning if there are more input objects? *)
     raise Piq.EOF
+
+
+let first_write_pb = ref true
+
+let write_pb ch (obj: Piq.obj) =
+  if !first_write_pb
+  then
+    begin
+      first_write_pb := false;
+      Piq.write_pb ch obj
+    end
+  else
+    piqi_error "converting more than one object to \"pb\" is not allowed"
 
 
 let make_reader load_f input_param =
@@ -141,26 +160,6 @@ let get_reader = function
       make_reader Piq.load_wire_obj buf
   | _ ->
       piqi_error "unknown input encoding"
-
-
-let first_write_pb = ref true
-
-let write_pb ch (obj: Piq.obj) =
-  match obj with
-    | Piq.Typed_piqobj obj ->
-        if !first_write_pb
-        then
-          begin
-            first_write_pb := false;
-            Piq.write_pb ch obj
-          end
-        else
-          piqi_error "converting more than one object to \"pb\" is not allowed"
-    | Piq.Piqi _ ->
-        (* skip embedded Piqi specification XXX: print a warning? *)
-        ()
-    | _ ->
-        piqi_error "only typed object can be converted to \"pb\""
 
 
 let convert_file () =

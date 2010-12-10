@@ -121,9 +121,11 @@ let make_piqtype typename =
   }
 
 
-
 let original_piqi piqi =
-  some_of piqi.P#original_piqi
+  let orig_piqi = some_of piqi.P#original_piqi in
+  (* make sure that the module's name is set *)
+  P#{orig_piqi with modname = piqi.P#modname}
+
 
 let make_piqi piqi =
   let piqi_ast = Piqi_pp.piqi_to_ast (original_piqi piqi) ~simplify:true in
@@ -203,11 +205,15 @@ let piqi_spec_wire_code = (1 lsl 29) - 1
 let piqi_to_wire piqi =
   T.gen_piqi piqi_spec_wire_code (original_piqi piqi)
 
+let piqi_to_pb piqi =
+  (* -1 means don't generate wire code *)
+  T.gen_piqi (-1) (original_piqi piqi)
+
 
 let piqi_of_wire bin =
   let piqi = T.parse_piqi bin in
-  let fname = "" in (* TODO *)
-  Piqi.process_piqi fname piqi;
+  let fname = "" in (* XXX *)
+  Piqi.process_piqi fname piqi; (* NOTE: caching the loaded module *)
   piqi
 
 
@@ -305,22 +311,34 @@ let open_pb fname =
   buf
 
 
-(* NOTE: this function can be called exactly once *)
-let load_pb (piqtype:T.piqtype) wireobj :Piqobj.obj =
+(* NOTE: this function will be called exactly once *)
+let load_pb (piqtype:T.piqtype) wireobj :obj =
   (* TODO: handle runtime wire read errors *)
-  Piqobj_of_wire.parse_obj piqtype wireobj
+  if piqtype == !Piqi.piqi_def (* XXX *)
+  then
+    let piqi = piqi_of_wire wireobj in
+    Piqi piqi
+  else
+    let obj = Piqobj_of_wire.parse_obj piqtype wireobj in
+    Typed_piqobj obj
 
 
-let write_pb ch (obj :Piqobj.obj) =
-  let piqtype = Piqobj_common.type_of obj in
-
-  (match unalias piqtype with
-    | `record _ | `variant _ | `list _ -> ()
-    | _ ->
-        piqi_error "only records, variants and lists can be written to .pb"
-  );
-
-  let buf = Piqobj_to_wire.gen_embedded_obj obj in
+let write_pb ch (obj :obj) =
+  let buf =
+    match obj with
+      | Piqi piqi ->
+          piqi_to_pb piqi
+      | Typed_piqobj obj ->
+          let piqtype = Piqobj_common.type_of obj in
+          (match unalias piqtype with
+            | `record _ | `variant _ | `list _ -> ()
+            | _ ->
+                piqi_error "only records, variants and lists can be written to .pb"
+          );
+          Piqobj_to_wire.gen_embedded_obj obj
+      | _ ->
+          piqi_error "only typed object or Piqi spec can be converted to \"pb\""
+  in
   Piqirun.to_channel ch buf
 
 
@@ -339,12 +357,15 @@ let piqi_of_json json =
 
   let piqi = Piqi.mlobj_of_piqobj wire_parser piqobj in
 
-  let fname = "" in (* TODO *)
-  Piqi.process_piqi fname piqi;
+  (* XXX: it appears that we actually don't need the name of the file here *)
+  let fname = "" in
+  Piqi.process_piqi fname piqi; (* NOTE: caching the loaded module *)
   piqi
 
 
 let piqi_to_json piqi =
+  let piqi = original_piqi piqi in
+
   let piqtype = !Piqi.piqi_def in
   let wire_generator = T.gen_piqi in
 
@@ -365,7 +386,7 @@ let write_piq_json ch (obj:obj) =
   let json =
     match obj with
       | Piqi piqi -> (* embedded Piqi spec *)
-          let json = piqi_to_json (original_piqi piqi) in
+          let json = piqi_to_json piqi in
           `Assoc [ "_piqi", json ]
       | Piqtype typename ->
           `Assoc [ "_piqtype", `String typename ]
@@ -382,7 +403,9 @@ let write_json ch (obj:obj) =
     | Typed_piqobj obj | Piqobj obj ->
         let json = Piqobj_to_json.gen_obj obj in
         write_json_obj ch json
-    | Piqtype _ | Piqi _ -> () (* ignore *)
+    | Piqi piqi ->
+        write_json_obj ch (piqi_to_json piqi)
+    | Piqtype _ -> () (* ignore *)
 
 
 let read_json_ast json_parser :Piqi_json_common.json =
@@ -425,8 +448,13 @@ let load_json_obj json_parser :obj =
     | _ ->
         match !default_piqtype with
           | Some piqtype ->
-              let obj = piqobj_of_json piqtype ast in
-              Piqobj obj
+              if piqtype == !Piqi.piqi_def (* XXX *)
+              then
+                let piqi = piqi_of_json ast in
+                Piqi piqi
+              else
+                let obj = piqobj_of_json piqtype ast in
+                Piqobj obj
           | None ->
               error ast "type of object is unknown"
 
