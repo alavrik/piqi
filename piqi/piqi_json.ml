@@ -152,12 +152,13 @@ let json_name_piqi (piqi:T.piqi) =
   json_name_defs piqi.resolved_piqdef
 
 
+(* NOTE: this function is called only in case if a JSON-related operation is
+ * performed. We don't need this startup overhead otherwise *)
 let init () =
   trace "init JSON\n";
   (* create JSON names in embedded Piqi self-specification *)
-  json_name_piqi T.piqi;
-  (* add/check JSON names when loading Piqi *)
-  Piqi.add_processing_hook json_name_piqi
+  (* AND add/check JSON names when loading any other Piqi modules *)
+  Piqi.register_processing_hook json_name_piqi
 
 
 module Main = Piqi_main

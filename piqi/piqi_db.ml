@@ -35,6 +35,9 @@ module Idtable =
     let find idtable name =
       M.find name idtable 
 
+    let remove idtable name =
+      M.remove name idtable
+
     let mem idtable name =
       M.mem name idtable 
   end
@@ -60,6 +63,10 @@ let add_piqi piqi =
   );
 
   loaded_map := Piqitable.add !loaded_map modname piqi
+
+
+let remove_piqi modname =
+  loaded_map := Piqitable.remove !loaded_map modname
 
 
 (* find already loaded module by name *)

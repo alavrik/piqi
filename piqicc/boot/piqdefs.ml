@@ -626,3 +626,12 @@ let piqi =
     original_piqi = None;
   }
 
+
+(* create an empty boot Piqi module with no definitions at all, as the boot
+ * piqdefs above to not require normal boot types definitions *)
+let boot_piqi =
+  Piqi#{
+    piqi with
+    piqdef = [];
+  }
+

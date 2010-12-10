@@ -57,7 +57,7 @@ debug: dc top
 piqtype.ml: piqi-impl.piqi
 	# Note, using standard piqi.org/piqi-boot as boot module for piqicc
 	$(PIQICC) $(PIQICC_FLAGS) -o $@.tmp.ml \
-		--piqi ../piqi.org/piqi.piqi --impl piqi-impl.piqi
+		--boot piqi-boot.piqi --piqi piqi.piqi --impl piqi-impl.piqi
 	$(CAMLP4)o -o $@ $@.tmp.ml
 
 
