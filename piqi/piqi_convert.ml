@@ -44,7 +44,7 @@ let speclist = Main.common_speclist @
     "piq|wire|pb output encoding (piq is used by default)";
 
     "--piqtype", Arg.Set_string typename,
-    "<typename> type of converted object when converting from .pb";
+    "<typename> type of converted object when converting from .pb or plain .json";
 
     "--add-defaults", Arg.Set flag_add_defaults,
     "add field default values while converting records";
@@ -115,6 +115,16 @@ let write_pb ch (obj: Piq.obj) =
   else
     piqi_error "converting more than one object to \"pb\" is not allowed"
 
+let write_pb is_piqi_input ch (obj: Piq.obj) =
+  match obj with
+    | Piq.Piqi _ when not is_piqi_input ->
+        (* ignore embedded Piqi specs if we are not converting .piqi *)
+        ()
+    | Piq.Piqtype _ ->
+        (* ignore default type names *)
+        ()
+    | _ -> write_pb ch obj
+
 
 let make_reader load_f input_param =
   (fun () -> load_f input_param)
@@ -169,6 +179,7 @@ let convert_file () =
     else Piqi_file.get_extension !ifile
   in
   let reader = get_reader input_encoding in
+  let is_piqi_input = (input_encoding = "piqi") in
   let writer =
     match !output_encoding with
       | "" (* default output encoding is "piq" *)
@@ -176,12 +187,12 @@ let convert_file () =
       | "wire" -> Piq.write_wire
       | "json" ->
           init_json_writer ();
-          Piq.write_json
+          Piq.write_json is_piqi_input
       | "piq-json" ->
           init_json_writer ();
           output_encoding := "json";
           Piq.write_piq_json
-      | "pb" -> write_pb
+      | "pb" -> write_pb is_piqi_input
       | _ -> piqi_error "unknown output encoding"
   in
   let ofile =

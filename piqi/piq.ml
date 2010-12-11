@@ -328,7 +328,7 @@ let write_pb ch (obj :obj) =
     match obj with
       | Piqi piqi ->
           piqi_to_pb piqi
-      | Typed_piqobj obj ->
+      | Typed_piqobj obj | Piqobj obj ->
           let piqtype = Piqobj_common.type_of obj in
           (match unalias piqtype with
             | `record _ | `variant _ | `list _ -> ()
@@ -336,8 +336,9 @@ let write_pb ch (obj :obj) =
                 piqi_error "only records, variants and lists can be written to .pb"
           );
           Piqobj_to_wire.gen_embedded_obj obj
-      | _ ->
-          piqi_error "only typed object or Piqi spec can be converted to \"pb\""
+      | Piqtype _ ->
+          (* ignore default type names *)
+          Piqirun.OBuf.iol [] (* == empty output *)
   in
   Piqirun.to_channel ch buf
 
@@ -398,14 +399,15 @@ let write_piq_json ch (obj:obj) =
   write_json_obj ch json
 
 
-let write_json ch (obj:obj) =
+let write_json is_piqi_input ch (obj:obj) =
   match obj with
     | Typed_piqobj obj | Piqobj obj ->
         let json = Piqobj_to_json.gen_obj obj in
         write_json_obj ch json
-    | Piqi piqi ->
+    | Piqi piqi when is_piqi_input ->
+        (* output Piqi spec itself if we are converting .piqi *)
         write_json_obj ch (piqi_to_json piqi)
-    | Piqtype _ -> () (* ignore *)
+    | Piqtype _ | Piqi _ -> () (* ignore embedded Piqi specs and type hints *)
 
 
 let read_json_ast json_parser :Piqi_json_common.json =
