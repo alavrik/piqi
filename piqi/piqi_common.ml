@@ -167,7 +167,8 @@ let set_parent (def:T.piqdef) (parent:T.namespace) =
     | `list x -> x.L#parent <- parent
 
 
-let get_parent_piqi (parent:T.namespace) :T.piqi =
+let get_parent_piqi (def:T.piqdef) :T.piqi =
+  let parent = get_parent def in
   match parent with
     | `import x -> some_of x.Import#piqi
     | `piqi x -> x
@@ -201,9 +202,8 @@ let full_piqi_typename x =
   let name = piqi_typename x in
   match x with
     | #T.piqdef as def ->
-        let parent = get_parent def in
-        let piqi = get_parent_piqi parent in
-        if piqi == some_of !boot_piqi
+        let piqi = get_parent_piqi def in
+        if is_boot_piqi piqi
         then name
         else
           let parent_name = some_of piqi.P#modname in

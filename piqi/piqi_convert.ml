@@ -1,3 +1,4 @@
+(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010 Anton Lavrik
 
@@ -28,6 +29,7 @@ let input_encoding = ref ""
 let output_encoding = ref ""
 let typename = ref ""
 let flag_add_defaults = ref false
+let flag_embed_piqi = ref false
 
 
 let usage = "Usage: piqi convert [options] [input file] [output file]\nOptions:"
@@ -48,6 +50,9 @@ let speclist = Main.common_speclist @
 
     "--add-defaults", Arg.Set flag_add_defaults,
     "add field default values while converting records";
+
+    "--embed-piqi", Arg.Set flag_embed_piqi,
+    "embed Piqi dependencies, i.e. Piqi specs which the input depends on";
 
      arg__;
   ]
@@ -172,29 +177,111 @@ let get_reader = function
       piqi_error "unknown input encoding"
 
 
+let get_writer input_encoding =
+  let is_piqi_input = (input_encoding = "piqi") in
+  match !output_encoding with
+    | "" (* default output encoding is "piq" *)
+    | "piq" -> Piq.write_piq
+    | "wire" -> Piq.write_wire
+    | "json" ->
+        init_json_writer ();
+        Piq.write_json is_piqi_input
+    | "piq-json" ->
+        init_json_writer ();
+        output_encoding := "json";
+        Piq.write_piq_json
+    | "pb" -> write_pb is_piqi_input
+    | _ -> piqi_error "unknown output encoding"
+
+
+let seen = ref [] (* the list of seen elements *)
+
+let is_seen x = List.memq x !seen
+
+let add_seen x = seen := x :: !seen
+
+let check_update_unseen x =
+  let is_unseen = not (is_seen x) in
+  (* add unseen element to the list of seen ones *)
+  if is_unseen then add_seen x;
+  is_unseen (* return true for yet unseen elements *)
+
+let remove_update_seen l =
+  List.filter check_update_unseen l
+
+
+let get_piqi_deps piqi =
+  if C.is_boot_piqi piqi
+  then [] (* boot Piqi is not a dependency *)
+  else
+    (* get all includes and includes from all included modules *)
+    let includes = piqi.P#included_piqi in
+    (* get all imports and imports from all included modules *)
+    let imports =
+      List.map (fun x -> some_of x.T.Import#piqi) piqi.P#resolved_import
+    in
+    (* NOTE: imports go first in the list of dependencies *)
+    (* XXX: uniqq the result? *)
+    imports @ includes
+
+
+let get_parent_piqi (t: T.piqtype) =
+  let piqdef =
+    match t with
+      | #T.piqdef as x -> x
+      | _ -> assert false
+  in
+  C.get_parent_piqi piqdef
+
+
+let get_dependencies (obj :Piq.obj) =
+  let deps =
+    match obj with
+      | Piq.Piqi piqi ->
+          (* add piqi itself to the list of seen *)
+          add_seen piqi;
+          let deps = get_piqi_deps piqi in
+          (* remove the Piqi itself from the list of deps *)
+          List.filter (fun x -> x != piqi) deps
+      | _ -> (
+          let piqtype =
+            match obj with
+              | Piq.Piqtype name ->
+                  Piqi_db.find_piqtype name
+              | Piq.Typed_piqobj obj | Piq.Piqobj obj ->
+                  Piqobj_common.type_of obj
+              | _ -> assert false
+          in
+          let piqi = get_parent_piqi piqtype in
+          (* get dependencies for yet unseen (and not yet embedded) piqi *)
+          if is_seen piqi
+          then []
+          else get_piqi_deps piqi
+      )
+  in
+  (* filter out already seen deps along with updating the list of seen deps *)
+  remove_update_seen deps
+
+
+let validate_options input_encoding =
+  if !flag_embed_piqi && input_encoding = "piqi" && !output_encoding = "pb"
+  then piqi_error "can't --embed-piqi when converting .piqi to .pb";
+
+  if !flag_embed_piqi && (!output_encoding = "json" || !output_encoding = "pb")
+  then piqi_warning
+    "--embed-piqi doesn't have any effect when converting to .pb or .json; use .wire or .piq-json"
+
+
 let convert_file () =
   let input_encoding =
     if !input_encoding <> ""
     then !input_encoding
     else Piqi_file.get_extension !ifile
   in
+  validate_options input_encoding;
   let reader = get_reader input_encoding in
-  let is_piqi_input = (input_encoding = "piqi") in
-  let writer =
-    match !output_encoding with
-      | "" (* default output encoding is "piq" *)
-      | "piq" -> Piq.write_piq
-      | "wire" -> Piq.write_wire
-      | "json" ->
-          init_json_writer ();
-          Piq.write_json is_piqi_input
-      | "piq-json" ->
-          init_json_writer ();
-          output_encoding := "json";
-          Piq.write_piq_json
-      | "pb" -> write_pb is_piqi_input
-      | _ -> piqi_error "unknown output encoding"
-  in
+  let writer = get_writer input_encoding in
+  (* open output file *)
   let ofile =
     match !ofile with
       | "" when !output_encoding = "" -> "" (* print "piq" to stdout by default *)
@@ -216,6 +303,14 @@ let convert_file () =
       let obj = reader () in
       (* reset location db to allow GC to collect previously read objects *)
       Piqloc.reset ();
+      if !flag_embed_piqi
+      then (
+        trace "piqi convert: embedding Piqi\n";
+        (* write yet unwirtten object's dependencies *)
+        let deps = get_dependencies obj in
+        List.iter (fun x -> writer och (Piq.Piqi x)) deps
+      );
+      (* write the object itself *)
       writer och obj
     done
   with
