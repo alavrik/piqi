@@ -74,7 +74,7 @@ let process_default_piqtype ?check typename =
   default_piqtype := Some piqtype
 
 
-let load_piqi fname ast =
+let piqi_of_piq fname ast =
   let piqi = Piqi.load_piqi_ast fname ast in
   piqi
 
@@ -93,7 +93,7 @@ let rec load_piq_obj piq_parser :obj =
     | `typed {T.Typed.typename = "piqi";
               T.Typed.value = {T.Any.ast = Some ((`list _) as ast)}} ->
         (* :piqi <piqi-spec> *)
-        let piqi = load_piqi fname ast in
+        let piqi = piqi_of_piq fname ast in
         Piqi piqi
     | `typed {T.Typed.typename = "piqi"} ->
         error ast "invalid piqi specification"
@@ -127,7 +127,7 @@ let original_piqi piqi =
   P#{orig_piqi with modname = piqi.P#modname}
 
 
-let make_piqi piqi =
+let piqi_to_piq piqi =
   let piqi_ast = Piqi_pp.piqi_to_ast (original_piqi piqi) ~simplify:true in
   `typed {
     T.Typed.typename = "piqi";
@@ -144,7 +144,7 @@ let write_piq ch (obj:obj) =
       | Piqtype typename ->
           make_piqtype typename
       | Piqi piqi ->
-          make_piqi piqi
+          piqi_to_piq piqi
       | Typed_piqobj obj ->
           Piqobj_to_piq.gen_typed_obj obj
       | Piqobj obj ->

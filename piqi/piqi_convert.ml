@@ -301,8 +301,6 @@ let convert_file () =
     while true
     do
       let obj = reader () in
-      (* reset location db to allow GC to collect previously read objects *)
-      Piqloc.reset ();
       if !flag_embed_piqi
       then (
         trace "piqi convert: embedding Piqi\n";
@@ -311,7 +309,20 @@ let convert_file () =
         List.iter (fun x -> writer och (Piq.Piqi x)) deps
       );
       (* write the object itself *)
-      writer och obj
+      writer och obj;
+
+      (* NOTE: this is applicable only when reading from Piq or Piq-json formats
+       *)
+      match obj with
+        | Piq.Piqi _ ->
+            (* Preserve location information so that exising location info for
+             * Piqi modules won't be discarded by subsequent Piqloc.reset()
+             * calls. *)
+            Piqloc.preserve ();
+        | _ ->
+            (* reset location db to allow GC to collect previously read objects
+             *)
+            Piqloc.reset ()
     done
   with
     Piq.EOF -> ()
