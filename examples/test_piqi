@@ -18,12 +18,20 @@ piqi expand $f.piqi
 
 
 # convert .piqi specification to piq, basically wrapping piqi in a piq object
-# with type "piqi.org/piqi/piqi"
 piqi convert $f.piqi
 
 
-# wrap piqi specification in piq object and convert the object to .wire format
+# convert piqi spec to .wire format
 piqi convert -t wire $f.piqi
+#
+# convert it back to .piq and print to stdout
+piqi convert $f.piqi.wire
+
+# Similar to the above but this time, embedding Piqi type specs while
+# converting.
+
+# convert piqi spec to .wire format
+piqi convert --embed-piqi -t wire $f.piqi
 #
 # convert it back to .piq and print to stdout
 piqi convert $f.piqi.wire

@@ -48,3 +48,45 @@ piqi convert -t wire $f.piq.json
 # convert .wire to .json
 piqi convert -t json $f.piq.wire
 
+
+#
+# Similar to the above but this time, embedding Piqi type specs while
+# converting.
+#
+
+# the same as previous command, also add default values to all optional fields
+# which are missing in source objects
+piqi convert --embed-piqi --add-defaults $f.piq
+
+
+# convert to wire encoding, writing output to "<source file>.wire" file
+piqi convert -t wire $f.piq
+
+# convert back to .piq
+piqi convert --embed-piqi $f.piq.wire
+
+# convert to wire encoding, writing output to "<source file>.wire" file
+piqi convert --embed-piqi -t wire $f.piq
+
+# convert back to .piq
+piqi convert $f.piq.wire
+
+
+# convert to piq-json encoding, writing output to "<source file>.json" file
+piqi convert -t piq-json $f.piq
+
+# convert back to .piq
+piqi convert --embed-piqi $f.piq.json
+
+# convert to piq-json encoding, writing output to "<source file>.json" file
+piqi convert --embed-piqi -t piq-json $f.piq
+
+# convert back to .piq
+piqi convert $f.piq.json
+
+
+# convert .json to .wire
+piqi convert -t wire $f.piq.json
+
+# convert .wire to .json
+piqi convert -t piq-json $f.piq.wire
