@@ -264,12 +264,19 @@ let get_dependencies (obj :Piq.obj) =
 
 
 let validate_options input_encoding =
-  if !flag_embed_piqi && input_encoding = "piqi" && !output_encoding = "pb"
-  then piqi_error "can't --embed-piqi when converting .piqi to .pb";
-
-  if !flag_embed_piqi && (!output_encoding = "json" || !output_encoding = "pb")
-  then piqi_warning
-    "--embed-piqi doesn't have any effect when converting to .pb or .json; use .wire or .piq-json"
+  if !flag_embed_piqi
+  then (
+    if input_encoding = "piqi"
+    then (
+      if !output_encoding = "pb"
+      then piqi_error "can't --embed-piqi when converting .piqi to .pb"
+    )
+    else ( (* input_encoding <> "piqi" *)
+      if !output_encoding = "json" || !output_encoding = "pb"
+      then piqi_warning
+        "--embed-piqi doesn't have any effect when converting to .pb or .json; use .wire or .piq-json"
+    )
+  )
 
 
 let convert_file () =
