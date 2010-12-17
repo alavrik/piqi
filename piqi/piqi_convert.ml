@@ -218,11 +218,14 @@ let get_piqi_deps piqi =
     let includes = piqi.P#included_piqi in
     (* get all imports and imports from all included modules *)
     let imports =
-      List.map (fun x -> some_of x.T.Import#piqi) piqi.P#resolved_import
+      List.map (fun x ->
+        let piqi = some_of x.T.Import#piqi in
+        piqi.P#included_piqi) piqi.P#resolved_import
     in
     (* NOTE: imports go first in the list of dependencies *)
-    (* XXX: uniqq the result? *)
-    imports @ includes
+    let l = (List.concat imports) @ includes in
+    (* remove duplicate entries *)
+    C.uniqq l
 
 
 let get_parent_piqi (t: T.piqtype) =
