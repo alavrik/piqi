@@ -1,3 +1,33 @@
+Piqi 0.5.4 (December 19, 2010)
+==============================
+
+Now it is possible to embed Piqi type definitions into Piq streams to produce
+self-describing data bundles. Piq streams with embedded type definitions can be
+represented in Piq, Piq-JSON and Wire formats.
+
+Piqi tools:
+
+  - New "piqi convert --embed-piqi" flag for embedding type information into
+    serialized Piq streams.
+  - Use hash-based wire codes for Piqi self-specification instead of
+    automatically-assigned ordinals to ensure forward and backward compatibility
+    of serialized .piqi specs with regard to future Piqi language extensions.
+  - Many internal improvements in Piqi compiler compiler, Piqi library
+    initialization and serialization of .piqi specs.
+
+piqic:
+
+  - (ocaml, erlang) Generating more optimal code for variant parsing.
+
+Bug fixes:
+
+  - Fixed an integer overflow bug in piqirun-ocaml library on 32-bit platform.
+  - Fixed missing location information in errors or warnings while converting
+    from JSON.
+  - Fixed incorrect field ordering during Piq input/output when Piqi
+    specification explicitly defines non-ordinal wire codes.
+
+
 Piqi 0.5.3 (October 19, 2010)
 =============================
 
