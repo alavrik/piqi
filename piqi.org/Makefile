@@ -7,6 +7,8 @@ PIQI_FILES = \
 	piqi-proto.piqi \
 	piqtype.piqi \
 	piqtype-wire.piqi \
+	\
+	piqobj.piqi
 
 
 BOOT_PIQI_FILES = piqi-boot.piqi piqtype-core.piqi
@@ -17,6 +19,7 @@ test: test_boot test_piqi test_piqi_piqi test_piqtype_core
 
 test_boot:
 	set -e; \
+	ln -sf ../piqi/piqobj.piqi piqobj.piqi; \
 	for i in $(BOOT_PIQI_FILES); \
 	do \
 		piqi check --noboot $$i; \
@@ -33,12 +36,13 @@ test_piqi:
 
 test_piqi_piqi:
 	piqi to-proto piqi.piqi
+	piqi to-proto piqtype.piqi
 	piqi expand piqi.piqi > p.piqi
 	piqi check p.piqi
 	piqi expand --includes-only piqi.piqi > pp.piqi
 	piqi check pp.piqi
 	piqi convert -t pb p.piqi
-	protoc --decode=piqi_org.piqi.piqi piqi.piqi.proto < p.piqi.pb > p.piqi.text
+	protoc -I.. -I. --decode=piqi_org.piqi.piqi piqi.piqi.proto < p.piqi.pb > p.piqi.text
 	piqi convert -t piq-json p.piqi
 	piqi convert p.piqi.json >/dev/null
 
@@ -49,5 +53,5 @@ test_piqtype_core:
 
 
 clean:
-	rm -f p.piqi pp.piqi p.piqi.text *.proto *.wire *.pb *.json piqtype-core.piq
+	rm -f p.piqi pp.piqi p.piqi.text *.proto *.wire *.pb *.json piqtype-core.piq piqobj.piqi
 

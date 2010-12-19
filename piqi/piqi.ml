@@ -26,16 +26,26 @@ module Idtable = Piqi_db.Idtable
 (* start in boot_mode by default, it will be switched off later (see below) *)
 let boot_mode = ref true
 
+(* resolved "piqi" type definition.
+ * Will be appropriately initialized during boot stage (see below) *)
+let piqi_def :T.piqtype ref = ref `bool
+
+(* resolved "piqdef" type definition
+ * Will be appropriately initialized during boot stage (see below) *)
+let piqdef_def :T.piqtype ref = ref `bool
+
 
 (* processing hooks to be run at the end of Piqi module load & processing *)
 let processing_hooks = ref []
 
-let add_processing_hook (f :T.piqi -> unit) =
-  (* run the hook on the boot module if it has been loaded already *)
-  (match !boot_piqi with
-    | None -> ()
-    | Some x -> f x
-  );
+let register_processing_hook (f :T.piqi -> unit) =
+  debug "register_processing_hook(0)\n";
+  (* run the hook on the embedded Piqi self-specification *)
+  f T.boot_piqi; (* XXX: some_of !boot_piqi *)
+  debug "register_processing_hook(1.5)\n";
+  f T.piqi;
+  debug "register_processing_hook(1)\n";
+  (* add the hook to the list of registered hooks *)
   processing_hooks := f :: !processing_hooks
 
 
@@ -432,42 +442,6 @@ let check_defs idtable defs =
   ignore (resolve_defs idtable (copy_defs defs))
 
 
-(*
- * booting code; preparing the initial statically defined piqi defintions
- *)
-let boot () = 
-  let idtable = Idtable.empty in
-  ignore (resolve_defs idtable T.piqdef_list)
-
-let _ = boot ()
-
-let is_piqi_def = function
-  | `record { Record.name = "piqi" } -> true
-  | _ -> false
-
-let is_piqdef_def = function
-  | `variant {V.name = "piqdef"} -> true
-  | _ -> false
-
-let _find_def f =
-  let x = List.find f T.piqdef_list in
-  (x :> T.piqtype)
-
-let piqi_def = _find_def is_piqi_def
-
-let piqdef_def = _find_def is_piqdef_def
-
-let _ =
-  begin
-    (* turn boot mode off *)
-    boot_mode := false;
-
-    (* reset wire location counters *)
-    Piqloc.icount := 0;
-    Piqloc.ocount := 0;
-  end
-
-
 let read_piqi_common fname piq_parser :T.ast =
   (* don't expand abbreviations until we construct the containing object *)
   let res = Piq_parser.read_all piq_parser ~expand_abbr:false in
@@ -535,7 +509,6 @@ let check_assign_module_name ?modname fname (piqi:T.piqi) =
     | Some x, None -> (* name is already defined for the module *)
         check_modname x
     | None, Some x -> 
-        (* XXX: use separate "resolved_modename" field? *)
         piqi.modname <- modname
     | None, None ->
         (* basename + chop all extensions + underscores to dashes *)
@@ -560,10 +533,10 @@ let assign_import_name x piqi =
         x.name <- Some name
 
 
-let mlobj_to_ast piqtype wire_generator mlobj =
-  debug_loc "mlobj_to_ast(0)";
+let mlobj_to_piqobj piqtype wire_generator mlobj =
+  debug_loc "mlobj_to_obj(0)";
   let binobj = Piqirun.gen_binobj wire_generator mlobj in
-  debug_loc "mlobj_to_ast(1.5)";
+  debug_loc "mlobj_to_obj(1.5)";
 
   (* dont' resolve defaults when reading wire;
    * preseve the original setting *)
@@ -573,11 +546,22 @@ let mlobj_to_ast piqtype wire_generator mlobj =
   let piqobj = Piqobj_of_wire.parse_binobj ~piqtype binobj in
 
   Piqobj_of_wire.resolve_defaults := saved_resolve_defaults;
+  debug_loc "mlobj_to_obj(1)";
+  piqobj
 
+
+let mlobj_to_ast piqtype wire_generator mlobj =
+  let piqobj = mlobj_to_piqobj piqtype wire_generator mlobj in
   let ast = Piqobj_to_piq.gen_obj piqobj in
-
   debug_loc "mlobj_to_ast(1)";
   ast
+
+
+let mlobj_of_piqobj wire_parser piqobj =
+  let binobj = Piqobj_to_wire.gen_binobj piqobj ~named:false in
+  let _name, t = Piqirun.parse_binobj binobj in
+  let mlobj = wire_parser t in
+  mlobj
 
 
 let mlobj_of_ast piqtype wire_parser ast =
@@ -601,14 +585,12 @@ let mlobj_of_ast piqtype wire_parser ast =
   Piqobj_of_piq.delay_unknown_warnings := true;
 
   let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
-  let binobj = Piqobj_to_wire.gen_binobj piqobj ~named:false in
-  let _name, t = Piqirun.parse_binobj binobj in
-  let mlobj = wire_parser t in
 
   Piqobj_of_piq.delay_unknown_warnings := false;
 
   Piqobj_of_piq.resolve_defaults := saved_resolve_defaults;
 
+  let mlobj = mlobj_of_piqobj wire_parser piqobj in
   debug_loc "mlobj_of_ast(1)";
   mlobj
 
@@ -617,7 +599,7 @@ let parse_piqi ast =
   (* XXX: handle errors *)
   debug "parse_piqi(0)\n";
   (* use prepared static "piqi" definition to parse the ast *)
-  let res = mlobj_of_ast piqi_def T.parse_piqi ast in
+  let res = mlobj_of_ast !piqi_def T.parse_piqi ast in
   debug "parse_piqi(1)\n";
   res
 
@@ -753,7 +735,7 @@ let apply_extensions piqdef extensions custom_fields =
   let trace' = !Piqloc.trace in
   (* Piqloc.trace := false; *)
   debug "apply_extensions(0)\n";
-  let piqdef_ast = mlobj_to_ast piqdef_def T.gen_piqdef piqdef in
+  let piqdef_ast = mlobj_to_ast !piqdef_def T.gen_piqdef piqdef in
   let extension_entries =
     List.concat (List.map (fun x -> x.Extend#quote) extensions)
   in
@@ -780,7 +762,7 @@ let apply_extensions piqdef extensions custom_fields =
   debug "apply_extensions(1)\n";
   let extended_piqdef =
     try
-      mlobj_of_ast piqdef_def T.parse_piqdef extended_piqdef_ast
+      mlobj_of_ast !piqdef_def T.parse_piqdef extended_piqdef_ast
     with (C.Error _) as e ->
       (* TODO, XXX: one error line is printed now, another (original) error
        * later -- it is inconsistent *)
@@ -837,8 +819,16 @@ let get_imported_defs imports =
 
 (* do include & extension expansion for the loaded piqi using extensions from
  * all included piqi modules *)
-let rec process_piqi (piqi: T.piqi) =
+let rec process_piqi ?modname ?(cache=true) fname (piqi: T.piqi) =
+  (* save the original piqi *)
+  piqi.P#original_piqi <- Some (copy_obj piqi); (* shallow copy *)
+
+  check_assign_module_name ?modname fname piqi;
+
+  if cache then Piqi_db.add_piqi piqi;
+
   (* get unparsed fields before we load dependencies *)
+  (* TODO, XXX: this function call is meaningless if Piqi is not parsed from Piq *)
   let unknown_fields = Piqobj_of_piq.get_unknown_fields () in
 
   (* load imports and includes *)
@@ -911,6 +901,15 @@ let rec process_piqi (piqi: T.piqi) =
   (* preserve the original defintions *)
   let resolved_defs = copy_defs extended_defs in
 
+  (* if the module includes (or is itself) piqi.org/piqtype, use hash-based
+   * field and option codes instead of auto-enumerated ones
+   *
+   * XXX, TODO: cache this information -- there's no need to compute this
+   * information again for each parent module
+   *)
+  if List.exists (fun x -> x.P#modname = Some "piqi.org/piqtype") modules
+  then Piqi_wire.add_hashcodes resolved_defs;
+
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)
   ignore (resolve_defs idtable resolved_defs);
@@ -935,34 +934,29 @@ and load_piqi_file ?modname fname =
   Piqloc.trace := true;
   *)
   let ast = read_piqi_file fname in
-  let piqi = load_piqi_ast ?modname fname ast in
+  (* cache only those modules that were included/imported/referenced by their
+   * modname *)
+  let cache = modname <> None in
+  let piqi = load_piqi_ast ?modname ~cache fname ast in
   trace_leave ();
   piqi
 
 
+(* This function is not used at the time
 and load_piqi_channel ?modname fname ch =
   let ast = read_piqi_channel fname ch in
   load_piqi_ast ?modname fname ast
+*)
 
 
-and load_piqi_string modname content =
-  let fname = "[embedded] " ^ modname  in
+and load_piqi_string fname content =
   let ast = read_piqi_string fname content in
-  load_piqi_ast ~modname "" ast
+  load_piqi_ast fname ast ~cache:false
 
 
-and load_piqi_ast ?modname fname (ast :T.ast) =
+and load_piqi_ast ?modname ?(cache=true) fname (ast :T.ast) =
   let piqi = parse_piqi ast in
-
-  (* save the original piqi *)
-  let piqi = P#{piqi with original_piqi = Some piqi} in
-
-  check_assign_module_name ?modname fname piqi;
-
-  if modname <> None
-  then Piqi_db.add_piqi (some_of modname) piqi;
-
-  process_piqi piqi;
+  process_piqi ?modname ~cache fname piqi;
   piqi
 
 
@@ -1017,66 +1011,125 @@ and load_include x =
   piqi)
 
 
-let load_piqi_boot_module (modname, content) =
+(* XXX: is it correct in case of piqicc and piqic? *)
+let embedded_modname = "embedded/piqi.org/piqi"
+
+
+let find_embedded_piqtype name =
+  Piqi_db.find_piqtype (embedded_modname ^ "/" ^ name)
+
+
+(*
+ * booting code; preparing the initial statically defined piqi defintions
+ *)
+let boot () =
+  trace "boot(0)\n";
+  (* process embedded Piqi self-specification *)
+  let fname = "" in
+  (* don't cache them as we are adding the spec to the DB explicitly below *)
+  process_piqi fname T.boot_piqi ~cache:false;
+  boot_piqi := Some T.boot_piqi;
+  process_piqi fname T.piqi ~cache:false;
+
+  (* add the spec to the DB under special name *)
+  T.boot_piqi.P#modname <- Some "embedded/piqi-boot";
+  Piqi_db.add_piqi T.boot_piqi;
+
+  T.piqi.P#modname <- Some embedded_modname;
+  Piqi_db.add_piqi T.piqi;
+
+  (* resolved "piqi" type definition *)
+  piqi_def := find_embedded_piqtype "piqi";
+  (* resolved "piqdef" type definition *)
+  piqdef_def := find_embedded_piqtype "piqdef";
+
+  (* turn boot mode off *)
+  boot_mode := false;
+
+  (* reset wire location counters *)
+  Piqloc.icount := 0;
+  Piqloc.ocount := 0;
+
+  (* initialize Piqi loader; doing it this way, because Piqi and Piqi_db are
+   * mutually recursive modules *)
+  Piqi_db.piqi_loader := Some load_piqi_file;
+
+  trace "boot(1)\n";
+  ()
+
+
+let _ =
+  boot ()
+
+
+let load_embedded_boot_module (modname, content) =
   trace "loading embedded module: %s\n" modname;
   trace_enter ();
-  let piqi = load_piqi_string modname content in
-  Piqi_db.add_piqi modname piqi;
+  let fname = "embedded/" ^ modname in
+  let piqi = load_piqi_string fname content in
+  Piqi_db.add_piqi piqi;
   trace_leave ();
   piqi
 
 
-let load_piqi_boot_modules () =
+let load_embedded_boot_modules () =
   let rec aux = function
     | [x] ->
         (* the last entry in the list is the boot module; return it after
          * processing *)
-        load_piqi_boot_module x
+        load_embedded_boot_module x
     | h::t -> 
-        ignore (load_piqi_boot_module h);
+        ignore (load_embedded_boot_module h);
         aux t
     | _ ->
         assert false
   in
-  aux !T.embedded_piqi
+  let boot_piqi = aux !T.embedded_piqi in
+  (* make loaded modules unsearcheable after loading all of them *)
+  List.iter (fun (modname, _) -> Piqi_db.remove_piqi modname) !T.embedded_piqi;
+  boot_piqi
 
 
-(* load standard include which is included by default in each .piqi file *)
-let load_boot_piqi () =
-  (* TODO: optimize loading boot piqi at cc stage, that is provide two
-   * boot_piqi versions: 1) text 2) compiled -- so that we won't spend time
-   * parsing it *)
-  let boot_file = !Piqi_config.boot_file in
-  if boot_file = ""
-  then (* load boot piqi from embedded piqi file *)
-    (* XXX: error handling *)
-    begin
-      trace "boot using embedded modules\n";
-      trace_enter ();
-      let piqi = load_piqi_boot_modules () in
-      trace_leave ();
-      piqi
-    end
-  else (* explicitly specified boot .piqi file *)
-    (* TODO: error handling *)
-    begin
+let load_embedded_boot_piqi () =
+  (* Overriding already loaded boot_piqi with exactly the same boot module but
+   * now it has correct location info because it is parsed from string
+   * representation *)
+  (* Not running piqicc and haven't loaded a custom module before: *)
+  if C.is_boot_piqi T.boot_piqi && !T.embedded_piqi <> []
+  then
+    boot_piqi :=
+      (
+        (* reset previous boot module *)
+        boot_piqi := None;
+        trace "boot using embedded modules\n";
+        trace_enter ();
+        (* XXX: error handling *)
+        let piqi = load_embedded_boot_modules () in
+        trace_leave ();
+        Some piqi
+      )
+
+
+(* used only by piqicc to load a custom Piqi boot module from a file *)
+let load_boot_piqi boot_file  =
+  boot_piqi :=
+    (
+      (* reset previous boot module *)
+      boot_piqi := None;
       trace "boot using boot file: %s\n" boot_file;
       trace_enter ();
+      (* TODO: error handling *)
       let piqi = load_piqi_file boot_file in
       trace_leave ();
-      piqi
-    end
+      Some piqi
+    )
 
 
+(* this is a local function; it can be called more than once, but produce an
+ * effect only on its first run *)
 let init () =
-  match !boot_piqi with
-    | None ->
-        let piqi = load_boot_piqi () in
-        (* init boot module and piqi loader for Piqi_db *)
-        boot_piqi := Some piqi;
-        Piqi_db.piqi_loader := Some load_piqi_file;
-    | Some _ ->
-        () (* already initialized *)
+  if !Config.debug_level > 0 || !Config.flag_trace
+  then load_embedded_boot_piqi ()
 
 
 (* public interface: read piqi file *)
@@ -1087,13 +1140,11 @@ let read_piqi fname :T.ast =
 
 (* public interface: load piqi file *)
 let load_piqi fname :T.piqi =
-  (* TODO: move init() to the boot stage, see
-   * load_boot_piqi() for details *)
   init ();
   trace "loading piqi file: %s\n" fname;
   trace_enter ();
   let ast = read_piqi fname in
-  let piqi = load_piqi_ast fname ast in
+  let piqi = load_piqi_ast fname ast ~cache:false in
   trace_leave ();
   piqi
 

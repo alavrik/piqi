@@ -36,7 +36,6 @@ let add_path x =
 (*
  * command-line options 
  *)
-let boot_file = ref ""
 
 
 (* don't boot, i.e. don't include any of embedded or external boot file

@@ -4,11 +4,11 @@ include Makefile.piqicc_common
 RESULT = piqicc
 
 
-SOURCES += piqicc_run.ml
+SOURCES += piqicc.ml piqicc_run.ml
 
 
 PIQIC_FLAGS = -I $(PIQI_ROOT)
-PIQICC_FLAGS = $(PIQIC_FLAGS) --boot piqicc-boot.piqi
+PIQICC_FLAGS = $(PIQIC_FLAGS)
 
 
 
@@ -19,9 +19,9 @@ reboot: piqi_reboot
 
 
 
-piqtype.ml: piqi_reboot piqicc.piqi piqicc-boot.piqi
-	./piqi_reboot $(PIQICC_FLAGS) -o piqtype.tmp.ml piqicc.piqi
-	#./piqi_reboot >piqtype.tmp.ml
+piqtype.ml: piqi_reboot $(wildcard *.piqi)
+	./piqi_reboot $(PIQICC_FLAGS) -o piqtype.tmp.ml \
+		--boot piqicc-boot.piqi --piqi piqicc.piqi --impl piqicc-impl.piqi
 	rm -f *.cmo *.cmi
 	$(CAMLP4)o -o piqtype.3.ml piqtype.tmp.ml
 	ln -sf piqtype.3.ml $@

@@ -26,7 +26,7 @@ PRE_TARGETS += $(PIQI_SOURCES)
 
 PIQICC = ../piqicc/piqicc
 PIQIC_FLAGS = -I $(PIQI_ROOT)
-PIQICC_FLAGS = $(PIQIC_FLAGS) --boot piqic-boot.piqi
+PIQICC_FLAGS = $(PIQIC_FLAGS)
 
 
 all: debug #nc
@@ -35,7 +35,8 @@ debug: dc top
 
 
 piqtype.ml: $(wildcard *.piqi)
-	$(PIQICC) $(PIQICC_FLAGS) -o $@.tmp.ml piqic.piqi
+	$(PIQICC) $(PIQICC_FLAGS) -o $@.tmp.ml \
+		--boot piqic-boot.piqi --piqi piqic.piqi --impl piqic-impl.piqi
 	$(CAMLP4)o -o $@ $@.tmp.ml
 
 

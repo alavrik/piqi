@@ -31,7 +31,7 @@ module L = Piqobj.List
 
 
 let type_of (x:Piqobj.obj) :T.piqtype =
-  (* XXX: built-in types should be used at that point *)
+  (* XXX: built-in types should not be used at this point *)
   match x with
     | `int _ -> `int
     | `uint _ -> `int

@@ -14,11 +14,11 @@ SOURCES += \
 	piqobj_to_json.ml \
 	piqobj_of_json.ml \
 	\
+	piqi_pp.ml \
 	piq.ml \
 	\
 	piqi_convert.ml \
 	piqi_check.ml \
-	piqi_pp.ml \
 	piqi_expand.ml \
 	piqi_light.ml \
 	\
@@ -55,7 +55,9 @@ debug: dc top
 
 
 piqtype.ml: piqi-impl.piqi
-	$(PIQICC) $(PIQICC_FLAGS) -o $@.tmp.ml $<
+	# Note, using standard piqi.org/piqi-boot as boot module for piqicc
+	$(PIQICC) $(PIQICC_FLAGS) -o $@.tmp.ml \
+		--boot piqi-boot.piqi --piqi piqi.piqi --impl piqi-impl.piqi
 	$(CAMLP4)o -o $@ $@.tmp.ml
 
 

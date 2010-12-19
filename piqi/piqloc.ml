@@ -26,23 +26,37 @@ type t = Loc of loc | Ref of Obj.t
 
 let db :(Obj.t * t) list ref = ref []
 
+(* append-only part of the DB that is filled by preserve() can't be discarded by
+ * reset() *)
+let preserved_db :(Obj.t * t) list ref = ref []
+
+
+let find_with_function find_fun x =
+  try find_fun x !db
+  with Not_found ->
+    find_fun x !preserved_db
+
 
 (* recursively dereference to find the location *)
-let find x =
+let find x db =
   let rec aux x =
-    match List.assq x !db with
+    match List.assq x db with
       | Loc loc -> loc
       | Ref x -> aux x
   in aux (Obj.repr x)
 
+let find x = find_with_function find x
+
 
 (* the same, but with printing a message at each recursion step *) 
-let trace_find x =
+let trace_find x db =
   let rec aux i x =
-    match List.assq x !db with
+    match List.assq x db with
       | Loc loc -> loc
       | Ref x -> (Printf.eprintf "trace_find: %d\n" (Obj.magic x); aux (i + 1) x)
   in aux 0 (Obj.repr x)
+
+let trace_find x = find_with_function trace_find x
 
 
 let lastloc = ref ("undefined", 0, 0)
@@ -65,6 +79,22 @@ let addret x = (* add object within the current location and return *)
 
 let addlocret loc x =
   addloc loc x; x
+
+
+(* Discard location information. This allows GC to reclaim memory used by data
+ * objects that are not referenced from anywhere else other than from location
+ * db *)
+let reset () =
+  db := [];
+  ()
+
+(* Preserve location information by copying the contents of db to preserved_db
+ * so that exising location info won't be discarded by subsequent reset() calls.
+ *)
+let preserve () =
+  preserved_db := !db @ !preserved_db;
+  db := [];
+  ()
 
 
 let trace = ref false
@@ -130,14 +160,3 @@ let next_icount () =
 
 let next_ocount () =
   let res = !ocount in incr ocount; res
-
-
-(* Discard location information. This allows GC to reclaim memory used by data
- * objects that are not referenced from anywhere else other than from location
- * db *)
-let reset () =
-  db := [];
-  icount := 0;
-  ocount := 0;
-  ()
-

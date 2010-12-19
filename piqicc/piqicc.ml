@@ -35,17 +35,16 @@ let read_file fname =
   res
 
 
-let embed_module ch piqi =
+let embed_module ch ?fname piqi =
   let modname = some_of piqi.P#modname in
-  let fname = 
-    try
-      Piqi_file.find_piqi modname
-    with
-      (* TODO: remove this nasty hack *)
-      Not_found -> !Piqi_config.boot_file
+  let fname =
+    match fname with
+      | Some x -> x
+      | None ->
+          (* TODO: store file name in the Piqi structure while loading *)
+          Piqi_file.find_piqi modname
   in
   let content = read_file fname in
-
   let content = String.escaped content in
   let code = iol [
     ios "let _ = add_embedded_piqi ";
@@ -56,7 +55,7 @@ let embed_module ch piqi =
   Iolist.to_channel ch code
 
 
-let embed_boot_modules ch =
+let embed_boot_modules ch boot_fname =
   debug "embded boot modules(0)\n";
   let code = iod " " [
       (* the list of embedded modules *)
@@ -67,113 +66,157 @@ let embed_boot_modules ch =
   in
   Iolist.to_channel ch code;
 
-  let piqi =
-    if !Piqi_config.boot_file <> ""
-    then
-      (* boot module is already loaded *)
-      some_of !C.boot_piqi
-    else
-      (* fall back to using the default boot module *)
-      Piqi.load_piqi_module "piqi.org/piqi-boot"
-  in
+  let boot_piqi = some_of !C.boot_piqi in
   (* the list of all included modules including the current one *)
-  let modules = piqi.P#included_piqi in
+  let modules = boot_piqi.P#included_piqi in
   (* Embed in a way that the root module will be at the end of the list and all
    * dependencies are added before *)
-  List.iter (embed_module ch) (List.rev modules)
-
-
-let is_piqdef_def = function
-  | `variant {V.name = "piqdef"} -> true
-  | _ -> false
-
-
-let gen_piqdef from_type to_type (x:T.piqdef) =
-  (* piqdef -> binobj --(convert_binobj)--> binobj' *)
-  let binobj = Piqirun.gen_binobj T.gen_piqdef x in
-  let binobj' = Piqi.convert_binobj from_type to_type binobj in
-
-  let repr = String.escaped binobj' in
-  ioq repr
+  embed_module ch boot_piqi ~fname:boot_fname;
+  List.iter (embed_module ch) (List.tl (List.rev modules))
 
 
 (* piq interface compiler compile *)
-let piqicc ch fname =
-  let piqi = Piqi.load_piqi fname in
+let piqicc ch boot_fname piqi_fname piqi_impl_fname =
+  trace "piqicc(0)\n";
+  (* reload the boot module from file if it was specified using --boot option *)
+  Piqi.load_boot_piqi boot_fname;
 
-  trace "piqi compiling compiler from: %s\n" fname;
+  trace "piqicc: loading piqi spec from: %s\n" piqi_fname;
+  let piqi = Piqi.load_piqi piqi_fname in
+
+  trace "piqicc: loading piqi-impl spec from: %s\n" piqi_impl_fname;
+  let piqi_impl = Piqi.load_piqi piqi_impl_fname in
+
+  trace "piqicc: piqi compiling compiler\n";
   (* TODO,XXX:
-    * report failed to find piqi definition error
     * report invalid module name?
     * check & report piqi incompatibility
   *)
-  (* current definition *)
-  (* XXX: handle Not_found *)
-  let piqdef_type =
-    let piqdef_def = List.find is_piqdef_def T.piqdef_list in
-    (piqdef_def :> T.piqtype)
-  in
-  (* new definition *)
-  (* XXX: handle Not_found *)
-  let piqdef_type' =
-    let piqdef_def' = List.find is_piqdef_def piqi.P#resolved_piqdef in
-    (piqdef_def' :> T.piqtype)
-  in
-  (* unresolved, but expanded piqdef list *)
   let boot_piqi = some_of !C.boot_piqi in
-  let piqdef_list = boot_piqi.P#extended_piqdef @ piqi.P#extended_piqdef in
 
-  let piqdef_list' =
-    List.map (gen_piqdef piqdef_type piqdef_type') piqdef_list
+  (* prepare embedded Piqi spec *)
+  let piqi = P#{
+    (some_of piqi.original_piqi) with
+      (* using piqi.org/piqtype instead of piqi.org/piqi to generate hashcodes
+       * otherwise, serial wire codes would be generated *)
+      modname = Some "piqi.org/piqtype";
+      ocaml_module = None; (* XXX *)
+
+      (* unresolved, but expanded piqdef list *)
+      piqdef = piqi.P#extended_piqdef;
+      includ = [];
+      import = [];
+      extend = [];
+
+      (* NOTE: leaving the original custom_fields *)
+      (*
+      custom_field = [];
+
+      extended_piqdef = [];
+      resolved_piqdef = [];
+      imported_piqdef = [];
+      resolved_import = [];
+      included_piqi = [];
+      original_piqi = None;
+      *)
+  }
   in
+  (* prepare embedded Piqi spec *)
+  let boot_piqi = P#{
+    (some_of boot_piqi.original_piqi) with
+      (* using piqi.org/piqtype instead of piqi.org/piqi to generate hashcodes
+       * otherwise, serial wire codes would be generated *)
+      modname = Some "piqi.org/piqtype";
+      ocaml_module = None; (* XXX *)
+
+      (* unresolved, but expanded piqdef list *)
+      piqdef = boot_piqi.P#extended_piqdef;
+      includ = [];
+      import = [];
+      extend = [];
+
+      (* NOTE: leaving the original custom_fields *)
+      (*
+      custom_field = [];
+      *)
+  }
+  in
+  let gen_piqi_binobj piqi = Piqirun.gen_binobj T.gen_piqi piqi in
+
+  let piqi_binobj = gen_piqi_binobj piqi in
+  let piqi_boot_binobj = gen_piqi_binobj boot_piqi in
+
   let code = iod " " [
-    ios "let parse_piqdef_binobj x = ";
+    ios "let parse_piqi_binobj x = ";
       ios "let _name, piqwire = Piqirun.parse_binobj x in";
-      ios "parse_piqdef piqwire";
+      ios "parse_piqi piqwire";
     eol;
 
-    ios "let piqdef_list : piqdef list =";
-      ios "let piqdef_list_repr = [";
-          iod "; " piqdef_list';
-        ios "]";
-      ios "in List.map parse_piqdef_binobj piqdef_list_repr";
+    ios "let piqi = ";
+      ios "let piqi_binobj = "; ioq (String.escaped piqi_binobj);
+      ios "in parse_piqi_binobj piqi_binobj";
     eol;
-  ] in
+
+    ios "let boot_piqi = ";
+      ios "let piqi_boot_binobj = "; ioq (String.escaped piqi_boot_binobj);
+      ios "in parse_piqi_binobj piqi_boot_binobj";
+    eol;
+  ]
+  in
   (* call piq interface compiler for ocaml *)
   (* TODO: move it to Piqic_config module *)
   Piqic_ocaml_types.cc_mode := true;
   (* Override supplied module name *)
-  let piqi = P#{piqi with ocaml_module = Some "Piqtype"} in
-  Piqic_ocaml.piqic piqi ch;
+  let piqi_impl = P#{piqi_impl with ocaml_module = Some "Piqtype"} in
+  Piqic_ocaml.piqic piqi_impl ch;
   Iolist.to_channel ch code;
 
-  embed_boot_modules ch
+  embed_boot_modules ch boot_fname
 
 
 module Main = Piqi_main
 open Main
 
 
-let piqicc_file ifile =
-  let ch = Main.open_output !ofile in
-  piqicc ch ifile
+(* command-line options *)
+let boot_file = ref ""
+let piqi_file = ref ""
+let piqi_impl_file = ref ""
 
 
-let usage = "Usage: piqicc [options] <.piqi file>\nOptions:"
+let usage = "Usage: piqicc --boot ... --piqi ... --impl ...\nOptions:"
 
 
 let speclist = Main.common_speclist @
   [
     arg_o;
-    arg_C;
-    "--boot", Arg.Set_string Piqi_config.boot_file,
-      "use specific boot module";
+    (* XXX: arg_C; *)
+    "--boot", Arg.Set_string boot_file,
+      "<.piqi file> specify a Piqi boot module";
+    "--piqi", Arg.Set_string piqi_file,
+      "<.piqi file> specify the Piqi language spec";
+    "--impl", Arg.Set_string piqi_impl_file,
+      "<.piqi file> specify spec for internal representation";
   ]
 
 
+let piqicc_file () =
+  let error s =
+    Printf.eprintf "Error: %s\n\n" s;
+    Arg.usage speclist usage;
+    die ""
+  in
+  if !piqi_file = "" then error "'--piqi' parameter is missing";
+  if !piqi_impl_file = "" then error "'--impl' parameter is missing";
+  if !boot_file = "" then error "'--boot' parameter is missing";
+
+  let ch = Main.open_output !ofile in
+  piqicc ch !boot_file !piqi_file !piqi_impl_file
+
+
 let run () =
-  Main.parse_args () ~usage ~speclist;
-  piqicc_file !ifile
+  Main.parse_args () ~usage ~speclist ~min_arg_count:0 ~max_arg_count:0;
+  piqicc_file ()
 
  
 let _ =

@@ -86,6 +86,12 @@ let rec prettyprint_list ch ast_list =
   in aux ast_list
 
 
+let prettyprint_piqi_ast ch ast =
+  match ast with
+    | `list l -> prettyprint_list ch l
+    | _ -> assert false
+
+
 let transform_ast path f (ast:T.ast) =
   let rec aux p = function
     | `list l when p = [] -> (* leaf node *)
@@ -168,15 +174,53 @@ let simplify_piqi_ast (ast:T.ast) =
   tr_list_type_name
 
 
-let prettyprint_piqi_ast ?(simplify=false) ch ast =
-  let ast =
-    if simplify
-    then simplify_piqi_ast ast
-    else ast
-  in
-  match ast with
-    | `list l -> prettyprint_list ch l
+let compare_piqi_items a b =
+  let name_of = function
+    | `name x -> x
+    | `named x -> x.T.Named#name
+    | `typename x -> x
+    | `typed x -> x.T.Typed#typename
     | _ -> assert false
+  in
+  let rank x =
+    match name_of x with
+      | "module" -> 0
+      | "proto-package" -> 1
+      | "include" -> 2
+      | "import" -> 3
+      (* skipping custom-field, see below
+       * | "custom-field" -> 4
+       *)
+      | "piqdef" -> 5
+      | "extend" -> 6
+      | _ -> 100
+  in
+  rank a - rank b
+
+
+let sort_piqi_items (ast:T.ast) =
+  match ast with
+    | `list l ->
+        let l = List.stable_sort compare_piqi_items l in
+        `list l
+    | _ -> assert false
+
+
+let piqi_to_ast ?(simplify=false) piqi =
+  (* removing custom-field specifications as Piqi doesn't contain any
+   * custom-fields at this stage *)
+  let piqi = P#{piqi with custom_field = []} in
+  (* XXX, TODO: move this call to Piqi.gen_piqi? *)
+  let ast = Piqi.mlobj_to_ast !Piqi.piqi_def T.gen_piqi piqi in
+  let ast = sort_piqi_items ast in
+  if simplify
+  then simplify_piqi_ast ast
+  else ast
+
+
+let prettyprint_piqi ch (piqi:T.piqi) =
+  let ast = piqi_to_ast piqi ~simplify:true in
+  prettyprint_piqi_ast ch ast
 
 
 let transform_ast ast =
