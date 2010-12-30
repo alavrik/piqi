@@ -21,6 +21,7 @@ open C
 
 
 module Idtable = Piqi_db.Idtable
+type idtable = T.piqdef Idtable.t
 
 
 (* start in boot_mode by default, it will be switched off later (see below) *)
@@ -38,12 +39,16 @@ let piqdef_def :T.piqtype ref = ref `bool
 (* processing hooks to be run at the end of Piqi module load & processing *)
 let processing_hooks = ref []
 
-let register_processing_hook (f :T.piqi -> unit) =
+let register_processing_hook (f :idtable -> T.piqi -> unit) =
   debug "register_processing_hook(0)\n";
+  (* NOTE: create an empty idtable just to make invocations below work; none of
+   * the plugins actually require a valid idtable to exist at this point, so we
+   * don't care *)
+  let idtable = Idtable.empty in
   (* run the hook on the embedded Piqi self-specification *)
-  f T.boot_piqi; (* XXX: some_of !boot_piqi *)
+  f idtable T.boot_piqi; (* XXX: some_of !boot_piqi *)
   debug "register_processing_hook(1.5)\n";
-  f T.piqi;
+  f idtable T.piqi;
   debug "register_processing_hook(1)\n";
   (* add the hook to the list of registered hooks *)
   processing_hooks := f :: !processing_hooks
@@ -912,7 +917,7 @@ let rec process_piqi ?modname ?(cache=true) fname (piqi: T.piqi) =
 
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)
-  ignore (resolve_defs idtable resolved_defs);
+  let idtable = resolve_defs idtable resolved_defs in
 
   (* set up parent namespace to local piqi defs *)
   List.iter (fun def -> set_parent def (`piqi piqi)) resolved_defs;
@@ -921,7 +926,7 @@ let rec process_piqi ?modname ?(cache=true) fname (piqi: T.piqi) =
   piqi.P#resolved_piqdef <- resolved_defs;
 
   (* run registered processing hooks *)
-  List.iter (fun f -> f piqi) !processing_hooks;
+  List.iter (fun f -> f idtable piqi) !processing_hooks;
   ()
  
 

@@ -29,6 +29,8 @@ let init_res_piqi orig_piqi =
     extend = [];
     includ = [];
     import = [];
+    func = [];
+
     custom_field = [];
 
     (* piqi-impl (implementation related) extensions *)
@@ -64,6 +66,8 @@ let expand_piqi ?(includes_only=false) piqi =
     if includes_only
     then Piqi.get_extensions all_piqi
     else [];
+
+  (* TODO, XXX: copy all functions to the resulting module *)
 
   res_piqi
 

@@ -55,3 +55,32 @@
 ]
 
 
+.extend [
+    .name function
+
+    .field [
+        .name resolved-input
+        .type resolved-function-param
+        .optional
+    ]
+
+    .field [
+        .name resolved-output
+        .type resolved-function-param
+        .optional
+    ]
+
+    .field [
+        .name resolved-error
+        .type resolved-function-param
+        .optional
+    ]
+]
+
+
+.variant [
+    .name resolved-function-param
+    .option [ .type record ]
+    .option [ .type alias ] % alias of a record
+]
+
