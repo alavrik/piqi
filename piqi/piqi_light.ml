@@ -28,7 +28,7 @@ open Iolist
 
 let gen_typeref (t:T.typeref) =
   match t with
-    | `name x -> ios x
+    | `name x -> ios ":" ^^ ios x
     | (#T.piqtype as t) ->
         (* generate name for built-in types *)
         (ios "." ^^ ios (piqi_typename t))
@@ -37,8 +37,8 @@ let gen_typeref (t:T.typeref) =
 let gen_name_typeref name typeref =
   match name, typeref with
     | Some n, None -> ios n
-    | None, Some t -> ios ":" ^^ gen_typeref t
-    | Some n, Some t -> ios n ^^ ios " :" ^^ gen_typeref t
+    | None, Some t -> gen_typeref t
+    | Some n, Some t -> ios n ^^ ios " " ^^ gen_typeref t
     | _ -> assert false
 
 
@@ -117,7 +117,7 @@ let gen_list x =
   let open L in
   let typename = gen_typeref x.typeref in
   iol [
-    ios "type "; ios x.name; ios " = list :"; typename;
+    ios "type "; ios x.name; ios " = list "; typename;
   ]
 
 
@@ -125,7 +125,7 @@ let gen_alias x =
   let open A in
   let typename = gen_typeref x.typeref in
   iol [
-    ios "type "; ios x.name; ios " = :"; typename;
+    ios "type "; ios x.name; ios " = "; typename;
   ]
 
 
