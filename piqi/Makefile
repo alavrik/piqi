@@ -5,6 +5,7 @@ include Makefile.piqi_common
 RESULT = piqi
 
 SOURCES += \
+	piqi_ext.ml \
 	piqi_func.ml \
 	\
 	piqi_json_common.ml \

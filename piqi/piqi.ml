@@ -414,7 +414,7 @@ let copy_defs defs = List.map copy_def defs
 let copy_imports l = List.map copy_obj l
 
 
-let resolve_defs idtable (defs:T.piqdef list) =
+let resolve_defs ?piqi idtable (defs:T.piqdef list) =
   (*
   (* a fresh copy of defs is needed, since we can't alter the original ones:
    * we need to resolve types & assign codes in order to resolve_defaults *)
@@ -438,6 +438,13 @@ let resolve_defs idtable (defs:T.piqdef list) =
 
   (* resolve defaults ANY to OBJ using field types and codes *)
   List.iter resolve_defaults defs;
+
+  (* set up parent namespace to local piqi defs *)
+  (match piqi with
+    | Some piqi ->
+        List.iter (fun def -> set_parent def (`piqi piqi)) defs;
+    | None -> ()
+  );
 
   (* return updated idtable *)
   idtable
@@ -917,10 +924,7 @@ let rec process_piqi ?modname ?(cache=true) fname (piqi: T.piqi) =
 
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)
-  let idtable = resolve_defs idtable resolved_defs in
-
-  (* set up parent namespace to local piqi defs *)
-  List.iter (fun def -> set_parent def (`piqi piqi)) resolved_defs;
+  let idtable = resolve_defs ~piqi idtable resolved_defs in
 
   piqi.P#extended_piqdef <- extended_defs;
   piqi.P#resolved_piqdef <- resolved_defs;

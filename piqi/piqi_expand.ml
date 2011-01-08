@@ -38,6 +38,7 @@ let init_res_piqi orig_piqi =
     resolved_piqdef = [];
     imported_piqdef = [];
     resolved_import = [];
+    resolved_func = [];
     included_piqi = [];
     original_piqi = None;
   }
@@ -67,7 +68,8 @@ let expand_piqi ?(includes_only=false) piqi =
     then Piqi.get_extensions all_piqi
     else [];
 
-  (* TODO, XXX: copy all functions to the resulting module *)
+  (* copy all functions to the resulting module *)
+  res_piqi.func <- Piqi_ext.get_functions all_piqi;
 
   res_piqi
 

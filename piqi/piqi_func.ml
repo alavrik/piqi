@@ -40,7 +40,7 @@ let make_param_record name x =
     }
   in
   Piqloc.addref x res;
-  `record res
+  `record (Piqi.copy_record res) (* preserve the original fields *)
 
 
 let make_param_alias name x =
@@ -57,19 +57,12 @@ let make_param_alias name x =
   `alias res
 
 
-(* verify that param is either a record or an alias pointing to a record *)
-let verify_param t =
-  match unalias t with
-    | `record _ -> ()
-    | _ -> error t "function parameter must point to a record"
-
-
 (* convert function parameter to a type:
  *  - if the function parameter is a name, convert it to correspondent alias
  *  - if the function parameter is an anonymous record, convert it to
  *    correspondent record
  *)
-let resolve_param idtable func param_name param =
+let resolve_param piqi idtable func param_name param =
   let type_name = make_param_name func param_name in
   let def =
     match param with
@@ -80,42 +73,49 @@ let resolve_param idtable func param_name param =
           (* make a normal record with name = type_name from anonymous record *)
           make_param_record type_name x
   in
-  (* check and resolve a newly created alias or record *)
-  (* TODO: set up parent namespace to local piqi defs *)
-  ignore (Piqi.resolve_defs idtable [def]);
+  Piqloc.addref param def;
 
-  (* verify that newly created alias is pointing to a record *)
-  verify_param def;
+  (* check and resolve a newly created alias or record *)
+  ignore (Piqi.resolve_defs ~piqi idtable [def]);
+
   def
 
 
 (* ughh. this is ugly *)
-let resolve_param idtable func param_name param =
+let resolve_param piqi idtable func param_name param =
   match param with
     | None -> None
     | Some param ->
-        let res = resolve_param idtable func param_name param in
+        let res = resolve_param piqi idtable func param_name param in
         Some res
 
 
-let process_func idtable f =
+let process_func piqi idtable f =
   let open T.Func in
   begin
     Piqi.check_name f.name;
-    f.resolved_input <- resolve_param idtable f "input" f.input;
-    f.resolved_output <- resolve_param idtable f "output" f.output;
-    f.resolved_error <- resolve_param idtable f "error" f.error;
+    let i = resolve_param piqi idtable f "input" f.input
+    and o = resolve_param piqi idtable f "output" f.output
+    and e = resolve_param piqi idtable f "error" f.error
+    in T.Func#{
+      f with
+      resolved_input = i;
+      resolved_output = o;
+      resolved_error = e;
+    }
   end
 
 
 let process_piqi idtable (piqi :T.piqi) =
-  let open P in
-  match piqi.func with
-    | [] -> ()
-    | l ->
-        (* TODO: load functions from included modules *)
-        (* TODO: check for duplicate function names *)
-        List.iter (process_func idtable) l
+  let open P in (
+    (* process functions and create a local copy of them *)
+    piqi.resolved_func <- List.map (process_func piqi idtable) piqi.func;
+    trace "process_piqi: %d\n" (List.length piqi.resolved_func);
+    (* get all functions from all the modules *)
+    let _l = Piqi_ext.get_functions piqi.included_piqi in
+    (* TODO: check for duplicate function names *)
+    ()
+  )
 
 
 (* boot code *)

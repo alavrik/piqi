@@ -49,6 +49,7 @@
     .field [ .name resolved-piqdef .type piqdef .repeated ]
     .field [ .name imported-piqdef .type piqdef .repeated ]
     .field [ .name resolved-import .type import .repeated ]
+    .field [ .name resolved-func .type function .repeated ]
     .field [ .name included-piqi .type piqi .repeated ]
 
     .field [ .name original-piqi .type piqi .optional ]
@@ -81,6 +82,6 @@
 .variant [
     .name resolved-function-param
     .option [ .type record ]
-    .option [ .type alias ] % alias of a record
+    .option [ .type alias ]
 ]
 
