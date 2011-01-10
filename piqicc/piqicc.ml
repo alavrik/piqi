@@ -166,6 +166,8 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
   (* call piq interface compiler for ocaml *)
   (* TODO: move it to Piqic_config module *)
   Piqic_ocaml_types.cc_mode := true;
+  (* generate default values for generated OCaml types *)
+  Piqic_ocaml.flag_gen_defaults := true;
   (* Override supplied module name *)
   let piqi_impl = P#{piqi_impl with ocaml_module = Some "Piqtype"} in
   Piqic_ocaml.piqic piqi_impl ch;

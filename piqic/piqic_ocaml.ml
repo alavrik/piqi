@@ -141,6 +141,11 @@ and mlname_import import =
 open Iolist
 
 
+(* command-line flags *)
+let flag_pp = ref false
+let flag_gen_defaults = ref false
+
+
 let piqic (piqi: T.piqi) ch =
   piqic_common piqi;
 
@@ -155,18 +160,18 @@ let piqic (piqi: T.piqi) ch =
   let c1 = Piqic_ocaml_types.gen_piqi piqi in
   let c2 = Piqic_ocaml_in.gen_piqi piqi in
   let c3 = Piqic_ocaml_out.gen_piqi piqi in
-
-  let code = iol [ c1; c2; c3 ]
+  let c4 =
+    if !flag_gen_defaults
+    then Piqic_ocaml_defaults.gen_piqi piqi
+    else iol []
+  in
+  let code = iol [ c1; c2; c3; c4 ]
   in
   Iolist.to_channel ch code
 
 
 module Main = Piqi_main
 open Main
-
-
-(* command-line flags *)
-let flag_pp = ref false
 
 
 let ocaml_pretty_print ifile ofile =
@@ -233,6 +238,8 @@ let speclist = Main.common_speclist @
 
     "--pp", Arg.Set flag_pp,
       "pretty-print output using CamlP4 (camlp4o)"; 
+    "--gen-defaults", Arg.Set flag_gen_defaults,
+      "generate default values for all generated OCaml types";
 
     arg__normalize;
     arg__leave_tmp_files;

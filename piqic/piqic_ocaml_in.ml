@@ -279,7 +279,9 @@ let gen_def = function
 
 let gen_defs (defs:T.piqdef list) =
   let defs = flatmap gen_def defs in
-  iod " "
+  if defs = []
+  then iol []
+  else iod " "
     [
       gen_cc "let next_count = Piqloc.next_icount";
       gen_cc "let curr_count () = !Piqloc.icount";

@@ -266,8 +266,10 @@ let gen_defs (defs:T.piqdef list) =
   let mod_defs = flatmap gen_mod_def defs in
   let odefs = flatmap gen_def defs in
   let odef =
-    let odef = iol
-      [
+    let odef =
+      if odefs = []
+      then iol []
+      else iol [
         ios "type ";
         (* XXX: seems that OCaml has a bug disallowing to mix mutually
          * recursive types and polymorphic variant reuse => replacing
