@@ -26,7 +26,7 @@ piqobj_to_wire.ml
 piqic_ocaml_types.ml
 piqi_iolist.ml
 piqi_wire.ml
-piqic_ocaml.ml
+piqic_ocaml_base.ml
 piqobj_of_piq.ml
 piqic_ocaml_in.ml
 piqi_db.ml

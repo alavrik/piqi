@@ -22,7 +22,6 @@
  *)
 
 open Piqi_common
-open Piqic_common
 open Iolist
 
 
@@ -31,6 +30,9 @@ open Piqic_erlang_types
 
 
 module W = Piqi_wire
+
+
+let gen_code = Piqic_common.gen_code
 
 
 let gen_erlang_type_name t ot =
@@ -255,7 +257,7 @@ let gen_def x =
   let open Alias in
   match x with
     | `alias a ->
-        if a.typeref = `any && not !depends_on_piq_any
+        if a.typeref = `any && not !Piqic_common.depends_on_piq_any
         then []
         else [gen_def x]
     | _ ->

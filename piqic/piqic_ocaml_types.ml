@@ -21,7 +21,6 @@
  *)
 
 open Piqi_common
-open Piqic_common
 open Iolist
 
 
@@ -243,7 +242,7 @@ let gen_alias a =
   if name = typename
   then [] (* don't generate syclic type abbreviation *)
   else
-    if a.typeref = `any && not !depends_on_piq_any
+    if a.typeref = `any && not !Piqic_common.depends_on_piq_any
     then
       (* don't generate alias for "any" if nobody uses it (in order to avoid
        * unnecessary dependency Piqtype module *)

@@ -24,3 +24,5 @@ piqi_wire.ml
 piqobj_of_piq.ml
 piqi_db.ml
 piqi_c.ml
+piqi_ext.ml
+piqi_func.ml

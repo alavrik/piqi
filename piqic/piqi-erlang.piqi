@@ -4,7 +4,7 @@
 
 
 .extend [
-    (.name record field variant option alias list import)
+    (.name record field variant option alias list import function)
 
     .field [
         .name erlang-name

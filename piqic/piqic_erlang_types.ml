@@ -21,7 +21,6 @@
  *)
 
 open Piqi_common
-open Piqic_common
 open Iolist
 
 
@@ -271,7 +270,7 @@ let gen_import x =
 let gen_imports l =
   let l = List.map gen_import l in
   let piqtype_incl = 
-    if !depends_on_piq_any && !top_modname <> "piqtype"
+    if !Piqic_common.depends_on_piq_any && !top_modname <> "piqtype"
     then ios "-include(\"piqtype.hrl\").\n\n"
     else iol []
   in
