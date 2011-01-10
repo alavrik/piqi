@@ -30,13 +30,14 @@ let make_param_name func param_name =
 
 
 let make_param_record name x =
-  let res = 
+  let res =
     R#{
+      (* TODO: provide a better solution for creating new records with some
+       * optional/repeated extension fields set to None/[] by default *)
+      T.default_record () with
+
       name = name;
       field = x.T.Anonymous_record.field;
-
-      proto_name = None; json_name = None; parent = None;
-      wire_field = [];
     }
   in
   Piqloc.addref x res;
@@ -46,11 +47,10 @@ let make_param_record name x =
 let make_param_alias name x =
   let res =
     A#{
+      T.default_alias () with
+
       name = name;
       typeref = `name x;
-
-      wire_type = None; proto_name = None; proto_type = None;
-      json_name = None; parent = None;
     }
   in
   Piqloc.addref x res;
@@ -106,15 +106,48 @@ let process_func piqi idtable f =
   end
 
 
+let check_dup_names idtable piqi =
+  let open P in
+  (* get all functions from all the modules *)
+  let l = Piqi_ext.get_functions piqi.included_piqi in
+  let names = List.map (fun x -> x.T.Func#name) l in
+  Piqi.check_dup_names "function" names;
+  (* check that function names do not conflict with type names *)
+  List.iter
+    (fun name ->
+      try
+        let def = Piqi.Idtable.find idtable name in
+        error name
+          ("function name " ^ quote name ^ " conflicts with type name\n" ^
+           error_string def "defined here")
+      with Not_found -> ()
+    ) names
+
+
+let get_func_defs f =
+  let open T.Func in
+  let get_param = function
+    | None -> []
+    | Some x -> [ (x :> T.piqdef) ]
+  in
+  List.concat [
+    get_param f.resolved_input;
+    get_param f.resolved_output;
+    get_param f.resolved_error;
+  ]
+
+
 let process_piqi idtable (piqi :T.piqi) =
   let open P in (
     (* process functions and create a local copy of them *)
     piqi.resolved_func <- List.map (process_func piqi idtable) piqi.func;
-    trace "process_piqi: %d\n" (List.length piqi.resolved_func);
-    (* get all functions from all the modules *)
-    let _l = Piqi_ext.get_functions piqi.included_piqi in
-    (* TODO: check for duplicate function names *)
-    ()
+    (* check for duplicate function names *)
+    check_dup_names idtable piqi;
+    (* add function type definitions to Piqi resolved defs *)
+    let resolved_funs = Piqi_ext.get_resolved_functions piqi.included_piqi in
+    let fun_defs = flatmap get_func_defs resolved_funs in
+    if fun_defs <> []
+    then piqi.resolved_piqdef <- piqi.resolved_piqdef @ fun_defs
   )
 
 

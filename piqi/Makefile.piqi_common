@@ -69,6 +69,6 @@ piqi_version.ml: $(PIQI_ROOT)/VERSION
 	echo "let version = \"`head -1 $<`\"" >$@
 
 
-$(PIQI_SOURCES): %: $(PIQI_ROOT)/piqi/%
+$(PIQI_SOURCES): % : $(PIQI_ROOT)/piqi/%
 	ln -s $< $@
 

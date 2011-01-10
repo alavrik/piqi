@@ -51,7 +51,7 @@ let register_processing_hook (f :idtable -> T.piqi -> unit) =
   f idtable T.piqi;
   debug "register_processing_hook(1)\n";
   (* add the hook to the list of registered hooks *)
-  processing_hooks := f :: !processing_hooks
+  processing_hooks := !processing_hooks @ [f]
 
 
 let add_piqdef idtable (piqdef:T.piqdef) = 
@@ -149,11 +149,13 @@ let check_opt_name = function
   | Some x -> check_name x
 
 
-let check_dup_names names =  
+let check_dup_names what names =
   match find_dups names with
     | None -> ()
-    | Some name ->
-        error name ("duplicate name: " ^ name)
+    | Some (name, prev) ->
+        error name
+          ("duplicate " ^ what ^ " name " ^ quote name ^ "\n" ^
+            error_string prev "first defined here")
 
 
 let check_typeref obj (t:T.typeref) =
@@ -311,10 +313,10 @@ let check_resolved_def def =
   match def with
     | `record x ->
         let names = List.map (fun x -> name_of_field x) x.R#field in
-        check_dup_names names
+        check_dup_names "field" names
     | `variant x | `enum x ->
         let names = List.map (fun x -> name_of_option x) x.V#option in
-        check_dup_names names
+        check_dup_names "option" names
     | `alias x ->
         check_resolved_alias x
     | _ -> ()
@@ -457,17 +459,16 @@ let check_defs idtable defs =
 let read_piqi_common fname piq_parser :T.ast =
   (* don't expand abbreviations until we construct the containing object *)
   let res = Piq_parser.read_all piq_parser ~expand_abbr:false in
-  match res with
-    | [] ->
-        (* XXX: warning? *)
-        piqi_error ("piqi file is empty: " ^ fname)
-    | _ ->
-        (* wrapping items in list to make them contents of "piqi" record *)
-        let res = `list res in
-        let startloc = (fname, 1, 1) in (* start location *)
-        let ast = Piqloc.addlocret startloc res in
-        (* now expand abbreviations *)
-        Piq_parser.expand ast
+
+  if res = []
+  then piqi_warning ("piqi file is empty: " ^ fname);
+
+  (* wrapping items in list to make them contents of "piqi" record *)
+  let res = `list res in
+  let startloc = (fname, 1, 1) in (* start location *)
+  let ast = Piqloc.addlocret startloc res in
+  (* now expand abbreviations *)
+  Piq_parser.expand ast
 
 
 let read_piqi_channel fname ch :T.ast =

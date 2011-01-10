@@ -1,0 +1,35 @@
+
+% function with no input and output parameters
+.function [
+    .name foo
+]
+
+
+% function with a record input parameter and primitive output and error
+.function [
+    .name bar
+
+    .input [
+        .field [
+            .type int
+            .optional
+        ]
+    ]
+    .output int
+    .error float
+]
+
+
+% function with a record input that has a default value
+.function [
+    .name baz
+
+    .input [
+        .field [
+            .type int
+            .optional
+            .default 10
+        ]
+    ]
+]
+

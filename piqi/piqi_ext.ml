@@ -23,10 +23,13 @@
 (* XXX: include this module from Piqi? *)
 
 
-module C = Piqi_common  
+module C = Piqi_common
 open C
 
 
 let get_functions modules =
   flatmap (fun x -> x.P#func) modules
 
+
+let get_resolved_functions modules =
+  flatmap (fun x -> x.P#resolved_func) modules

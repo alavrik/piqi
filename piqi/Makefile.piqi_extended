@@ -1,0 +1,14 @@
+include $(PIQI_ROOT)/piqi/Makefile.piqi_common
+
+
+PIQI_SOURCES_EXTENDED = \
+	piqi_ext.ml \
+	piqi_func.ml \
+
+
+PIQI_SOURCES_TAIL += $(PIQI_SOURCES_EXTENDED)
+
+
+$(PIQI_SOURCES_EXTENDED): % : $(PIQI_ROOT)/piqi/%
+	ln -s $< $@
+

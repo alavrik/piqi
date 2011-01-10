@@ -70,7 +70,7 @@ let find_dups l =
     | h::t ->
         try 
           let dup = List.find (fun x -> x = h) t in
-          Some dup
+          Some (dup, h)
         with Not_found -> aux t
   in aux l
 

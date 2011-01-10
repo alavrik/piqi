@@ -1,13 +1,10 @@
 include $(PIQI_ROOT)/make/Makefile.ocaml
-include Makefile.piqi_common
+include Makefile.piqi_extended
 
 
 RESULT = piqi
 
 SOURCES += \
-	piqi_ext.ml \
-	piqi_func.ml \
-	\
 	piqi_json_common.ml \
 	piqi_json_parser.mll \
 	piqi_json_gen.ml \

@@ -42,5 +42,5 @@ piqi convert $f.piqi.wire
 piqi convert -t pb $f.piqi
 
 # convert it back to .piq and print to stdout
-piqi convert --piqtype piqi.org/piqi/piqi $f.piqi.pb
+piqi convert --piqtype piqi $f.piqi.pb
 
