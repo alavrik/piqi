@@ -3,7 +3,7 @@
 % normally defined in a separate module as extensions to aliases defined in
 % piqi.org/piqi-boot.piqi, but at boot stage, Piqi doesn't support extensions.
 %
-%  Copyright 2009, 2010 Anton Lavrik
+%  Copyright 2009, 2010, 2011 Anton Lavrik
 
  
 %.module boot/piqi-boot

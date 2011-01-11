@@ -3,7 +3,7 @@
 % This file defines extensions for piq type specificaiton which enable support
 % for wire (binary) encoding of piq objects.
 %
-% Copyright 2009, 2010 Anton Lavrik
+% Copyright 2009, 2010, 2011 Anton Lavrik
 
 
 .module piqi.org/piqtype-wire

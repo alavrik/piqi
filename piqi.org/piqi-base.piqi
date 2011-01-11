@@ -3,7 +3,7 @@
 % This file contains the most general piqi specification, i.e. without specific
 % extensions.
 % 
-% Copyright 2009, 2010 Anton Lavrik
+% Copyright 2009, 2010, 2011 Anton Lavrik
 
 
 .module piqi.org/piqi-base

@@ -3,7 +3,7 @@
 % This file defines some extensions to base piqi specification enabling fields
 % specific to JSON
 % 
-% Copyright 2009, 2010 Anton Lavrik
+% Copyright 2009, 2010, 2011 Anton Lavrik
 
 
 .module piqi.org/piqi-json
