@@ -21,7 +21,6 @@
  *)
 
 open Piqi_common
-open Piqic_common
 
 
 (*
@@ -30,13 +29,13 @@ open Piqic_common
 
 let _ =
   (* normalize Piqi identifiers unless overrided by the command-line option *)
-  flag_normalize := true
+  Piqic_common.flag_normalize := true
 
 
 (* Erlang name of piqi name *)
 let erlang_name n =
   let n =
-    if !flag_normalize
+    if !Piqic_common.flag_normalize
     then Piqi_name.normalize_name n
     else String.uncapitalize n
   in
@@ -103,6 +102,33 @@ let erlname_piqdef = function
 let erlname_defs (defs:T.piqdef list) =
   List.iter erlname_piqdef defs
 
+
+let erlname_func_param func_name param_name param =
+  let make_name () =
+    Some (func_name ^ "_" ^ param_name)
+  in
+  match param with
+   | None -> ()
+   | Some (`record x) ->
+       x.R#erlang_name <- make_name ()
+   | Some (`alias x) ->
+       x.A#erlang_name <- make_name ()
+
+
+let erlname_func x =
+  let open T.Func in (
+    if x.ocaml_name = None then x.erlang_name <- erlname x.name;
+    let func_name = some_of x.erlang_name in
+    erlname_func_param func_name "input" x.resolved_input;
+    erlname_func_param func_name "output" x.resolved_output;
+    erlname_func_param func_name "error" x.resolved_error;
+  )
+
+
+let erlname_functions l =
+  List.iter erlname_func l
+
+
 let erl_modname n =
   let n = Piqi_name.get_local_name n in (* cut module path *)
   Some (erlang_name n)
@@ -118,6 +144,10 @@ let rec erlname_piqi (piqi:T.piqi) =
      * <erlang-module-name> "_" *)
     if piqi.erlang_type_prefix = None
     then piqi.erlang_type_prefix <- Some (some_of piqi.erlang_module ^ "_");
+
+    (* naming function parameters first, because otherwise they will be
+     * overriden in erlname_defs *)
+    erlname_functions piqi.P#resolved_func;
 
     erlname_defs piqi.P#resolved_piqdef;
     erlname_defs piqi.P#imported_piqdef; (* XXX: why do we need that? *)
@@ -141,7 +171,7 @@ open Main
 
 
 let piqic (piqi: T.piqi) =
-  piqic_common piqi;
+  Piqic_common.piqic_common piqi;
 
   (* set Erlang names which are not specified by user *)
   erlname_piqi piqi;
@@ -212,7 +242,7 @@ let usage = "Usage: piqic erlang [options] <.piqi file>\nOptions:"
 let speclist = Main.common_speclist @
   [
     arg_C;
-    arg__normalize;
+    Piqic_common.arg__normalize;
   ]
 
 

@@ -147,7 +147,7 @@ let json_name_defs defs =
     List.iter json_name_piqdef' defs
 
 
-let json_name_piqi (piqi:T.piqi) =
+let json_name_piqi _idtable (piqi:T.piqi) =
   let open P in
   json_name_defs piqi.resolved_piqdef
 

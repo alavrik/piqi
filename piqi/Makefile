@@ -1,5 +1,5 @@
 include $(PIQI_ROOT)/make/Makefile.ocaml
-include Makefile.piqi_common
+include Makefile.piqi_extended
 
 
 RESULT = piqi

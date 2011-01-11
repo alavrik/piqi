@@ -11,6 +11,9 @@ test_builtin:
 
 
 test_complex:
+	./test_piqi empty
+	./test_piqi_proto empty
+
 	./test_piq complex
 	./test_piqi complex
 	./test_piqi_proto complex
@@ -30,6 +33,9 @@ test_complex:
 	./test_piq record-variant-list
 
 	./test_piqi piqobj
+
+	./test_piqi function
+	./test_piq function
 
 	ln -sf addressbook/addressbook.proto .
 	piqi of-proto --normalize addressbook.proto

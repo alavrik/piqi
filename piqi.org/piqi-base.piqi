@@ -17,6 +17,30 @@
 
 
 .record [
+    .name piqi
+
+    .field [
+        .name module
+        .type word
+        .optional
+        .ocaml-name "modname"
+    ]
+
+    .field [
+        .name custom-field
+        .type word
+        .repeated
+    ]
+
+    .field [ .type piqdef .repeated ]
+    .field [ .type extend .repeated ]
+    .field [ .type include .repeated ]
+    .field [ .type import .repeated ]
+    .field [ .type function .repeated ]
+]
+
+
+.record [
     .name include
     .ocaml-name "includ"
 
@@ -62,24 +86,45 @@
 
 
 .record [
-    .name piqi
+    .name function
+    .ocaml-name "func"
+
+    .field [ .type name ]
 
     .field [
-        .name module
-        .type word
+        .name input
+        .type function-param
         .optional
-        .ocaml-name "modname"
     ]
 
     .field [
-        .name custom-field
-        .type word
+        .name output
+        .type function-param
+        .optional
+    ]
+
+    .field [
+        .name error
+        .type function-param
+        .optional
+    ]
+]
+
+
+.variant [
+    .name function-param
+    .option [ .type name ]
+    .option [ .type anonymous-record ]
+]
+
+
+% "anonymous-record" is a "record" without a name
+.record [
+    .name anonymous-record
+
+    .field [
+        .type field
         .repeated
     ]
-
-    .field [ .type piqdef .repeated ]
-    .field [ .type extend .repeated ]
-    .field [ .type include .repeated ]
-    .field [ .type import .repeated ]
 ]
 

@@ -494,6 +494,8 @@ and parse_variant t x =
             parse_text_option options x
         | `named {T.Named.name = n; T.Named.value = x} ->
             parse_named_option options n x
+        | `list _ ->
+            parse_list_option options x
         | o -> error o "invalid option"
     in
     Piqloc.addref x value;
@@ -602,6 +604,11 @@ and parse_string_option options x =
 
 and parse_text_option options x =
   let f = make_option_finder (function `string | `text -> true | _ -> false) in
+  parse_typed_option options f x
+
+
+and parse_list_option options x =
+  let f = make_option_finder (function `record _ | `list _ -> true | _ -> false) in
   parse_typed_option options f x
 
 

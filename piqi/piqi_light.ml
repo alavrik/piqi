@@ -27,18 +27,20 @@ open Iolist
 
 
 let gen_typeref (t:T.typeref) =
+  let gen_typename x = ios x ^^ ios "()" in
   match t with
-    | `name x -> ios x
+    | `name x -> gen_typename x
+    | (#T.piqdef as x) -> gen_typename (piqdef_name x)
     | (#T.piqtype as t) ->
         (* generate name for built-in types *)
-        (ios "." ^^ ios (piqi_typename t))
+        ios "." ^^ ios (piqi_typename t)
 
 
 let gen_name_typeref name typeref =
   match name, typeref with
     | Some n, None -> ios n
-    | None, Some t -> ios ":" ^^ gen_typeref t
-    | Some n, Some t -> ios n ^^ ios " :" ^^ gen_typeref t
+    | None, Some t -> gen_typeref t
+    | Some n, Some t -> ios n ^^ ios " :: " ^^ gen_typeref t
     | _ -> assert false
 
 
@@ -80,9 +82,10 @@ let gen_record x =
   let open R in
   let fields = List.map gen_field x.field in
   iol [
-    ios "type "; ios x.name; ios " = record"; indent;
+    eol; ios "  {"; indent;
       iod "\n" fields;
     unindent;
+    eol; ios "  }";
   ]
 
 
@@ -97,7 +100,7 @@ let gen_enum x =
   let open E in
   let options = List.map gen_option x.option in
   iol [
-    ios "type "; ios x.name; ios " = enum"; indent;
+    indent;
       iod "\n" options; (* XXX: print on the same line? *)
     unindent;
   ]
@@ -107,7 +110,7 @@ let gen_variant x =
   let open V in
   let options = List.map gen_option x.option in
   iol [
-    ios "type "; ios x.name; ios " = variant"; indent;
+    indent;
       iod "\n" options; (* XXX: try to print on the same line? *)
     unindent;
   ]
@@ -117,7 +120,7 @@ let gen_list x =
   let open L in
   let typename = gen_typeref x.typeref in
   iol [
-    ios "type "; ios x.name; ios " = list :"; typename;
+    ios " [ "; typename; ios " ]"
   ]
 
 
@@ -125,16 +128,24 @@ let gen_alias x =
   let open A in
   let typename = gen_typeref x.typeref in
   iol [
-    ios "type "; ios x.name; ios " = :"; typename;
+    ios " "; typename;
   ]
 
 
-let gen_def = function
+let gen_piqdef_repr = function
   | `record t -> gen_record t
   | `variant t -> gen_variant t
   | `enum t -> gen_enum t
   | `list t -> gen_list t
   | `alias t -> gen_alias t
+
+
+let gen_def x =
+  let name = piqdef_name x in
+  let repr = gen_piqdef_repr x in
+  iol [
+    ios "type "; ios name; ios " ="; repr;
+  ]
 
 
 let gen_sep l =
@@ -219,6 +230,40 @@ let gen_extensions l =
   ]
 
 
+let gen_param name p =
+  let repr = gen_piqdef_repr p in
+  iol [
+    ios name; ios " ="; repr;
+  ]
+
+
+let gen_param name = function
+  | Some x -> [gen_param name x]
+  | None -> []
+
+
+let gen_function f =
+  let open T.Func in
+  let params = List.concat [
+      gen_param "input" f.resolved_input;
+      gen_param "output" f.resolved_output;
+      gen_param "error" f.resolved_error;
+    ]
+  in
+  iol [
+    ios "function "; ios f.name; indent;
+      iod "\n" params;
+    unindent;
+  ]
+
+
+let gen_functions l =
+  let l = List.map gen_function l in
+  iol [
+    iod "\n\n" l; gen_sep l
+  ]
+
+
 let gen_module = function
   | Some x -> ios "module " ^^ ios x ^^ ios "\n\n"
   | None -> iol []
@@ -226,14 +271,16 @@ let gen_module = function
 
 let gen_piqi ch (piqi:T.piqi) =
   let open P in
-  let piqi = some_of piqi.original_piqi in
+  let _orig_piqi = some_of piqi.original_piqi in
   let code =
     iol [
+      (* XXX: gen_module _orig_piqi.modname; *)
       gen_module piqi.modname;
       gen_imports piqi.import;
       gen_includes piqi.includ;
       gen_defs piqi.piqdef;
       gen_extensions piqi.extend;
+      gen_functions piqi.resolved_func;
     ]
   in
   Iolist.to_channel ch code

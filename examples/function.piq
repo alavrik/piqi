@@ -1,0 +1,9 @@
+% input/ouput/error of functions defined in function.piqi
+
+:function/bar-input [ 10 ]
+:function/bar-output 1
+:function/bar-error 100.0
+
+
+:function/baz-input []
+

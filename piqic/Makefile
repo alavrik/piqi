@@ -1,5 +1,5 @@
 include $(PIQI_ROOT)/make/Makefile.ocaml
-include $(PIQI_ROOT)/piqi/Makefile.piqi_common
+include $(PIQI_ROOT)/piqi/Makefile.piqi_extended
 
 
 RESULT = piqic
@@ -11,6 +11,8 @@ SOURCES += \
 	piqic_ocaml_types.ml \
 	piqic_ocaml_out.ml \
 	piqic_ocaml_in.ml \
+	piqic_ocaml_defaults.ml \
+	piqic_ocaml_base.ml \
 	piqic_ocaml.ml \
 	\
 	piqic_erlang_types.ml \

@@ -22,7 +22,6 @@
  *)
 
 open Piqi_common
-open Piqic_common
 open Iolist
 
 
@@ -267,7 +266,7 @@ let gen_def = function
 
 let gen_alias a = 
   let open Alias in
-  if a.typeref = `any && not !depends_on_piq_any
+  if a.typeref = `any && not !Piqic_common.depends_on_piq_any
   then []
   else [gen_alias a]
 
@@ -279,7 +278,9 @@ let gen_def = function
 
 let gen_defs (defs:T.piqdef list) =
   let defs = flatmap gen_def defs in
-  iod " "
+  if defs = []
+  then iol []
+  else iod " "
     [
       gen_cc "let next_count = Piqloc.next_icount";
       gen_cc "let curr_count () = !Piqloc.icount";

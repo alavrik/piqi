@@ -125,10 +125,10 @@ let simplify_piqi_ast (ast:T.ast) =
         | `named {T.Named.name = "piqdef"; T.Named.value = v} -> [v]
         | x -> [x]
     )
-  (* del record/field/mode.required *)
-  (* map record/field/mode x -> x *)
-  and tr_field_mode_required =
-    tr ["record"; "field"] (
+  (* del .../mode.required *)
+  (* map .../field/mode x -> x *)
+  and tr_field_mode path =
+    tr path (
       function
         | `named {T.Named.name = "mode"; T.Named.value = `name "required"} -> []
         | `named {T.Named.name = "mode"; T.Named.value = (`name _) as x} -> [x]
@@ -141,7 +141,7 @@ let simplify_piqi_ast (ast:T.ast) =
         | `named {T.Named.name = "piq-any"; T.Named.value = v} -> [v]
         | x -> [x]
     )
-  (* //type.name x -> type.x *)
+  (* .../type.name x -> type.x *)
   and tr_type_name_common path =
     tr path (
       function
@@ -150,28 +150,37 @@ let simplify_piqi_ast (ast:T.ast) =
             [res]
         | x -> [x]
     )
-  in
-  (* map record/field/type.name x -> type x *)
-  let tr_record_field_type_name = tr_type_name_common ["record"; "field"]
-  (* map variant/option/type.name x -> type x *)
-  and tr_variant_option_type_name  = tr_type_name_common ["variant"; "option"]
-  (* map enum/option/type.name x -> type x *)
-  and tr_enum_option_type_name = tr_type_name_common ["enum"; "option"]
-  (* map alias/type.name x -> type x *)
-  and tr_alias_type_name = tr_type_name_common ["alias"]
-  (* map list/type.name x -> type x *)
-  and tr_list_type_name = tr_type_name_common ["list"]
+  (* map ../anonymous-record.x -> x *)
+  (* map ../name.x -> x *)
+  and rm_param_extra path =
+    tr path (
+      function
+        | `named {T.Named.name = "anonymous-record"; T.Named.value = v} -> [v]
+        | `named {T.Named.name = "name"; T.Named.value = v} -> [v]
+        | x -> [x]
+    )
   in
   let (|>) a f = f a in
-  ast |>
-  rm_piqdef |>
-  tr_field_mode_required |>
-  tr_extend_piq_any |>
-  tr_record_field_type_name |>
-  tr_variant_option_type_name |>
-  tr_enum_option_type_name |>
-  tr_alias_type_name |>
-  tr_list_type_name
+  let simplify_function_param param ast =
+    ast
+    |> rm_param_extra ["function"; param]
+    |> tr_type_name_common ["function"; param; "field"]
+    |> tr_field_mode ["function"; param; "field"]
+  in
+  ast
+  |> rm_piqdef
+  |> tr_field_mode ["record"; "field"]
+  |> tr_extend_piq_any
+  (* .../type.name x -> type.x *)
+  |> tr_type_name_common ["record"; "field"]
+  |> tr_type_name_common ["variant"; "option"]
+  |> tr_type_name_common ["enum"; "option"]
+  |> tr_type_name_common ["alias"]
+  |> tr_type_name_common ["list"]
+  (* functions *)
+  |> simplify_function_param "input"
+  |> simplify_function_param"output"
+  |> simplify_function_param "error"
 
 
 let compare_piqi_items a b =

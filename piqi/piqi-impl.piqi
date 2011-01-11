@@ -49,9 +49,39 @@
     .field [ .name resolved-piqdef .type piqdef .repeated ]
     .field [ .name imported-piqdef .type piqdef .repeated ]
     .field [ .name resolved-import .type import .repeated ]
+    .field [ .name resolved-func .type function .repeated ]
     .field [ .name included-piqi .type piqi .repeated ]
 
     .field [ .name original-piqi .type piqi .optional ]
 ]
 
+
+.extend [
+    .name function
+
+    .field [
+        .name resolved-input
+        .type resolved-function-param
+        .optional
+    ]
+
+    .field [
+        .name resolved-output
+        .type resolved-function-param
+        .optional
+    ]
+
+    .field [
+        .name resolved-error
+        .type resolved-function-param
+        .optional
+    ]
+]
+
+
+.variant [
+    .name resolved-function-param
+    .option [ .type record ]
+    .option [ .type alias ]
+]
 

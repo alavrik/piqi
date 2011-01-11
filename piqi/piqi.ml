@@ -21,6 +21,7 @@ open C
 
 
 module Idtable = Piqi_db.Idtable
+type idtable = T.piqdef Idtable.t
 
 
 (* start in boot_mode by default, it will be switched off later (see below) *)
@@ -38,15 +39,19 @@ let piqdef_def :T.piqtype ref = ref `bool
 (* processing hooks to be run at the end of Piqi module load & processing *)
 let processing_hooks = ref []
 
-let register_processing_hook (f :T.piqi -> unit) =
+let register_processing_hook (f :idtable -> T.piqi -> unit) =
   debug "register_processing_hook(0)\n";
+  (* NOTE: create an empty idtable just to make invocations below work; none of
+   * the plugins actually require a valid idtable to exist at this point, so we
+   * don't care *)
+  let idtable = Idtable.empty in
   (* run the hook on the embedded Piqi self-specification *)
-  f T.boot_piqi; (* XXX: some_of !boot_piqi *)
+  f idtable T.boot_piqi; (* XXX: some_of !boot_piqi *)
   debug "register_processing_hook(1.5)\n";
-  f T.piqi;
+  f idtable T.piqi;
   debug "register_processing_hook(1)\n";
   (* add the hook to the list of registered hooks *)
-  processing_hooks := f :: !processing_hooks
+  processing_hooks := !processing_hooks @ [f]
 
 
 let add_piqdef idtable (piqdef:T.piqdef) = 
@@ -144,11 +149,13 @@ let check_opt_name = function
   | Some x -> check_name x
 
 
-let check_dup_names names =  
+let check_dup_names what names =
   match find_dups names with
     | None -> ()
-    | Some name ->
-        error name ("duplicate name: " ^ name)
+    | Some (name, prev) ->
+        error name
+          ("duplicate " ^ what ^ " name " ^ quote name ^ "\n" ^
+            error_string prev "first defined here")
 
 
 let check_typeref obj (t:T.typeref) =
@@ -306,10 +313,10 @@ let check_resolved_def def =
   match def with
     | `record x ->
         let names = List.map (fun x -> name_of_field x) x.R#field in
-        check_dup_names names
+        check_dup_names "field" names
     | `variant x | `enum x ->
         let names = List.map (fun x -> name_of_option x) x.V#option in
-        check_dup_names names
+        check_dup_names "option" names
     | `alias x ->
         check_resolved_alias x
     | _ -> ()
@@ -409,7 +416,7 @@ let copy_defs defs = List.map copy_def defs
 let copy_imports l = List.map copy_obj l
 
 
-let resolve_defs idtable (defs:T.piqdef list) =
+let resolve_defs ?piqi idtable (defs:T.piqdef list) =
   (*
   (* a fresh copy of defs is needed, since we can't alter the original ones:
    * we need to resolve types & assign codes in order to resolve_defaults *)
@@ -434,6 +441,13 @@ let resolve_defs idtable (defs:T.piqdef list) =
   (* resolve defaults ANY to OBJ using field types and codes *)
   List.iter resolve_defaults defs;
 
+  (* set up parent namespace to local piqi defs *)
+  (match piqi with
+    | Some piqi ->
+        List.iter (fun def -> set_parent def (`piqi piqi)) defs;
+    | None -> ()
+  );
+
   (* return updated idtable *)
   idtable
 
@@ -445,17 +459,16 @@ let check_defs idtable defs =
 let read_piqi_common fname piq_parser :T.ast =
   (* don't expand abbreviations until we construct the containing object *)
   let res = Piq_parser.read_all piq_parser ~expand_abbr:false in
-  match res with
-    | [] ->
-        (* XXX: warning? *)
-        piqi_error ("piqi file is empty: " ^ fname)
-    | _ ->
-        (* wrapping items in list to make them contents of "piqi" record *)
-        let res = `list res in
-        let startloc = (fname, 1, 1) in (* start location *)
-        let ast = Piqloc.addlocret startloc res in
-        (* now expand abbreviations *)
-        Piq_parser.expand ast
+
+  if res = []
+  then piqi_warning ("piqi file is empty: " ^ fname);
+
+  (* wrapping items in list to make them contents of "piqi" record *)
+  let res = `list res in
+  let startloc = (fname, 1, 1) in (* start location *)
+  let ast = Piqloc.addlocret startloc res in
+  (* now expand abbreviations *)
+  Piq_parser.expand ast
 
 
 let read_piqi_channel fname ch :T.ast =
@@ -912,16 +925,13 @@ let rec process_piqi ?modname ?(cache=true) fname (piqi: T.piqi) =
 
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)
-  ignore (resolve_defs idtable resolved_defs);
-
-  (* set up parent namespace to local piqi defs *)
-  List.iter (fun def -> set_parent def (`piqi piqi)) resolved_defs;
+  let idtable = resolve_defs ~piqi idtable resolved_defs in
 
   piqi.P#extended_piqdef <- extended_defs;
   piqi.P#resolved_piqdef <- resolved_defs;
 
   (* run registered processing hooks *)
-  List.iter (fun f -> f piqi) !processing_hooks;
+  List.iter (fun f -> f idtable piqi) !processing_hooks;
   ()
  
 

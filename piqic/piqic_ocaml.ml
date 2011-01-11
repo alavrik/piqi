@@ -1,6 +1,6 @@
 (*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010 Anton Lavrik
+   Copyright 2009, 2010, 2011 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,156 +17,40 @@
 
 
 (* 
- * piq interface compiler for OCaml
+ * Piq interface compiler for OCaml
  *)
 
 open Piqi_common
-open Piqic_common
 
 
-(*
- * set ocaml names if not specified by user
- *)
-
-let _ =
-  (* normalize Piqi identifiers unless overrided by the command-line option *)
-  flag_normalize := true
-
-
-(* ocaml name of piqi name *)
-let ocaml_name n =
-  let n =
-    if !flag_normalize
-    then Piqi_name.normalize_name n
-    else n
+let mlname_func_param func_name param_name param =
+  let make_name () =
+    Some (func_name ^ "_" ^ param_name)
   in
-  dashes_to_underscores n
+  match param with
+   | None -> ()
+   | Some (`record x) ->
+       x.R#ocaml_name <- make_name ()
+   | Some (`alias x) ->
+       x.A#ocaml_name <- make_name ()
 
 
-let ocaml_lcname n = (* lowercase *)
-  String.uncapitalize (ocaml_name n)
+let mlname_func x =
+  let open T.Func in (
+    if x.ocaml_name = None then x.ocaml_name <- Piqic_ocaml_base.mlname x.name;
+    let func_name = some_of x.ocaml_name in
+    mlname_func_param func_name "input" x.resolved_input;
+    mlname_func_param func_name "output" x.resolved_output;
+    mlname_func_param func_name "error" x.resolved_error;
+  )
 
 
-let ocaml_ucname n = (* uppercase *)
-  String.capitalize (ocaml_name n)
-
-
-let mlname n =
-  Some (ocaml_lcname n)
-
-
-(* variant of mlname for optional names *)
-let mlname' n =
-  match n with
-    | None -> n
-    | Some n -> mlname n
-
-
-let mlname_field x =
-  let open Field in
-  if x.ocaml_name = None then x.ocaml_name <- mlname' x.name
-
-
-let mlname_record x =
-  let open Record in
-  (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
-   List.iter mlname_field x.field)
-
-
-let mlname_option x =
-  let open Option in
-  if x.ocaml_name = None then x.ocaml_name <- mlname' x.name
-
-
-let mlname_variant x =
-  let open Variant in
-  (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
-   List.iter mlname_option x.option)
-
-
-let mlname_enum x =
-  let open Enum in
-  (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
-   List.iter mlname_option x.option)
-
-
-let mlname_alias x =
-  let open Alias in
-  if x.ocaml_name = None then x.ocaml_name <- mlname x.name
-
-
-let mlname_list x =
-  let open L in
-  if x.ocaml_name = None then x.ocaml_name <- mlname x.name
-
-
-let mlname_piqdef = function
-  | `record x -> mlname_record x
-  | `variant x -> mlname_variant x
-  | `enum x -> mlname_enum x
-  | `alias x -> mlname_alias x
-  | `list x -> mlname_list x
-
-
-let mlname_defs (defs:T.piqdef list) =
-  List.iter mlname_piqdef defs
-
-
-let mlmodname n =
-  let n = Piqi_name.get_local_name n in (* cut module path *)
-  Some (ocaml_ucname n)
-
-
-let rec mlname_piqi (piqi:T.piqi) =
-  let open P in
-  begin
-    if piqi.ocaml_module = None
-    then piqi.ocaml_module <- mlmodname (some_of piqi.modname);
-
-    mlname_defs piqi.P#resolved_piqdef;
-    mlname_defs piqi.P#imported_piqdef;
-    mlname_imports piqi.P#resolved_import;
-  end
-
-and mlname_imports imports = List.iter mlname_import imports
-
-and mlname_import import =
-  let open Import in
-  begin
-    mlname_piqi (some_of import.piqi);
-    import.ocaml_name <- Some (ocaml_ucname (some_of import.name))
-  end
-
-
-open Iolist
-
-
-let piqic (piqi: T.piqi) ch =
-  piqic_common piqi;
-
-  (* set ocaml names which are not specified by user *)
-  mlname_piqi piqi;
-
-  (* set current module's name *)
-  Piqic_ocaml_types.top_modname := some_of piqi.P#ocaml_module;
-
-  (* NOTE: generating them in this order explicitly in order to avoid
-   * right-to-left evaluation if we put this code inside the list *)
-  let c1 = Piqic_ocaml_types.gen_piqi piqi in
-  let c2 = Piqic_ocaml_in.gen_piqi piqi in
-  let c3 = Piqic_ocaml_out.gen_piqi piqi in
-
-  let code = iol [ c1; c2; c3 ]
-  in
-  Iolist.to_channel ch code
+let mlname_functions l =
+  List.iter mlname_func l
 
 
 module Main = Piqi_main
 open Main
-
-
-(* command-line flags *)
-let flag_pp = ref false
 
 
 let ocaml_pretty_print ifile ofile =
@@ -178,6 +62,10 @@ let ocaml_pretty_print ifile ofile =
   let res = Sys.command cmd in
   if res <> 0
   then piqi_error ("command execution failed: " ^ cmd)
+
+
+(* command-line flags *)
+let flag_pp = ref false
 
 
 let piqic_file ifile =
@@ -194,6 +82,10 @@ let piqic_file ifile =
   (* load input .piqi file *)
   let piqi = Piqi.load_piqi ifile in
 
+  (* naming function parameters first, because otherwise they will be overriden
+   * in Piqic_ocaml_base.mlname_defs *)
+  mlname_functions piqi.P#resolved_func;
+
   (* chdir to the output directory *)
   Main.chdir_output !odir;
 
@@ -202,19 +94,18 @@ let piqic_file ifile =
       | "" -> modname ^ ".ml"
       | x -> x
   in
-
   (* call piq interface compiler for ocaml *)
   if not !flag_pp
   then
     let ch = Main.open_output ofile in
-    piqic piqi ch
+    Piqic_ocaml_base.piqic piqi ch
   else
     begin
       (* prettyprint generated OCaml code using Camlp4 *)
       let tmp_file = modname ^ ".tmp.ml" in
       (try
         let tmp_ch = open_out tmp_file in
-        piqic piqi tmp_ch;
+        Piqic_ocaml_base.piqic piqi tmp_ch;
         close_out tmp_ch;
       with Sys_error s ->
         piqi_error ("error writing temporary file: " ^ s));
@@ -233,8 +124,10 @@ let speclist = Main.common_speclist @
 
     "--pp", Arg.Set flag_pp,
       "pretty-print output using CamlP4 (camlp4o)"; 
+    "--gen-defaults", Arg.Set Piqic_ocaml_base.flag_gen_defaults,
+      "generate default values for all generated OCaml types";
 
-    arg__normalize;
+    Piqic_common.arg__normalize;
     arg__leave_tmp_files;
   ]
 
