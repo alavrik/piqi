@@ -22,15 +22,6 @@ open Piqi_common
 module L = Piq_lexer
 
 
-let location (fname, lexbuf) =
-  let line, col = L.location lexbuf in
-  (fname, line, col)
-
-
-let string_of_char c =
-  String.make 1 c
-
-
 (* tokenize '[.:]'-separated string; return separator character as string
  * between separated tokens;
  *
@@ -354,10 +345,23 @@ let make_string loc t s =
  * a simple piq parser
  *)
 
-let read_next ?(expand_abbr=true) ((fname, lexbuf) as f) =
-  let loc () = location f in
-  let token () = L.token lexbuf in
-  let rollback tok = L.rollback lexbuf tok in
+let read_next ?(expand_abbr=true) (fname, lexstream) =
+  let location = ref (0,0) in
+  let loc () =
+    let line, col = !location in
+    (fname, line, col)
+  in
+  let next_token () =
+    let tok, loc = Stream.next lexstream in
+    location := loc; tok
+  in
+  let peek_token () =
+    match Stream.peek lexstream with
+      | None -> assert false
+      | Some (tok, loc) ->
+          location := loc; tok
+  in
+  let junk_token () = Stream.junk lexstream in
   let error s = error_at (loc ()) s in
 
   let rec parse_common = function
@@ -392,19 +396,19 @@ let read_next ?(expand_abbr=true) ((fname, lexbuf) as f) =
   (* TODO, XXX: move this functionality to the lexer *)
   (* join adjacent text lines *)
   and parse_text prev_line accu =
-    let tok = token () in
+    let tok = peek_token () in
     let _,line,_ = loc () in
     match tok with
       | L.Text text when prev_line + 1 = line ->
           (* add next line to the text unless there's a line between them *)
-          parse_text line (accu ^ "\n" ^ text)
-      | t -> (* something else -- end of text block *)
-          rollback t; accu
+          junk_token (); parse_text line (accu ^ "\n" ^ text)
+      | _ -> (* something else -- end of text block *)
+          accu
 
   and parse_control () =
     let startloc = loc () in
     let rec aux accu =
-      let t = token () in
+      let t = next_token () in
       match t with
         | L.Rpar -> 
             let l = List.rev accu in
@@ -488,21 +492,21 @@ let read_next ?(expand_abbr=true) ((fname, lexbuf) as f) =
     Piqloc.addlocret loc res
 
   and parse_named_part () =
-    let t = token () in
+    let t = peek_token () in
     match t with
       (* name delimiters *)
       | L.Word s when s.[0] = '.' || s.[0] = ':' -> (* other name or type *)
-          rollback t; None
+          None
       | L.Rbr | L.Rpar -> (* closing parenthesis or bracket *)
-          rollback t; None
+          None
       (* something else *)
       | _ ->
-          Some (parse_common t) (* parse named object *)
+          junk_token (); Some (parse_common t) (* parse named object *)
 
   and parse_list () =
     let startloc = loc () in
     let rec aux accu =
-      let t = token () in
+      let t = next_token () in
       match t with
         | L.Rbr -> 
             let l = List.rev accu in
@@ -513,7 +517,7 @@ let read_next ?(expand_abbr=true) ((fname, lexbuf) as f) =
     in aux []
   in
   let parse_top () =
-    let t = token () in
+    let t = next_token () in
     match t with
       | L.EOF -> None
       | _ ->
@@ -542,12 +546,25 @@ let read_all ?(expand_abbr=true) piq_parser =
   in aux []
 
 
+let make_lexstream lexbuf =
+  let f _counter =
+    let tok = L.token lexbuf in
+    let loc = L.location lexbuf in
+    Some (tok, loc)
+  in
+  Stream.from f
+
+
 let init_from_channel fname ch =
   let lexbuf = L.init_from_channel ch in
-  (fname, lexbuf)
+  (fname, make_lexstream lexbuf)
 
 
 let init_from_string fname s =
   let lexbuf = L.init_from_string s in
-  (fname, lexbuf)
+  (fname, make_lexstream lexbuf)
+
+
+let init_from_token_list fname l =
+  (fname, Stream.of_list l)
 

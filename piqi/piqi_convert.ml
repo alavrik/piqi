@@ -40,10 +40,10 @@ let speclist = Main.common_speclist @
     arg_o;
 
     "-f", Arg.Set_string input_encoding,
-    "piq|wire|pb input encoding";
+    "piq|wire|pb|json|piq-json input encoding";
 
     "-t", Arg.Set_string output_encoding,
-    "piq|wire|pb output encoding (piq is used by default)";
+    "piq|wire|pb|json|piq-json output encoding (piq is used by default)";
 
     "--piqtype", Arg.Set_string typename,
     "<typename> type of converted object when converting from .pb or plain .json";

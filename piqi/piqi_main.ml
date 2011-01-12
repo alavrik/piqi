@@ -220,7 +220,7 @@ let usage () =
     (List.rev !commands);
   print_cmd "version" "print version";
   prerr_endline 
-    "\nMore information is available on http://piqi.org\n"
+    "\nMore information is available at http://piqi.org/doc/tools/\n"
 
 
 let exit_usage () =
