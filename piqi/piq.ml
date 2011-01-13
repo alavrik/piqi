@@ -46,10 +46,6 @@ let read_piq_ast piq_parser :T.ast =
     | None -> raise EOF
 
 
-let piqobj_of_ast ?piqtype ast :Piqobj.obj =
-  Piqobj_of_piq.parse_typed_obj ast ?piqtype
-
-
 let default_piqtype = ref None
 
 
@@ -100,12 +96,12 @@ let rec load_piq_obj piq_parser :obj =
     | `typename x ->
         error x "invalid piq object"
     | `typed _ ->
-        let obj = piqobj_of_ast ast in
+        let obj = Piqobj_of_piq.parse_typed_obj ast in
         Typed_piqobj obj
     | _ ->
         match !default_piqtype with
           | Some piqtype ->
-              let obj = piqobj_of_ast ~piqtype ast in
+              let obj = Piqobj_of_piq.parse_obj piqtype ast in
               Piqobj obj
           | None ->
               error ast "type of object is unknown"

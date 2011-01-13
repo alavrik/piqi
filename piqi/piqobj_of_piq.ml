@@ -91,8 +91,16 @@ let get_unknown_fields () =
   res
 
 
-(* XXX: resolve_defaults should be disabled by default *)
+(*
+ * global constants
+ *)
+
+(* use default values to initialize optional fields that are missing *)
 let resolve_defaults = ref false
+
+(* allow treating word literal as strings -- this mode is used by "piqi getopt"
+ *)
+let parse_words_as_strings = ref false
 
 
 (* ------------------------------------------------------------------- *)
@@ -150,6 +158,8 @@ let parse_string (x:T.ast) = match x with
   | `ascii_string s | `utf8_string s | `text s -> s
   | `binary s ->
       error s "string contains non-unicode binary data"
+  (* this mode is used by "piqi getopt" *)
+  | `word s when !parse_words_as_strings -> s
   | o -> error o "string expected"
 
 
@@ -574,7 +584,7 @@ and make_option_finder f o =
   let open T.Option in
   match o.typeref with
     | None -> false
-    | Some x -> f (unalias (piqtype x))
+    | Some x -> f (unalias (piqtype x)) (* TODO: optimize *)
 
 
 and parse_bool_option options x =
@@ -593,7 +603,12 @@ and parse_float_option options x =
 
 
 and parse_word_option options x =
-  let f = make_option_finder ((=) `word) in
+  let test_f =
+    if !parse_words_as_strings (* this mode is used by "piqi getopt" *)
+    then (function `word | `string -> true | _ -> false)
+    else ((=) `word)
+  in
+  let f = make_option_finder test_f in
   parse_typed_option options f x
 
 

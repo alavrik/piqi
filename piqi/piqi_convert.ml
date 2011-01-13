@@ -58,18 +58,20 @@ let speclist = Main.common_speclist @
   ]
 
 
+let find_piqtype typename =
+  if not (Piqi_name.is_valid_typename typename)
+  then
+    piqi_error ("invalid type name: " ^ typename);
+
+  try Piqi_db.find_piqtype typename
+  with Not_found ->
+    piqi_error ("unknown type: " ^ typename)
+
+
 let get_piqtype typename =
   if typename = "piqi" (* special case *)
   then !Piqi.piqi_def (* return Piqi type from embedded self-definition *)
-  else (
-    if not (Piqi_name.is_valid_typename typename)
-    then
-      piqi_error ("invalid type name: " ^ typename);
-
-    try Piqi_db.find_piqtype typename
-    with Not_found ->
-      piqi_error ("unknown type: " ^ typename)
-  )
+  else find_piqtype typename
 
 
 let do_load_piqi fname =
@@ -135,7 +137,7 @@ let make_reader load_f input_param =
   (fun () -> load_f input_param)
 
 
-let init_json_writer enc =
+let init_json_writer () =
   Piqi_json.init ();
   (* XXX: We need to resolve all defaults before converting to JSON
    * since it is a dynamic encoding *)
@@ -143,7 +145,7 @@ let init_json_writer enc =
   ()
 
 
-let init_json_reader enc =
+let init_json_reader () =
   Piqi_json.init ();
   if !typename <> ""
   then
@@ -152,34 +154,34 @@ let init_json_reader enc =
   else ()
 
 
-let get_reader = function
-  | "pb" when !typename = "" ->
-      piqi_error "--piqtype parameter must be specified for \"pb\" input encoding"
-  | "pb" ->
-      let piqtype = get_piqtype !typename in
-      let wireobj = Piq.open_pb !ifile in
-      make_reader (load_pb piqtype) wireobj
-  | "json" | "piq-json" ->
-      init_json_reader ();
-      let json_parser = Piqi_json.open_json !ifile in
-      make_reader Piq.load_json_obj json_parser
-  | _ when !typename <> "" ->
-      piqi_error "--piqtype parameter is applicable only to \"pb\" or \"json\" input encodings"
-  | "piq" ->
-      let piq_parser = Piq.open_piq !ifile in
-      make_reader Piq.load_piq_obj piq_parser
-  | "piqi" -> 
-      make_reader load_piqi !ifile
-  | "wire" ->
-      let buf = Piq.open_wire !ifile in
-      make_reader Piq.load_wire_obj buf
-  | _ ->
-      piqi_error "unknown input encoding"
+let make_reader input_encoding =
+  match input_encoding with
+    | "pb" when !typename = "" ->
+        piqi_error "--piqtype parameter must be specified for \"pb\" input encoding"
+    | "pb" ->
+        let piqtype = get_piqtype !typename in
+        let wireobj = Piq.open_pb !ifile in
+        make_reader (load_pb piqtype) wireobj
+    | "json" | "piq-json" ->
+        init_json_reader ();
+        let json_parser = Piqi_json.open_json !ifile in
+        make_reader Piq.load_json_obj json_parser
+    | _ when !typename <> "" ->
+        piqi_error "--piqtype parameter is applicable only to \"pb\" or \"json\" input encodings"
+    | "piq" ->
+        let piq_parser = Piq.open_piq !ifile in
+        make_reader Piq.load_piq_obj piq_parser
+    | "piqi" ->
+        make_reader load_piqi !ifile
+    | "wire" ->
+        let buf = Piq.open_wire !ifile in
+        make_reader Piq.load_wire_obj buf
+    | _ ->
+        piqi_error "unknown input encoding"
 
 
-let get_writer input_encoding =
-  let is_piqi_input = (input_encoding = "piqi") in
-  match !output_encoding with
+let make_writer ?(is_piqi_input=false) output_encoding =
+  match output_encoding with
     | "" (* default output encoding is "piq" *)
     | "piq" -> Piq.write_piq
     | "wire" -> Piq.write_wire
@@ -188,10 +190,10 @@ let get_writer input_encoding =
         Piq.write_json is_piqi_input
     | "piq-json" ->
         init_json_writer ();
-        output_encoding := "json";
         Piq.write_piq_json
     | "pb" -> write_pb is_piqi_input
-    | _ -> piqi_error "unknown output encoding"
+    | _ ->
+        piqi_error "unknown output encoding"
 
 
 let seen = ref [] (* the list of seen elements *)
@@ -289,14 +291,20 @@ let convert_file () =
     else Piqi_file.get_extension !ifile
   in
   validate_options input_encoding;
-  let reader = get_reader input_encoding in
-  let writer = get_writer input_encoding in
+  let reader = make_reader input_encoding in
+  let is_piqi_input = (input_encoding = "piqi") in
+  let writer = make_writer !output_encoding ~is_piqi_input in
   (* open output file *)
   let ofile =
     match !ofile with
       | "" when !output_encoding = "" -> "" (* print "piq" to stdout by default *)
       | "" when !ifile <> "" && !ifile <> "-" ->
-          !ifile ^ "." ^ !output_encoding
+          let output_extension =
+            match !output_encoding with
+              | "piq-json" -> "json"
+              | x -> x
+          in
+          !ifile ^ "." ^ output_extension
       | x -> x
   in
   let och = Main.open_output ofile in

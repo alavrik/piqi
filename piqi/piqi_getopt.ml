@@ -92,13 +92,21 @@ let parse_name_arg s =
   else error ("invalid name: " ^ quote s)
 
 
-let parse_arg = function
-  (* NOTE: we don't support '(' and ')' and '[]' is handeled separately below *)
-  | "[" -> Piq_lexer.Lbr
-  | "]" -> Piq_lexer.Rbr
-  | s when s.[0] = '"' -> parse_string_arg s
-  | s when s.[0] = '-' -> parse_name_arg s
-  | s -> parse_word_arg s
+let parse_arg s =
+  let len = String.length s in
+
+  if len = 0
+  then error "empty argument";
+  if s = "-" || s = "--"
+  then error ("invalid argument: " ^ s);
+
+  match s with
+    (* NOTE: we don't support '(' and ')' and '[]' is handeled separately below *)
+    | "[" -> Piq_lexer.Lbr
+    | "]" -> Piq_lexer.Rbr
+    | s when s.[0] = '"' -> parse_string_arg s
+    | s when s.[0] = '-' && (s.[1] < '0' || s.[1] > '9') -> parse_name_arg s
+    | s -> parse_word_arg s
 
 
 let parse_argv start =
@@ -159,18 +167,36 @@ let getopt_piq () =
   piq_ast
 
 
+let validate_options () =
+  if !typename = "" (* pretty-print mode *)
+  then (
+    if !output_encoding <> ""
+    then piqi_error "option -t can not be used without --piqtype";
+  )
+
+
 let getopt_command () =
+  validate_options ();
   (* open output file *)
-  let ch = Main.open_output !ofile in
+  let och = Main.open_output !ofile in
   (* interpret command-line arguments after "--" as Piq data *)
   let piq_ast = getopt_piq () in
-  (* TODO: parse the Piq AST according to "--piqtype" and convert to the output
-   * format according to "-t" *)
   match piq_ast with
     | None -> () (* no data *)
+    | Some ast when !typename = "" ->
+        (* with no --piqtype parameter given, just pretty-print the Piq AST *)
+        Piqi_pp.prettyprint_ast och ast;
+        output_char och '\n'
     | Some ast ->
-        Piqi_pp.prettyprint_ast ch ast;
-        output_char ch '\n'
+        let writer = Piqi_convert.make_writer !output_encoding in
+        let piqtype = Piqi_convert.find_piqtype !typename in
+        (* parse the Piq AST according to "--piqtype" and convert to the output
+         * format according to "-t" *)
+        Piqobj_of_piq.resolve_defaults := !Piqi_convert.flag_add_defaults;
+        Piqobj_of_piq.parse_words_as_strings := true;
+        let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
+        (* write the object *)
+        writer och (Piq.Typed_piqobj piqobj)
 
 
 (* find the position of the first argument after "--" *)

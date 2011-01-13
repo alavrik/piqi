@@ -84,17 +84,17 @@ let make_any ast =
   Piqloc.addrefret ast res
 
 
-let check_name loc n =
+let check_name n =
   (* XXX: this should refer to piq rather than piqi name *)
   if Piqi_name.is_valid_name n ~allow:"."
   then ()
-  else error_at loc ("invalid name: " ^ quote n)
+  else error n ("invalid name: " ^ quote n)
 
 
-let check_typename loc n =
+let check_typename n =
   if Piqi_name.is_valid_typename n ~allow:"."
   then ()
-  else error_at loc ("invalid type name: " ^ quote n)
+  else error n ("invalid type name: " ^ quote n)
 
 
 let piq_addrefret dst (src:T.ast) =
@@ -127,52 +127,50 @@ let piq_reference f x =
   else piq_addrefret x res
 
 
-let make_named loc n v :T.ast =
-  check_name loc n;
+let make_named n v :T.ast =
+  check_name n;
   match v with
     | None -> `name n
     | Some v ->
         let res = T.Named#{name = n; value = v} in
-        Piqloc.addloc loc res;
+        Piqloc.addref n res;
         `named res
 
 
-let make_typed loc n v :T.ast =
-  check_typename loc n;
+let make_typed n v :T.ast =
+  check_typename n;
   match v with
     | None -> `typename n
     | Some v ->
         let res = T.Typed#{typename = n; value = make_any v} in
-        Piqloc.addloc loc res;
+        Piqloc.addref n res;
         `typed res
 
 
-let make_named_or_typed c loc n v =
-  Piqloc.addloc loc n;
+let make_named_or_typed c name n v =
+  Piqloc.addref name n;
   let res =
     match c with
-      | "." -> make_named loc n v
-      | ":" -> make_typed loc n v
+      | "." -> make_named n v
+      | ":" -> make_typed n v
       | _ -> assert false
   in
-  Piqloc.addlocret loc res
+  Piqloc.addrefret name res
 
 
-(* TODO: adjust locations according to the name component's offset *)
-let expand_name obj c n v =
-  if not (String.contains n '.') && not (String.contains n ':')
+let expand_name obj c name value =
+  if not (String.contains name '.') && not (String.contains name ':')
   then obj
   else
-    let loc = Piqloc.find n in (* TODO: optimize *)
     let rec aux = function
       | [c; n] ->
-          make_named_or_typed c loc n v
+          make_named_or_typed c name n value
       | c::n::t ->
           let v = aux t in
-          make_named_or_typed c loc n (Some v)
+          make_named_or_typed c name n (Some v)
       | _ -> assert false
     in
-    aux (tokenize_name c n)
+    aux (tokenize_name c name)
 
 
 let expand_obj_names (obj :T.ast) :T.ast =
@@ -391,7 +389,7 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
         let text = parse_text line text in
         Piqloc.addloc text_loc text;
         Piqloc.addret (`text text)
-    | L.EOF -> error "unexpected end of file"
+    | L.EOF -> error "unexpected end of input"
 
   (* TODO, XXX: move this functionality to the lexer *)
   (* join adjacent text lines *)
@@ -485,7 +483,7 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
     (* cut the first character which is '.' or ':' *)
     let n = String.sub s 1 (String.length s - 1) in
     Piqloc.addloc loc n;
-    let res = make_f loc n (parse_named_part ()) in
+    let res = make_f n (parse_named_part ()) in
     (*
     let res = expand_obj_names res in
     *)
@@ -497,7 +495,8 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
       (* name delimiters *)
       | L.Word s when s.[0] = '.' || s.[0] = ':' -> (* other name or type *)
           None
-      | L.Rbr | L.Rpar -> (* closing parenthesis or bracket *)
+      | L.Rbr | L.Rpar (* closing parenthesis or bracket *)
+      | L.EOF -> (* end of input *)
           None
       (* something else *)
       | _ ->

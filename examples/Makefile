@@ -43,6 +43,8 @@ test_complex:
 	./test_piqi addressbook.proto
 	./test_piq addressbook
 
+	./test_getopt
+
 
 clean:
 	rm -f *.pb *.wire *.json *.proto* addressbook.*
