@@ -1,4 +1,4 @@
-include $(PIQI_ROOT)/piqi/Makefile.piqi_common
+include $(PIQI_ROOT)/piqilib/Makefile.piqi_common
 
 
 PIQI_SOURCES_EXTENDED = \
@@ -9,6 +9,6 @@ PIQI_SOURCES_EXTENDED = \
 PIQI_SOURCES_TAIL += $(PIQI_SOURCES_EXTENDED)
 
 
-$(PIQI_SOURCES_EXTENDED): % : $(PIQI_ROOT)/piqi/%
+$(PIQI_SOURCES_EXTENDED): % : $(PIQI_ROOT)/piqilib/%
 	ln -s $< $@
 

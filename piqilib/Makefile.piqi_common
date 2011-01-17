@@ -62,13 +62,13 @@ INCDIRS = ../piqirun-ocaml
 # USE_CAMLP4 = yes
 
 
-piqobj.ml: $(PIQI_ROOT)/piqi/piqobj.ml.m4
+piqobj.ml: $(PIQI_ROOT)/piqilib/piqobj.ml.m4
 	m4 $< >$@
 
 piqi_version.ml: $(PIQI_ROOT)/VERSION
 	echo "let version = \"`head -1 $<`\"" >$@
 
 
-$(PIQI_SOURCES): % : $(PIQI_ROOT)/piqi/%
+$(PIQI_SOURCES): % : $(PIQI_ROOT)/piqilib/%
 	ln -s $< $@
 

@@ -19,7 +19,7 @@ test: test_boot test_piqi test_piqi_piqi test_piqtype_core
 
 test_boot:
 	set -e; \
-	ln -sf ../piqi/piqobj.piqi piqobj.piqi; \
+	ln -sf ../piqilib/piqobj.piqi piqobj.piqi; \
 	for i in $(BOOT_PIQI_FILES); \
 	do \
 		piqi check --noboot $$i; \

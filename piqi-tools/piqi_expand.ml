@@ -20,60 +20,6 @@ module C = Piqi_common
 open C
 
 
-let init_res_piqi orig_piqi =
-  let open P in
-  {
-    modname = orig_piqi.modname;
-    proto_package = orig_piqi.proto_package;
-    piqdef = [];
-    extend = [];
-    includ = [];
-    import = [];
-    func = [];
-
-    custom_field = [];
-
-    (* piqi-impl (implementation related) extensions *)
-    extended_piqdef = [];
-    resolved_piqdef = [];
-    imported_piqdef = [];
-    resolved_import = [];
-    resolved_func = [];
-    included_piqi = [];
-    original_piqi = None;
-  }
-
-
-let expand_piqi ?(includes_only=false) piqi =
-  let open P in
-  let all_piqi = piqi.included_piqi in
-  let orig_piqi = some_of piqi.original_piqi in
-
-  (* create a new piqi module from the original piqi module *)
-  let res_piqi = init_res_piqi orig_piqi in
-
-  (* copy all imports to the resulting module *)
-  let imports = Piqi.get_imports all_piqi in
-  res_piqi.import <- imports;
-
-  (* copy all definitions to the resulting module *)
-  res_piqi.piqdef <-
-    if includes_only
-    then Piqi.get_piqdefs all_piqi
-    else piqi.extended_piqdef;
-
-  (* copy all extensions to the resulting module *)
-  res_piqi.extend <-
-    if includes_only
-    then Piqi.get_extensions all_piqi
-    else [];
-
-  (* copy all functions to the resulting module *)
-  res_piqi.func <- Piqi_ext.get_functions all_piqi;
-
-  res_piqi
-
-
 module Main = Piqi_main
 open Main
 
@@ -95,7 +41,7 @@ let speclist = Main.common_speclist @
 let expand_file filename =
   let ch = Main.open_output !ofile in
   let piqi = Piqi.load_piqi filename in
-  let res_piqi = expand_piqi piqi ~includes_only:!flag_includes_only in
+  let res_piqi = Piqi_ext.expand_piqi piqi ~includes_only:!flag_includes_only in
   Piqi_pp.prettyprint_piqi ch res_piqi
 
 

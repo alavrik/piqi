@@ -74,7 +74,7 @@ let parse_string (x:json) = match x with
 
 let parse_binary (x:json) = match x with
   | `String x ->
-      (try Base64.decode x
+      (try Piqi_base64.decode x
       with Invalid_argument _ ->
         error x "invalid base64-encoded string"
       )

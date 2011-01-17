@@ -16,20 +16,34 @@
 *)
 
 
-(* This module contains functionality that Piqi module would contain, but if it
- * did, it would break Piqicc bootstrap that doesn't support advanced Piqi
- * functionality such as functions. *)
-
-(* XXX: include this module from Piqi? *)
+(*
+ * Light syntax for Piqi DDL: Piqi to Piqi-light pretty-printer
+ *)
 
 
-module C = Piqi_common
-open C
+let print_piqi_file ch filename =
+  let piqi = Piqi.load_piqi filename in
+  Piqi_light.gen_piqi ch piqi
 
 
-let get_functions modules =
-  flatmap (fun x -> x.P#func) modules
+module Main = Piqi_main
+open Main
+
+let usage = "Usage: piqi light [options] [<.piqi file>] [output-file]\nOptions:"
+
+let speclist = Main.common_speclist @
+  [
+    arg_o;
+  ]
 
 
-let get_resolved_functions modules =
-  flatmap (fun x -> x.P#resolved_func) modules
+let run () =
+  Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:2;
+  let ch = Main.open_output !ofile in
+  print_piqi_file ch !ifile
+
+
+let _ =
+  Main.register_command run "light"
+    "pretty-print %.piqi using Piqi-light syntax"
+

@@ -32,6 +32,7 @@ test_complex:
 	./test_piqi_proto record-variant-list
 	./test_piq record-variant-list
 
+	ln -sf ../piqilib/piqobj.piqi .
 	./test_piqi piqobj
 
 	./test_piqi function
@@ -47,4 +48,4 @@ test_complex:
 
 
 clean:
-	rm -f *.pb *.wire *.json *.proto* addressbook.*
+	rm -f *.pb *.wire *.json *.proto* addressbook.* piqobj.piqi

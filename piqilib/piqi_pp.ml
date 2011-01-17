@@ -19,51 +19,6 @@
 open Piqi_common 
 
 
-let map_words (x:T.ast) f =
-  let rec aux = function
-    | `word s -> `word (f s)
-    | `name s -> `name (f s)
-    | `named ({T.Named.value = v} as x) ->
-        `named {x with T.Named.value = aux v}
-    | `typed ({T.Typed.value = v} as x) ->
-        let ast = some_of v.T.Any.ast in
-        let v = {v with T.Any.ast = Some (aux ast)} in
-       `typed {x with T.Typed.value = v}
-    | `list l -> `list (List.map aux l)
-    | `control l -> `control (List.map aux l)
-    | x -> x
-  in aux x
-
-
-let normalize ast =
-  map_words ast Piqi_name.normalize_name
-
-
-module Main = Piqi_main
-open Main
-
-
-let flag_normalize = ref false
-let flag_expand_abbr = ref false
-
-
-let usage = "Usage: piqi pp [options] [<.piqi|.piq file>] [output file]\nOptions:"
-
-
-let speclist = Main.common_speclist @
-  [
-    arg_o;
-
-    "--normalize-words", Arg.Set flag_normalize,
-    "normalize all words while pretty-printing (convert CamelCase to camel-case)";
-
-    "--expand-abbr", Arg.Set flag_expand_abbr,
-    "expand built-in syntax abbreviations";
-
-    arg__;
-  ]
-
-
 (* old method for pretty-printing:
 let prettyprint_ast ast =
   let code = Piq_gen.print_ast ast in
@@ -230,59 +185,4 @@ let piqi_to_ast ?(simplify=false) piqi =
 let prettyprint_piqi ch (piqi:T.piqi) =
   let ast = piqi_to_ast piqi ~simplify:true in
   prettyprint_piqi_ast ch ast
-
-
-let transform_ast ast =
-  let ast =
-    if !flag_normalize
-    then normalize ast
-    else ast
-  in
-  let ast =
-    if !flag_expand_abbr
-    then Piq_parser.expand ast
-    else ast
-  in ast
-
-
-let open_piq fname =
-  let ch = Piqi_main.open_input fname in
-  let piq_parser = Piq_parser.init_from_channel fname ch in
-  piq_parser
-
-
-let read_piq_obj piq_parser =
-  let res = Piq_parser.read_next piq_parser in
-  (* reset location db to allow GC to collect previously read objects *)
-  Piqloc.reset ();
-  res
-
-
-let prettyprint_piq ch piq_parser =
-  let rec aux () =
-    match read_piq_obj piq_parser with
-      | None -> ()
-      | Some ast ->
-          let ast = transform_ast ast in
-          prettyprint_ast ch ast;
-          output_char ch '\n';
-          aux ()
-  in aux ()
-
-
-let prettyprint_file filename =
-  let ch = Main.open_output !ofile in
-  (* switch piq parser/generator to pretty-print mode *)
-  Config.pp_mode := true;
-  let piq_parser = open_piq filename in
-  prettyprint_piq ch piq_parser
-
-
-let run () =
-  Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:2;
-  prettyprint_file !ifile
-
- 
-let _ =
-  Main.register_command run "pp" "pretty-print %.piqi or %.piq"
 

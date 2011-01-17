@@ -1,7 +1,8 @@
-piqi
+piqilib.*
 piqtype.*
 piqobj.ml
-descriptor.*
 piqi_version.ml
 piqi_json_parser.ml
 
+dllpiqilib_stubs.so
+libpiqilib_stubs.a

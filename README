@@ -64,8 +64,9 @@ FILES
   camlp4/               camlp4 extensions
   piqicc/               Piqi compiler compiler
   piqic/                Piq interface compiler for OCaml and Erlang
-  piqi/                 "piqi" command-line utility (piqi tools)
-  piqi.org/             Piqi self-specifications
+  piqi-tools/           "piqi" command-line utility (piqi tools)
+  piqi.org/             Piqi self-specification
+  piqilib/              Piqi common library
   piqirun-ocaml/        Piqi runtime library for OCaml
   piqirun-erlang/       Piqi runtime library for Erlang
   examples/             examples

@@ -17,7 +17,7 @@
 
 
 (*
- * Light syntax for Piqi DDL: Piqi to Piqi-light pretty-printer
+ * Light syntax for Piqi DDL.
  *)
 
 
@@ -284,31 +284,4 @@ let gen_piqi ch (piqi:T.piqi) =
     ]
   in
   Iolist.to_channel ch code
-
-
-let print_piqi_file ch filename =
-  let piqi = Piqi.load_piqi filename in
-  gen_piqi ch piqi
-
-
-module Main = Piqi_main
-open Main
-
-let usage = "Usage: piqi light [options] [<.piqi file>] [output-file]\nOptions:"
-
-let speclist = Main.common_speclist @
-  [
-    arg_o;
-  ]
-
-
-let run () =
-  Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:2;
-  let ch = Main.open_output !ofile in
-  print_piqi_file ch !ifile
-
-
-let _ =
-  Main.register_command run "light"
-    "pretty-print %.piqi using Piqi-light syntax"
 

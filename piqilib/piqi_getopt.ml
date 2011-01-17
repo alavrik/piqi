@@ -17,8 +17,7 @@
 
 
 (*
- * Command-line element parsing, pretty-printing and converting to various
- * output formats.
+ * Interpreting command-line arguments as Piq data
  *)
 
 
@@ -138,20 +137,8 @@ let parse_argv start =
   aux start
 
 
-(* index of the "--" element in argv array *)
-let argv_start_index = ref 0
-
-(* command-line arguments *)
-let output_encoding = ref ""
-let typename = ref ""
-
-
-module Main = Piqi_main
-open Main
-
-
-let getopt_piq () =
-  let tokens = parse_argv !argv_start_index in
+let getopt_piq argv_start_index =
+  let tokens = parse_argv argv_start_index in
   let piq_parser = Piq_parser.init_from_token_list getopt_filename tokens in
   let piq_objects = Piq_parser.read_all piq_parser in
   let piq_ast =
@@ -165,76 +152,4 @@ let getopt_piq () =
           Some res
   in
   piq_ast
-
-
-let validate_options () =
-  if !typename = "" (* pretty-print mode *)
-  then (
-    if !output_encoding <> ""
-    then piqi_error "option -t can not be used without --piqtype";
-  )
-
-
-let getopt_command () =
-  validate_options ();
-  (* open output file *)
-  let och = Main.open_output !ofile in
-  (* interpret command-line arguments after "--" as Piq data *)
-  let piq_ast = getopt_piq () in
-  match piq_ast with
-    | None -> () (* no data *)
-    | Some ast when !typename = "" ->
-        (* with no --piqtype parameter given, just pretty-print the Piq AST *)
-        Piqi_pp.prettyprint_ast och ast;
-        output_char och '\n'
-    | Some ast ->
-        let writer = Piqi_convert.make_writer !output_encoding in
-        let piqtype = Piqi_convert.find_piqtype !typename in
-        (* parse the Piq AST according to "--piqtype" and convert to the output
-         * format according to "-t" *)
-        Piqobj_of_piq.resolve_defaults := !Piqi_convert.flag_add_defaults;
-        Piqobj_of_piq.parse_words_as_strings := true;
-        let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
-        (* write the object *)
-        writer och (Piq.Typed_piqobj piqobj)
-
-
-(* find the position of the first argument after "--" *)
-let rest_fun arg =
-  if !argv_start_index = 0 (* first argument after first occurence of "--" *)
-  then argv_start_index := !Arg.current + 1
-  else ()
-
-
-let usage = "Usage: piqi getopt [options] -- [<data arguments>] \nOptions:"
-
-
-let speclist = Main.common_speclist @
-  [
-    arg_o;
-
-    "-t", Arg.Set_string output_encoding,
-    "piq|wire|pb|json|piq-json output encoding (piq is used by default)";
-
-    "--piqtype", Arg.Set_string typename,
-    "<typename> type of the object represented by data arguments";
-
-    "--add-defaults", Arg.Set Piqi_convert.flag_add_defaults,
-    "add field default values while converting records";
-
-    "--", Arg.Rest rest_fun,
-    "separator between piqi command-line arguments adn data arguments";
-  ]
-
-
-let run () =
-  Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:0;
-  if !argv_start_index = 0 (* "--" is not present in the list of arguments *)
-  then argv_start_index := Array.length Sys.argv;
-  getopt_command ()
-
- 
-let _ =
-  Main.register_command run "getopt"
-    "interpret command-line arguments as Piq data, pretty-print and convert to various encodings"
 
