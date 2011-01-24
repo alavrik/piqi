@@ -116,3 +116,10 @@ let arg__normalize =
   "--normalize", Arg.Bool (fun x -> flag_normalize := x),
     "<true|false> normalize identifiers (default: true)"
 
+
+let init () =
+  (* We have to load embedded Piqi boot modules, because the piqic spec is wider
+   * than piqicc spec, which means that the default Piqtype.boot_piqi, created
+   * using the narrower piqicc spec, misses some fields. *)
+  Piqi.load_embedded_boot_piqi ()
+

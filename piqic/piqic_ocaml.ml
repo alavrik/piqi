@@ -69,6 +69,8 @@ let flag_pp = ref false
 
 
 let piqic_file ifile =
+  Piqic_common.init ();
+
   (* obtain modname of the file by cutting out the directory and extension
    * parts *)
   let modname = Piqi_file.basename ifile in
