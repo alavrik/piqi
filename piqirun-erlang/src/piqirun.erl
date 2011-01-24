@@ -132,7 +132,12 @@ decode_varint(<<0:1, I:7, Rest/binary>>, Acc) ->
             end, 0, Acc1),
     {Result, Rest};
 decode_varint(<<1:1, I:7, Rest/binary>>, Acc) ->
-    decode_varint(Rest, [I | Acc]).
+    decode_varint(Rest, [I | Acc]);
+decode_varint(Bytes, _Acc) when is_binary(Bytes) ->
+    % Return the same error as returned by my_split_binary/2 when parsing
+    % fields (see below). This way, when there's not enough data for parsing a
+    % field, the returned error is the same regardless of where it occured.
+    error('not_enough_data').
 
 
 -spec gen_record/2 :: (
@@ -351,14 +356,35 @@ parse_field(Bytes) ->
             ?TYPE_VARINT -> decode_varint(Content);
             ?TYPE_STRING ->
                 {Length, R1} = decode_varint(Content),
-                {Value, R2} = split_binary(R1, Length),
+                {Value, R2} = my_split_binary(R1, Length),
                 {{'block', Value}, R2};
             ?TYPE_64BIT ->
-                split_binary(Content, 8);
+                my_split_binary(Content, 8);
             ?TYPE_32BIT ->
-                split_binary(Content, 4)
+                my_split_binary(Content, 4)
         end,
     {{FieldCode, FieldValue}, Rest}.
+
+
+my_split_binary(X, Pos) when byte_size(X) >= Pos ->
+    split_binary(X, Pos);
+my_split_binary(_X, _Pos) ->
+    error('not_enough_data').
+
+
+-spec parse_field_part/1 :: (
+    Bytes :: binary() ) -> 'undefined' | {parsed_field(), Rest :: binary()}.
+
+% Similar to parse_field/1, but if there's not enough data, 'undefined' is
+% returned as the result.
+parse_field_part(Bytes) ->
+    try
+        parse_field(Bytes)
+    catch
+        % raised in either parse_field_header/1 or in parse_field/1 meaning that
+        % there's not enough data
+        {'piqirun_error', 'not_enough_data'} -> 'undefined'
+    end.
 
 
 -spec parse_record/1 :: (
@@ -418,21 +444,79 @@ find_fields(Code, [H | T], Accu, Rest) ->
     find_fields(Code, T, Accu, [H | Rest]).
 
 
-parse_binobj(Binobj) ->
-    L = parse_record_buf(Binobj),
-    case L of
-        [{2, X}] -> % anonymous binobj
-            {'undefined', X};
-        [{1, Nameobj}, {2, X}] -> % named binobj
-            % strings are encoded as variable-length blocks
+-type binobj() ::
+    {ObjName :: 'undefined' | binary(), ObjValue :: piqirun_buffer()}.
+
+-spec parse_binobj/1 :: (Bytes :: binary()) -> binobj().
+
+parse_binobj(Bytes) ->
+    {Binobj, _Rest = <<>>} = parse_binobj_common(Bytes),
+    Binobj.
+
+
+parse_binobj_common(Bytes) ->
+    {Value1, Rest1} = parse_field(Bytes),
+    case Value1 of
+        {2, X} -> % anonymous binobj
+            {{'undefined', X}, Rest1};
+        {1, Nameobj} -> % named binobj
             Name = string_of_block(Nameobj),
-            {Name, X}
+            {{2, X}, Rest2} = parse_field(Rest1),
+            {{Name, X}, Rest2}
     end.
 
+
+-spec parse_binobj_part/1 ::
+    (Bytes :: binary()) -> 'undefined' | {binobj(), Rest :: binary()}.
+
+% Similar to parse_binobj/1, but also returns the binary remainder left after
+% parsing the binobj. If there's not enough data, 'undefined' is returned as
+% the result.
+parse_binobj_part(Bytes) ->
+    try
+        parse_binobj_common(Bytes)
+    catch
+        % raised in either parse_field_header/1 or in parse_field/1 meaning that
+        % there's not enough data
+        {'piqirun_error', 'not_enough_data'} -> 'undefined'
+    end.
+
+
+-spec parse_default/1 ::
+    (X :: binary()) -> ObjValue :: piqirun_buffer().
 
 parse_default(X) ->
   {_, Res} = parse_binobj(X),
   Res.
+
+
+-spec gen_binobj/2 :: (
+    Generator :: function(),
+    Data :: any() ) -> iolist().
+
+% generate anonymous binobj
+gen_binobj(Generator, Data) ->
+    gen_binobj('undefined', Generator, Data).
+
+
+-spec gen_binobj/3 :: (
+    Name :: 'undefined' | binary(),
+    Generator :: function(),
+    Data :: any() ) -> iolist().
+
+% generate named binobj
+% TODO: add a unit test for gen_binobj/parse_binobj
+gen_binobj(Name, Generator, Data) ->
+    DataField = Generator(2, Data),
+    Fields =
+        case Name of
+            'undefined' -> [DataField];
+            _ ->
+                NameField = binary_to_block(1, Name),
+                [NameField, DataField]
+        end,
+    % generate record without a header
+    gen_record('undefined', Fields).
 
 
 -spec error/1 :: (any()) -> no_return().
