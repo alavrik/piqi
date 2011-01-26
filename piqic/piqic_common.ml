@@ -30,6 +30,20 @@ let gen_code = function
   | Some code -> ios (Int32.to_string code)
 
 
+(* generate default value for a built-in type *)
+let gen_builtin_default_value wire_type t =
+  let gen_obj code x =
+    match x with
+      | #T.piqdef | `any -> assert false
+      | `int -> Piqobj_to_wire.gen_int code 0L ?wire_type
+      | `float -> Piqobj_to_wire.gen_float code 0.0 ?wire_type
+      | `bool -> Piqobj_to_wire.gen_bool code false
+      | `string | `binary | `text | `word ->
+          Piqobj_to_wire.gen_string code ""
+  in
+  Piqirun.gen_binobj gen_obj t
+
+
 let check_depends_on_piq_any x =
   let is_any x = (unalias (piqtype x)) = `any in
   let is_any_opt = function
@@ -111,10 +125,16 @@ let piqic_common piqi =
 
 (* common command-line arguments processing *)
 let flag_normalize = ref false
+let flag_gen_defaults = ref false
+
 
 let arg__normalize =
   "--normalize", Arg.Bool (fun x -> flag_normalize := x),
     "<true|false> normalize identifiers (default: true)"
+
+let arg__gen_defaults =
+    "--gen-defaults", Arg.Set flag_gen_defaults,
+      "generate default values for all generated types"
 
 
 let init () =

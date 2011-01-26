@@ -141,10 +141,6 @@ and mlname_import import =
 open Iolist
 
 
-(* command-line flags *)
-let flag_gen_defaults = ref false
-
-
 let piqic (piqi: T.piqi) ch =
   Piqic_common.piqic_common piqi;
 
@@ -160,7 +156,7 @@ let piqic (piqi: T.piqi) ch =
   let c2 = Piqic_ocaml_in.gen_piqi piqi in
   let c3 = Piqic_ocaml_out.gen_piqi piqi in
   let c4 =
-    if !flag_gen_defaults
+    if !Piqic_common.flag_gen_defaults
     then Piqic_ocaml_defaults.gen_piqi piqi
     else iol []
   in

@@ -126,9 +126,7 @@ let speclist = Main.common_speclist @
 
     "--pp", Arg.Set flag_pp,
       "pretty-print output using CamlP4 (camlp4o)"; 
-    "--gen-defaults", Arg.Set Piqic_ocaml_base.flag_gen_defaults,
-      "generate default values for all generated OCaml types";
-
+    Piqic_common.arg__gen_defaults;
     Piqic_common.arg__normalize;
     arg__leave_tmp_files;
   ]

@@ -9,10 +9,13 @@ prep:
 	piqi convert --add-defaults -t pb -o piqi.piqi.pb piqi-expanded.piqi
 
 
+PIQIC_FLAGS = --pp --gen-defaults
+
+
 test:
-	piqic ocaml --pp piqi.piqi
-	piqic ocaml --pp piqtype.piqi
-	piqic ocaml --pp piqobj.piqi
+	piqic ocaml $(PIQIC_FLAGS) piqi.piqi
+	piqic ocaml $(PIQIC_FLAGS) piqtype.piqi
+	piqic ocaml $(PIQIC_FLAGS) piqobj.piqi
 	$(MAKE) -f Makefile.ocaml
 	./otest
 	cmp *.pb

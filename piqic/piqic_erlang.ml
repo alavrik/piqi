@@ -207,6 +207,11 @@ let piqic (piqi: T.piqi) =
 
   let code_gen = Piqic_erlang_out.gen_piqi piqi in
   let code_parse = Piqic_erlang_in.gen_piqi piqi in
+  let code_gen_defauls =
+    if !Piqic_common.flag_gen_defaults
+    then Piqic_erlang_defaults.gen_piqi piqi
+    else iol []
+  in
   let code = iol [
     ios "-module("; ios modname; ios ")."; eol;
     ios "-compile(export_all)."; eol;
@@ -216,6 +221,7 @@ let piqic (piqi: T.piqi) =
     eol;
     code_gen; eol;
     code_parse; eol;
+    code_gen_defauls; eol;
   ]
   in
   Iolist.to_channel ch code;
@@ -243,6 +249,7 @@ let usage = "Usage: piqic erlang [options] <.piqi file>\nOptions:"
 let speclist = Main.common_speclist @
   [
     arg_C;
+    Piqic_common.arg__gen_defaults;
     Piqic_common.arg__normalize;
   ]
 
