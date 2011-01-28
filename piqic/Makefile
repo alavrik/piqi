@@ -21,6 +21,8 @@ SOURCES += \
 	piqic_erlang_defaults.ml \
 	piqic_erlang.ml \
 	\
+	piqic_expand.ml \
+	\
 	piqic_run.ml \
 
 

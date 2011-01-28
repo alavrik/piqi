@@ -534,15 +534,14 @@ let check_assign_module_name ?modname fname (piqi:T.piqi) =
 
 (* XXX: demand explicit import name to avoid potential problems after renaming
  * imported module name? *)
-let assign_import_name x piqi =
+let assign_import_name x =
   let open Import in
   match x.name with
     | Some x -> (* import name is already defined *)
         check_name x
     | None ->
         (* derive import name from the original module's name *)
-        let full_name = some_of piqi.P#modname in
-        let name = Piqi_name.get_local_name full_name in
+        let name = Piqi_name.get_local_name x.modname in
         x.name <- Some name
 
 
@@ -1002,23 +1001,24 @@ and load_imports l = List.iter load_import l
 
 and load_import x =
   let open Import in (
-  trace "import: %s\n" x.Import.modname;
-  (* load imported module *)
-  let piqi = load_piqi_module x.modname in
-  (* save imported piqi in import.piqi field *)
-  x.piqi <- Some piqi;
-  assign_import_name x piqi;
-  ())
+    trace "import: %s\n" x.Import.modname;
+    (* load imported module *)
+    let piqi = load_piqi_module x.modname in
+    (* save imported piqi in import.piqi field *)
+    x.piqi <- Some piqi;
+    assign_import_name x;
+  )
 
 
 and load_includes l = List.map load_include l
 
 and load_include x =
   let open Includ in (
-  trace "include: %s\n" x.Includ.modname;
-  (* load included piqi module if it isn't already *)
-  let piqi = load_piqi_module x.modname in
-  piqi)
+    trace "include: %s\n" x.Includ.modname;
+    (* load included piqi module if it isn't already *)
+    let piqi = load_piqi_module x.modname in
+    piqi
+  )
 
 
 (* XXX: is it correct in case of piqicc and piqic? *)

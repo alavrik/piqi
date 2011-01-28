@@ -133,8 +133,12 @@ and mlname_imports imports = List.iter mlname_import imports
 and mlname_import import =
   let open Import in
   begin
-    mlname_piqi (some_of import.piqi);
-    import.ocaml_name <- Some (ocaml_ucname (some_of import.name))
+    match import.piqi with
+      | None -> () (* unresolved meaning that is called from piqic_expand.ml *)
+      | Some piqi -> (* normal "piqic ocaml" mode -- naming the dependencies *)
+          mlname_piqi piqi;
+          if import.ocaml_name = None
+          then import.ocaml_name <- Some (ocaml_ucname (some_of import.name))
   end
 
 

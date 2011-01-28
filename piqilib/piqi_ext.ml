@@ -45,47 +45,35 @@ let expand_piqi ?(includes_only=false) piqi =
   (* create a new piqi module from the original piqi module *)
   let res_piqi =
     {
+      (* XXX
       T.default_piqi () with
 
       modname = orig_piqi.modname;
       proto_package = orig_piqi.proto_package;
-      piqdef = [];
-      extend = [];
-      includ = [];
-      import = [];
-      func = [];
+      *)
+      orig_piqi with
 
       custom_field = [];
+      includ = [];
 
-      (* piqi-impl (implementation related) extensions *)
-      extended_piqdef = [];
-      resolved_piqdef = [];
-      imported_piqdef = [];
-      resolved_import = [];
-      resolved_func = [];
-      included_piqi = [];
-      original_piqi = None;
+      (* copy all definitions to the resulting module *)
+      piqdef =
+        if includes_only
+        then get_piqdefs all_piqi
+        else piqi.extended_piqdef;
+
+      (* copy all extensions to the resulting module *)
+      extend =
+        if includes_only
+        then get_extensions all_piqi
+        else [];
+
+      (* copy all imports to the resulting module *)
+      import = get_imports all_piqi;
+
+      (* copy all functions to the resulting module *)
+      func = get_functions all_piqi;
     }
   in
-
-  (* copy all imports to the resulting module *)
-  let imports = get_imports all_piqi in
-  res_piqi.import <- imports;
-
-  (* copy all definitions to the resulting module *)
-  res_piqi.piqdef <-
-    if includes_only
-    then get_piqdefs all_piqi
-    else piqi.extended_piqdef;
-
-  (* copy all extensions to the resulting module *)
-  res_piqi.extend <-
-    if includes_only
-    then get_extensions all_piqi
-    else [];
-
-  (* copy all functions to the resulting module *)
-  res_piqi.func <- get_functions all_piqi;
-
   res_piqi
 

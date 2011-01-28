@@ -150,7 +150,7 @@ let rec erlname_piqi (piqi:T.piqi) =
     erlname_functions piqi.P#resolved_func;
 
     erlname_defs piqi.P#resolved_piqdef;
-    erlname_defs piqi.P#imported_piqdef; (* XXX: why do we need that? *)
+    erlname_defs piqi.P#imported_piqdef;
     erlname_imports piqi.P#resolved_import;
   end
 
@@ -159,8 +159,10 @@ and erlname_imports imports = List.iter erlname_import imports
 and erlname_import import =
   let open Import in
   begin
-    erlname_piqi (some_of import.piqi);
-    import.erlang_name <- erlname (some_of import.name)
+    match import.piqi with
+      | None -> () (* unresolved meaning that is called from piqic_expand.ml *)
+      | Some piqi -> (* normal "piqic erlang" mode -- naming the dependencies *)
+          erlname_piqi piqi
   end
 
 
