@@ -172,17 +172,12 @@ module Main = Piqi_main
 open Main
 
 
-let piqic (piqi: T.piqi) =
-  Piqic_common.piqic_common piqi;
+(* command-line flags *)
+let flag_gen_specs = ref false
+let flag_gen_impl = ref false
 
-  (* set Erlang names which are not specified by user *)
-  erlname_piqi piqi;
 
-  (* set current module's name and type prefix *)
-  let modname = some_of piqi.P#erlang_module in
-  Piqic_erlang_types.top_modname := some_of piqi.P#erlang_module;
-  Piqic_erlang_types.type_prefix := some_of piqi.P#erlang_type_prefix;
-
+let gen_hrl modname piqi =
   (* open output .hrl file *)
   let ofile = modname ^ ".hrl" in
   let ch = Main.open_output ofile in
@@ -190,10 +185,9 @@ let piqic (piqi: T.piqi) =
   (* call piq interface compiler for Erlang *)
   let types = Piqic_erlang_types.gen_piqi piqi in
   let def = "__" ^ String.uppercase modname ^ "_HRL__" in
-  let def = ios def in
   let code = iol [
-    ios "-ifndef("; def; ios ")."; eol;
-    ios "-define("; def; ios ", 1)."; eol;
+    ios "-ifndef("; ios def; ios ")."; eol;
+    ios "-define("; ios def; ios ", 1)."; eol;
     eol;
     types;
     eol;
@@ -201,8 +195,10 @@ let piqic (piqi: T.piqi) =
   ]
   in
   Iolist.to_channel ch code;
-  Main.close_output ();
+  Main.close_output ()
 
+
+let gen_erl modname piqi =
   (* open output .erl file *)
   let ofile = modname ^ ".erl" in
   let ch = Main.open_output ofile in
@@ -227,10 +223,60 @@ let piqic (piqi: T.piqi) =
   ]
   in
   Iolist.to_channel ch code;
-  ()
+  Main.close_output ()
 
 
-(* command-line flags *)
+let gen_impl_hrl modname piqi =
+  (* open output _impl.hrl file *)
+  let ofile = modname ^ "_impl.hrl" in
+  let ch = Main.open_output ofile in
+
+  let specs_code = Piqic_erlang_impl.gen_function_specs piqi in
+  let def = "__" ^ String.uppercase modname ^ "_IMPL_HRL__" in
+  let code = iol [
+    ios "-ifndef("; ios def; ios ")."; eol;
+    ios "-define("; ios def; ios ", 1)."; eol;
+    eol;
+    specs_code; eol;
+    eol;
+    ios "-endif."; eol;
+  ]
+  in
+  Iolist.to_channel ch code;
+  Main.close_output ()
+
+
+let gen_impl modname piqi =
+  let impl = Piqic_erlang_impl.gen_function_default_impls piqi in
+  let code = iol [
+    ios "-include("; ioq (modname ^ "_impl.hrl"); ios ").";
+    eol; eol;
+    impl;
+    eol; eol;
+  ]
+  in
+  Iolist.to_channel stdout code
+
+
+let piqic (piqi: T.piqi) =
+  Piqic_common.piqic_common piqi;
+
+  (* set Erlang names which are not specified by user *)
+  erlname_piqi piqi;
+
+  (* set current module's name and type prefix *)
+  let modname = some_of piqi.P#erlang_module in
+  Piqic_erlang_types.top_modname := some_of piqi.P#erlang_module;
+  Piqic_erlang_types.type_prefix := some_of piqi.P#erlang_type_prefix;
+
+  if !flag_gen_impl
+  then gen_impl modname piqi
+  else (
+    gen_hrl modname piqi;
+    gen_erl modname piqi;
+    if !flag_gen_specs
+    then gen_impl_hrl modname piqi
+  )
 
 
 let piqic_file ifile =
@@ -251,8 +297,14 @@ let usage = "Usage: piqic erlang [options] <.piqi file>\nOptions:"
 let speclist = Main.common_speclist @
   [
     arg_C;
-    Piqic_common.arg__gen_defaults;
     Piqic_common.arg__normalize;
+    Piqic_common.arg__gen_defaults;
+
+    "--gen-function-specs", Arg.Set flag_gen_specs,
+      "Genereate Erlang function specifications (-spec ...)";
+
+    "--gen-default-impl", Arg.Set flag_gen_impl,
+      "Genereate Erlang default function implementations to <stdout>";
   ]
 
 
