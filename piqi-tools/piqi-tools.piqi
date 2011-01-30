@@ -1,0 +1,74 @@
+
+.function [
+    .name add-piqi  % add Piqi module
+
+    .input [
+        .field [
+            .type format  % how Piqi module is encoded (typically, proto)
+        ]
+
+        .field [
+            .name data
+            .type binary
+            .repeated
+        ]
+    ]
+
+    .error piqi-error
+]
+
+
+.function [
+    .name convert
+
+    .input [
+        .field [
+            .name type-name
+            .type piq-word  % string?
+        ]
+
+        .field [
+            .name data
+            % can be utf8 string for JSON, XML or Piq, binary for Wire and Proto
+            .type binary
+        ]
+
+        .field [
+            .name input-format
+            .type format
+        ]
+
+        .field [
+            .name output-format
+            .type format
+        ]
+    ]
+
+    .output [
+        .field [
+            .name data
+            .type binary
+        ]
+    ]
+
+    .error piqi-error
+]
+
+
+.enum [
+    .name format
+
+    .option [ piq ]
+    .option [ json ]
+    .option [ piq-json ]
+    .option [ pb ]
+    .option [ wire ]
+    %.option [ xml ]
+]
+
+
+.alias [
+    .name piqi-error
+    .type string
+]
+

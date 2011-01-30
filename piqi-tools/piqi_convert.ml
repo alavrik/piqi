@@ -154,6 +154,17 @@ let init_json_reader () =
   else ()
 
 
+let write_json is_piqi_input ch (obj: Piq.obj) =
+  match obj with
+    | Piq.Piqi _ when not is_piqi_input ->
+        (* ignore embedded Piqi specs if we are not converting .piqi *)
+        ()
+    | Piq.Piqtype _ ->
+        (* ignore default type names *)
+        ()
+    | _ -> Piq.write_json ch obj
+
+
 let make_reader input_encoding =
   match input_encoding with
     | "pb" when !typename = "" ->
@@ -187,7 +198,7 @@ let make_writer ?(is_piqi_input=false) output_encoding =
     | "wire" -> Piq.write_wire
     | "json" ->
         init_json_writer ();
-        Piq.write_json is_piqi_input
+        write_json is_piqi_input
     | "piq-json" ->
         init_json_writer ();
         Piq.write_piq_json
@@ -212,20 +223,21 @@ let remove_update_seen l =
   List.filter check_update_unseen l
 
 
-let get_piqi_deps piqi =
+let rec get_piqi_deps piqi =
   if C.is_boot_piqi piqi
   then [] (* boot Piqi is not a dependency *)
   else
     (* get all includes and includes from all included modules *)
     let includes = piqi.P#included_piqi in
-    (* get all imports and imports from all included modules *)
-    let imports =
-      List.map (fun x ->
-        let piqi = some_of x.T.Import#piqi in
-        piqi.P#included_piqi) piqi.P#resolved_import
+    (* get all dependencies from imports *)
+    let import_deps =
+      flatmap (fun x ->
+          let piqi = some_of x.T.Import#piqi in
+          flatmap get_piqi_deps piqi.P#included_piqi)
+        piqi.P#resolved_import
     in
     (* NOTE: imports go first in the list of dependencies *)
-    let l = (List.concat imports) @ includes in
+    let l = import_deps @ includes in
     (* remove duplicate entries *)
     C.uniqq l
 

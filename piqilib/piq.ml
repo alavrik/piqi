@@ -134,18 +134,20 @@ let piqi_to_piq piqi =
   }
 
 
+let gen_piq (obj :obj) =
+  match obj with
+    | Piqtype typename ->
+        make_piqtype typename
+    | Piqi piqi ->
+        piqi_to_piq piqi
+    | Typed_piqobj obj ->
+        Piqobj_to_piq.gen_typed_obj obj
+    | Piqobj obj ->
+        Piqobj_to_piq.gen_obj obj
+
+
 let write_piq ch (obj:obj) =
-  let ast =
-    match obj with
-      | Piqtype typename ->
-          make_piqtype typename
-      | Piqi piqi ->
-          piqi_to_piq piqi
-      | Typed_piqobj obj ->
-          Piqobj_to_piq.gen_typed_obj obj
-      | Piqobj obj ->
-          Piqobj_to_piq.gen_obj obj
-  in
+  let ast = gen_piq obj in
   Piq_gen.to_channel ch ast;
   (* XXX: add one extra newline for better readability *)
   Pervasives.output_char ch '\n'
@@ -263,40 +265,42 @@ let gen_piqtype code typename =
   Piqirun.gen_string code typename
 
 
-let write_piqtype ch code typename =
-  let data = gen_piqtype code typename in
-  Piqirun.to_channel ch data
-
-
-let find_add_piqtype_code ch name =
+let find_add_piqtype_code name =
   try 
     let (_, code) =
       List.find
         (function (name',_) when name = name' -> true | _ -> false)
         !out_piqtypes
-    in code
+    in None, code
   with Not_found ->
     let code = !next_out_code * 2 in
     incr next_out_code;
     out_piqtypes := (name, code)::!out_piqtypes;
-    write_piqtype ch (code-1) name;
-    code
+    let piqtype = gen_piqtype (code-1) name in
+    Some piqtype, code
+
+
+let gen_wire (obj :obj) =
+  match obj with
+    | Piqi piqi ->
+        piqi_to_wire piqi
+    | Piqtype typename ->
+        gen_piqtype 1 typename
+    | Piqobj obj ->
+        Piqobj_to_wire.gen_obj 2 obj
+    | Typed_piqobj obj ->
+        let typename = Piqobj_common.full_typename obj in
+        let piqtype, code = find_add_piqtype_code typename in
+        let data = Piqobj_to_wire.gen_obj code obj in
+        match piqtype with
+          | None -> data
+          | Some x ->
+              (* add the piqtype entry before the data *)
+              Piqirun.OBuf.iol [ x; data]
 
  
 let write_wire ch (obj :obj) =
-  let data =
-    match obj with
-      | Piqi piqi ->
-          piqi_to_wire piqi
-      | Piqtype typename ->
-          gen_piqtype 1 typename
-      | Piqobj obj ->
-          Piqobj_to_wire.gen_obj 2 obj
-      | Typed_piqobj obj ->
-          let typename = Piqobj_common.full_typename obj in
-          let code = find_add_piqtype_code ch typename in
-          Piqobj_to_wire.gen_obj code obj
-  in
+  let data = gen_wire obj in
   Piqirun.to_channel ch data
 
 
@@ -319,23 +323,25 @@ let load_pb (piqtype:T.piqtype) wireobj :obj =
     Typed_piqobj obj
 
 
+let gen_pb (obj :obj) =
+  match obj with
+    | Piqi piqi ->
+        piqi_to_pb piqi
+    | Typed_piqobj obj | Piqobj obj ->
+        let piqtype = Piqobj_common.type_of obj in
+        (match unalias piqtype with
+          | `record _ | `variant _ | `list _ -> ()
+          | _ ->
+              piqi_error "only records, variants and lists can be written to .pb"
+        );
+        Piqobj_to_wire.gen_embedded_obj obj
+    | Piqtype _ ->
+        (* ignore default type names *)
+        Piqirun.OBuf.iol [] (* == empty output *)
+
+
 let write_pb ch (obj :obj) =
-  let buf =
-    match obj with
-      | Piqi piqi ->
-          piqi_to_pb piqi
-      | Typed_piqobj obj | Piqobj obj ->
-          let piqtype = Piqobj_common.type_of obj in
-          (match unalias piqtype with
-            | `record _ | `variant _ | `list _ -> ()
-            | _ ->
-                piqi_error "only records, variants and lists can be written to .pb"
-          );
-          Piqobj_to_wire.gen_embedded_obj obj
-      | Piqtype _ ->
-          (* ignore default type names *)
-          Piqirun.OBuf.iol [] (* == empty output *)
-  in
+  let buf = gen_pb obj in
   Piqirun.to_channel ch buf
 
 
@@ -379,31 +385,39 @@ let write_json_obj ch json =
   Pervasives.output_char ch '\n'
 
 
+let gen_piq_json (obj :obj) =
+  match obj with
+    | Piqi piqi -> (* embedded Piqi spec *)
+        let json = piqi_to_json piqi in
+        `Assoc [ "_piqi", json ]
+    | Piqtype typename ->
+        `Assoc [ "_piqtype", `String typename ]
+    | Typed_piqobj obj ->
+        Piqobj_to_json.gen_typed_obj obj
+    | Piqobj obj ->
+        Piqobj_to_json.gen_obj obj
+
+
 let write_piq_json ch (obj:obj) =
-  let json =
-    match obj with
-      | Piqi piqi -> (* embedded Piqi spec *)
-          let json = piqi_to_json piqi in
-          `Assoc [ "_piqi", json ]
-      | Piqtype typename ->
-          `Assoc [ "_piqtype", `String typename ]
-      | Typed_piqobj obj ->
-          Piqobj_to_json.gen_typed_obj obj
-      | Piqobj obj ->
-          Piqobj_to_json.gen_obj obj
-  in
+  let json = gen_piq_json obj in
   write_json_obj ch json
 
 
-let write_json is_piqi_input ch (obj:obj) =
+let gen_json (obj :obj) =
   match obj with
     | Typed_piqobj obj | Piqobj obj ->
-        let json = Piqobj_to_json.gen_obj obj in
-        write_json_obj ch json
-    | Piqi piqi when is_piqi_input ->
+        Piqobj_to_json.gen_obj obj
+    | Piqi piqi ->
         (* output Piqi spec itself if we are converting .piqi *)
-        write_json_obj ch (piqi_to_json piqi)
-    | Piqtype _ | Piqi _ -> () (* ignore embedded Piqi specs and type hints *)
+        piqi_to_json piqi
+    | Piqtype _ ->
+        (* XXX *)
+        assert false (* type hints are not supported by Json encoding *)
+
+
+let write_json ch (obj:obj) =
+  let json = gen_json obj in
+  write_json_obj ch json
 
 
 let read_json_ast json_parser :Piqi_json_common.json =
