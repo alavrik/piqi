@@ -145,7 +145,7 @@ and mlname_import import =
 open Iolist
 
 
-let piqic (piqi: T.piqi) ch =
+let piqic (piqi: T.piqi) =
   Piqic_common.piqic_common piqi;
 
   (* set ocaml names which are not specified by user *)
@@ -164,7 +164,6 @@ let piqic (piqi: T.piqi) ch =
     then Piqic_ocaml_defaults.gen_piqi piqi
     else iol []
   in
-  let code = iol [ c1; c2; c3; c4 ]
-  in
-  Iolist.to_channel ch code
+  let code = iol [ c1; c2; c3; c4 ] in
+  code
 

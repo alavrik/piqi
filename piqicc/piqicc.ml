@@ -170,7 +170,11 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
   Piqic_common.flag_gen_defaults := true;
   (* Override supplied module name *)
   let piqi_impl = P#{piqi_impl with ocaml_module = Some "Piqtype"} in
-  Piqic_ocaml_base.piqic piqi_impl ch;
+  let code = iol [
+    Piqic_ocaml_base.piqic piqi_impl;
+    code;
+  ]
+  in
   Iolist.to_channel ch code;
 
   embed_boot_modules ch boot_fname

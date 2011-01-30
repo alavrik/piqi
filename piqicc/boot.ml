@@ -22,7 +22,8 @@ open Piqi_common
 let boot () = 
   (* call piq interface compiler for ocaml *)
   Piqic_ocaml_types.cc_mode := true;
-  Piqic_ocaml_base.piqic T.piqi stdout;
+  let code = Piqic_ocaml_base.piqic T.piqi in
+  Iolist.to_channel stdout code;
   print_endline "let embedded_piqi :(string * string) list ref = ref []";
   ()
 
@@ -51,7 +52,8 @@ let boot2 () =
 
   (* call piq interface compiler for ocaml *)
   Piqic_ocaml_types.cc_mode := true;
-  Piqic_ocaml_base.piqic piqi stdout;
+  let code = Piqic_ocaml_base.piqic piqi in
+  Iolist.to_channel stdout code;
   print_endline "let embedded_piqi :(string * string) list ref = ref []";
   ()
 

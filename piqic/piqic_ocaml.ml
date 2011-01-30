@@ -71,16 +71,6 @@ let flag_pp = ref false
 let piqic_file ifile =
   Piqic_common.init ();
 
-  (* obtain modname of the file by cutting out the directory and extension
-   * parts *)
-  let modname = Piqi_file.basename ifile in
-
-  (* open output .ml file *)
-  (*
-  let modname = some_of piqi.T.Piqi.ocaml_name in
-  let modname = String.lowercase modname in
-  let ofile = modname ^ ".ml" in
-  *)
   (* load input .piqi file *)
   let piqi = Piqi.load_piqi ifile in
 
@@ -88,26 +78,39 @@ let piqic_file ifile =
    * in Piqic_ocaml_base.mlname_defs *)
   mlname_functions piqi.P#resolved_func;
 
+  let code = Piqic_ocaml_base.piqic piqi in
+
   (* chdir to the output directory *)
   Main.chdir_output !odir;
 
   let ofile =
     match !ofile with
-      | "" -> modname ^ ".ml"
+      | "" ->
+          (* XXX:
+          let modname = some_of piqi.P#ocaml_module in
+          let fname_base = String.lowercase modname in
+          *)
+          let modname = Piqi_file.basename ifile in
+          (* XXX:
+          let fname_base = dashes_to_underscores (String.lowercase modname) in
+          *)
+          let fname_base = modname in
+          fname_base ^ ".ml"
       | x -> x
   in
   (* call piq interface compiler for ocaml *)
   if not !flag_pp
   then
     let ch = Main.open_output ofile in
-    Piqic_ocaml_base.piqic piqi ch
+    Iolist.to_channel ch code;
+    Main.close_output ()
   else
     begin
       (* prettyprint generated OCaml code using Camlp4 *)
-      let tmp_file = modname ^ ".tmp.ml" in
+      let tmp_file = ofile ^ ".tmp.ml" in
       (try
         let tmp_ch = open_out tmp_file in
-        Piqic_ocaml_base.piqic piqi tmp_ch;
+        Iolist.to_channel tmp_ch code;
         close_out tmp_ch;
       with Sys_error s ->
         piqi_error ("error writing temporary file: " ^ s));
