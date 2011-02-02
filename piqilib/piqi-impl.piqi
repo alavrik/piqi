@@ -85,3 +85,26 @@
     .option [ .type alias ]
 ]
 
+
+.extend [
+    .name ast
+
+    % These two token types are used only in several special cases, and can't be
+    % represented in Piq text format directly.
+
+    .option [
+        % Raw word -- a valid utf8 Piq word: may be parsed as either of these:
+        % word, bool, number, string, binary
+
+        .name raw-word
+        .type word
+    ]
+    .option [
+        % Raw binary -- just a sequence of bytes: may be parsed as either binary
+        % or utf8 string
+
+        .name raw-binary
+        .type binary
+    ]
+]
+

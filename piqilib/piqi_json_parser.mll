@@ -163,15 +163,16 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   (* returning length of utf8 string, i.e. unicode character count *)
   let utf8_length s pos bytes =
     let rec aux n i =
-      if i >= pos + bytes
-      then
-        if i = pos + bytes then n else raise Utf8.MalFormed
+      if i = pos + bytes
+      then n
       else begin
-        (* check if the next unicode char is correctly encoded in utf8 *)
-        ignore (Utf8.next s i);
         let w = Utf8.width.(Char.code s.[i]) in
-        if w > 0 then aux (succ n) (i + w)
-        else raise Utf8.MalFormed
+        if w > 0 && i + w <= pos + bytes
+        then (
+          (* check if the next unicode char is correctly encoded in utf8 *)
+          ignore (Utf8.next s i);
+          aux (succ n) (i + w)
+        ) else raise Utf8.MalFormed
       end
     in
     aux 0 pos

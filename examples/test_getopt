@@ -90,3 +90,10 @@ piqi getopt --piqtype function/bar-error -- 100.0
 piqi getopt --piqtype function/baz-input -- []
 piqi getopt --piqtype function/baz-input --add-defaults -- []
 
+# treat an argument starting with '@' as a name of the file that neads to be
+# read into a string
+piqi getopt --piqtype string -- @string.piq
+
+# parsing file's contents as a binary
+piqi getopt --piqtype binary -- @string.piq
+

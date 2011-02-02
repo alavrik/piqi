@@ -38,7 +38,7 @@ let boot2 () =
   (* reload the boot module from the file *)
   Piqi.load_boot_piqi boot_fname;
 
-  let fname = "../piqi.org/piqast.piqi" in
+  let fname = "boot/piqast.piqi" in
   let piqi = Piqi.load_piqi fname in
 
   (* add hash-based field and option codes instead of auto-enumerated ones

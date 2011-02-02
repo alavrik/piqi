@@ -67,7 +67,9 @@ module rec Piqrepr: DEFTYPES(
       | `list of ast list
       | `control of ast list
       | `word of string
-      | `text of string ]
+      | `text of string
+      | `raw_word of string
+      | `raw_binary of string ]
   >>)
 and DEFRECORD(Named,
   <<

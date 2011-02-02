@@ -328,13 +328,21 @@ let format_ast (x:T.ast) =
     | `float x -> make_atom (format_float x)
     | `bool true -> make_atom "true"
     | `bool false -> make_atom "false"
-    | `utf8_string s when !Config.pp_mode ->
-        (* in pretty-print mode the literal represents the original string *)
-        make_atom (quote s)
     | `ascii_string s | `utf8_string s ->
         make_atom (quote (Piq_lexer.escape_string s))
     | `binary s ->
         make_atom (quote (Piq_lexer.escape_binary s))
+    | `raw_binary s when !Config.pp_mode ->
+        (* in pretty-print mode, the literal represents the original string *)
+        make_atom (quote s)
+    | `raw_binary s ->
+        (* This literal can't be read back reliably after printing, and it
+         * doesn't come from Piq, but we still need to print it somehow -- in
+         * case if it is present. *)
+        (* XXX: printing it is as binary for now, but may try to print it as
+         * utf8 string if it does represet a valid string. *)
+        make_atom (quote (Piq_lexer.escape_binary s))
+    | `raw_word s (* used in pretty-printing mode and in some other cases *)
     | `word s -> make_atom s
     | `text s -> format_text (split_text s) ~top
     | `name s -> make_atom (label ^ "." ^ s)

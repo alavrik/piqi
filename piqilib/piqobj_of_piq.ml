@@ -98,10 +98,6 @@ let get_unknown_fields () =
 (* use default values to initialize optional fields that are missing *)
 let resolve_defaults = ref false
 
-(* allow treating word literal as strings -- this mode is used by "piqi getopt"
- *)
-let parse_words_as_strings = ref false
-
 
 (* ------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------- *)
@@ -127,10 +123,16 @@ let error obj s =
 
 
 (* TODO, XXX: handle integer overflows *)
-let parse_int (obj:T.ast) = match obj with
-  | `int x -> `int (Piqloc.addrefret obj x)
-  | `uint x -> `uint (Piqloc.addrefret obj x)
-  | o -> error o "int constant expected"
+let rec parse_int (obj:T.ast) =
+  match obj with
+    | `int x -> `int (Piqloc.addrefret obj x)
+    | `uint x -> `uint (Piqloc.addrefret obj x)
+    | `raw_word x ->
+        let t =
+          try Piq_parser.parse_int x
+          with Failure e -> error obj e
+        in parse_int t
+    | o -> error o "int constant expected"
 
 
 let uint64_to_float x =
@@ -142,31 +144,46 @@ let uint64_to_float x =
     Int64.to_float x
 
 
-let parse_float (x:T.ast) = match x with
-  | `int x -> Int64.to_float x
-  | `uint x -> uint64_to_float x
-  | `float x -> x
-  | o -> error o "float constant expected"
+let rec parse_float (obj:T.ast) =
+  match obj with
+    | `int x -> Int64.to_float x
+    | `uint x -> uint64_to_float x
+    | `float x -> x
+    | `raw_word x ->
+        let t =
+          try Piq_parser.parse_number x
+          with Failure e -> error obj e
+        in parse_float t
+    | o -> error o "float constant expected"
 
 
 let parse_bool (x:T.ast) = match x with
   | `bool x -> x
+  | `raw_word "true" -> true
+  | `raw_word "false" -> false
   | o -> error o "boolean constant expected"
 
 
-let parse_string (x:T.ast) = match x with
-  | `ascii_string s | `utf8_string s | `text s -> s
-  | `binary s ->
+let parse_string (x:T.ast) =
+  let unicode_error s =
       error s "string contains non-unicode binary data"
-  (* this mode is used by "piqi getopt" *)
-  | `word s when !parse_words_as_strings -> s
-  | o -> error o "string expected"
+  in
+  match x with
+    | `ascii_string s | `utf8_string s | `text s -> s
+    | `raw_binary s ->
+        if Piq_lexer.is_utf8_string s
+        then s
+        else unicode_error s
+    | `binary s -> unicode_error s
+    | `raw_word s -> s
+    | o -> error o "string expected"
 
 
 let parse_binary (x:T.ast) = match x with
-  | `ascii_string s | `binary s -> s
+  | `ascii_string s | `binary s | `raw_binary s -> s
   | `utf8_string s ->
       error s "binary contains unicode characters or code points"
+  | `raw_word s -> s
   | o -> error o "binary expected"
 
 
@@ -176,7 +193,7 @@ let parse_text (x:T.ast) = match x with
 
 
 let parse_word (x:T.ast) = match x with
-  | `word x -> x
+  | `word x | `raw_word x -> x
   | o -> error o "word expected"
 
 
@@ -492,13 +509,15 @@ and parse_variant t x =
             parse_name_option options n
         | `word _ ->
             parse_word_option options x
+        | `raw_word s ->
+            parse_raw_word_option options x s
         | `bool _ ->
             parse_bool_option options x
         | `int _ ->
             parse_int_option options x
         | `float _ ->
             parse_float_option options x
-        | `ascii_string _ | `utf8_string _ | `binary _ ->
+        | `ascii_string _ | `utf8_string _ | `binary _ | `raw_binary _ ->
             parse_string_option options x
         | `text _ ->
             parse_text_option options x
@@ -603,10 +622,20 @@ and parse_float_option options x =
 
 
 and parse_word_option options x =
-  let test_f =
-    if !parse_words_as_strings (* this mode is used by "piqi getopt" *)
-    then (function `word | `string -> true | _ -> false)
-    else ((=) `word)
+  let f = make_option_finder ((=) `word) in
+  parse_typed_option options f x
+
+
+and parse_raw_word_option options x s =
+  let len = String.length s in
+  let test_f = function
+    (* all of these type can have values represented as a raw (unparsed) word *)
+    | `word | `string | `binary -> true
+    | `bool when s = "true" || s = "false" -> true
+    | `int when s.[0] >= '0' && s.[0] <= '9' -> true
+    | `int when len > 1 && s.[0] = '-' && s.[1] >= '0' && s.[1] <= '9' -> true
+    | `float -> true
+    | _ -> false
   in
   let f = make_option_finder test_f in
   parse_typed_option options f x

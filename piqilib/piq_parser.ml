@@ -118,6 +118,8 @@ let piq_addrefret dst (src:T.ast) =
     | `typed x -> f x
     | `list x -> f x
     | `control x -> f x
+    | `raw_word x -> f x
+    | `raw_binary x -> f x
   
 
 let piq_reference f x =
@@ -319,24 +321,85 @@ let expand x =
   x
 
 
-let make_string loc t s =
-  let s, res = 
-    if !Config.pp_mode
-    then
-      (* Don't expand string in pretty-print mode and return it as utf8-string
-       * literal. This case will be handled separately in Piq_gen as well. *)
-      s, `utf8_string s
-    else
-      let s = Piq_lexer.value_of_string_literal s in
-      let res =
-        match t with
-          | L.String_a -> `ascii_string s
-          | L.String_b -> `binary s
-          | L.String_u -> `utf8_string s
-      in s, res
+let make_string loc str_type s =
+  let res =
+    match str_type with
+      | L.String_a -> `ascii_string s
+      | L.String_b -> `binary s
+      | L.String_u -> `utf8_string s
   in
   Piqloc.addloc loc s;
   Piqloc.addret res
+
+
+let retry_parse_uint s =
+  (*
+  try
+  *)
+    Piqi_c.piqi_strtoull s
+  (* XXX: can return a more precise error description:
+  with Failure _ ->
+      error ("invalid decimal integer literal: " ^ quote s)
+  *)
+
+
+let parse_uint s =
+  (* NOTE:
+   * OCaml doesn't support large unsingned decimal integer literals. For
+   * intance, this call failes with exception (Failure "int_of_string"):
+   *
+   *      Int64.of_string (Printf.sprintf "%Lu" 0xffff_ffff_ffff_ffffL)
+   *
+   * However it works with hex representations:
+   *
+   *      Int64.of_string (Printf.sprintf "%Lu" 0xffff_ffff_ffff_ffffL)
+   *
+   * We provide custom implementation based on C strtoull() function
+   * -- we're using if OCaml's conversion function fails on decimal integer.
+   *)
+  try Int64.of_string s
+  with (Failure _) as e ->
+    match s.[0] with
+      | '0'..'9' -> retry_parse_uint s
+      | _ -> raise e
+
+
+let parse_int s =
+  try
+    match s.[0] with
+      | '-' -> (* negative integer *)
+          let i = Int64.of_string s in
+          Piqloc.addref s i;
+          `int i
+      | _ ->
+          let i = parse_uint s in
+          Piqloc.addref s i;
+          `uint i
+  with Failure _ ->
+      failwith ("invalid integer literal: " ^ quote s)
+
+
+let parse_float s =
+  (* TODO: be more specific in defining floating point syntax, e.g. disallow
+   * omission of trailing '0' after '.' *)
+  try
+    let f =
+      match s with
+        | "0.nan" -> Pervasives.nan
+        | "0.inf" -> Pervasives.infinity
+        | "-0.inf" -> Pervasives.neg_infinity
+        | _ -> Pervasives.float_of_string s
+    in
+    Piqloc.addref s f;
+    `float f
+  with Failure _ ->
+    failwith ("invalid floating point literal: " ^ quote s)
+
+
+let parse_number s =
+  if String.contains s '.' || String.contains s 'e'
+  then parse_float s
+  else parse_int s
 
 
 (*
@@ -370,19 +433,25 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
     | L.String (t, s) ->
         let loc = loc () in
         make_string loc t s
-    | L.Word s when s.[0] = '.' -> (* name part of the named pair *)
+    | L.Word s | L.Raw_word s when s.[0] = '.' -> (* name part of the named pair *)
         parse_named_or_typed s make_named
-    | L.Word s when s.[0] = ':' -> (* typename part of the typed pair *)
+    | L.Word s | L.Raw_word s when s.[0] = ':' -> (* typename part of the typed pair *)
         parse_named_or_typed s make_typed
-    | L.Word s when !Config.pp_mode ->
-        (* for prettyprinting leave original words -- don't parse integers and
-         * floats *)
-        Piqloc.addloc (loc ()) s;
-        Piqloc.addret (`word s)
     | L.Word s ->
-        Piqloc.addloc (loc ()) s;
+        let word_loc = loc () in
+        Piqloc.addloc word_loc s;
         let res = parse_word s in
-        Piqloc.addret res
+        Piqloc.addlocret word_loc res
+    | L.Raw_word s ->
+        (* Used in pretty-printing mode and in some other cases, similar to
+         * Word, but we don't parse it -- just pass it through. *)
+        Piqloc.addloc (loc ()) s;
+        Piqloc.addret (`raw_word s)
+    | L.Raw_binary s ->
+        (* Used in pretty-printing mode and in some other cases, similar to
+         * String, but we don't parse it -- just pass it through. *)
+        Piqloc.addloc (loc ()) s;
+        Piqloc.addret (`raw_binary s)
     | L.Text text -> 
         let text_loc = loc () in
         let _,line,_ = text_loc in
@@ -415,68 +484,19 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
             Piqloc.addret res
         | _ -> aux ((parse_common t)::accu)
     in aux []
+
   and parse_word s =
     let len = String.length s in
+    let parse_number s =
+      try parse_number s
+      with Failure e -> error e
+    in
     match s with
       | "true" -> `bool true
       | "false" -> `bool false
       | _ when s.[0] >= '0' && s.[0] <= '9' -> parse_number s
       | _ when len > 1 && s.[0] = '-' && s.[1] >= '0' && s.[1] <= '9' -> parse_number s
       | _ -> `word s (* just a word *)
-
-  and parse_int s =
-    try
-      match s.[0] with
-        | '-' -> `int (Int64.of_string s) (* negative integer *)
-        | _ -> `uint (parse_uint s)
-    with Failure _ ->
-        error ("invalid integer literal: " ^ quote s)
-
-  and parse_uint s =
-    (* NOTE:
-     * OCaml doesn't support large unsingned decimal integer literals. For
-     * intance, this call failes with exception (Failure "int_of_string"):
-     *
-     *      Int64.of_string (Printf.sprintf "%Lu" 0xffff_ffff_ffff_ffffL)
-     *
-     * However it works with hex representations:
-     *
-     *      Int64.of_string (Printf.sprintf "%Lu" 0xffff_ffff_ffff_ffffL)
-     *
-     * We provide custom implementation based on C strtoull() function
-     * -- we're using if OCaml's conversion function fails on decimal integer.
-     *)
-    try Int64.of_string s
-    with (Failure _) as e ->
-      match s.[0] with
-        | '0'..'9' -> retry_parse_uint s
-        | _ -> raise e
-
-  and retry_parse_uint s =
-    try
-      Piqi_c.piqi_strtoull s
-    with Failure _ ->
-        error ("invalid decimal integer literal: " ^ quote s)
-
-  and parse_float s =
-    (* TODO: be more specific in defining floating point syntax, e.g. disallow
-     * omission of trailing '0' after '.' *)
-    try
-      let f =
-        match s with
-          | "0.nan" -> Pervasives.nan
-          | "0.inf" -> Pervasives.infinity
-          | "-0.inf" -> Pervasives.neg_infinity
-          | _ -> Pervasives.float_of_string s
-      in
-      `float f
-    with Failure _ ->
-      error ("invalid floating point literal: " ^ quote s)
-
-  and parse_number s =
-    if String.contains s '.' || String.contains s 'e'
-    then parse_float s
-    else parse_int s
 
   and parse_named_or_typed s make_f =
     let loc = loc () in
@@ -493,7 +513,7 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
     let t = peek_token () in
     match t with
       (* name delimiters *)
-      | L.Word s when s.[0] = '.' || s.[0] = ':' -> (* other name or type *)
+      | L.Word s | L.Raw_word s when s.[0] = '.' || s.[0] = ':' -> (* other name or type *)
           None
       | L.Rbr | L.Rpar (* closing parenthesis or bracket *)
       | L.EOF -> (* end of input *)
@@ -522,13 +542,9 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
       | _ ->
           let ast = parse_common t in
           let res =
-            if !Config.pp_mode || not expand_abbr
-            then 
-              (* return as it is for pretty-printing *)
-              ast
-            else
-              (* expand built-in syntax abbreviations *)
-              expand ast
+            if expand_abbr
+            then expand ast (* expand built-in syntax abbreviations *)
+            else ast (* return as it is *)
           in Some res
   in
   try parse_top ()

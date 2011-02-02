@@ -65,7 +65,6 @@ let getopt_command () =
         (* parse the Piq AST according to "--piqtype" and convert to the output
          * format according to "-t" *)
         Piqobj_of_piq.resolve_defaults := !Piqi_convert.flag_add_defaults;
-        Piqobj_of_piq.parse_words_as_strings := true;
         let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
         (* write the object *)
         writer och (Piq.Typed_piqobj piqobj)

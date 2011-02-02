@@ -38,57 +38,61 @@ let error s =
 
 let parse_string_arg s =
   let lexbuf = Piq_lexer.init_from_string s in
-  let res =
+  let token () =
     try
       Piq_lexer.token lexbuf
     with
       Piq_lexer.Error (err, _loc) -> error (err ^ ": " ^ s)
   in
+  let res = token () in
   match res with
-    | Piq_lexer.String (t, s') when String.length s' + 2 = String.length s ->
-        res
     | Piq_lexer.String _ ->
-        error ("trailing characters after string: " ^ s) (* s is alread quoted *)
+        (* there must be no other literal after the string *)
+        if token() = Piq_lexer.EOF
+        then res
+        else
+          (* s is alread quoted *)
+          error ("trailing characters after string: " ^ s)
     | _ ->
         assert false (* something that starts with '"' have to be a string *)
 
 
-(* specifies the same as Piq_lexer's "let regexp word =" *)
-let is_valid_word s =
-  let is_valid_char = function
-    | '(' | ')' | '[' | ']' | '{' | '}'
-    | '"' | '%' | '#' | '\000'..'\032' | '\127' -> false
-    | _ -> true
-  in
-  let len = String.length s in
-  let rec check_char i =
-    if i >= len
-    then true
-    else
-      if is_valid_char s.[i] 
-      then check_char (i + 1)
-      else false
-  in
-  if len = 0
-  then false
-  else check_char 0
-
- 
 let parse_word_arg s =
-  if is_valid_word s
-  then Piq_lexer.Word s
+  if Piq_lexer.is_valid_word s
+  then
+    (* Raw word -- a valid utf8 Piq word: may be parsed as either of these: word,
+     * bool, number, string, binary *)
+    Piq_lexer.Raw_word s
   else
-    (* return unquoted arg that is not a word as a Unicode string *)
-    Piq_lexer.String (Piq_lexer.String_u, s)
+    (* Raw binary -- just a sequence of bytes: may be parsed as either binary or
+     * utf8 string *)
+    Piq_lexer.Raw_binary s
 
 
 let parse_name_arg s =
-  if is_valid_word s
+  (* cut the leading '-' and check if what we got is a valid Piq name *)
+  let n = String.sub s 1 (String.length s - 1) in
+  if Piqi_name.is_valid_name n ~allow:"."
   then (
-    s.[0] <- '.'; (* replace '-' with '.' to get a Piq name *)
+    s.[0] <- '.'; (* replace '-' with '.' to turn it into a Piq name *)
     Piq_lexer.Word s
   )
   else error ("invalid name: " ^ quote s)
+
+
+let read_file filename =
+  let ch = open_in filename in
+  let len = in_channel_length ch in
+  let buf = Buffer.create len in
+  Buffer.add_channel buf ch len;
+  close_in ch;
+  Buffer.contents buf
+
+
+let read_file filename =
+  try read_file filename
+  with Sys_error s ->
+    error ("error reading file argument: " ^ s)
 
 
 let parse_arg s =
@@ -104,7 +108,17 @@ let parse_arg s =
     | "[" -> Piq_lexer.Lbr
     | "]" -> Piq_lexer.Rbr
     | s when s.[0] = '"' -> parse_string_arg s
+    | s when s.[0] = '@' ->
+        let filename = String.sub s 1 (len - 1) in
+        let content = read_file filename in
+        (* Raw binary -- just a sequence of bytes: may be parsed as either
+         * binary or utf8 string *)
+        Piq_lexer.Raw_binary content
+    (* NOTE: it is safe to check s.[1] because a single '-' case is eliminated
+     * above *)
     | s when s.[0] = '-' && (s.[1] < '0' || s.[1] > '9') -> parse_name_arg s
+    | s when s.[0] = '.' -> parse_name_arg s (* Piq -style names *)
+    (* XXX: support typenames and, possibly, other literals? *)
     | s -> parse_word_arg s
 
 
