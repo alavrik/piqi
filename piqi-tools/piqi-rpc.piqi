@@ -1,0 +1,102 @@
+% Piqi RPC
+%
+% This file contains definitions for Piqi RPC request and response types.
+
+
+%
+% RPC-request
+%
+
+.record [
+    .name request
+
+    .field [ 
+        .name name
+        .type string
+    ]
+
+    .field [
+        .name data
+        .type binary
+        .optional % some request can contain no input data
+    ]
+]
+
+
+%
+% For RPC-response type we have three options. Option I is the one that is
+% actually defined below.
+%
+
+
+% Option I "Erlang Style"
+%
+% Erlang type:
+%
+% -type response() ::
+%      ok
+%    | {ok, Data :: binary()} |
+%    | {error, Data :: binary()} |
+%    | {piqi_error, string()}.
+
+
+% Option II "OCaml style"
+%
+% Ocaml type:
+%
+% type response =
+%   | `ok of data option
+%   | `error of data
+%   | `piqi_error of data
+%
+% The same type in Erlang:
+%
+% -type response() ::
+%      {ok, Data :: undefined | binary()} |
+%    | {error, Data :: binary()} |
+%    | {piqi_error, string()}.
+
+
+% Option III "Traditional/Imperative/Protocol Buffers style"
+%
+% Protobuf-like syntax:
+% 
+% enum status { ok, error, piqi_error };
+% message response {
+%     required status status;
+%     optional bytes data;
+% }
+%
+% The same type in Erlang:
+%
+% -type status() :: ok | error | piqi_error
+% -type response() :: { Status :: status(), Data :: undefined | binary() }.
+
+
+.variant [
+    .name response
+
+    .option [
+        .name ok-empty
+        .erlang-name "ok"
+    ]
+
+    .option [
+        .name ok
+        .type binary
+    ]
+
+    .option [
+        .name error
+        .type binary
+    ]
+
+    .option [
+        .name piqi-error
+        .type string
+    ]
+]
+
+
+.custom-field erlang-name
+

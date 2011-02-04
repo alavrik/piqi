@@ -1,3 +1,8 @@
+% Piqi Tools
+%
+% This file contains definitions for Piqi-RPC server that exposes Piqi Tools
+% functionality.
+
 
 .function [
     .name add-piqi  % add Piqi module

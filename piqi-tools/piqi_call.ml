@@ -27,27 +27,20 @@ open C
 
 
 let send_request (_,och) request =
-  output_string och request;
-  flush och
+  Piqi_server.send_packet och request
 
 
 let receive_response (buf,_) =
-  match Piqi_server.parse_binobj_part buf with
-    | Some "ok", data ->
-        if Piqirun.parse_string data = ""
-        then `ok_empty
-        else `ok data
-    | Some "error", data -> `error data
-    | Some "piqi-error", data ->
-        let err = Piqirun.parse_string data in
-        piqi_error ("remote error: " ^ err)
-    | _ ->
-        piqi_error "invalid response format"
+  let buf = Piqi_server.receive_packet buf in
+  Piqi_rpc.parse_response buf
 
 
 let call_local_server handle request =
   send_request handle request;
-  receive_response handle
+  match receive_response handle with
+    | `piqi_error err ->
+        piqi_error ("remote error: " ^ err)
+    | x -> x
 
 
 (* returns the last element of the list *)
@@ -59,10 +52,12 @@ let rec last = function
 
 let init_piqi handle =
   (* issue a special command to get piqi modules from the server *) 
-  let request = Piqirun.gen_binobj Piqirun.gen_string "" ~name:"" in
-  match call_local_server handle request with
+  let request = Piqi_rpc.Request#{name = ""; data = None} in
+  let input = Piqi_rpc.gen_request (-1) request in
+  match call_local_server handle input with
     | `ok data ->
-        let binobj_list = Piqirun.parse_list Piqirun.parse_string data in
+        let buf = Piqirun.init_from_string data in
+        let binobj_list = Piqirun.parse_list Piqirun.parse_string buf in
         (* decode piqi modules *)
         let piqi_list =
             List.map (fun x ->
@@ -80,7 +75,8 @@ let init_piqi handle =
          * server *)
         last piqi_list
     | `error _ | `ok_empty ->
-        piqi_error "invalid response to Piqi request"
+        piqi_error "invalid response to Piqi modules request"
+    | `piqi_error _ -> assert false (* checked earlier *)
 
 
 let find_function piqi name =
@@ -89,18 +85,21 @@ let find_function piqi name =
     piqi_error ("server doesn't implement function: " ^ name)
 
 
-let encode_request name t args =
-  match t, args with
-    | Some _, None -> piqi_error "missing input arguments"
-    | None, Some _ -> piqi_error "function doesn't expect input arguments"
-    | None, None ->
-        (* empty payload *)
-        Piqirun.gen_binobj Piqirun.gen_string "" ~name
-    | Some piqtype, Some ast ->
-        prerr_endline "parsing parameters";
-        Piqobj_of_piq.resolve_defaults := !Piqi_convert.flag_add_defaults;
-        let piqobj = Piqobj_of_piq.parse_obj (piqtype :> T.piqtype) ast in
-        Piqirun.gen_binobj Piqobj_to_wire.gen_obj piqobj ~name
+let prepare_request name t args =
+  let data =
+    match t, args with
+      | Some _, None -> piqi_error "missing input arguments"
+      | None, Some _ -> piqi_error "function doesn't expect input arguments"
+      | None, None -> None
+      | Some piqtype, Some ast ->
+          prerr_endline "parsing parameters";
+          Piqobj_of_piq.resolve_defaults := !Piqi_convert.flag_add_defaults;
+          let piqobj = Piqobj_of_piq.parse_obj (piqtype :> T.piqtype) ast in
+          let iodata = Piqobj_to_wire.gen_embedded_obj piqobj in
+          let res = Piqirun.to_string iodata in
+          Some res
+  in
+  Piqi_rpc.Request#{name = name; data = data}
 
 
 let decode_response ot et output =
@@ -111,14 +110,18 @@ let decode_response ot et output =
     | None, `ok _ ->
         piqi_error "unexpected non-empty result from server"
     | Some piqtype, `ok data ->
-        let obj = Piqobj_of_wire.parse_obj (piqtype :> T.piqtype) data in
+        let buf = Piqirun.init_from_string data in
+        let obj = Piqobj_of_wire.parse_obj (piqtype :> T.piqtype) buf in
         `ok obj
-    | _, `error data ->
+    | _, `error data -> (
         match et with
           | None -> piqi_error "unexpected error result from server"
           | Some piqtype ->
-              let obj = Piqobj_of_wire.parse_obj (piqtype :> T.piqtype) data in
+              let buf = Piqirun.init_from_string data in
+              let obj = Piqobj_of_wire.parse_obj (piqtype :> T.piqtype) buf in
               `error obj
+        )
+    | _, `piqi_error _ -> assert false (* checked earlier *)
 
 
 let gen_output ch obj =
@@ -138,10 +141,13 @@ let local_call ch (server_command, func_name) args =
   prerr_endline "find function";
   let f = find_function piqi func_name in
 
-  prerr_endline "encoding request";
-  let request = encode_request func_name f.T.Func#resolved_input args in
-  prerr_endline "making a call";
-  let response = call_local_server handle request in
+  prerr_endline "preparing request";
+  let request = prepare_request func_name f.T.Func#resolved_input args in
+  let input = Piqi_rpc.gen_request (-1) request in
+
+  prerr_endline "making call";
+  let response = call_local_server handle input in
+
   prerr_endline "decoding response";
   let res =
     decode_response f.T.Func#resolved_output f.T.Func#resolved_error response

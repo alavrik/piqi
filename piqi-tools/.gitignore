@@ -4,6 +4,8 @@ piqobj.ml
 descriptor.*
 piqi-tools.ml
 piqi_tools.ml
+piqi-rpc.ml
+piqi_rpc.ml
 piqi_version.ml
 piqi_json_parser.ml
 

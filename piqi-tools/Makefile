@@ -19,6 +19,7 @@ SOURCES += \
 	descriptor.ml \
 	piqi_of_proto.ml \
 	\
+	piqi_rpc.ml \
 	piqi_tools.ml \
 	piqi_server.ml \
 	piqi_call.ml \
@@ -26,13 +27,17 @@ SOURCES += \
 	piqi_run.ml \
 
 
-PIQI_MODULES = descriptor.piqi piqi-tools.piqi
+PIQI_MODULES = descriptor.piqi piqi-tools.piqi piqi-rpc.piqi
 
 PIQI_ML_SOURCES = $(PIQI_MODULES:%.piqi=%.ml)
+PIQI_ML_USOURCES = $(PIQI_MODULES:%.piqi=%.ml)
 
 
-PRE_TARGETS += $(PIQI_SOURCES) $(PIQI_PIQI) $(PIQI_ML_SOURCES) piqi_tools.ml
-
+PRE_TARGETS += \
+	$(PIQI_SOURCES) $(PIQI_PIQI) $(PIQI_ML_SOURCES) \
+	piqi_tools.ml \
+	piqi_rpc.ml
+	
 
 PACKS += unix
 
@@ -55,6 +60,9 @@ $(PIQI_ML_SOURCES): %.ml: %.piqi
 	$(PIQIC) ocaml $(PIQIC_FLAGS) --pp -o $@ $<
 
 piqi_tools.ml: piqi-tools.ml
+	ln -s $< $@
+
+piqi_rpc.ml: piqi-rpc.ml
 	ln -s $< $@
 
 

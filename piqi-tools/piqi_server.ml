@@ -28,55 +28,46 @@ open C
 module I = Piqi_tools
 
 
-(* read one binobj from the input buffer *)
-let parse_binobj_part buf =
-  let field = Piqirun.parse_field buf in
-  match field with
-    | (2, piqobj) -> (* anonymous binobj *)
-        None, piqobj
-    | (1, nameobj) -> (* named binobj *)
-        let name = Piqirun.parse_string nameobj in
-        let field = Piqirun.parse_field buf in
-        (match field with
-          | (2, piqobj) -> Some name, piqobj
-          | _ -> assert false (* TODO: provide a proper handling *)
-        )
-    | _ -> assert false (* TODO: provide a proper handling *)
+let receive_packet buf =
+  (* read a length delimited block *)
+  Piqirun.parse_block buf
 
 
-let write_binobj ch gen_obj ?name x =
-  let obj = gen_obj 2 x in
-  let code =
-    match name with
-      | Some name -> Piqirun.OBuf.iol [ Piqirun.gen_string 1 name; obj ]
-      | None -> obj
-  in
-  Piqirun.OBuf.to_channel ch code
+let send_packet ch data =
+  (* generate a length delimited block *)
+  let data = Piqirun.gen_block data in
+  Piqirun.to_channel ch data;
+  flush ch
 
 
-(* reads one command from the input buffer *)
-let read_command buf =
-  match parse_binobj_part buf with
-    | (Some name, data) -> (name, data)
-    | _ -> failwith "invalid command format"
+(* read one request from the input buffer *)
+let receive_request buf =
+  let buf = receive_packet buf in
+  Piqi_rpc.parse_request buf
 
 
-(* write result structure to the output buffer *)
-let write_result_common status gen data =
-  write_binobj stdout gen data ~name:status;
-  flush stdout
+(* write serialized response structure to stdout *)
+let send_response response =
+  send_packet stdout response
 
-let return_empty () =
-  write_result_common "ok" Piqirun.gen_string ""
 
-let return_ok gen data =
-  write_result_common "ok" gen data
+let return_ok_empty () =
+  let res = Piqi_rpc.gen_response (-1) `ok_empty in
+  send_response res
 
-let return_error gen data =
-  write_result_common "error" gen data
+let return_ok data =
+  let data = Piqirun.to_string data in
+  let res = Piqi_rpc.gen_response (-1) (`ok data) in
+  send_response res
+
+let return_error data =
+  let data = Piqirun.to_string data in
+  let res = Piqi_rpc.gen_response (-1) (`error data) in
+  send_response res
 
 let return_piqi_error err =
-  write_result_common "piqi-error" Piqirun.gen_string err
+  let res = Piqi_rpc.gen_response (-1) (`piqi_error err) in
+  send_response res
 
 
 let fname = "stdin" (* XXX *)
@@ -175,8 +166,9 @@ let convert args =
 exception Break
 
 
-let do_args f x =
-  try f x
+let do_args f data =
+  let buf = Piqirun.init_from_string data in
+  try f buf
   with exn ->
     return_piqi_error
       ("error while parsing arguments: " ^ Printexc.to_string exn);
@@ -191,39 +183,38 @@ let do_run f x =
     raise Break
 
 
-let run_command name data =
-  match name with
-    | "convert" -> (
+let execute_request req =
+  let open Piqi_rpc.Request in
+  match req.name, req.data with
+    | "convert", Some data -> (
         let args = do_args I.parse_convert_input data in
         match do_run convert args with
-          | `ok res -> return_ok I.gen_convert_output res
-          | `error err -> return_error I.gen_convert_error err
+          | `ok res -> return_ok (I.gen_convert_output (-1) res)
+          | `error err -> return_error (I.gen_convert_error (-1) err)
         )
-    | "" ->
-        (* return Piqi module and all the dependencies *)
-        let gen_piqi code l =
-          (* encode Piqi as a list of Piqi each encoded as binobj *)
-          Piqirun.gen_list Piqirun.gen_string code l
-        in
-        return_ok gen_piqi I.piqi
-    | _ ->
-        return_piqi_error ("unknown function: " ^ name)
+    | "", None ->
+        (* return the Piqi module and all the dependencies encoded as a list of
+         * Piqi each encoded as binobj *)
+        let output = Piqirun.gen_list Piqirun.gen_string (-1) I.piqi in
+        return_ok output
+    | name, _ ->
+        return_piqi_error ("invalid request: " ^ name)
 
 
 let main_loop () =
   let ibuf = Piqirun.IBuf.of_channel stdin in
   while true
   do
-    let name, data =
+    let request =
       try
-        read_command ibuf
+        receive_request ibuf
       with exn -> (
         return_piqi_error
           ("error while reading command: " ^ Printexc.to_string exn);
         exit 1
       )
     in
-    try run_command name data
+    try execute_request request
     with Break -> ()
   done
 

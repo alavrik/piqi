@@ -886,6 +886,15 @@ let gen_rep_field code f l =
   iol (List.map (fun x -> f code x) l)
 
 
+(* generate length-delimited block of data. The inverse operation to
+ * parse_block() *)
+let gen_block iodata =
+  iol [
+      gen_unsigned_varint_value (OBuf.size iodata);
+      iodata;
+  ]
+
+
 let gen_record code contents =
   let contents = iol contents in
   (* special code meaning that key and length sould not be generated *)
