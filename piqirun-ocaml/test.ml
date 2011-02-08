@@ -44,26 +44,31 @@ let test_int64 x =
   *)
   assert (x = (int64_of_varint ** test_parse_varint ** gen_varint_value64) x)
 
+let test_key x =
+  assert (x = ((fun x -> let _, code = parse_field_header x in code) ** test_parse ** gen_key 0) x)
+
+
+let test_gen_parse x =
+  (init_from_string ** to_string) x
+
 
 let test_zigzag_int x =
-  assert (x = (int_of_zigzag_varint ** test_parse_varint ** int_to_zigzag_varint (-1)) x)
+  assert (x = (int_of_zigzag_varint ** test_gen_parse ** int_to_zigzag_varint (-1)) x)
 
 let test_zigzag_int32 x =
-  assert (x = (int32_of_zigzag_varint ** test_parse_varint ** int32_to_zigzag_varint (-1)) x)
+  assert (x = (int32_of_zigzag_varint ** test_gen_parse ** int32_to_zigzag_varint (-1)) x)
 
 let test_zigzag_int64 x =
-  assert (x = (int64_of_zigzag_varint ** test_parse_varint ** int64_to_zigzag_varint (-1)) x)
+  assert (x = (int64_of_zigzag_varint ** test_gen_parse ** int64_to_zigzag_varint (-1)) x)
 
 
 let test_fixed_int32 x =
-  assert (x = (int32_of_fixed32 ** parse_fixed32 ** test_parse ** int32_to_fixed32 (-1)) x)
+  assert (x = (int32_of_fixed32 ** test_gen_parse ** int32_to_fixed32 (-1)) x)
 
 let test_fixed_int64 x =
-  assert (x = (int64_of_fixed64 ** parse_fixed64 ** test_parse ** int64_to_fixed64 (-1)) x)
+  assert (x = (int64_of_fixed64 ** test_gen_parse ** int64_to_fixed64 (-1)) x)
 
 
-let test_key x =
-  assert (x = ((fun x -> let _, code = parse_field_header x in code) ** test_parse ** gen_key 0) x)
 
 
 let int_input =
