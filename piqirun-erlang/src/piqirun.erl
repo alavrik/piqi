@@ -58,10 +58,10 @@
 -spec init_from_binary/1 :: (Bytes :: binary()) ->
     % NOTE: in fact, the return type should be piqirun_buffer(). Using specific
     % buffer's variant here to avoid Dialyzer warning.
-    {'block', binary()}.
+    {'top_block', binary()}.
 
 init_from_binary(Bytes) when is_binary(Bytes) ->
-    {'block', Bytes}.
+    {'top_block', Bytes}.
 
 
 %
@@ -87,8 +87,13 @@ init_from_binary(Bytes) when is_binary(Bytes) ->
     Code :: piqirun_code(),
     FieldType :: field_type()) -> binary().
 
-encode_field_tag(Code, FieldType) when Code band 16#3fffffff =:= Code ->
-    encode_varint((Code bsl 3) bor FieldType).
+encode_field_tag(Code, FieldType)
+        when is_integer(Code) andalso (Code band 16#3fffffff =:= Code) ->
+    encode_varint((Code bsl 3) bor FieldType);
+
+encode_field_tag('undefined', FieldType) ->
+    % 1 is the default code for top-level primitive types
+    encode_field_tag(1, FieldType).
 
 
 %% @hidden
@@ -342,7 +347,7 @@ string_to_block(Code, X) when is_list(X); is_binary(X) ->
 %
 
 -type parsed_field() ::
-    {FieldCode :: pos_integer(), FieldValue :: piqirun_buffer()}.
+    {FieldCode :: pos_integer(), FieldValue :: piqirun_return_buffer()}.
 
 -spec parse_field_header/1 :: ( Bytes :: binary() ) ->
     {Code :: pos_integer(), WireType :: field_type(), Rest :: binary()}.
@@ -410,6 +415,8 @@ parse_field_part(Bytes) ->
 
 
 parse_record({'block', Bytes}) ->
+    parse_record_buf(Bytes);
+parse_record({'top_block', Bytes}) ->
     parse_record_buf(Bytes).
 
 
@@ -437,7 +444,7 @@ parse_list(ParseValue, X) ->
 -spec find_fields/2 :: (
         Code :: pos_integer(),
         L :: [ parsed_field() ] ) ->
-    { Found ::[ piqirun_buffer() ], Rest :: [ parsed_field() ]}.
+    { Found ::[ piqirun_return_buffer() ], Rest :: [ parsed_field() ]}.
 
 % find record field by code
 find_fields(Code, L) ->
@@ -453,7 +460,7 @@ find_fields(Code, [H | T], Accu, Rest) ->
 
 
 -type binobj() ::
-    {ObjName :: 'undefined' | binary(), ObjValue :: piqirun_buffer()}.
+    {ObjName :: 'undefined' | binary(), ObjValue :: piqirun_return_buffer()}.
 
 -spec parse_binobj/1 :: (Bytes :: binary()) -> binobj().
 
@@ -491,7 +498,7 @@ parse_binobj_part(Bytes) ->
 
 
 -spec parse_default/1 ::
-    (X :: binary()) -> ObjValue :: piqirun_buffer().
+    (X :: binary()) -> ObjValue :: piqirun_return_buffer().
 
 parse_default(X) ->
   {_, Res} = parse_binobj(X),
@@ -656,42 +663,66 @@ error_option(_X, Code) -> error({'unknown_option', Code}).
     piqirun_buffer()) -> binary().
 
 
-non_neg_integer_of_varint(X) when is_integer(X) -> X.
+parse_toplevel_header(Bytes) ->
+    {{FieldCode, FieldValue}, _Rest} = parse_field(Bytes),
+    case FieldCode of
+        1 -> FieldValue;
+        _ -> error('invalid_toplevel_header')
+    end.
+
+
+-define(top_block_parser(Name),
+    Name({'top_block', X}) -> Name(parse_toplevel_header(X))).
+
+
+non_neg_integer_of_varint(X) when is_integer(X) -> X; ?top_block_parser(
+non_neg_integer_of_varint).
 
 
 integer_of_signed_varint(X)
         when is_integer(X) andalso (X band 16#8000000000000000 =/= 0) ->
     X - 16#10000000000000000;
-integer_of_signed_varint(X) -> X.
+integer_of_signed_varint(X) when is_integer(X) -> X; ?top_block_parser(
+integer_of_signed_varint).
 
 
 integer_of_zigzag_varint(X) when is_integer(X) ->
-    (X bsr 1) bxor (-(X band 1)).
+    (X bsr 1) bxor (-(X band 1)); ?top_block_parser(
+integer_of_zigzag_varint).
 
 
 boolean_of_varint(1) -> true;
-boolean_of_varint(0) -> false.
+boolean_of_varint(0) -> false; ?top_block_parser(
+boolean_of_varint).
 
 
 parse_bool(X) -> boolean_of_varint(X).
 
 
-non_neg_integer_of_fixed32(<<X:32/little-unsigned-integer>>) -> X.
+non_neg_integer_of_fixed32(<<X:32/little-unsigned-integer>>) -> X; ?top_block_parser(
+non_neg_integer_of_fixed32).
 
-integer_of_signed_fixed32(<<X:32/little-signed-integer>>) -> X.
-
-
-non_neg_integer_of_fixed64(<<X:64/little-unsigned-integer>>) -> X.
-
-integer_of_signed_fixed64(<<X:64/little-signed-integer>>) -> X.
+integer_of_signed_fixed32(<<X:32/little-signed-integer>>) -> X; ?top_block_parser(
+integer_of_signed_fixed32).
 
 
-float_of_fixed64(<<X:64/little-float>>) -> X + 0.0.
+non_neg_integer_of_fixed64(<<X:64/little-unsigned-integer>>) -> X; ?top_block_parser(
+non_neg_integer_of_fixed64).
 
-float_of_fixed32(<<X:32/little-float>>) -> X + 0.0.
+integer_of_signed_fixed64(<<X:64/little-signed-integer>>) -> X; ?top_block_parser(
+integer_of_signed_fixed64).
 
 
-binary_of_block({'block', X}) -> X.
+float_of_fixed64(<<X:64/little-float>>) -> X + 0.0; ?top_block_parser(
+float_of_fixed64).
+
+float_of_fixed32(<<X:32/little-float>>) -> X + 0.0; ?top_block_parser(
+float_of_fixed32).
+
+
+binary_of_block({'block', X}) -> X; ?top_block_parser(
+binary_of_block).
+
 
 string_of_block(X) -> binary_of_block(X).
 
