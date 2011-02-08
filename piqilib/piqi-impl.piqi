@@ -87,6 +87,15 @@
 
 
 .extend [
+    .name alias
+    .field [
+        .name is-func-param % if alias is a function parameter
+        .optional
+    ]
+]
+
+
+.extend [
     .name ast
 
     % These two token types are used only in several special cases, and can't be

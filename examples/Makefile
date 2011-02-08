@@ -37,6 +37,7 @@ test_complex:
 
 	./test_piqi function
 	./test_piq function
+	./test_piqi_proto function
 
 	ln -sf addressbook/addressbook.proto .
 	piqi of-proto --normalize addressbook.proto

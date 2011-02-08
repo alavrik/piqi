@@ -11,7 +11,7 @@
 .include [ .module piqi.org/piqast ]
 
 
-(.custom-field ocaml-name erlang-name)
+(.custom-field ocaml-name erlang-name proto-name)
 
 
 .variant [
@@ -131,6 +131,8 @@
     % restriction. enum options shouldn't specify type and must specify name
     .name enum
     .type variant
+
+    .proto-name "piq_enum"
 ]
 
 

@@ -51,6 +51,7 @@ let make_param_alias name x =
 
       name = name;
       typeref = `name x;
+      is_func_param = true; (* mark the new alias as function parameter *)
     }
   in
   Piqloc.addref x res;
