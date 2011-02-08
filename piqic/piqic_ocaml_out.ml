@@ -100,7 +100,7 @@ let gen_field rname f =
           (* flag generation code *)
           iod " " [
             gen_cc "(refer x;";
-            ios "Piqirun.gen_bool"; gen_code f.code; ffname;
+            ios "Piqirun.gen_flag"; gen_code f.code; ffname;
             gen_cc ")";
           ]
   in (fname, fgen)

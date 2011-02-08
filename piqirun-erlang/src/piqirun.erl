@@ -207,6 +207,14 @@ gen_rep_field(Code, GenValue, L) ->
     [GenValue(Code, X) || X <- L].
 
 
+-spec gen_flag/2 :: (
+    Code :: piqirun_code(),
+    X :: boolean()) -> iolist().
+
+gen_flag(_Code, false) -> []; % no flag
+gen_flag(Code, true) -> gen_bool(Code, true).
+
+
 -spec non_neg_integer_to_varint/2 :: (
     Code :: piqirun_code(),
     X :: non_neg_integer()) -> iolist().

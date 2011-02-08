@@ -903,6 +903,12 @@ let gen_rep_field code f l =
   iol (List.map (fun x -> f code x) l)
 
 
+let gen_flag code x =
+  match x with
+    | false -> iol [] (* no flag *)
+    | true -> gen_bool code true
+
+
 (* generate length-delimited block of data. The inverse operation to
  * parse_block() *)
 let gen_block iodata =

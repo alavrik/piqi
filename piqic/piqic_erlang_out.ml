@@ -98,7 +98,7 @@ let gen_field rname f =
       | None ->
           (* flag generation code *)
           iod " " [
-            ios "piqirun:gen_bool(";
+            ios "piqirun:gen_flag(";
               gen_code f.code; ios ", ";
               ffname;
             ios ")";
