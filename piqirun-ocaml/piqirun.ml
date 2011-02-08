@@ -334,11 +334,6 @@ let parse_toplevel_header buf =
   else error buf "invalid top-level header for a primitive type"
 
 
-let expect_block = function
-  | Block buf | Top_block buf -> buf
-  | obj -> error obj "block expected"
-
-
 let rec expect_int32 = function
   | Int32 i -> i
   | Top_block buf -> expect_int32 (parse_toplevel_header buf)
@@ -455,15 +450,18 @@ let parse_bool obj =
 let bool_of_varint = parse_bool
 
 
+let rec parse_binary obj =
+  match obj with
+    | Block buf -> IBuf.to_string buf
+    | Top_block buf -> parse_binary (parse_toplevel_header buf)
+    | obj -> error obj "block expected"
+
+
 let validate_string s = s (* TODO: validate utf8-encoded string *)
 
 
-let parse_string obj = 
-  validate_string (IBuf.to_string (expect_block obj))
-
-
-let parse_binary obj =
-  IBuf.to_string (expect_block obj)
+let parse_string obj =
+  validate_string (parse_binary obj)
 
 
 let string_of_block = parse_string
@@ -483,7 +481,10 @@ let parse_record_buf buf =
 
 
 let parse_record obj =
-  parse_record_buf (expect_block obj)
+  match obj with
+    | Block buf
+    | Top_block buf -> parse_record_buf buf
+    | obj -> error obj "block expected"
 
 
 let parse_variant obj = 
