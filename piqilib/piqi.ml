@@ -914,13 +914,8 @@ let rec process_piqi ?modname ?(cache=true) fname (piqi: T.piqi) =
   let resolved_defs = copy_defs extended_defs in
 
   (* if the module includes (or is itself) piqi.org/piqtype, use hash-based
-   * field and option codes instead of auto-enumerated ones
-   *
-   * XXX, TODO: cache this information -- there's no need to compute this
-   * information again for each parent module
-   *)
-  if List.exists (fun x -> x.P#modname = Some "piqi.org/piqtype") modules
-  then Piqi_wire.add_hashcodes resolved_defs;
+   * field and option codes instead of auto-enumerated ones *)
+  if C.is_self_spec piqi then Piqi_wire.add_hashcodes resolved_defs;
 
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)

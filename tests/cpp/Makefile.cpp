@@ -1,4 +1,4 @@
-ctest: piqtype.piqi.pb.o piqi.piqi.pb.o test.cpp
+ctest: piqi.piqi.pb.o test.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^ -lprotobuf -lpthread
 
 clean:

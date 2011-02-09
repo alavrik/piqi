@@ -33,7 +33,7 @@ open Piqic_ocaml_out
 let rec gen_parse_type ocaml_type wire_type x =
   match x with
     | `any ->
-        if !top_modname = "Piqtype"
+        if !Piqic_common.is_self_spec
         then ios "parse_any"
         else ios "Piqtype.parse_any"
     | (#T.piqdef as x) ->
@@ -264,20 +264,8 @@ let gen_def = function
   | `alias t -> gen_alias t
 
 
-let gen_alias a = 
-  let open Alias in
-  if a.typeref = `any && not !Piqic_common.depends_on_piq_any
-  then []
-  else [gen_alias a]
-
-
-let gen_def = function
-  | `alias x -> gen_alias x
-  | x -> [gen_def x]
-
-
 let gen_defs (defs:T.piqdef list) =
-  let defs = flatmap gen_def defs in
+  let defs = List.map gen_def defs in
   if defs = []
   then iol []
   else iod " "

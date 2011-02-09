@@ -44,22 +44,13 @@ let gen_builtin_default_value wire_type t =
   Piqirun.gen_binobj gen_obj t
 
 
-let check_depends_on_piq_any x =
-  let is_any x = (unalias (piqtype x)) = `any in
-  let is_any_opt = function
-    | Some x -> is_any x
-    | None -> false
-  in
-  match x with
-    | `record x -> List.exists (fun x -> is_any_opt x.F#typeref) x.R#field
-    | `variant x -> List.exists (fun x -> is_any_opt x.O#typeref) x.V#option
-    | `list x -> is_any x.L#typeref
-    | `enum _ -> false
-    | `alias _ -> false (* don't check aliases, we do unalias instead *)
-
-
 (* indication whether there is a defintion that uses "piq_any" type *)
 let depends_on_piq_any = ref false
+
+
+(* indication whether the module that is being processed is a Piqi self-spec,
+ * i.e. it is "piqi.org/piqtype" or includes it *)
+let is_self_spec = ref false
 
 
 let is_boot_def def =
@@ -106,10 +97,13 @@ let get_boot_dependencies piqi =
 
 
 let piqic_common piqi =
-  (* if no definition uses "piq_any" type, piq_any aliase will be excluded in
+  (* if no definition uses "piq_any" type, "piqtype" module not be included in
    * order to avoid unnecessary dependency on Piqtype module *)
-  depends_on_piq_any :=
-    List.exists check_depends_on_piq_any piqi.P#resolved_piqdef;
+  depends_on_piq_any := Piqi_common.depends_on_piq_any piqi;
+
+  (* indication whether the module that is being processed is a Piqi self-spec,
+   * i.e. it is "piqi.org/piqtype" or includes it *)
+  is_self_spec := Piqi_common.is_self_spec piqi;
 
   (* implicitly add defintions from the boot module to the current module *)
   let boot_defs = get_boot_dependencies piqi in

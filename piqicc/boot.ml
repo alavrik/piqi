@@ -20,6 +20,9 @@ open Piqi_common
 
 
 let boot () = 
+  (* rename the embedded module to be treated as self-specification *)
+  T.piqi.P#modname <- Some "piqi.org/piqtype";
+
   (* call piq interface compiler for ocaml *)
   Piqic_ocaml_types.cc_mode := true;
   let code = Piqic_ocaml_base.piqic T.piqi in

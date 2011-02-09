@@ -48,8 +48,8 @@ let gen_name parent name =
               "." ^ package ^ "." ^ name
 
 
-(* indication whether 'any' type was used somewhere in .piqi specification *)
-let is_any_used = ref false
+(* indication if the module that is being processed is a Piqi self-spec *)
+let is_self_spec = ref false
 
 
 let rec typename (t:T.piqtype) =
@@ -69,16 +69,18 @@ let rec typename (t:T.piqtype) =
         (* unwind aliases to their original type *)
         gen_alias_typename t
     | `any ->
-        is_any_used := true;
-        (* NOTE: protoc has a bug: when compiling C++ stubs it doesn't
-         * convert proto names into fully qualified C++ names,
-         * e.g. wire_type is converted to piqi::piqi::wire_type -- and not
-         * ::piqi::piqi::wire_type. Non-fully qualified name in case of
-         * repeated namespace parts confuses g++
-         *
-         * Thus, adding "_org" suffix to the top namespace for now.
-         *)
-        ".piqi_org.piqtype.any"
+        if !is_self_spec
+        then "any" (* there is a defined type in Piqi self-spec called "any" *)
+        else
+          (* NOTE: protoc has a bug: when compiling C++ stubs it doesn't
+           * convert proto names into fully qualified C++ names,
+           * e.g. wire_type is converted to piqi::piqi::wire_type -- and not
+           * ::piqi::piqi::wire_type. Non-fully qualified name in case of
+           * repeated namespace parts confuses g++
+           *
+           * Thus, adding "_org" suffix to the top namespace for now.
+           *)
+          ".piqi_org.piqtype.any"
 
 
 and gen_alias_typename x =
@@ -362,11 +364,13 @@ let gen_piqi (piqi:T.piqi) =
       | None -> iol [] (* no package name *)
       | Some n -> iol [ios "package "; ios n; ios ";"; eol; eol]
   in
+
   (* add import "piqi.org/piqtype.piqi.proto" if 'any' typeref is used *)
-  is_any_used := false;
+  is_self_spec := C.is_self_spec piqi;
+
   let defs = gen_defs piqi.P#resolved_piqdef in
-  let piqi_import = 
-    if !is_any_used && piqi.modname <> Some "piqi.org/piqtype"
+  let piqi_import =
+    if C.depends_on_piq_any piqi && not !is_self_spec
     then
       iol [
         ios "import \"piqi.org/piqtype.piqi.proto\";";

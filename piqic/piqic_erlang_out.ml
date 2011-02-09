@@ -51,7 +51,7 @@ let gen_parent x =
 let rec gen_gen_type erlang_type wire_type x =
   match x with
     | `any ->
-        if !top_modname = "piqtype"
+        if !Piqic_common.is_self_spec
         then ios "gen_any"
         else ios "piqtype:gen_any"
     | (#T.piqdef as x) ->
@@ -253,19 +253,8 @@ let gen_def x =
   ]
 
 
-let gen_def x =
-  let open Alias in
-  match x with
-    | `alias a ->
-        if a.typeref = `any && not !Piqic_common.depends_on_piq_any
-        then []
-        else [gen_def x]
-    | _ ->
-        [gen_def x]
-
-
 let gen_defs (defs:T.piqdef list) =
-  let defs = flatmap gen_def defs in
+  let defs = List.map gen_def defs in
   iod "\n" defs
 
 

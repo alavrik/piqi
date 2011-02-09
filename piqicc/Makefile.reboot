@@ -8,7 +8,7 @@ SOURCES += piqicc.ml piqicc_run.ml
 
 
 piqtype.ml: boot/piqdefs.ml
-	./piqi_boot2 | sed -e 's/Piqtype.any/Piqast.any/g;s/Piqtype.parse_any/parse_any/g;s/Piqtype.gen_any/gen_any/g' >piqtype.tmp.ml
+	./piqi_boot2 >piqtype.tmp.ml
 	./piqi_boot | sed -e 's/Piqtype.any/any/g' >>piqtype.tmp.ml
 	rm -f *.cmo *.cmi
 	$(CAMLP4)o -o piqtype.2.ml piqtype.tmp.ml

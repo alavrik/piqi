@@ -66,7 +66,10 @@ let rec gen_piqtype t erlang_type =
           | `bool -> "boolean"
           | `string | `word | `text -> "string"
           | `binary -> "binary"
-          | `any -> "piqtype_any" (* XXX *)
+          | `any ->
+              if !Piqic_common.is_self_spec
+              then scoped_name "any"
+              else "piqtype_any"
           | `record r -> gen_deftype r.R#parent r.R#erlang_name
           | `variant v -> gen_deftype v.V#parent v.V#erlang_name
           | `enum e -> gen_deftype e.E#parent e.E#erlang_name
@@ -270,7 +273,7 @@ let gen_import x =
 let gen_imports l =
   let l = List.map gen_import l in
   let piqtype_incl = 
-    if !Piqic_common.depends_on_piq_any && !top_modname <> "piqtype"
+    if !Piqic_common.depends_on_piq_any && not !Piqic_common.is_self_spec
     then ios "-include(\"piqtype.hrl\").\n\n"
     else iol []
   in
