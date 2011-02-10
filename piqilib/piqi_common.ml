@@ -47,8 +47,32 @@ module Config = Piqi_config
 module Iolist = Piqi_iolist
 
 
+(*
+ * common global variables
+ *)
+
+(* provide default values automatically when loading data from various intput
+ * formats: Piq, Wire, JSON *)
+let resolve_defaults = ref false
+
+
 (* lazily loaded representation of piqi-boot.piqi (see piqi.ml for details) *)
 let boot_piqi :T.piqi option ref = ref None
+
+
+(*
+ * Common functions
+ *)
+
+(* Run a function with a specific resolve_defauls setting. The global
+ * "resolve_defaults" variable is preserved *)
+let with_resolve_defaults new_resolve_defaults f x =
+   let saved = !resolve_defaults in
+   resolve_defaults := new_resolve_defaults;
+   let res = f x in
+   resolve_defaults := saved;
+   res
+
 
 let is_boot_piqi p =
   match !boot_piqi with

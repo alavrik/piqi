@@ -36,6 +36,7 @@ let receive_response (buf,_) =
 
 
 let call_local_server handle request =
+  trace "piqi call: making local call\n";
   send_request handle request;
   match receive_response handle with
     | `piqi_error err ->
@@ -51,25 +52,24 @@ let rec last = function
 
 
 let init_piqi handle =
+  trace "piqi call: init Piqi\n";
   (* issue a special command to get piqi modules from the server *) 
   let request = Piqi_rpc.Request#{name = ""; data = None} in
   let input = Piqi_rpc.gen_request (-1) request in
   match call_local_server handle input with
     | `ok data ->
         let buf = Piqirun.init_from_string data in
-        let binobj_list = Piqirun.parse_list Piqirun.parse_string buf in
+        let bin_piqi_list = Piqirun.parse_list Piqirun.parse_string buf in
         (* decode piqi modules *)
         let piqi_list =
             List.map (fun x ->
-                let _, obj = Piqirun.parse_binobj x in
-                T.parse_piqi obj
-              ) binobj_list
+                let buf = Piqirun.init_from_string x in
+                T.parse_piqi buf
+              ) bin_piqi_list
         in
         (* initialize the client with the server's piqi modules *)
         List.iter (fun piqi ->
-            (* XXX: fname argument should be optional *)
-            let fname = "" in
-            Piqi.process_piqi fname piqi
+            Piqi.process_piqi piqi
           ) piqi_list;
         (* return the last element of the list, it defines the interface to the
          * server *)
@@ -80,20 +80,22 @@ let init_piqi handle =
 
 
 let find_function piqi name =
+  trace "piqi call: find function %s\n" (quote name);
   try List.find (fun x -> x.T.Func.name = name) piqi.P#resolved_func
   with Not_found ->
     piqi_error ("server doesn't implement function: " ^ name)
 
 
 let prepare_request name t args =
+  trace "piqi call: preparing request\n";
   let data =
     match t, args with
       | Some _, None -> piqi_error "missing input arguments"
       | None, Some _ -> piqi_error "function doesn't expect input arguments"
       | None, None -> None
       | Some piqtype, Some ast ->
-          prerr_endline "parsing parameters";
-          Piqobj_of_piq.resolve_defaults := !Piqi_convert.flag_add_defaults;
+          trace "piqi call: parsing parameters\n";
+          (* XXX: C.resolve_defaults := true; *)
           let piqobj = Piqobj_of_piq.parse_obj (piqtype :> T.piqtype) ast in
           let iodata = Piqobj_to_wire.gen_embedded_obj piqobj in
           let res = Piqirun.to_string iodata in
@@ -103,6 +105,7 @@ let prepare_request name t args =
 
 
 let decode_response ot et output =
+  trace "piqi call: decoding response\n";
   match ot, output with
     | None, `ok_empty -> `ok_empty
     | Some _, `ok_empty ->
@@ -130,35 +133,38 @@ let gen_output ch obj =
   output_char ch '\n'
 
 
+let gen_error obj =
+  let ch = stderr in (* XXX *)
+  let ast = Piq.gen_piq (Piq.Piqobj obj) in
+  output_string ch "error: ";
+  Piq_gen.to_channel ch ast;
+  output_char ch '\n'
+
+
 let local_call ch (server_command, func_name) args =
+  (* TODO: detect child process crash *)
   let (in_channel, out_channel) = Unix.open_process server_command in
   let ibuf = Piqirun.IBuf.of_channel in_channel in
   let handle = (ibuf, out_channel) in
 
-  prerr_endline "init Piqi";
   let piqi = init_piqi handle in
 
-  prerr_endline "find function";
   let f = find_function piqi func_name in
 
-  prerr_endline "preparing request";
   let request = prepare_request func_name f.T.Func#resolved_input args in
   let input = Piqi_rpc.gen_request (-1) request in
 
-  prerr_endline "making call";
   let response = call_local_server handle input in
 
-  prerr_endline "decoding response";
   let res =
     decode_response f.T.Func#resolved_output f.T.Func#resolved_error response
   in
-  prerr_endline "generating output";
   (match res with
     | `ok_empty -> ()
     | `ok obj ->
         gen_output ch obj
     | `error obj ->
-        gen_output stderr obj
+        gen_error obj
   );
   ()
 

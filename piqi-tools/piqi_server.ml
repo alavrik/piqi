@@ -70,34 +70,27 @@ let return_piqi_error err =
   send_response res
 
 
-let fname = "stdin" (* XXX *)
+let fname = "input" (* XXX *)
 
 
-let parse_piq s =
+let parse_piq_common get_next ~is_piqi_input =
+  let rec aux () =
+    let obj = get_next () in
+    match obj with
+      | Piq.Piqtype _ -> aux () (* skip default type *)
+      | Piq.Piqi _ when not is_piqi_input -> aux () (* skip embedded piqi *)
+      | Piq.Piqobj obj -> Piq.Typed_piqobj obj
+      | _ -> obj (* Typed_piqobj or Piqi *)
+  in aux ()
+
+
+(* NOTE: parsers always return either Piqi or Typed_piqobj *)
+
+
+let parse_piq s ~is_piqi_input =
   let piq_parser = Piq_parser.init_from_string fname s in
-  let obj = Piq.load_piq_obj piq_parser in
-  (* XXX: check eof? *)
-  obj
-
-
-let parse_json piqtype s =
-  let json_parser = Piqi_json_parser.init_from_string ~fname s in
-  Piq.default_piqtype := Some piqtype;
-  let obj = Piq.load_json_obj json_parser in
-  (* XXX: check eof? *)
-  obj
-
-
-let parse_pb piqtype s =
-  let buf = Piqirun.init_from_string s in
-  let obj = Piq.load_pb piqtype buf in
-  (* XXX: check eof? *)
-  obj
-
-
-let parse_wire s =
-  let buf = Piqirun.IBuf.of_string s in
-  let obj = Piq.load_wire_obj buf in
+  let get_next () = Piq.load_piq_obj piq_parser in
+  let obj = parse_piq_common get_next ~is_piqi_input in
   (* XXX: check eof? *)
   obj
 
@@ -108,23 +101,12 @@ let gen_piq obj =
   Piq_gen.to_string ast
 
 
-let gen_json obj =
-  let json = Piq.gen_json obj in
-  (* XXX: add a newline? *)
-  (* XXX: make pretty-printing optional? *)
-  Piqi_json_gen.pretty_to_string json
-
-
-let gen_piq_json obj =
-  let json = Piq.gen_piq_json obj in
-  (* XXX: add a newline? *)
-  (* XXX: make pretty-printing optional? *)
-  Piqi_json_gen.pretty_to_string json
-
-
-let gen_pb obj =
-  let buf = Piq.gen_pb obj in
-  Piqirun.to_string buf
+let parse_wire s ~is_piqi_input =
+  let buf = Piqirun.IBuf.of_string s in
+  let get_next () = Piq.load_wire_obj buf in
+  let obj = parse_piq_common get_next ~is_piqi_input in
+  (* XXX: check eof? *)
+  obj
 
 
 let gen_wire obj =
@@ -132,38 +114,100 @@ let gen_wire obj =
   Piqirun.to_string buf
 
 
-let convert args =
-  let open I.Convert_input in
+let parse_json piqtype s =
+  let json_parser = Piqi_json_parser.init_from_string ~fname s in
+  let obj = Piq.load_json_obj piqtype json_parser in
+  (* XXX: check eof? *)
+  obj
+
+
+let gen_json obj =
+  let json = Piq.gen_json obj in
+  (* XXX: add a newline? *)
+  (* XXX: make pretty-printing optional? *)
+  Piqi_json_gen.pretty_to_string json
+
+
+let parse_pb piqtype s =
+  let buf = Piqirun.init_from_string s in
+  let obj = Piq.load_pb piqtype buf in
+  (* XXX: check eof? *)
+  obj
+
+
+let gen_pb obj =
+  let buf = Piq.gen_pb obj in
+  Piqirun.to_string buf
+
+
+let parse_obj typename input_format data =
   (* TODO: reset wire types and codes in Piq module before reading and writing
    * wire *)
-  let input = args.data in
-  let piqtype = Piqi_convert.find_piqtype args.type_name in
+  let piqtype = Piqi_convert.get_piqtype typename in
+  let is_piqi_input = (typename = "piqi") in
   let piqobj =
-    match args.input_format with
-      | `piq  -> parse_piq input (* piqtype? *)
-      | `json | `piq_json -> parse_json piqtype input
-      | `pb -> parse_pb piqtype input
-      | `wire -> parse_wire input
+    match input_format with
+      | `piq  -> parse_piq data ~is_piqi_input
+      | `json -> parse_json piqtype data
+      | `pb -> parse_pb piqtype data
+      | `wire -> parse_wire data ~is_piqi_input
+  in piqobj
+
+
+(* "convert" call handler *)
+let convert args =
+  let open I.Convert_input in
+  let piqobj =
+    (* XXX: We need to resolve all defaults before converting to JSON *)
+    if args.output_format = `json then C.resolve_defaults := true;
+
+    parse_obj args.type_name args.input_format args.data
   in
   let output =
     match args.output_format with
       | `piq  -> gen_piq piqobj
       | `json -> gen_json piqobj
-      | `piq_json -> gen_piq_json piqobj
       | `pb -> gen_pb piqobj
       | `wire -> gen_wire piqobj
   in
   `ok I.Convert_output#{ data = output }
 
 
-let convert args =
-  try convert args
+(* common error handler *)
+let with_handle_piqi_errors f x =
+  try f x
   with
     | C.Error (loc, s)  -> `error (strerr loc s)
     | Piqi_error s -> `error s
 
 
+let convert args =
+  with_handle_piqi_errors convert args
+
+
+let add_one_piqi input_format data =
+  (* It is enough to just read the Piqi spec in order to get it processed and
+   * cached in the Piqi database automatically *)
+  ignore (parse_obj "piqi" input_format data)
+
+
+(* "add-piqi" call handler *)
+let add_piqi args =
+  let open I.Add_piqi_input in (
+    List.iter (add_one_piqi args.format) args.data;
+    `ok_empty
+  )
+
+
+let add_piqi args =
+  with_handle_piqi_errors add_piqi args
+
+
 exception Break
+
+
+let gen_error exn =
+  Printexc.to_string exn ^ " ; backtrace: " ^ Printexc.get_backtrace ()
 
 
 let do_args f data =
@@ -171,7 +215,7 @@ let do_args f data =
   try f buf
   with exn ->
     return_piqi_error
-      ("error while parsing arguments: " ^ Printexc.to_string exn);
+      ("error while parsing arguments: " ^ gen_error exn);
     raise Break
 
 
@@ -179,7 +223,7 @@ let do_run f x =
   try f x
   with exn ->
     return_piqi_error
-      ("error while running function: " ^ Printexc.to_string exn);
+      ("error while running function: " ^ gen_error exn);
     raise Break
 
 
@@ -192,9 +236,15 @@ let execute_request req =
           | `ok res -> return_ok (I.gen_convert_output (-1) res)
           | `error err -> return_error (I.gen_convert_error (-1) err)
         )
+    | "add-piqi", Some data -> (
+        let args = do_args I.parse_add_piqi_input data in
+        match do_run add_piqi args with
+          | `ok_empty -> return_ok_empty ()
+          | `error err -> return_error (I.gen_add_piqi_error (-1) err)
+        )
     | "", None ->
         (* return the Piqi module and all the dependencies encoded as a list of
-         * Piqi each encoded as binobj *)
+         * Piqi each encoded using Protobuf binary format *)
         let output = Piqirun.gen_list Piqirun.gen_string (-1) I.piqi in
         return_ok output
     | name, _ ->
@@ -220,6 +270,7 @@ let main_loop () =
 
 
 let start_server () =
+  Piqi_json.init ();
   main_loop ()
 
 

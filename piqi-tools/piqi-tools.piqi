@@ -9,7 +9,7 @@
 
     .input [
         .field [
-            .type format  % how Piqi module is encoded (typically, proto)
+            .type format  % how Piqi module is encoded (typically, pb)
         ]
 
         .field [
@@ -65,7 +65,6 @@
 
     .option [ piq ]
     .option [ json ]
-    .option [ piq-json ]
     .option [ pb ]
     .option [ wire ]
     %.option [ xml ]

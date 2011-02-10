@@ -147,11 +147,7 @@ let init_json_writer () =
 
 let init_json_reader () =
   Piqi_json.init ();
-  if !typename <> ""
-  then
-    let piqtype = get_piqtype !typename in
-    Piq.default_piqtype := Some piqtype
-  else ()
+  ()
 
 
 let write_json is_piqi_input ch (obj: Piq.obj) =
@@ -175,8 +171,13 @@ let make_reader input_encoding =
         make_reader (load_pb piqtype) wireobj
     | "json" | "piq-json" ->
         init_json_reader ();
+        let piqtype =
+          if !typename <> ""
+          then Some (get_piqtype !typename)
+          else None
+        in
         let json_parser = Piqi_json.open_json !ifile in
-        make_reader Piq.load_json_obj json_parser
+        make_reader (Piq.load_piq_json_obj piqtype) json_parser
     | _ when !typename <> "" ->
         piqi_error "--piqtype parameter is applicable only to \"pb\" or \"json\" input encodings"
     | "piq" ->
@@ -321,9 +322,7 @@ let convert_file () =
   in
   let och = Main.open_output ofile in
 
-  (* XXX, TODO: unify this parameter across all readers, i.e. make it global *)
-  Piqobj_of_wire.resolve_defaults := !flag_add_defaults;
-  Piqobj_of_piq.resolve_defaults := !flag_add_defaults;
+  C.resolve_defaults := !flag_add_defaults;
 
   (* main convert cycle *)
   try 

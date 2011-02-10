@@ -89,8 +89,9 @@ let gen_piqi piqi =
   let res_piqi = Piqi_ext.expand_piqi piqi in
   (* add the Module's name even if it wasn't set *)
   res_piqi.P#modname <- piqi.P#modname;
-  let binobj = Piqirun.gen_binobj T.gen_piqi res_piqi in
-  ioq (String.escaped binobj)
+  let iodata = T.gen_piqi (-1) res_piqi in
+  let s = Piqirun.to_string iodata in
+  ioq (String.escaped s)
 
 
 let gen_embedded_piqi piqi =

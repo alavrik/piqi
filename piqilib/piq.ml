@@ -71,7 +71,8 @@ let process_default_piqtype ?check typename =
 
 
 let piqi_of_piq fname ast =
-  let piqi = Piqi.load_piqi_ast fname ast in
+  let piqi = Piqi.parse_piqi ast in
+  Piqi.process_piqi piqi ~fname; (* NOTE: caching the loaded module *)
   piqi
 
 
@@ -210,8 +211,7 @@ let piqi_to_pb piqi =
 
 let piqi_of_wire bin =
   let piqi = T.parse_piqi bin in
-  let fname = "" in (* XXX *)
-  Piqi.process_piqi fname piqi; (* NOTE: caching the loaded module *)
+  Piqi.process_piqi piqi; (* NOTE: caching the loaded module *)
   piqi
 
 
@@ -328,12 +328,6 @@ let gen_pb (obj :obj) =
     | Piqi piqi ->
         piqi_to_pb piqi
     | Typed_piqobj obj | Piqobj obj ->
-        let piqtype = Piqobj_common.type_of obj in
-        (match unalias piqtype with
-          | `record _ | `variant _ | `list _ -> ()
-          | _ ->
-              piqi_error "only records, variants and lists can be written to .pb"
-        );
         Piqobj_to_wire.gen_embedded_obj obj
     | Piqtype _ ->
         (* ignore default type names *)
@@ -349,20 +343,12 @@ let piqi_of_json json =
   let piqtype = !Piqi.piqi_def in
   let wire_parser = T.parse_piqi in
 
-  (* dont' resolve defaults when reading Json;
-   * preseve the original setting *)
-  let saved_resolve_defaults = !Piqobj_of_json.resolve_defaults in
-  Piqobj_of_json.resolve_defaults := true;
-
-  let piqobj = Piqobj_of_json.parse_obj piqtype json in
-
-  Piqobj_of_json.resolve_defaults := saved_resolve_defaults;
-
+  (* don't resolve defaults when reading Json *)
+  let piqobj =
+    C.with_resolve_defaults false (Piqobj_of_json.parse_obj piqtype) json
+  in
   let piqi = Piqi.mlobj_of_piqobj wire_parser piqobj in
-
-  (* XXX: it appears that we actually don't need the name of the file here *)
-  let fname = "" in
-  Piqi.process_piqi fname piqi; (* NOTE: caching the loaded module *)
+  Piqi.process_piqi piqi; (* NOTE: caching the loaded module *)
   piqi
 
 
@@ -431,7 +417,22 @@ let piqobj_of_json piqtype json :Piqobj.obj =
   Piqobj_of_json.parse_obj piqtype json
 
 
-let load_json_obj json_parser :obj =
+let load_json_common piqtype ast =
+  if piqtype == !Piqi.piqi_def (* XXX *)
+  then
+    let piqi = piqi_of_json ast in
+    Piqi piqi
+  else
+    let obj = piqobj_of_json piqtype ast in
+    match !default_piqtype with
+      | Some x when x == piqtype ->
+          (* return as Piqobj when default_piqtype is used *)
+          Piqobj obj
+      | _ ->
+          Typed_piqobj obj
+
+
+let load_piq_json_obj (piqtype: T.piqtype option) json_parser :obj =
   (* check typenames, as Json parser doesn't do it unlike the Piq parser *)
   let check = true in
   let ast = read_json_ast json_parser in
@@ -458,15 +459,24 @@ let load_json_obj json_parser :obj =
     | `Assoc (("_piqtype", _ )::_) ->
         error ast "invalid type object specification"
     | _ ->
-        match !default_piqtype with
-          | Some piqtype ->
-              if piqtype == !Piqi.piqi_def (* XXX *)
-              then
-                let piqi = piqi_of_json ast in
-                Piqi piqi
-              else
-                let obj = piqobj_of_json piqtype ast in
-                Piqobj obj
-          | None ->
-              error ast "type of object is unknown"
+        let piqtype =
+          (* default piqtype taken from the stream overrides the user-specified
+           * one *)
+          match !default_piqtype, piqtype with
+            | Some x, _ -> x
+            | None, Some x -> x
+            | None, None ->
+                error ast "type of object is unknown"
+        in
+        load_json_common piqtype ast
+
+
+let load_json_obj (piqtype: T.piqtype) json_parser :obj =
+  (* check typenames, as Json parser doesn't do it unlike the Piq parser *)
+  let ast = read_json_ast json_parser in
+  match ast with
+    | `Null () ->
+        error ast "invalid toplevel value: null"
+    | _ ->
+        load_json_common piqtype ast
 

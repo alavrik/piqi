@@ -48,10 +48,6 @@ let reference f t x =
   Piqloc.addrefret count obj
 
 
-(* XXX: resolve_defaults should be disabled by default *)
-let resolve_defaults = ref false
-
-
 (* XXX: move to Piqi_wire? *)
 let parse_int ?wire_type x =
   let r0 = reference0 in
@@ -202,7 +198,7 @@ and do_parse_field t l =
           [x], rem
       | `optional ->
           let default =
-            if !resolve_defaults
+            if !C.resolve_defaults
             then t.default
             else None
           in

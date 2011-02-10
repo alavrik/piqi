@@ -91,14 +91,6 @@ let get_unknown_fields () =
   res
 
 
-(*
- * global constants
- *)
-
-(* use default values to initialize optional fields that are missing *)
-let resolve_defaults = ref false
-
-
 (* ------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------- *)
@@ -387,7 +379,7 @@ and do_parse_field loc t l =
           [x], rem
       | `optional ->
           let default =
-            if !resolve_defaults
+            if !C.resolve_defaults
             then t.default
             else None
           in

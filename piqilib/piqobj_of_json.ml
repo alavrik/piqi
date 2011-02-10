@@ -33,11 +33,6 @@ module Any = Piqobj.Any
 module L = Piqobj.List
 
 
-
-(* XXX: resolve_defaults should be disabled by default *)
-let resolve_defaults = ref true
-
-
 let error_duplicate obj name =
   error obj ("duplicate field: " ^ name)
 
@@ -170,7 +165,7 @@ and do_parse_field loc t l =
           [x], rem
       | `optional ->
           let default =
-            if !resolve_defaults
+            if !C.resolve_defaults
             then t.default
             else None
           in
