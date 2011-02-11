@@ -273,6 +273,15 @@ let rec unalias = function
   | t -> t
 
 
+let is_piqdef t =
+  match unalias t with
+    | #T.piqdef -> true
+    | _ -> false
+
+
+let is_primitive_piqtype t = not (is_piqdef t)
+
+
 (* check if the module is a Piqi self-specification, i.e. it is
  * "piqi.org/piqtype" or includes it *)
 let is_self_spec (piqi: T.piqi) =

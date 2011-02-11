@@ -159,9 +159,9 @@ let convert args =
   let open I.Convert_input in
   let piqobj =
     (* XXX: We need to resolve all defaults before converting to JSON *)
-    if args.output_format = `json then C.resolve_defaults := true;
-
-    parse_obj args.type_name args.input_format args.data
+    C.with_resolve_defaults
+      (args.output_format = `json)
+      (parse_obj args.type_name args.input_format) args.data
   in
   let output =
     match args.output_format with

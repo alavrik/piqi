@@ -371,6 +371,17 @@ let write_json_obj ch json =
   Pervasives.output_char ch '\n'
 
 
+let gen_json_common (piqobj : Piqobj.obj) =
+  let ast = Piqobj_to_json.gen_obj piqobj in
+  let piqtype = Piqobj_common.type_of piqobj in
+  (* generating an associative array wrapper for primitive types because JSON
+   * doesn't support them as top-level objects, according to RFC 4627 that says:
+   * "A JSON text is a serialized object or array" *)
+  if C.is_primitive_piqtype piqtype
+  then `Assoc ["_", ast]
+  else ast
+
+
 let gen_piq_json (obj :obj) =
   match obj with
     | Piqi piqi -> (* embedded Piqi spec *)
@@ -381,7 +392,7 @@ let gen_piq_json (obj :obj) =
     | Typed_piqobj obj ->
         Piqobj_to_json.gen_typed_obj obj
     | Piqobj obj ->
-        Piqobj_to_json.gen_obj obj
+        gen_json_common obj
 
 
 let write_piq_json ch (obj:obj) =
@@ -392,7 +403,7 @@ let write_piq_json ch (obj:obj) =
 let gen_json (obj :obj) =
   match obj with
     | Typed_piqobj obj | Piqobj obj ->
-        Piqobj_to_json.gen_obj obj
+        gen_json_common obj
     | Piqi piqi ->
         (* output Piqi spec itself if we are converting .piqi *)
         piqi_to_json piqi
@@ -418,6 +429,19 @@ let piqobj_of_json piqtype json :Piqobj.obj =
 
 
 let load_json_common piqtype ast =
+  let ast =
+    if C.is_primitive_piqtype piqtype
+    then
+    (* expecting primitive types to be wrapped in associative array because JSON
+     * doesn't support them as top-level objects, according to RFC 4627 that
+     * says: "A JSON text is a serialized object or array" *)
+      match ast with
+        | `Assoc [ "_", ast ] -> ast
+        | _ ->
+            error ast
+              "invalid toplevel value for primitive type: {\"_\": ...} expected"
+    else ast
+  in
   if piqtype == !Piqi.piqi_def (* XXX *)
   then
     let piqi = piqi_of_json ast in
@@ -433,9 +457,9 @@ let load_json_common piqtype ast =
 
 
 let load_piq_json_obj (piqtype: T.piqtype option) json_parser :obj =
+  let ast = read_json_ast json_parser in
   (* check typenames, as Json parser doesn't do it unlike the Piq parser *)
   let check = true in
-  let ast = read_json_ast json_parser in
   match ast with
     | `Assoc [ "_piqtype", `String typename ] ->
         (* :piqtype <typename> *)
@@ -449,8 +473,6 @@ let load_piq_json_obj (piqtype: T.piqtype option) json_parser :obj =
         Piqi piqi
     | `Assoc [ "_piqi", _ ] ->
         error ast "invalid piqi specification"
-    | `Null () ->
-        error ast "invalid toplevel value: null"
     | `Assoc [ "_piqtype", `String typename;
                "_piqobj", ast ] ->
         let piqtype = find_piqtype typename ~check in
@@ -472,11 +494,6 @@ let load_piq_json_obj (piqtype: T.piqtype option) json_parser :obj =
 
 
 let load_json_obj (piqtype: T.piqtype) json_parser :obj =
-  (* check typenames, as Json parser doesn't do it unlike the Piq parser *)
   let ast = read_json_ast json_parser in
-  match ast with
-    | `Null () ->
-        error ast "invalid toplevel value: null"
-    | _ ->
-        load_json_common piqtype ast
+  load_json_common piqtype ast
 
