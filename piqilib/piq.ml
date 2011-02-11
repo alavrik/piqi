@@ -209,9 +209,9 @@ let piqi_to_pb piqi =
   T.gen_piqi (-1) (original_piqi piqi)
 
 
-let piqi_of_wire bin =
+let piqi_of_wire bin ~cache =
   let piqi = T.parse_piqi bin in
-  Piqi.process_piqi piqi; (* NOTE: caching the loaded module *)
+  Piqi.process_piqi piqi ~cache;
   piqi
 
 
@@ -229,7 +229,8 @@ let rec load_wire_obj buf :obj =
   let field_code, field_obj = read_wire_field buf in
   match field_code with
     | c when c = piqi_spec_wire_code -> (* embedded Piqi spec *)
-        let piqi = piqi_of_wire field_obj in
+        (* NOTE: caching the loaded module *)
+        let piqi = piqi_of_wire field_obj ~cache:true in
         Piqi piqi
     | c when c mod 2 = 1 ->
         let typename = Piqirun.parse_string field_obj in
@@ -316,7 +317,7 @@ let load_pb (piqtype:T.piqtype) wireobj :obj =
   (* TODO: handle runtime wire read errors *)
   if piqtype == !Piqi.piqi_def (* XXX *)
   then
-    let piqi = piqi_of_wire wireobj in
+    let piqi = piqi_of_wire wireobj ~cache:false in
     Piqi piqi
   else
     let obj = Piqobj_of_wire.parse_obj piqtype wireobj in
@@ -339,7 +340,7 @@ let write_pb ch (obj :obj) =
   Piqirun.to_channel ch buf
 
 
-let piqi_of_json json =
+let piqi_of_json json ~cache =
   let piqtype = !Piqi.piqi_def in
   let wire_parser = T.parse_piqi in
 
@@ -348,7 +349,7 @@ let piqi_of_json json =
     C.with_resolve_defaults false (Piqobj_of_json.parse_obj piqtype) json
   in
   let piqi = Piqi.mlobj_of_piqobj wire_parser piqobj in
-  Piqi.process_piqi piqi; (* NOTE: caching the loaded module *)
+  Piqi.process_piqi piqi ~cache;
   piqi
 
 
@@ -444,7 +445,7 @@ let load_json_common piqtype ast =
   in
   if piqtype == !Piqi.piqi_def (* XXX *)
   then
-    let piqi = piqi_of_json ast in
+    let piqi = piqi_of_json ast ~cache:false in
     Piqi piqi
   else
     let obj = piqobj_of_json piqtype ast in
@@ -469,7 +470,8 @@ let load_piq_json_obj (piqtype: T.piqtype option) json_parser :obj =
         error ast "invalid piqtype specification"
     | `Assoc [ "_piqi", ((`Assoc _) as json_ast) ] ->
         (* :piqi <typename> *)
-        let piqi = piqi_of_json json_ast in
+        (* NOTE: caching the loaded module *)
+        let piqi = piqi_of_json json_ast ~cache:true in
         Piqi piqi
     | `Assoc [ "_piqi", _ ] ->
         error ast "invalid piqi specification"

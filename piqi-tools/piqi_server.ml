@@ -242,6 +242,8 @@ let execute_request req =
           | `ok_empty -> return_ok_empty ()
           | `error err -> return_error (I.gen_add_piqi_error (-1) err)
         )
+    | "ping", None ->
+        return_ok_empty ()
     | "", None ->
         (* return the Piqi module and all the dependencies encoded as a list of
          * Piqi each encoded using Protobuf binary format *)
@@ -264,8 +266,15 @@ let main_loop () =
         exit 1
       )
     in
-    try execute_request request
-    with Break -> ()
+    let _ =
+      try execute_request request
+      with Break -> ()
+    in
+    (* reset location db to allow GC to collect previously read objects *)
+    Piqloc.reset ();
+    (* run garbage collection on the minor heap to free all memory used for the
+     * request *)
+    Gc.minor ();
   done
 
 
@@ -284,6 +293,9 @@ let usage = "Usage: piqi server [options]\nOptions:"
 let speclist = Main.common_speclist @
   [
     (* TODO: flag for disallowing implicit loading of Piqi modules from files *)
+
+    (* XXX: disable warnings by default in order to prevent printing them on
+     * stderr? *)
   ]
 
 let run () =

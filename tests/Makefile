@@ -9,6 +9,7 @@ DIRS = \
        examples \
        addressbook \
        piqi.org \
+       piqi_server \
 
 
 .PHONY: erlang erlang-clean

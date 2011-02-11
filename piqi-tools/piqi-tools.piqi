@@ -60,6 +60,10 @@
 ]
 
 
+% not really useful for anything but testing
+.function [ .name ping ]
+
+
 .enum [
     .name format
 
