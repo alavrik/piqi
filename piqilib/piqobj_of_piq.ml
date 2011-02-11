@@ -237,7 +237,7 @@ let find_piqtype name =
 
 
 (* idtable implemented as map: string -> 'a *)
-let rec parse_obj0 (t: T.piqtype) (x: T.ast) :Piqobj.obj =
+let rec parse_obj0 ~try_mode (t: T.piqtype) (x: T.ast) :Piqobj.obj =
   (* fill the location DB *)
   let r f x = reference f x in
   let rr f t x = reference (f t) x in
@@ -253,12 +253,12 @@ let rec parse_obj0 (t: T.piqtype) (x: T.ast) :Piqobj.obj =
     | `any -> `any (r parse_any x)
     (* custom types *)
     | `record t -> `record (rr parse_record t x)
-    | `variant t -> `variant (rr parse_variant t x)
-    | `enum t -> `enum (rr parse_enum t x)
+    | `variant t -> `variant (rr (parse_variant ~try_mode) t x)
+    | `enum t -> `enum (rr (parse_enum ~try_mode) t x)
     | `list t -> `list (rr parse_list t x)
     | `alias t -> `alias (rr parse_alias t x)
 
-and parse_obj t x = reference (parse_obj0 t) x
+and parse_obj ?(try_mode=false) t x = reference (parse_obj0 ~try_mode t) x
 
 
 and parse_typed_obj ?piqtype x = 
@@ -292,7 +292,7 @@ and try_parse_obj field_name t x =
     (* NOTE, XXX: try-parsing of unlabeled `any always succeeds *)
     | _ ->
         let depth' = !depth in
-        try Some (parse_obj t x)
+        try Some (parse_obj t x ~try_mode:true)
         with
           (* ignore errors which occur at the same parse depth, i.e. when
            * parsing everything except for lists and records which increment
@@ -491,7 +491,7 @@ and parse_repeated_field name field_name field_type l =
         res, rem
 
 
-and parse_variant t x =
+and parse_variant ~try_mode t x =
   debug "parse_variant: %s\n" t.T.Variant#name;
   let options = t.T.Variant#option in
   try
@@ -502,7 +502,7 @@ and parse_variant t x =
         | `word _ ->
             parse_word_option options x
         | `raw_word s ->
-            parse_raw_word_option options x s
+            parse_raw_word_option options x s ~try_mode
         | `bool _ ->
             parse_bool_option options x
         | `int _ ->
@@ -544,25 +544,25 @@ and parse_variant t x =
       (List.map get_covariant
         (List.filter is_covariant options))
     in
-    let value = parse_covariants covariants x in
+    let value = parse_covariants covariants x ~try_mode in
     Piqloc.addref x value;
     V#{ piqtype = t; option = value }
 
 
-and parse_covariants covariants x =
+and parse_covariants ~try_mode covariants x =
   let rec aux = function
     | [] ->
         (* failed to parse among variant and its covariants *)
         handle_unknown_variant x
     | h::t ->
         try
-          parse_covariant h x
+          parse_covariant h x ~try_mode
         with Not_found -> aux t
   in aux covariants
 
 
-and parse_covariant (o, v) x =
-  let value = reference (parse_variant v) x in
+and parse_covariant ~try_mode (o, v) x =
+  let value = reference (parse_variant ~try_mode v) x in
   O#{ piqtype = o; obj = Some (`variant value) }
 
 
@@ -618,7 +618,7 @@ and parse_word_option options x =
   parse_typed_option options f x
 
 
-and parse_raw_word_option options x s =
+and parse_raw_word_option ~try_mode options x s =
   let len = String.length s in
   let test_f = function
     (* all of these type can have values represented as a raw (unparsed) word *)
@@ -630,7 +630,18 @@ and parse_raw_word_option options x s =
     | _ -> false
   in
   let f = make_option_finder test_f in
-  parse_typed_option options f x
+  try
+    parse_typed_option options f x
+  with Not_found when not try_mode -> (* don't catch in try mode *)
+    (* try to parse it as a name *)
+    let f o =
+      let open T.Option in
+      match o.name, o.typeref with
+        | Some n, None -> n = s
+        | _, _ -> false
+    in
+    let option = List.find f options in
+    O#{ piqtype = option; obj = None }
 
 
 and parse_string_option options x =
@@ -654,7 +665,7 @@ and parse_typed_option (options:T.Option.t list) f (x:T.ast) :Piqobj.Option.t =
   O#{ piqtype = option; obj = Some (parse_obj option_type x) }
 
 
-and parse_enum t x = parse_variant t x
+and parse_enum ~try_mode t x = parse_variant t x ~try_mode
 
 
 and parse_list t = function
