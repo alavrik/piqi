@@ -274,8 +274,7 @@ let parse_block buf =
   (* XXX: is there a length limit or it is implementation specific? *)
   match parse_varint buf with
     | Varint length when length >= 0 ->
-        let res = IBuf.next_block buf length in
-        Block res
+        IBuf.next_block buf length
     | Varint _ | Varint64 _ ->
         IBuf.error buf "block length is too long"
     | _ -> assert false
@@ -317,7 +316,7 @@ let parse_field buf =
     match wire_type with
       | 0 -> parse_varint buf
       | 1 -> parse_fixed64 buf
-      | 2 -> parse_block buf
+      | 2 -> Block (parse_block buf)
       | 5 -> parse_fixed32 buf
       | 3 | 4 -> IBuf.error buf "groups are not supported"
       | _ -> IBuf.error buf ("unknown wire type " ^ string_of_int wire_type)
@@ -910,15 +909,6 @@ let gen_flag code x =
     | true -> gen_bool code true
 
 
-(* generate length-delimited block of data. The inverse operation to
- * parse_block() *)
-let gen_block iodata =
-  iol [
-      gen_unsigned_varint_value (OBuf.size iodata);
-      iodata;
-  ]
-
-
 let gen_record code contents =
   let contents = iol contents in
   (* special code meaning that key and length sould not be generated *)
@@ -949,3 +939,17 @@ let gen_binobj gen_obj ?name x =
   in
   (* return the rusult encoded as a binary string *)
   OBuf.to_string l
+
+
+(* generate length-delimited block of data. The inverse operation to
+ * parse_block() below *)
+let gen_block iodata =
+  iol [
+      gen_unsigned_varint_value (OBuf.size iodata);
+      iodata;
+  ]
+
+
+let parse_block buf =
+  Top_block (parse_block buf)
+
