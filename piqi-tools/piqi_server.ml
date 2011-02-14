@@ -272,14 +272,16 @@ let main_loop () =
     in
     (* reset location db to allow GC to collect previously read objects *)
     Piqloc.reset ();
-    (* run garbage collection on the minor heap to free all memory used for the
-     * request *)
+    (* XXX: run garbage collection on the minor heap to free all memory used for
+     * the request *)
     Gc.minor ();
   done
 
 
 let start_server () =
   Piqi_json.init ();
+  (* exit on SIGPIPE without printing a message about uncaught exception *)
+  Sys.set_signal Sys.sigpipe Sys.Signal_default;
   main_loop ()
 
 
