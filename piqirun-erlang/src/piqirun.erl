@@ -145,6 +145,25 @@ decode_varint(Bytes, _Acc) when is_binary(Bytes) ->
     error('not_enough_data').
 
 
+-spec gen_block/1 :: (Data :: iodata()) -> iolist().
+
+% get length-delimited block, where length is encoded using varint encoding.
+gen_block(Data) ->
+    [ encode_varint(iolist_size(Data)), Data ].
+
+
+-spec parse_block/1 :: (Bytes :: binary()) ->
+    {{'top_block', binary()}, Rest :: binary()}.
+
+% parse length-delimited block, rases 'not_enough_data' if there's less data in
+% the actual block than the "length" bytes.
+parse_block(Bytes) ->
+    {Length, Rest_1} = decode_varint(Bytes),
+    {Data, Rest} = my_split_binary(Rest_1, Length),
+    Buf = init_from_binary(Data),
+    {Buf, Rest}.
+
+
 -spec gen_record/2 :: (
     Code :: piqirun_code(),
     Fields :: [iolist()] ) -> iolist().
