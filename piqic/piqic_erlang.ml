@@ -198,6 +198,19 @@ let gen_hrl modname piqi =
   Main.close_output ()
 
 
+let gen_embedded_piqi piqi =
+  let l = Piqic_common.build_piqi_deps piqi in
+  let l = List.map Piqic_erlang_in.gen_erlang_binary l in
+  iol [
+    ios "piqi() ->"; indent;
+      ios "["; indent;
+        iod ",\n        " l;
+        unindent; eol;
+      ios "].";
+    unindent; eol;
+  ]
+
+
 let gen_erl modname piqi =
   (* open output .erl file *)
   let ofile = modname ^ ".erl" in
@@ -210,6 +223,11 @@ let gen_erl modname piqi =
     then Piqic_erlang_defaults.gen_piqi piqi
     else iol []
   in
+  let code_embedded_piqi =
+    if !Piqic_common.flag_embed_piqi
+    then gen_embedded_piqi piqi
+    else iol []
+  in
   let code = iol [
     ios "-module("; ios modname; ios ")."; eol;
     ios "-compile(export_all)."; eol;
@@ -220,6 +238,7 @@ let gen_erl modname piqi =
     code_gen; eol;
     code_parse; eol;
     code_gen_defauls; eol;
+    code_embedded_piqi; eol;
   ]
   in
   Iolist.to_channel ch code;
@@ -299,6 +318,7 @@ let speclist = Main.common_speclist @
     arg_C;
     Piqic_common.arg__normalize;
     Piqic_common.arg__gen_defaults;
+    Piqic_common.arg__embed_piqi;
 
     "--gen-function-specs", Arg.Set flag_gen_specs,
       "Genereate Erlang function specifications (-spec ...)";

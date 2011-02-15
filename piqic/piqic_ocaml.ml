@@ -66,37 +66,9 @@ let ocaml_pretty_print ifile ofile =
   then piqi_error ("command execution failed: " ^ cmd)
 
 
-let rec get_piqi_deps piqi =
-  if C.is_boot_piqi piqi
-  then [] (* boot Piqi is not a dependency *)
-  else
-    let imports =
-      List.map (fun x -> some_of x.T.Import#piqi) piqi.P#resolved_import
-    in
-    (* get all imports' dependencies recursively *)
-    let import_deps =
-      flatmap (fun piqi ->
-          flatmap get_piqi_deps piqi.P#included_piqi
-        ) imports
-    in
-    (* remove duplicate entries *)
-    let deps = C.uniqq (import_deps @ imports) in
-    deps @ [piqi]
-
-
-let gen_piqi piqi =
-  (* XXX: or just use piqi.orig_piqi and also get includes in get_piqi_deps? *)
-  let res_piqi = Piqi_ext.expand_piqi piqi in
-  (* add the Module's name even if it wasn't set *)
-  res_piqi.P#modname <- piqi.P#modname;
-  let iodata = T.gen_piqi (-1) res_piqi in
-  let s = Piqirun.to_string iodata in
-  ioq (String.escaped s)
-
-
 let gen_embedded_piqi piqi =
-  let l = get_piqi_deps piqi in
-  let l = List.map gen_piqi l in
+  let l = Piqic_common.build_piqi_deps piqi in
+  let l = List.map (fun s -> ioq (String.escaped s)) l in
   iol [
     ios "let piqi = ["; iod ";" l; ios "]"
   ]
@@ -104,7 +76,6 @@ let gen_embedded_piqi piqi =
 
 (* command-line flags *)
 let flag_pp = ref false
-let flag_embed_piqi = ref false
 
 
 let piqic_file ifile =
@@ -119,7 +90,7 @@ let piqic_file ifile =
 
   let code = Piqic_ocaml_base.piqic piqi in
   let code =
-    if !flag_embed_piqi
+    if !Piqic_common.flag_embed_piqi
     then iol [ code; gen_embedded_piqi piqi ]
     else code
   in
@@ -175,8 +146,7 @@ let speclist = Main.common_speclist @
       "pretty-print output using CamlP4 (camlp4o)"; 
     Piqic_common.arg__gen_defaults;
     Piqic_common.arg__normalize;
-    "--embed-piqi", Arg.Set flag_embed_piqi,
-      "embed Piqi modules encoded in binary format in the generated code";
+    Piqic_common.arg__embed_piqi;
     arg__leave_tmp_files;
   ]
 

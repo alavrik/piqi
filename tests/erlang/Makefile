@@ -11,7 +11,7 @@ prep:
 	piqi convert --add-defaults -t pb -o piqi.piqi.pb piqi-expanded.piqi
 
 
-PIQIC_FLAGS = --gen-defaults
+PIQIC_FLAGS = --gen-defaults --embed-piqi
 
 
 test:
