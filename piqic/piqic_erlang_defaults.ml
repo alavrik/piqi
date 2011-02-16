@@ -34,7 +34,7 @@ let gen_default_type erlang_type wire_type x =
   match x with
     | `any ->
         if !Piqic_common.is_self_spec
-        then ios "default_any()"
+        then ios "default_" ^^ ios !any_erlname ^^ ios "()"
         else ios "piqtype:default_any()"
     | (#T.piqdef as x) ->
         let modname = gen_parent x in

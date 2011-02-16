@@ -29,6 +29,7 @@ open Iolist
  * piqic_erlang_* modules *)
 let top_modname = ref ""
 let type_prefix = ref ""
+let any_erlname = ref ""
 
 
 let scoped_name name = !type_prefix ^ name
@@ -68,7 +69,7 @@ let rec gen_piqtype t erlang_type =
           | `binary -> "binary"
           | `any ->
               if !Piqic_common.is_self_spec
-              then scoped_name "any"
+              then scoped_name !any_erlname
               else "piqtype_any"
           | `record r -> gen_deftype r.R#parent r.R#erlang_name
           | `variant v -> gen_deftype v.V#parent v.V#erlang_name

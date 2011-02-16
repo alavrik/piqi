@@ -288,6 +288,14 @@ let piqic (piqi: T.piqi) =
   Piqic_erlang_types.top_modname := some_of piqi.P#erlang_module;
   Piqic_erlang_types.type_prefix := some_of piqi.P#erlang_type_prefix;
 
+  (* set Erlang name for the type "any" *)
+  if !Piqic_common.is_self_spec
+  then (
+    let def = Piqi_db.find_local_piqdef piqi "any" in
+    let erl_name = Piqic_erlang_types.piqdef_erlname def in
+    Piqic_erlang_types.any_erlname := erl_name
+  );
+
   if !flag_gen_impl
   then gen_impl modname piqi
   else (
