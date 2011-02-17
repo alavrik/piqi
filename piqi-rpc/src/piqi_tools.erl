@@ -214,14 +214,14 @@ ping() ->
     rpc(<<"ping">>).
 
 
--spec add_piqi/1 :: (BinPiqi :: [binary()]) -> ok | {error, string()}.
+-spec add_piqi/1 :: (BinPiqiList :: [binary()]) -> ok | {error, string()}.
 
 % add a Protobuf-encoded Piqi module specifications to Piqi tools. Added types
 % will be used later by "convert" and other functions.
-add_piqi(BinPiqi) ->
+add_piqi(BinPiqiList) ->
     Input = #piqi_tools_add_piqi_input{
         format = 'pb',
-        data = BinPiqi
+        data = BinPiqiList
     },
     BinInput = piqi_tools_piqi:gen_add_piqi_input('undefined', Input),
     case rpc(<<"add-piqi">>, BinInput) of
