@@ -53,6 +53,7 @@ let rec mlname_piqi (piqi:T.piqi) =
 (* command-line flags *)
 let flag_erlang = ref false
 let flag_ocaml = ref false
+let flag_binary_output = ref false
 
 
 let expand_file filename =
@@ -68,7 +69,12 @@ let expand_file filename =
   if !flag_erlang || expand_all then erlname_piqi res_piqi;
   if !flag_ocaml || expand_all then mlname_piqi res_piqi;
 
-  Piqi_pp.prettyprint_piqi ch res_piqi
+  if not !flag_binary_output
+  then
+    Piqi_pp.prettyprint_piqi ch res_piqi
+  else
+    let code = T.gen_piqi (-1) res_piqi in
+    Piqirun.to_channel ch code
 
 
 let usage = "Usage: piqic expand [options] <.piqi file> [output file]\nOptions:"
@@ -78,6 +84,9 @@ let speclist = Main.common_speclist @
   [
     arg_o;
     Piqic_common.arg__normalize;
+
+    "-b", Arg.Set flag_binary_output,
+      "Output expanded Piqi module encoded as a Protobuf-encoded binary";
 
     "--erlang", Arg.Set flag_erlang,
       "Expand Erlang names only";

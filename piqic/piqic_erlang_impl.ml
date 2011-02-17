@@ -40,7 +40,7 @@ let gen_spec f =
   let open T.Func in
   let input = 
     match f.resolved_input with
-      | None -> ios "'undefined'"
+      | None -> ios ""
       | Some t -> gen_typename t
   in
   let output =
@@ -73,6 +73,11 @@ let gen_function_specs (piqi:T.piqi) =
 let gen_default_impl modname f =
   let open T.Func in
   let fname = some_of f.erlang_name in
+  let input =
+    match f.resolved_input with
+      | None -> ios ""
+      | Some t -> ios "_"
+  in
   let output =
     match f.resolved_output with
       | None -> ios "ok";
@@ -84,7 +89,7 @@ let gen_default_impl modname f =
           ]
   in
   iol [
-    ios fname; ios "(_) -> "; output; ios "."
+    ios fname; ios "("; input; ios ") -> "; output; ios "."
   ]
 
 
