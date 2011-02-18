@@ -35,12 +35,20 @@ let receive_response (buf,_) =
   Piqi_rpc.parse_response buf
 
 
+let string_of_rpc_error = function
+  | `unknown_function -> "unknown function"
+  | `missing_input -> "missing input"
+  | `invalid_input err -> "invalid input: " ^ err
+  | `internal_error err -> "internal error: " ^ err
+  | `protocol_error err -> "protocol error: " ^ err
+
+
 let call_local_server handle request =
   trace "piqi call: making local call\n";
   send_request handle request;
   match receive_response handle with
-    | `piqi_error err ->
-        piqi_error ("remote error: " ^ err)
+    | `rpc_error err ->
+        piqi_error ("rpc error: " ^ string_of_rpc_error err)
     | x -> x
 
 
@@ -76,7 +84,7 @@ let init_piqi handle =
         last piqi_list
     | `error _ | `ok_empty ->
         piqi_error "invalid response to Piqi modules request"
-    | `piqi_error _ -> assert false (* checked earlier *)
+    | `rpc_error _ -> assert false (* checked earlier *)
 
 
 let find_function piqi name =
@@ -124,7 +132,7 @@ let decode_response ot et output =
               let obj = Piqobj_of_wire.parse_obj (piqtype :> T.piqtype) buf in
               `error obj
         )
-    | _, `piqi_error _ -> assert false (* checked earlier *)
+    | _, `rpc_error _ -> assert false (* checked earlier *)
 
 
 let gen_output ch obj =

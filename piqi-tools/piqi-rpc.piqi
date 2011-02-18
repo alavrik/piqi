@@ -96,8 +96,34 @@
     ]
 
     .option [
-        .name piqi-error
-        .type string
+        .type rpc-error
+
+        % make it contravariant to the "response" type
+        .name rpc-error
+    ]
+]
+
+
+.variant [
+    .name rpc-error
+
+    .option [ .name unknown-function ]
+
+    .option [ .name missing-input ]
+
+    .option [
+        .name invalid-input
+        .type string  % details
+    ]
+
+    .option [
+        .name internal-error
+        .type string  % details
+    ]
+
+    .option [
+        .name protocol-error
+        .type string  % details
     ]
 ]
 

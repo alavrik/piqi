@@ -26,6 +26,10 @@
 
 % TODO: tests, edoc
 
+% TODO, XXX: automatically manage restarts of "piqi server" and resend
+% "add_piqi" comands when/if it crashes? Otherwise, the existing Piqi tools
+% configuration (i.e. type information) will be lost after a fresh start.
+
 
 -export([start_link/0, start/0, stop/0]).
 % API
@@ -49,7 +53,7 @@
 % gen_server name
 -define(SERVER, ?MODULE).
 
--define(PIQI_ERROR, 'piqi_tools_error').
+-define(PIQI_TOOLS_ERROR, 'piqi_tools_error').
 
 
 % gen_server state
@@ -96,7 +100,6 @@ handle_call({rpc, Name, ArgsData}, _From, State) ->
     #state{port = Port, prev_data = PrevData} = State,
     send_rpc_request(Port, Name, ArgsData),
     {Response, Rest} = receive_rpc_response(Port, PrevData),
-    % XXX: handle {piqi_error, Reason} response?
     NewState = State#state{ prev_data = Rest },
     {reply, Response, NewState}.
 
@@ -113,12 +116,12 @@ handle_cast(_Msg, State) ->
 %% @private
 handle_info({'EXIT', Port, Reason}, State = #state{port = Port}) ->
     % Port command has exited
-    StopReason = {?PIQI_ERROR, {'port_command_exited', Reason}},
+    StopReason = {?PIQI_TOOLS_ERROR, {'port_command_exited', Reason}},
     {stop, StopReason, State};
 
 handle_info(Info, State) ->
     erlang:port_close(State#state.port),
-    StopReason = {?PIQI_ERROR, {'unexpected_message', Info}},
+    StopReason = {?PIQI_TOOLS_ERROR, {'unexpected_message', Info}},
     {stop, StopReason, State}.
 
 
@@ -158,7 +161,7 @@ receive_rpc_packet(Port, PrevData) ->
             end;
 
         {'EXIT', Port, Reason} ->
-            StopReason = {?PIQI_ERROR, {'port_command_exited', Reason}},
+            StopReason = {?PIQI_TOOLS_ERROR, {'port_command_exited', Reason}},
             exit(StopReason)
     end.
 
@@ -257,14 +260,11 @@ convert(TypeName, InputFormat, OutputFormat, Data) ->
 
 
 handle_common_result({error, X}) ->
-    % NOTE: parsed strings are represented binaries
-    Buf = piqirun:init_from_binary(X),
-    Bin = piqi_tools_piqi:parse_piqi_error(Buf),
-    S = binary_to_list(Bin),
+    % NOTE: parsed strings are represented as binaries
+    S = binary_to_list(X),
     {error, S};
 
-handle_common_result({piqi_error, X}) ->
+handle_common_result({rpc_error, _} = X) ->
     % recoverable protocol-level error
-    S = binary_to_list(X),
-    throw({?PIQI_ERROR, {'piqi_rpc_error', S}}).
+    throw({?PIQI_TOOLS_ERROR, X}).
 

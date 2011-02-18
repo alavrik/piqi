@@ -92,17 +92,20 @@ gen_rpc(ErlMod, FuncList) ->
     FuncClauses = [ gen_func_clause(X, ErlMod) || X <- FuncList ],
     [
         "rpc(Mod, Name, InputData, InputFormat, OutputFormat) ->\n",
+        "    try\n",
         "    case Name of\n",
             iod("\n", FuncClauses), "\n",
             gen_default_clause(),
-        "    end.\n"
+        "    end\n",
+        "    with\n",
+        "        Class:Reason -> piqi_rpc:handle_runtime_exception(Class, Reason).\n"
     ].
 
 
 gen_default_clause() ->
     [
 "        _ ->\n",
-"            piqi_rpc:unknown_function(Name)\n"
+"            piqi_rpc:handle_unknown_function()\n"
     ].
 
 
@@ -112,7 +115,10 @@ gen_func_clause(F, ErlMod) ->
     InputCode =
         case F#func.input of
             'undefined' -> % the function doesn't have input
-"            case piqi_rpc:call(Mod, ErlName) of\n";
+                [
+"            piqi_rpc:check_empty_input(InputData),\n",
+"            case piqi_rpc:call(Mod, ErlName) of\n"
+                ];
             _ ->
                 [
 "            Input = piqi_rpc:decode_input(fun ", ErlMod, ":parse_", ErlName, "_input/1, <<\"", Name, "-input\">>, InputFormat, InputData),\n"
@@ -142,10 +148,14 @@ gen_func_clause(F, ErlMod) ->
                 ]]
         end,
 
+    DefaultCaseCode = [
+"                X -> piqi_rpc:handle_invalid_result(Name, X)"
+    ],
+
     Code = [
 "        <<\"", Name, "\">> ->\n",
                 InputCode,
-                iod(";\n", [OutputCode | ErrorCode]),
+                iod(";\n", [OutputCode] ++ ErrorCode ++ [DefaultCaseCode]),
                 "\n",
 "            end;\n"
     ],

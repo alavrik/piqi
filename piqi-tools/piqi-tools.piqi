@@ -23,7 +23,7 @@
         ]
     ]
 
-    .error piqi-error
+    .error string
 ]
 
 
@@ -60,7 +60,7 @@
         ]
     ]
 
-    .error piqi-error
+    .error string
 ]
 
 
@@ -76,11 +76,5 @@
     .option [ pb ]
     .option [ wire ]
     %.option [ xml ]
-]
-
-
-.alias [
-    .name piqi-error
-    .type string
 ]
 

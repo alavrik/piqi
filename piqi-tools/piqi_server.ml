@@ -65,8 +65,8 @@ let return_error data =
   let res = Piqi_rpc.gen_response (-1) (`error data) in
   send_response res
 
-let return_piqi_error err =
-  let res = Piqi_rpc.gen_response (-1) (`piqi_error err) in
+let return_rpc_error err =
+  let res = Piqi_rpc.gen_response (-1) (`rpc_error err) in
   send_response res
 
 
@@ -211,32 +211,38 @@ let gen_error exn =
 
 
 let do_args f data =
+  let data =
+    match data with
+      | Some x -> x
+      | None ->
+          return_rpc_error `missing_input;
+          raise Break
+  in
   let buf = Piqirun.init_from_string data in
   try f buf
   with exn ->
-    return_piqi_error
-      ("error while parsing arguments: " ^ gen_error exn);
+    return_rpc_error (`invalid_input (gen_error exn));
     raise Break
 
 
 let do_run f x =
   try f x
   with exn ->
-    return_piqi_error
-      ("error while running function: " ^ gen_error exn);
+    return_rpc_error
+      (`internal_error ("error while running function: " ^ gen_error exn));
     raise Break
 
 
 let execute_request req =
   let open Piqi_rpc.Request in
   match req.name, req.data with
-    | "convert", Some data -> (
+    | "convert", data -> (
         let args = do_args I.parse_convert_input data in
         match do_run convert args with
           | `ok res -> return_ok (I.gen_convert_output (-1) res)
           | `error err -> return_error (I.gen_convert_error (-1) err)
         )
-    | "add-piqi", Some data -> (
+    | "add-piqi", data -> (
         let args = do_args I.parse_add_piqi_input data in
         match do_run add_piqi args with
           | `ok_empty -> return_ok_empty ()
@@ -249,8 +255,11 @@ let execute_request req =
          * Piqi each encoded using Protobuf binary format *)
         let output = Piqirun.gen_list Piqirun.gen_string (-1) I.piqi in
         return_ok output
+    | "", Some _ ->
+        return_rpc_error
+          (`invalid_input "no input is expected for 'get_piqi' command")
     | name, _ ->
-        return_piqi_error ("invalid request: " ^ name)
+        return_rpc_error `unknown_function
 
 
 let main_loop () =
@@ -261,8 +270,9 @@ let main_loop () =
       try
         receive_request ibuf
       with exn -> (
-        return_piqi_error
-          ("error while reading command: " ^ Printexc.to_string exn);
+        return_rpc_error
+          (`protocol_error
+            ("error while reading command: " ^ Printexc.to_string exn));
         exit 1
       )
     in
