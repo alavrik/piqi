@@ -17,7 +17,7 @@
 -compile(export_all).
 
 
-%-include_lib("webmachine/include/webmachine.hrl").
+-include_lib("webmachine/include/webmachine.hrl").
 
 
 %
@@ -49,7 +49,7 @@ allowed_methods(ReqData, Context) ->
                 % shouldn't contain "/" characters
                 ['POST']
         end,
-    % Otherwise, return 405 Method not allowed
+    % otherwise, return 405 Method not allowed
     {Methods, ReqData, Context}.
 
 
@@ -61,10 +61,11 @@ known_content_type(ReqData, Context) ->
             "application/protobuf" -> true;
             _ -> false
         end,
-    % Otherwise, return 415 Unsupported media type
+    % otherwise, return 415 Unsupported media type
     {IsKnownType, ReqData, Context}.
 
 
+% called for GET request
 content_types_provided(ReqData, Context) ->
     % for all other types 406 Not Acceptable will be returned
     ContentTypes = [
@@ -76,6 +77,7 @@ content_types_provided(ReqData, Context) ->
     {ContentTypes, ReqData, Context}.
 
 
+% called for POST request
 content_types_accepted(ReqData, Context) ->
     % for all other types 415 Unsupported media type will be returned
     ContentTypes = [
@@ -86,7 +88,15 @@ content_types_accepted(ReqData, Context) ->
     {ContentTypes, ReqData, Context}.
 
 
+format_to_content_type('pb') ->
+    "application/protobuf";
+format_to_content_type('json') ->
+    "application/json".
+
+
 malformed_request(ReqData, Context) ->
+    % XXX, NOTE: this check is actually not necessary, havign a query string
+    % doesn't affect anything
     IsMalformed =
         case wrq:req_qs(ReqData) of
             "" ->
@@ -97,7 +107,6 @@ malformed_request(ReqData, Context) ->
                 true  % return 400 Bad request
         end,
     {IsMalformed, NewReqData, Context}.
-    %{{halt, 400}, NewReqData, Context}
 
 
 %
@@ -128,6 +137,70 @@ rpc(ReqData, Context, InputFormat) ->
     ImplMod = Context#context.impl_mod,
 
     % make the actual call
-    Res = SkelMod:rpc(ImplMod, FuncName, InputData, InputFormat, OutputFormat),
-    todo.
+    RpcResponse = SkelMod:rpc(ImplMod, FuncName, InputData, InputFormat, OutputFormat),
+
+    case RpcResponse of
+        ok ->
+            % return empty 200 OK
+            {true, ReqData, Context};
+
+        {ok, OutputData} ->
+            NewReqData = wrq:set_resp_body(OutputData, ReqData),
+            % return 200 OK
+            {true, NewReqData, Context};
+
+        {error, ErrorData} -> % application error
+            NewReqData = wrq:set_resp_header(
+                "Content-Type",
+                format_to_content_type(OutputFormat),
+                ReqData),
+            % return 500 "Internal Server Error" with the structured error
+            % desciption formatted according to the desired output format
+            %
+            % NOTE, XXX: {error, } and {'prc_error', {'internal_error', _}} use
+            % the same 500 HTTP status code. The the only difference between
+            % them is the "Content-Type" header which is set to "text/plain" in
+            % the latter case.
+            {{error, ErrorData}, NewReqData, Context};
+
+        % input-related errors:
+        {'rpc_error', 'unknown_function'} ->
+            % return 404 "Not Found"
+            {{halt, 404}, ReqData, Context};
+
+        {'rpc_error', 'missing_input'} ->
+            % return 411 "Length required"
+            {{halt, 411}, ReqData, Context};
+
+        {'rpc_error', {'invalid_input', Err}} ->
+            % return 400 "Bad Request"
+            NewReqData = set_string_error(Err, ReqData),
+            {{halt, 400}, NewReqData, Context};
+
+        % other errors:
+        {'rpc_error', {'invalid_output', Err}} ->
+            % return 502 "Bad Gateway"
+            NewReqData = set_string_error(Err, ReqData),
+            {{halt, 502}, NewReqData, Context};
+
+        {'rpc_error', {'internal_error', Err}} ->
+            % return 500 "Internal Server Error" NOTE: using the same status
+            % code as for application error, but different Content-Type. See the
+            % "{error, _}" case for the details.
+            NewReqData = set_string_error(Err, ReqData),
+            % XXX: use halt for this one as well?
+            {error, NewReqData, Context}
+
+        % NOTE: Piqi-RPC over HTTP never generates this one as protocol
+        % validations is taken care of by the HTTP server
+        %{'rpc_error', {'protocol_error', Err}}
+  end.
+
+
+set_string_error(Str, ReqData) when is_binary(Str) ->
+    wrq:set_resp_header("Content-Type", "test/plain",
+        wrq:set_resp_body(Str, ReqData));
+
+set_string_error(Str, ReqData) when is_list(Str) ->
+    set_string_error(list_to_binary(Str), ReqData).
 

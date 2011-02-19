@@ -45,6 +45,8 @@ get_piqi(BinPiqiList) ->
 
 decode_input(Decoder, TypeName, InputFormat, InputData) ->
     BinInput =
+        % XXX: convert anyway even in the input is encoded using 'pb' encoding
+        % to check the validity
         case piqi_tools:convert(TypeName, InputFormat, 'pb', InputData) of
             {ok, X} -> X;
             {error, Error} ->
@@ -55,8 +57,12 @@ decode_input(Decoder, TypeName, InputFormat, InputData) ->
 
 
 encode_common(Encoder, TypeName, OutputFormat, Output) ->
-    BinOutput = Encoder('undefined', Output),
-    piqi_tools:convert(TypeName, 'pb', OutputFormat, BinOutput).
+    IolistOutput = Encoder('undefined', Output),
+    BinOutput = iolist_to_binary(IolistOutput),
+    case OutputFormat of
+        'pb' -> {ok, BinOutput}; % already in needed format
+        _ -> piqi_tools:convert(TypeName, 'pb', OutputFormat, BinOutput)
+    end.
 
 
 encode_output(Encoder, TypeName, OutputFormat, Output) ->
@@ -64,7 +70,7 @@ encode_output(Encoder, TypeName, OutputFormat, Output) ->
         {ok, OutputData} -> {ok, OutputData};
         {error, Error} ->
             throw_rpc_error(
-                {'internal_error', "error converting output: " ++ Error})
+                {'invalid_output', "error converting output: " ++ Error})
     end.
 
 
@@ -73,7 +79,7 @@ encode_error(Encoder, TypeName, OutputFormat, Output) ->
         {ok, ErrorData} -> {error, ErrorData};
         {error, Error} ->
             throw_rpc_error(
-                {'internal_error', "error converting error: " ++ Error})
+                {'invalid_output', "error converting error: " ++ Error})
     end.
 
 

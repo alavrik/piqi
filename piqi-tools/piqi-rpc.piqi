@@ -116,6 +116,13 @@
         .type string  % details
     ]
 
+    % function produces invalid output; note that it can't happen in OCaml due
+    % to the static type checking
+    .option [
+        .name invalid-output
+        .type string  % details
+    ]
+
     .option [
         .name internal-error
         .type string  % details

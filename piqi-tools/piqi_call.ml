@@ -39,6 +39,7 @@ let string_of_rpc_error = function
   | `unknown_function -> "unknown function"
   | `missing_input -> "missing input"
   | `invalid_input err -> "invalid input: " ^ err
+  | `invalid_output err -> "invalid output: " ^ err
   | `internal_error err -> "internal error: " ^ err
   | `protocol_error err -> "protocol error: " ^ err
 
