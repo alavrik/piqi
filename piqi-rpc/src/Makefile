@@ -15,6 +15,8 @@ ERLC_FLAGS = -pa $(PIQI_ROOT)/piqirun-erlang -I $(PIQI_ROOT)/piqirun-erlang # XX
 
 
 PIQIC = piqic
+PIQIC_FLAGS =
+
 
 PIQI_FILES = piqi-rpc.piqi piqi-tools.piqi
 
@@ -33,6 +35,7 @@ VSN = $(shell cat $(PIQI_ROOT)/VERSION)
 
 
 all: ebin $(PIQIC_PLUGIN)
+	$(MAKE) -f Makefile.test
 
 
 test: beams
@@ -52,7 +55,7 @@ $(PIQI_FILES): %: $(PIQI_ROOT)/piqi-tools/%
 
 $(PIQI_ERL_FILES): $(PIQI_FILES) piqi.piqi
 	for i in $^; do \
-		$(PIQIC) erlang $$i; \
+		$(PIQIC) erlang $(PIQIC_FLAGS) $$i; \
 	done
 
 
@@ -69,6 +72,7 @@ $(PIQIC_PLUGIN): make_escript $(PIQIC_PLUGIN_BEAMS)
 clean::
 	rm -f $(ERL_APP_FILE) $(PIQI_ERL_FILES) $(PIQI_HRL_FILES)
 	rm -f $(PIQIC_PLUGIN)
+	$(MAKE) -f Makefile.test clean
 
 
 include $(PIQI_ROOT)/make/Makefile.erlang

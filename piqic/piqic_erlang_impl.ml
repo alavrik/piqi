@@ -31,17 +31,18 @@ let gen_typename = function
   | `alias x ->
       (* generate the name of the original type that was used in definition *)
       Piqic_erlang_types.ios_gen_out_typeref x.A#typeref
-  | `record x ->
+  | (`record _) as t ->
       (* "#" <function-name> ("-input" | "-output" | "-error") "{}" *)
-      iol [ ios "#"; ios (some_of x.R#erlang_name); ios "{}" ]
+      let name = Piqic_erlang_types.gen_piqtype t None in
+      iol [ ios "#"; ios name; ios "{}" ]
 
 
 let gen_spec f =
   let open T.Func in
-  let input = 
+  let input, arity =
     match f.resolved_input with
-      | None -> ios ""
-      | Some t -> gen_typename t
+      | None -> ios "", "0"
+      | Some t -> gen_typename t, "1"
   in
   let output =
     match f.resolved_output, f.resolved_error with
@@ -60,7 +61,7 @@ let gen_spec f =
           iod " | " ((gen "ok" out) @ (gen "error" err))
   in
   iol [
-    ios "-spec "; ios (some_of f.erlang_name); ios "/1 :: ";
+    ios "-spec "; ios (some_of f.erlang_name); ios "/"; ios arity; ios " :: ";
       ios " ("; input; ios ") -> "; output; ios "."
   ]
 

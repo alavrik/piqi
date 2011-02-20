@@ -1,0 +1,32 @@
+
+ERL_SOURCES = \
+	piqi_tools_piqi.erl \
+	$(TEST_ERL_FILES)
+
+
+TEST_HRL_FILES = piqi_tools_piqi_impl.hrl
+TEST_ERL_FILES = piqi_tools_piqi_default_impl.erl piqi_tools_piqi_rpc.erl
+
+
+ERLC_FLAGS = -pa $(PIQI_ROOT)/piqirun-erlang -I $(PIQI_ROOT)/piqirun-erlang # XXX
+#EBIN_DIR = .
+
+
+PIQIC = piqic
+PIQIC_FLAGS = --gen-default-impl
+
+
+all: ebin
+
+
+$(TEST_ERL_FILES) $(TEST_HRL_FILES): piqi-tools.piqi piqic-erlang-rpc
+	$(PIQIC) erlang $(PIQIC_FLAGS) piqi-tools.piqi
+	./piqic-erlang-rpc piqi-tools.piqi > piqi_tools_piqi_rpc.erl
+
+
+clean::
+	rm -f $(TEST_HRL_FILES) $(TEST_ERL_FILES)
+
+
+include $(PIQI_ROOT)/make/Makefile.erlang
+

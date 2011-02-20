@@ -30,6 +30,8 @@
 % "add_piqi" comands when/if it crashes? Otherwise, the existing Piqi tools
 % configuration (i.e. type information) will be lost after a fresh start.
 
+% XXX: debug mode when piqi-server started with --trace and warnings enabled?
+
 
 -export([start_link/0, start/0, stop/0]).
 % API
@@ -89,7 +91,8 @@ stop() ->
 %% @private
 init([]) ->
     erlang:process_flag(trap_exit, true),
-    Command = "piqi server --no-warnings",
+    Command = "piqi server --trace --no-warnings",
+    %Command = "tee ilog | piqi server --trace | tee olog",
     Port = erlang:open_port({spawn, Command}, [stream, binary]), % exit_status?
     State = #state{ port = Port, prev_data = <<>> }, % no previous data on start
     {ok, State}.
@@ -229,7 +232,13 @@ add_piqi(BinPiqiList) ->
     BinInput = piqi_tools_piqi:gen_add_piqi_input('undefined', Input),
     case rpc(<<"add-piqi">>, BinInput) of
         ok -> ok;
-        X -> handle_common_result(X)
+        {error, BinError} ->
+            Buf = piqirun:init_from_binary(BinError),
+            Error = piqi_tools_piqi:parse_add_piqi_error(Buf),
+            % NOTE: parsed strings are represented as binaries
+            {error, binary_to_list(Error)};
+        X ->
+            handle_common_result(X)
     end.
 
 
@@ -254,15 +263,15 @@ convert(TypeName, InputFormat, OutputFormat, Data) ->
             Output = piqi_tools_piqi:parse_convert_output(Buf),
             Res = Output#piqi_tools_convert_output.data,
             {ok, Res};
+        {error, BinError} ->
+            Buf = piqirun:init_from_binary(BinError),
+            Error = piqi_tools_piqi:parse_convert_error(Buf),
+            % NOTE: parsed strings are represented as binaries
+            {error, binary_to_list(Error)};
         X ->
             handle_common_result(X)
     end.
 
-
-handle_common_result({error, X}) ->
-    % NOTE: parsed strings are represented as binaries
-    S = binary_to_list(X),
-    {error, S};
 
 handle_common_result({rpc_error, _} = X) ->
     % recoverable protocol-level error

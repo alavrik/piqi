@@ -24,29 +24,49 @@
 -include("piqi_rpc_piqi.hrl").
 
 
+%-define(DEBUG, 1).
+-include("debug.hrl").
+
+
+% TODO: -specs, doc
+
+
 init(BinPiqiList) ->
     piqi_tools:add_piqi(BinPiqiList).
     
 
 call(Mod, Name) ->
+    ?PRINT({call, Mod, Name}),
     Mod:Name().
 
 
 call(Mod, Name, Input) ->
+    ?PRINT({call, Mod, Name, Input}),
     Mod:Name(Input).
 
 
-% TODO, XXX: return the list of Piqi modules in various formats
-get_piqi(BinPiqiList) ->
+get_piqi(BinPiqiList, _OutputFormat = 'pb') ->
     % return the Piqi module and all the dependencies encoded as a list of Piqi
     % each encoded using Protobuf binary format
-    piqirun:gen_list('undefined', fun piqirun:string_to_block/2, BinPiqiList).
+    piqirun:gen_list('undefined', fun piqirun:binary_to_block/2, BinPiqiList);
 
+get_piqi(BinPiqiList, OutputFormat) -> % piq (i.e. text/plain), json, xml
+    L = [ convert_piqi(X, OutputFormat) || X <- BinPiqiList ],
+    string:join(L, "\n\n").
+
+
+convert_piqi(BinPiqi, OutputFormat) ->
+    {ok, Bin} = piqi_tools:convert("piqi", 'pb', OutputFormat, BinPiqi),
+    binary_to_list(Bin).
+
+
+decode_input(_Decoder, _TypeName, _InputFormat, 'undefined') ->
+    throw_rpc_error('missing_input');
 
 decode_input(Decoder, TypeName, InputFormat, InputData) ->
     BinInput =
-        % XXX: convert anyway even in the input is encoded using 'pb' encoding
-        % to check the validity
+        % NOTE: converting anyway even in the input is encoded using 'pb'
+        % encoding to check the validity
         case piqi_tools:convert(TypeName, InputFormat, 'pb', InputData) of
             {ok, X} -> X;
             {error, Error} ->
@@ -111,11 +131,8 @@ handle_invalid_result(Name, Result) ->
 % already got the error formatted properly by one of the above handlers
 handle_runtime_exception(throw, {'rpc_error', _} = X) -> X;
 handle_runtime_exception(Class, Reason) ->
-    % XXX: don't handle it, just re-raise instead to be handled by a
-    % higher-level Piqi-PRC dispatcher?
-
     % XXX: limit the size of the returned Reason string by using "~P"?
-    % XXX: include stacktrace?
-    Error = io_lib:format("~w:~p", [Class, Reason]),
+    Error = io_lib:format("~w:~p, stacktrace: ~p",
+        [Class, Reason, erlang:get_stacktrace()]),
     {'rpc_error', {'internal_error', iolist_to_binary(Error)}}.
 

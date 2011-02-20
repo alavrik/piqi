@@ -59,14 +59,23 @@ read_piqi(Filename) ->
 
 
 gen_piqi(Piqi) ->
+    Mod = Piqi#piqi.module,
     ErlMod = Piqi#piqi.erlang_module,
     FuncList = Piqi#piqi.func,
+
+    Filename = binary_to_list(ErlMod) ++ "_rpc.erl",
+    {ok, File} = file:open(Filename, ['write']),
+
     Code = iod("\n\n", [
+        [
+            "-module(", ErlMod, "_rpc).\n",
+            "-compile(export_all).\n"
+        ],
         gen_init(ErlMod),
         gen_get_piqi(ErlMod),
-        gen_rpc(ErlMod, FuncList)
+        gen_rpc(Mod, ErlMod, FuncList)
     ]),
-    io:put_chars(Code),
+    io:put_chars(File, Code),
     ok.
 
 
@@ -83,22 +92,23 @@ gen_init(ErlMod) ->
 
 gen_get_piqi(ErlMod) ->
     [
-        "get_piqi() ->\n",
-        "    piqi_rpc:get_piqi(", ErlMod, ":piqi()).\n"
+        "get_piqi(OutputFormat) ->\n",
+        "    piqi_rpc:get_piqi(", ErlMod, ":piqi(), OutputFormat).\n"
     ].
 
 
-gen_rpc(ErlMod, FuncList) ->
-    FuncClauses = [ gen_func_clause(X, ErlMod) || X <- FuncList ],
+gen_rpc(Mod, ErlMod, FuncList) ->
+    FuncClauses = [ gen_func_clause(X, Mod, ErlMod) || X <- FuncList ],
     [
-        "rpc(Mod, Name, InputData, InputFormat, OutputFormat) ->\n",
+        "rpc(Mod, Name, InputData, _InputFormat, _OutputFormat) ->\n",
         "    try\n",
         "    case Name of\n",
             iod("\n", FuncClauses), "\n",
             gen_default_clause(),
         "    end\n",
-        "    with\n",
-        "        Class:Reason -> piqi_rpc:handle_runtime_exception(Class, Reason).\n"
+        "    catch\n",
+        "        Class:Reason -> piqi_rpc:handle_runtime_exception(Class, Reason)\n",
+        "    end.\n"
     ].
 
 
@@ -109,20 +119,21 @@ gen_default_clause() ->
     ].
 
 
-gen_func_clause(F, ErlMod) ->
+gen_func_clause(F, Mod, ErlMod) ->
     Name = F#func.name,
     ErlName = F#func.erlang_name,
+    ScopedName = [ Mod, "/", Name ],
     InputCode =
         case F#func.input of
             'undefined' -> % the function doesn't have input
                 [
 "            piqi_rpc:check_empty_input(InputData),\n",
-"            case piqi_rpc:call(Mod, ErlName) of\n"
+"            case piqi_rpc:call(Mod, ",  ErlName, ") of\n"
                 ];
             _ ->
                 [
-"            Input = piqi_rpc:decode_input(fun ", ErlMod, ":parse_", ErlName, "_input/1, <<\"", Name, "-input\">>, InputFormat, InputData),\n"
-"            case piqi_rpc:call(Mod, ErlName, Input) of\n"
+"            Input = piqi_rpc:decode_input(fun ", ErlMod, ":parse_", ErlName, "_input/1, <<\"", ScopedName, "-input\">>, _InputFormat, InputData),\n"
+"            case piqi_rpc:call(Mod, ", ErlName, ", Input) of\n"
                 ]
         end,
 
@@ -133,7 +144,7 @@ gen_func_clause(F, ErlMod) ->
             _ ->
                 [
 "                {ok, Output} ->\n"
-"                    piqi_rpc:encode_output(", ErlMod, ":gen_", ErlName, "_output/2, <<\"", Name, "-output\">>, OutputFormat, Output)"
+"                    piqi_rpc:encode_output(fun ", ErlMod, ":gen_", ErlName, "_output/2, <<\"", ScopedName, "-output\">>, _OutputFormat, Output)"
                 ]
         end,
 
@@ -144,7 +155,7 @@ gen_func_clause(F, ErlMod) ->
             _ ->
                 [[
 "                {error, Error} ->\n"
-"                    piqi_rpc:encode_error(", ErlMod, ":gen_", ErlName, "_error/2, <<\"", Name, "-error\">>, OutputFormat, Error)"
+"                    piqi_rpc:encode_error(fun ", ErlMod, ":gen_", ErlName, "_error/2, <<\"", ScopedName, "-error\">>, _OutputFormat, Error)"
                 ]]
         end,
 
