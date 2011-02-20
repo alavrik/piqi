@@ -372,11 +372,14 @@ let format_ast (x:T.ast) =
 
 
 let to_buffer buf x =
-  Fmt.Pretty.to_buffer buf (format_ast x)
+  Fmt.Pretty.to_buffer buf (format_ast x);
+  Buffer.add_char buf '\n' (* make sure that text file ends with a newline *)
     
     
 let to_string x =
-  Fmt.Pretty.to_string (format_ast x)
+  let buf = Buffer.create 256 in
+  to_buffer buf x;
+  Buffer.contents buf
 
 
 let to_channel ch x =

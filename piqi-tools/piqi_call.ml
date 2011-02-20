@@ -173,7 +173,10 @@ let local_call ch (server_command, func_name) args =
     | `ok obj ->
         gen_output ch obj
     | `error obj ->
-        gen_error obj
+        gen_error obj;
+        (* TODO: unify error handling of `error (application error) and
+         * `rpc_error *)
+        exit 1
   );
   ()
 

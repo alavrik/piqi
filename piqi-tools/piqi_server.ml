@@ -97,7 +97,6 @@ let parse_piq s ~is_piqi_input =
 
 let gen_piq obj =
   let ast = Piq.gen_piq obj in
-  (* XXX: add a newline? *)
   Piq_gen.to_string ast
 
 
@@ -123,7 +122,6 @@ let parse_json piqtype s =
 
 let gen_json obj =
   let json = Piq.gen_json obj in
-  (* XXX: add a newline? *)
   (* XXX: make pretty-printing optional? *)
   Piqi_json_gen.pretty_to_string json
 
@@ -186,9 +184,19 @@ let convert args =
 
 
 let add_one_piqi input_format data =
-  (* It is enough to just read the Piqi spec in order to get it processed and
-   * cached in the Piqi database automatically *)
-  ignore (parse_obj "piqi" input_format data)
+  match parse_obj "piqi" input_format data with
+    | Piq.Piqi piqi ->
+        (match input_format with
+          | `pb | `json ->
+              (* cache Piqi spec *)
+              Piqi_db.add_piqi piqi
+          | `piq | `wire ->
+              (* for Piq and Wire formats is enough to just read the Piqi spec
+               * in order to get it processed and cached in the Piqi database
+               * automatically *)
+              ()
+        )
+    | _ -> assert false
 
 
 (* "add-piqi" call handler *)
