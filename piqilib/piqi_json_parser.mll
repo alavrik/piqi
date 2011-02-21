@@ -447,24 +447,22 @@ and read_colon v = parse
       in
       let add x = addloc h x in
       let addret x = add x; t in
+      add x;
       match x with
-        | `Null () -> addret x
-        | `Bool b -> addret x
-        | `Int i -> addret x
-        | `Uint i -> addret x
-        | `Intlit s -> addret x
-        | `Float f -> addret x
-        | `Floatlit s -> addret x
-        | `String s -> addret x
-        | `Stringlit s -> addret x
+        | `Null () | `Bool _ -> t (* can't save locations for unboxed types *)
+        | `Int i -> addret i
+        | `Uint i -> addret i
+        | `Intlit s -> addret s
+        | `Float f -> addret f
+        | `Floatlit s -> addret s
+        | `String s -> addret s
+        | `Stringlit s -> addret s
         | `Assoc l ->
-            add x;
             List.fold_left
               (fun l (n, v) ->
                 addloc (List.hd l) n;
                 aux (List.tl l) v) t l
         | `List l ->
-            add x;
             List.fold_left (fun t v -> aux t v) t l
     in
     if not !Piqi_config.pp_mode
