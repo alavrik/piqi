@@ -79,10 +79,6 @@ gen_piqi(Piqi) ->
     ok.
 
 
-% TODO: as a part of initialization, check that the implementation functions is
-% acutally defined using the followin BIF:
-%
-%    erlang:function_exported(Module, Function, Arity) -> bool()
 gen_init(ErlMod) ->
     [
         "init() ->\n",

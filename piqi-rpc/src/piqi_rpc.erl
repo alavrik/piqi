@@ -37,12 +37,24 @@ init(BinPiqiList) ->
 
 call(Mod, Name) ->
     ?PRINT({call, Mod, Name}),
+    check_function_exported(Mod, Name, 0),
     Mod:Name().
 
 
 call(Mod, Name, Input) ->
     ?PRINT({call, Mod, Name, Input}),
+    check_function_exported(Mod, Name, 1),
     Mod:Name(Input).
+
+
+check_function_exported(Mod, Name, Arity) ->
+    case erlang:function_exported(Mod, Name, Arity) of
+        true -> ok;
+        false ->
+            Error = lists:concat([
+                "function ", Mod, ":", Name, "/", Arity, " is not exported"]),
+            throw_rpc_error({'internal_error', list_to_binary(Error)})
+    end.
 
 
 get_piqi(BinPiqiList, _OutputFormat = 'pb') ->

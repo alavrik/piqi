@@ -48,21 +48,26 @@ let gen_spec f =
     match f.resolved_output, f.resolved_error with
       | None, None -> ios "ok"
       | out, err ->
-          let gen atom = function
-            | None -> []
-            | Some t ->
-                let res = iol [
-                  ios "{";
-                    ios atom; ios ", "; gen_typename t;
-                  ios "}";
-                ]
-                in [res]
+          let gen_tuple atom t =
+            iol [
+              ios "{";
+                ios atom; ios ", "; gen_typename t;
+              ios "}";
+            ]
           in
-          iod " | " ((gen "ok" out) @ (gen "error" err))
+          let output =
+            match out with
+              | None -> ios "ok"
+              | Some t -> gen_tuple "ok" t
+          in
+          match err with
+            | None -> output
+            | Some t ->
+                iol [ output; ios " | "; gen_tuple "error" t ]
   in
   iol [
     ios "-spec "; ios (some_of f.erlang_name); ios "/"; ios arity; ios " :: ";
-      ios " ("; input; ios ") -> "; output; ios "."
+      ios "("; input; ios ") -> "; output; ios "."
   ]
 
 
@@ -85,7 +90,7 @@ let gen_default_impl modname f =
       | Some x ->
           iol [
             ios "{ok, ";
-              ios modname; ios ":default_"; ios fname; ios "()";
+              ios modname; ios ":default_"; ios fname; ios "_output()";
             ios "}";
           ]
   in

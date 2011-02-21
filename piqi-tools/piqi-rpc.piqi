@@ -107,14 +107,27 @@
 .variant [
     .name rpc-error
 
+    %
+    % errors related to client's request
+    %
     .option [ .name unknown-function ]
-
-    .option [ .name missing-input ]
 
     .option [
         .name invalid-input
         .type string  % details
     ]
+
+    .option [ .name missing-input ]
+
+    .option [
+        .name protocol-error
+        .type string  % details
+    ]
+
+
+    %
+    % server-side errors
+    %
 
     % function produces invalid output; note that it can't happen in OCaml due
     % to the static type checking
@@ -125,11 +138,6 @@
 
     .option [
         .name internal-error
-        .type string  % details
-    ]
-
-    .option [
-        .name protocol-error
         .type string  % details
     ]
 ]

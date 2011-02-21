@@ -113,15 +113,29 @@ known_content_type(ReqData, Context) ->
     {IsKnownType, ReqData, Context}.
 
 
-% dispatch GET requests (the only GET request we support is to get the list of
-% Piqi modules -- we can return it all sorts of different formats)
+% Called for both GET and POST to find a match between provided content-types
+% and "Accept" header.
+%
+% In addition to that, dispatches GET requests (the only GET request we support
+% is to get the list of Piqi modules -- we can return it all sorts of different
+% formats).
 content_types_provided(ReqData, Context) ->
+    ?PRINT(known_content_type),
     % for all other types 406 Not Acceptable will be returned
-    ContentTypes = [
-        {"text/plain", get_piqi_piq},
-        {"application/json", get_piqi_json},
-        {"application/protobuf", get_piqi_pb}
-    ],
+    ContentTypes =
+        case wrq:method(ReqData) of
+            'GET' -> % get Piqi: by default return it in Piq format
+                [
+                    {"text/plain", get_piqi_piq},
+                    {"application/json", get_piqi_json},
+                    {"application/protobuf", get_piqi_pb}
+                ];
+            'POST' ->
+                [
+                    {"application/json", unused_value},
+                    {"application/protobuf", unused_value}
+                ]
+        end,
     {ContentTypes, ReqData, Context}.
 
 
@@ -199,10 +213,23 @@ rpc(ReqData, Context, InputFormat) ->
 
     InputData = get_req_body(ReqData),
 
-    % TODO: determine output format based on "Accept" header, especially if the
-    % PRC function doesn't have input and doesn't specify "Content-Type". If
-    % nothing else works, fall back to Json as the default output format.
-    OutputFormat = InputFormat,
+    OutputFormat =
+        case wrq:get_req_header("accept", ReqData) of
+            'undefined' when InputFormat == 'undefined' ->
+                % if the function doesn't specify "Content-Type" or "Accept"
+                % headers, use 'json' as the default output format
+                'json';
+            'undefined' ->
+                % if there's no "Accept" header, but the "Content-Type", e.g.
+                % input type is defined then use it as the output format
+                InputFormat;
+            _ ->
+                % determine output format based on "Accept" header: this has
+                % already been figured out by Webmachine earlier, and we just
+                % need to read the value
+                RespContentType = wrq:get_resp_header("Content-Type", ReqData),
+                content_type_to_format(RespContentType)
+        end,
 
     RpcMod = Context#context.rpc_mod,
     ImplMod = Context#context.impl_mod,
@@ -251,7 +278,7 @@ rpc(ReqData, Context, InputFormat) ->
             NewReqData = set_string_error(Err, ReqData),
             {{halt, 400}, NewReqData, Context};
 
-        % other errors:
+        % server errors:
         {'rpc_error', {'invalid_output', Err}} ->
             % return 502 "Bad Gateway"
             NewReqData = set_string_error(Err, ReqData),
