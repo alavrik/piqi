@@ -118,41 +118,6 @@ let piqic_common piqi =
   ()
 
 
-let rec get_piqi_deps piqi =
-  if C.is_boot_piqi piqi
-  then [] (* boot Piqi is not a dependency *)
-  else
-    let imports =
-      List.map (fun x -> some_of x.T.Import#piqi) piqi.P#resolved_import
-    in
-    (* get all imports' dependencies recursively *)
-    let import_deps =
-      flatmap (fun piqi ->
-          flatmap get_piqi_deps piqi.P#included_piqi
-        ) imports
-    in
-    (* remove duplicate entries *)
-    let deps = C.uniqq (import_deps @ imports) in
-    deps @ [piqi]
-
-
-let encode_embedded_piqi piqi =
-  (* XXX: or just use piqi.orig_piqi and also get includes in get_piqi_deps? *)
-  let res_piqi = Piqi_ext.expand_piqi piqi in
-  (* add the Module's name even if it wasn't set *)
-  res_piqi.P#modname <- piqi.P#modname;
-  (* generate embedded object (i.e. without field header) *)
-  let iodata = T.gen_piqi (-1) res_piqi in
-  Piqirun.to_string iodata
-
-
-(* build a list of all import dependencies including the specified module and
- * encode each Piqi module in the list using Protobuf encoding *)
-let build_piqi_deps piqi =
-  let deps = get_piqi_deps piqi in
-  List.map encode_embedded_piqi deps
-
-
 (* common command-line arguments processing *)
 let flag_normalize = ref false
 let flag_gen_defaults = ref false

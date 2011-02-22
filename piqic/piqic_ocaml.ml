@@ -67,7 +67,7 @@ let ocaml_pretty_print ifile ofile =
 
 
 let gen_embedded_piqi piqi =
-  let l = Piqic_common.build_piqi_deps piqi in
+  let l = Piqic_common_ext.build_piqi_deps piqi in
   let l = List.map (fun s -> ioq (String.escaped s)) l in
   iol [
     ios "let piqi = ["; iod ";" l; ios "]"

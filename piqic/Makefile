@@ -7,6 +7,7 @@ RESULT = piqic
 
 SOURCES += \
 	piqic_common.ml \
+	piqic_common_ext.ml \
 	\
 	piqic_ocaml_types.ml \
 	piqic_ocaml_out.ml \
