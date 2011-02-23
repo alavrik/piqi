@@ -42,13 +42,12 @@
 }).
 
 
-init([RpcMod, ImplMod]) ->
-    ?PRINT({init, RpcMod, ImplMod}),
+init([ImplMod, RpcMod]) ->
+    ?PRINT({init, ImplMod, RpcMod}),
     Context = #context{
         rpc_mod = RpcMod,
         impl_mod = ImplMod
     },
-    RpcMod:init(),
     {init_result(), Context}.
 
 
@@ -58,6 +57,20 @@ init_result() -> ok.
 % enables Webmachine tracing
 init_result() -> {trace, "/tmp"}.
 -endif.
+
+
+service_available(ReqData, Context) ->
+    IsAvailable = piqi_rpc_monitor:service_available(Context#context.impl_mod),
+    NewReqData =
+        case IsAvailable of
+            true -> ReqData;
+            false ->
+                % XXX: it also can be unavailable permanently if Piqi-RPC
+                % gen_server is down
+                set_string_error("service is paused", ReqData)
+        end,
+    % if false, return 503 "Service Unavailable"
+    {IsAvailable, NewReqData, Context}.
 
 
 allowed_methods(ReqData, Context) ->
@@ -179,7 +192,7 @@ set_data_response(Data, OutputFormat, ReqData) ->
 
 set_string_error(Str, ReqData) when is_binary(Str) ->
     wrq:set_resp_header("Content-Type", "text/plain",
-        wrq:set_resp_body(Str, ReqData));
+        wrq:set_resp_body(["Piqi-RPC: ", Str], ReqData));
 
 set_string_error(Str, ReqData) when is_list(Str) ->
     set_string_error(list_to_binary(Str), ReqData).

@@ -2,6 +2,7 @@
 ERL_SOURCES = \
 	$(PIQI_ERL_FILES) \
 	piqi_tools.erl \
+	piqi_rpc_monitor.erl \
 	piqi_rpc.erl \
 	piqi_http_rpc.erl \
 	piqic_erlang_rpc.erl \

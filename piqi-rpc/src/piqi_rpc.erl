@@ -31,10 +31,6 @@
 % TODO: -specs, doc
 
 
-init(BinPiqiList) ->
-    piqi_tools:add_piqi(BinPiqiList).
-    
-
 call(Mod, Name) ->
     ?PRINT({call, Mod, Name}),
     check_function_exported(Mod, Name, 0),

@@ -70,7 +70,15 @@
 %
 
 start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+    Res = gen_server:start_link({local, ?SERVER}, ?MODULE, [], []),
+    case Res of
+        {error, {already_started, Pid}} ->
+            % server can be started from many processes, but only one instance
+            % of the server will be running
+            link(Pid),
+            {ok, Pid};
+        _ -> Res
+    end.
 
 
 % manual start (not as a part of supervision tree)
@@ -93,6 +101,8 @@ init([]) ->
     erlang:process_flag(trap_exit, true),
     Command = "piqi server --trace --no-warnings",
     %Command = "tee ilog | piqi server --trace | tee olog",
+
+    % TODO: handle initialization error and report it as {error, Error} tuple
     Port = erlang:open_port({spawn, Command}, [stream, binary]), % exit_status?
     State = #state{ port = Port, prev_data = <<>> }, % no previous data on start
     {ok, State}.
@@ -121,6 +131,11 @@ handle_info({'EXIT', Port, Reason}, State = #state{port = Port}) ->
     % Port command has exited
     StopReason = {?PIQI_TOOLS_ERROR, {'port_command_exited', Reason}},
     {stop, StopReason, State};
+
+handle_info({'EXIT', _Port, _Reason}, State) ->
+    % EXIT from a linked process (one that called start_link/0)
+    % -- just ignoring it
+    {noreply, State};
 
 handle_info(Info, State) ->
     erlang:port_close(State#state.port),

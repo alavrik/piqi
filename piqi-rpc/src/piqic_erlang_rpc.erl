@@ -81,8 +81,8 @@ gen_piqi(Piqi) ->
 
 gen_init(ErlMod) ->
     [
-        "init() ->\n",
-        "    piqi_rpc:init(", ErlMod, ":piqi()).\n"
+        "piqi() ->\n",
+        "    ", ErlMod, ":piqi().\n"
     ].
 
 
