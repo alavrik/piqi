@@ -63,8 +63,28 @@ get_piqi(BinPiqiList, OutputFormat) -> % piq (i.e. text/plain), json, xml
     string:join(L, "\n\n").
 
 
+convert(TypeName, InputFormat, OutputFormat, Data) ->
+    try
+        piqi_tools:convert(TypeName, InputFormat, OutputFormat, Data)
+    catch
+        % Piqi tools has exited, but hasn't been restarted by Piqi-RPC monitor
+        % yet
+        exit:{noproc, _} ->
+            % wait for the first restart attempt -- it should be really fast
+            case piqi_rpc_monitor:get_status() of
+                'active' ->
+                    % retry the request
+                    piqi_tools:convert(TypeName, InputFormat, OutputFormat, Data);
+                _ ->
+                    % XXX, TODO: return "service unavailable" instead of
+                    % "internal error"
+                    throw_rpc_error({'internal_error', "service temporarily unavailable"})
+            end
+    end.
+
+
 convert_piqi(BinPiqi, OutputFormat) ->
-    {ok, Bin} = piqi_tools:convert("piqi", 'pb', OutputFormat, BinPiqi),
+    {ok, Bin} = convert("piqi", 'pb', OutputFormat, BinPiqi),
     binary_to_list(Bin).
 
 
@@ -75,7 +95,7 @@ decode_input(Decoder, TypeName, InputFormat, InputData) ->
     BinInput =
         % NOTE: converting anyway even in the input is encoded using 'pb'
         % encoding to check the validity
-        case piqi_tools:convert(TypeName, InputFormat, 'pb', InputData) of
+        case convert(TypeName, InputFormat, 'pb', InputData) of
             {ok, X} -> X;
             {error, Error} ->
                 throw_rpc_error({'invalid_input', Error})
@@ -89,7 +109,7 @@ encode_common(Encoder, TypeName, OutputFormat, Output) ->
     BinOutput = iolist_to_binary(IolistOutput),
     case OutputFormat of
         'pb' -> {ok, BinOutput}; % already in needed format
-        _ -> piqi_tools:convert(TypeName, 'pb', OutputFormat, BinOutput)
+        _ -> convert(TypeName, 'pb', OutputFormat, BinOutput)
     end.
 
 

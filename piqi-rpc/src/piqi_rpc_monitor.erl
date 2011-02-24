@@ -33,7 +33,7 @@
          code_change/3]).
 
 
--define(DEBUG, 1).
+%-define(DEBUG, 1).
 -include("debug.hrl").
 
 
@@ -90,9 +90,43 @@ stop() ->
 %% @private
 init([]) ->
     erlang:process_flag(trap_exit, true),
-    {ok, Pid} =  piqi_tools:start_link(),
+    {ok, Pid} = start_piqi_tools([]),
     State = #state{piqi_tools_pid = Pid},
     {ok, State}.
+
+
+start_piqi_tools(PiqiList) ->
+    % NOTE: we use start() instead of start_link() here, because piqi_toos will
+    % be monitored and restarted in a special way by the Piqi-RPC server and we
+    % don't want to make "piqi_tools" stop after Piqi-RPC server stops (such
+    % stop is dictated by OTP principles and provided by OTP's gen_server when
+    % it is started using gen_server:start_link)
+    Res = piqi_tools:start(PiqiList),
+    case Res of
+        {ok, Pid} -> link(Pid);
+        _ -> ok
+    end,
+    Res.
+
+
+restart_piqi_tools(State) ->
+    % XXX: track the number of restart attempts?
+    % get the list of Piqi specifications from RPC modules
+    PiqiList = lists:append(
+        [ RpcMod:piqi() || #service{rpc_mod = RpcMod} <- State#state.services ]),
+    case start_piqi_tools(PiqiList) of
+        {ok, Pid} ->
+            % XXX: log succesful restart
+            ?PRINT("piqi_tools restarted successfully"),
+            NewState = State#state{piqi_tools_pid = Pid},
+            {noreply, NewState};
+        {error, _Error} ->
+            % TODO: log the error
+            ?PRINT({"piqi_tools restart failed", _Error}),
+            NewState = #state{piqi_tools_pid = 'undefined'},
+            % try starting Piqi tools again after timeout
+            {noreply, NewState, ?RESTART_RETRY_TIMEOUT}
+    end.
 
 
 %% @private
@@ -132,6 +166,15 @@ handle_call({update_status, ImplMod, NewStatus}, _From, State) ->
             {reply, {error, "no such service"}, State}
     end;
 
+
+handle_call(get_status, _From, State)
+        when State#state.piqi_tools_pid == 'undefined' ->
+    % Piqi tools has crashed and hasn't started yet
+    {reply, 'system_paused', State};
+
+handle_call(get_status, _From, _State) -> 'active';
+
+
 handle_call({get_status, _ImplMod}, _From, State)
         when State#state.piqi_tools_pid == 'undefined' ->
     % Piqi tools has crashed and hasn't started yet
@@ -146,15 +189,15 @@ handle_call({get_status, ImplMod}, _From, State) ->
     {reply, Response, State};
 
 
+handle_call(get_info, _From, State) ->
+    Response = State#state.services, % return the list of services
+    {reply, Response, State};
+
 handle_call({get_info, ImplMod}, _From, State) ->
     Response =
-        case ImplMod of
-            'undefined' -> State#state.services; % return the whole list
-            _ ->
-                case find_serv(ImplMod, State#state.services) of
-                    'undefined' -> 'undefined'; % no such service
-                    Service -> Service
-                end
+        case find_serv(ImplMod, State#state.services) of
+            'undefined' -> 'undefined'; % no such service
+            Service -> Service
         end,
     {reply, Response, State};
 
@@ -200,33 +243,6 @@ terminate(_Reason, _State) -> ok.
 %% @private
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-
-restart_piqi_tools(State) ->
-    % XXX: track the number of restart attempts?
-    case piqi_tools:start_link() of
-        {ok, Pid} -> 
-            % XXX: log succesful restart
-            ?PRINT("piqi_tools restarted successfully"),
-            init_piqi_tools(State#state.services),
-            NewState = State#state{piqi_tools_pid = Pid},
-            {noreply, NewState};
-        {error, _Error} -> 
-            % TODO: log the error
-            ?PRINT({"piqi_tools restart failed", _Error}),
-            NewState = #state{piqi_tools_pid = 'undefined'},
-            % try starting Piqi tools again after timeout
-            {noreply, NewState, ?RESTART_RETRY_TIMEOUT}
-    end.
-
-
-% init Piqi tools after restart by adding Piqi specs to it 
-init_piqi_tools(Services) ->
-    % get the list of Piqi specifications from RPC modules
-    PiqiList = lists:append(
-        [ RpcMod:piqi() || #service{rpc_mod = RpcMod} <- Services ]),
-    % FIXME: handle error, otherwise we'll just crash
-    ok = piqi_tools:add_piqi(PiqiList).
 
 
 %
@@ -306,15 +322,21 @@ service_available(ImplMod) ->
     end.
 
 
--spec get_service_info/0 :: () -> [ #service{} ].
-
-get_service_info() ->
-    get_service_info('undefined').
-
-
 -spec get_service_info/1 ::
     ( ImplMod :: atom() ) -> #service{} | 'undefined'.
 
 get_service_info(ImplMod) ->
     gen_server:call(?SERVER, {get_info, ImplMod}).
+
+
+-spec get_status/0 :: () -> 'active' | 'system_paused'.
+
+get_status() ->
+    gen_server:call(?SERVER, get_status).
+
+
+-spec get_info/0 :: () -> [ #service{} ].
+
+get_info() ->
+    gen_server:call(?SERVER, get_info).
 

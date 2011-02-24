@@ -67,7 +67,7 @@ service_available(ReqData, Context) ->
             false ->
                 % XXX: it also can be unavailable permanently if Piqi-RPC
                 % gen_server is down
-                set_string_error("service is paused", ReqData)
+                set_string_error("service is temporarily unavailable", ReqData)
         end,
     % if false, return 503 "Service Unavailable"
     {IsAvailable, NewReqData, Context}.
@@ -146,7 +146,8 @@ content_types_provided(ReqData, Context) ->
             'POST' ->
                 [
                     {"application/json", unused_value},
-                    {"application/protobuf", unused_value}
+                    {"application/protobuf", unused_value},
+                    {"text/plain", unused_value}
                 ]
         end,
     {ContentTypes, ReqData, Context}.
@@ -163,14 +164,14 @@ process_post(ReqData, Context) ->
 % Utility functions
 %
 
-format_to_content_type('pb') ->
-    "application/protobuf";
-format_to_content_type('json') ->
-    "application/json".
+format_to_content_type('pb') -> "application/protobuf";
+format_to_content_type('json') -> "application/json";
+format_to_content_type('piq') -> "text/plain".
 
 
 content_type_to_format("application/protobuf") -> 'pb';
 content_type_to_format("application/json") -> 'json';
+content_type_to_format("text/plain") -> 'piq';
 content_type_to_format(_) -> 'undefined'.
 
 

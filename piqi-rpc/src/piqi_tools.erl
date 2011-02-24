@@ -33,7 +33,7 @@
 % XXX: debug mode when piqi-server started with --trace and warnings enabled?
 
 
--export([start_link/0, start/0, stop/0]).
+-export([start_link/0, start_link/1, start/0, start/1, stop/0]).
 % API
 -export([add_piqi/1, convert/4, ping/0]).
 % gen_server callbacks
@@ -52,6 +52,10 @@
 -include("piqi_tools_piqi.hrl").
 
 
+%-define(DEBUG, 1).
+%-include("debug.hrl").
+
+
 % gen_server name
 -define(SERVER, ?MODULE).
 
@@ -66,24 +70,42 @@
 
 
 %
-% starting gen_server manually
+% starting gen_server
 %
 
 start_link() ->
-    Res = gen_server:start_link({local, ?SERVER}, ?MODULE, [], []),
+    start_link([]).
+
+
+start_link(PiqiList) ->
+    Res = start_common(start_link, PiqiList),
+    case Res of
+        {ok, Pid} ->
+            % NOTE: calling link() is safe and has no effect after successful
+            % gen_server:start_link()
+            link(Pid);
+        _ -> ok
+    end,
+    Res.
+
+
+% independent start -- not as a part of OTP supervision tree
+start() ->
+    start([]).
+
+start(PiqiList) ->
+    start_common(start, PiqiList).
+
+
+start_common(StartFun, PiqiList) ->
+    Res = gen_server:StartFun({local, ?SERVER}, ?MODULE, PiqiList, []),
     case Res of
         {error, {already_started, Pid}} ->
             % server can be started from many processes, but only one instance
             % of the server will be running
-            link(Pid),
             {ok, Pid};
         _ -> Res
     end.
-
-
-% manual start (not as a part of supervision tree)
-start() ->
-    gen_server:start({local, ?SERVER}, ?MODULE, [], []).
 
 
 % manual stop (when started by start/0 *)
@@ -97,7 +119,7 @@ stop() ->
 
 
 %% @private
-init([]) ->
+init(PiqiList) ->
     erlang:process_flag(trap_exit, true),
     Command = "piqi server --trace --no-warnings",
     %Command = "tee ilog | piqi server --trace | tee olog",
@@ -105,7 +127,9 @@ init([]) ->
     % TODO: handle initialization error and report it as {error, Error} tuple
     Port = erlang:open_port({spawn, Command}, [stream, binary]), % exit_status?
     State = #state{ port = Port, prev_data = <<>> }, % no previous data on start
-    {ok, State}.
+
+    NewState = add_piqi_local(PiqiList, State),
+    {ok, NewState}.
 
 
 %% @private
@@ -138,6 +162,7 @@ handle_info({'EXIT', _Port, _Reason}, State) ->
     {noreply, State};
 
 handle_info(Info, State) ->
+    % XXX: log a message
     erlang:port_close(State#state.port),
     StopReason = {?PIQI_TOOLS_ERROR, {'unexpected_message', Info}},
     {stop, StopReason, State}.
@@ -221,6 +246,15 @@ rpc(Name, ArgsData) ->
     gen_server:call(?SERVER, {rpc, Name, BinData}).
 
 
+% NOTE: this function is called only from init/1 during execution of
+% add_piqi_local/1
+call_local(Name, BinData, State) ->
+    % XXX: not expecting any other response from the call hander
+    {reply, Response, NewState} =
+        handle_call({rpc, Name, BinData}, _From = 'undefined', State),
+    {Response, NewState}.
+
+
 -spec rpc/1 :: ( Name :: binary() | string() ) -> piqi_rpc_response().
 
 % make an RPC call for function name "Name" that doesn't have parameters
@@ -240,12 +274,31 @@ ping() ->
 % add a Protobuf-encoded Piqi module specifications to Piqi tools. Added types
 % will be used later by "convert" and other functions.
 add_piqi(BinPiqiList) ->
+    BinInput = encode_add_piqi_input(BinPiqiList),
+    Output = rpc(<<"add-piqi">>, BinInput),
+    decode_add_piqi_output(Output).
+
+
+add_piqi_local(BinPiqiList, State) ->
+    BinInput = encode_add_piqi_input(BinPiqiList),
+    {Output, NewState} = call_local(<<"add-piqi">>, BinInput, State),
+    % XXX: don't handle errors, assuming that this call is safea since we've
+    % added these Piqi modules before without a problem
+    ok = decode_add_piqi_output(Output),
+    NewState.
+
+
+encode_add_piqi_input(BinPiqiList) ->
     Input = #piqi_tools_add_piqi_input{
         format = 'pb',
         data = BinPiqiList
     },
     BinInput = piqi_tools_piqi:gen_add_piqi_input('undefined', Input),
-    case rpc(<<"add-piqi">>, BinInput) of
+    iolist_to_binary(BinInput).
+
+
+decode_add_piqi_output(Output) ->
+    case Output of
         ok -> ok;
         {error, BinError} ->
             Buf = piqirun:init_from_binary(BinError),
