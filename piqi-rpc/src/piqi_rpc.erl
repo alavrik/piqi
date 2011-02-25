@@ -44,6 +44,8 @@ call(Mod, Name, Input) ->
 
 
 check_function_exported(Mod, Name, Arity) ->
+    % NOTE: this function doesn't load the module automatically and returns
+    % false if the module is not loaded
     case erlang:function_exported(Mod, Name, Arity) of
         true -> ok;
         false ->
@@ -76,9 +78,7 @@ convert(TypeName, InputFormat, OutputFormat, Data) ->
                     % retry the request
                     piqi_tools:convert(TypeName, InputFormat, OutputFormat, Data);
                 _ ->
-                    % XXX, TODO: return "service unavailable" instead of
-                    % "internal error"
-                    throw_rpc_error({'internal_error', "service temporarily unavailable"})
+                    throw_rpc_error({'service_unavailable', "service temporarily unavailable"})
             end
     end.
 

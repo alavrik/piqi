@@ -132,12 +132,17 @@
     % function produces invalid output; note that it can't happen in OCaml due
     % to the static type checking
     .option [
-        .name invalid-output
+        .name invalid-output % HTTP 502 Bad Gateway
         .type string  % details
     ]
 
     .option [
         .name internal-error
+        .type string  % details
+    ]
+
+    .option [
+        .name service-unavailable
         .type string  % details
     ]
 ]

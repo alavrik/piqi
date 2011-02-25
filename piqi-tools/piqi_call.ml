@@ -41,6 +41,7 @@ let string_of_rpc_error = function
   | `invalid_input err -> "invalid input: " ^ err
   | `invalid_output err -> "invalid output: " ^ err
   | `internal_error err -> "internal error: " ^ err
+  | `service_unavailable err -> "service unavailable: " ^ err
   | `protocol_error err -> "protocol error: " ^ err
 
 

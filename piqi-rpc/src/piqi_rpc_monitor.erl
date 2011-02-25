@@ -22,8 +22,10 @@
 
 -export([start_link/0, start/0, stop/0]).
 % API
--compile(export_all).
-%-export([add_piqi/1, convert/4, ping/0]).
+-export([add_service/2, remove_service/1, pause_service/1, resume_service/1,
+         get_service_status/1, get_service_info/1,
+         get_status/0, get_info/0]).
+%-compile(export_all).
 % gen_server callbacks
 -export([init/1,
          handle_call/3,
@@ -35,6 +37,9 @@
 
 %-define(DEBUG, 1).
 -include("debug.hrl").
+
+
+% TODO: coordinate code upgrades of RPC-service implemenatation and rpc modules
 
 
 % gen_server name
@@ -77,7 +82,7 @@ start() ->
     gen_server:start({local, ?SERVER}, ?MODULE, [], []).
 
 
-% manual stop (when started by start/0 *)
+% manual stop
 stop() ->
     gen_server:cast(?SERVER, stop).
 
@@ -118,14 +123,13 @@ restart_piqi_tools(State) ->
         {ok, Pid} ->
             % XXX: log succesful restart
             ?PRINT("piqi_tools restarted successfully"),
-            NewState = State#state{piqi_tools_pid = Pid},
-            {noreply, NewState};
+            State#state{piqi_tools_pid = Pid};
         {error, _Error} ->
             % TODO: log the error
             ?PRINT({"piqi_tools restart failed", _Error}),
-            NewState = #state{piqi_tools_pid = 'undefined'},
             % try starting Piqi tools again after timeout
-            {noreply, NewState, ?RESTART_RETRY_TIMEOUT}
+            timer:send_after(?RESTART_RETRY_TIMEOUT, 'timeout'),
+            State#state{piqi_tools_pid = 'undefined'}
     end.
 
 
@@ -135,10 +139,27 @@ handle_call({add_service, ImplMod, RpcMod}, _From, State) ->
     NewService = #service{rpc_mod = RpcMod, impl_mod = ImplMod},
 
     % add Piqi types of the PRC module to Piqi-tools:
-    PiqiList = RpcMod:piqi(),
-    % FIXME: handle error, otherwise we'll just crash
-    ok = piqi_tools:add_piqi(PiqiList),
+    case State#state.piqi_tools_pid of
+        'undefined' ->
+            % we'll add types later when piqi_tools server is successfully
+            % restarted
+            ok;
+        _ ->
+            % loading the implementation module, otherwise
+            % erlang:function_exported() called from Piqi-RPC runtime would
+            % return false
+            % NOTE: this will work correctly for both embedded and interactive
+            % Erlang VM modes; also, we don't care about errors
+            case code:is_loaded(ImplMod) of
+                false -> code:load_file(ImplMod);
+                _ -> ok
+            end,
 
+            % FIXME: handle error and possible exit:noproc exception, because
+            % otherwise we'll just crash
+            PiqiList = RpcMod:piqi(),
+            ok = piqi_tools:add_piqi(PiqiList)
+    end,
     NewState = State#state{ 
         services = add_serv(NewService, State#state.services)
     },
@@ -172,7 +193,8 @@ handle_call(get_status, _From, State)
     % Piqi tools has crashed and hasn't started yet
     {reply, 'system_paused', State};
 
-handle_call(get_status, _From, _State) -> 'active';
+handle_call(get_status, _From, State) ->
+    {reply, 'active', State};
 
 
 handle_call({get_status, _ImplMod}, _From, State)
@@ -220,16 +242,18 @@ handle_cast(_Msg, State) ->
 handle_info({'EXIT', Pid, _Reason}, State = #state{piqi_tools_pid = Pid}) ->
     ?PRINT({"Exit from piqi_tools", _Reason}),
     % Piqi tools server has exited -- restarting:
-    restart_piqi_tools(State);
+    NewState = restart_piqi_tools(State),
+    {noreply, NewState};
 
 handle_info({'EXIT', _Pid, _Reason}, State) ->
     % EXIT from a linked process (one that called start_link/0)
     % -- just ignoring it
     {noreply, State};
 
-handle_info(timeout, State) ->
+handle_info('timeout', State) ->
     % try restarting Piqi tools again:
-    restart_piqi_tools(State);
+    NewState = restart_piqi_tools(State),
+    {noreply, NewState};
 
 handle_info(_Info, State) ->
     % XXX
@@ -310,16 +334,6 @@ resume_service(ImplMod) ->
 
 get_service_status(ImplMod) ->
     gen_server:call(?SERVER, {get_status, ImplMod}).
-
-
--spec service_available/1 ::
-    ( ImplMod :: atom() ) -> boolean().
-
-service_available(ImplMod) ->
-    case catch get_service_status(ImplMod) of
-        'active' -> true;
-        _ -> false
-    end.
 
 
 -spec get_service_info/1 ::

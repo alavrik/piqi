@@ -125,6 +125,8 @@ init(PiqiList) ->
     %Command = "tee ilog | piqi server --trace | tee olog",
 
     % TODO: handle initialization error and report it as {error, Error} tuple
+    % XXX: use {spawn_executable, Command} instead to avoid shell's error
+    % messages printed on stderr?
     Port = erlang:open_port({spawn, Command}, [stream, binary]), % exit_status?
     State = #state{ port = Port, prev_data = <<>> }, % no previous data on start
 
@@ -157,8 +159,7 @@ handle_info({'EXIT', Port, Reason}, State = #state{port = Port}) ->
     {stop, StopReason, State};
 
 handle_info({'EXIT', _Port, _Reason}, State) ->
-    % EXIT from a linked process (one that called start_link/0)
-    % -- just ignoring it
+    % EXIT from a linked process, just ignoring it
     {noreply, State};
 
 handle_info(Info, State) ->
