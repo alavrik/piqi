@@ -31,10 +31,6 @@ let get_functions modules =
   flatmap (fun x -> x.P#func) modules
 
 
-let get_resolved_functions modules =
-  flatmap (fun x -> x.P#resolved_func) modules
-
-
 (* expand all includes and, optionally, extensions and produce an expanded
  * version of the Piqi module *)
 let expand_piqi ?(includes_only=false) piqi =
