@@ -2,7 +2,7 @@
 .include [ .module piqic/piqi-erlang ]
 
 
-% remote the "piqi" prefix from generated Erlang type and record names
+% remove the "piqi" prefix from generated Erlang type and record names
 .erlang-type-prefix ""
 
 

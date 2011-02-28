@@ -1,0 +1,5 @@
+.erlang-module "example_piqi"
+.erlang-type-prefix "example_"
+
+.include [ .module piqi-tools/piqi-tools ]
+

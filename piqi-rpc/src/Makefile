@@ -2,16 +2,24 @@
 ERL_SOURCES = \
 	$(PIQI_ERL_FILES) \
 	piqi_tools.erl \
-	piqi_rpc_monitor.erl \
+	piqi_rpc_runtime.erl \
+	\
 	piqi_rpc.erl \
-	piqi_http_rpc.erl \
-	piqic_erlang_rpc.erl \
+	piqi_rpc_app.erl \
+	piqi_rpc_sup.erl \
+	\
+	piqi_rpc_monitor.erl \
+	\
+	piqi_rpc_http.erl \
+	piqi_rpc_webmachine_resource.erl \
 
 
-#ERL_TESTS = piqirun
+#ERL_TESTS =
 
 
-ERLC_FLAGS = -pa $(PIQI_ROOT)/piqirun-erlang -I $(PIQI_ROOT)/piqirun-erlang # XXX
+ERL_APP_PATH = $(PIQI_ROOT)/piqirun-erlang
+ERLC_FLAGS = #-pa $(PIQI_ROOT)/piqirun-erlang #-I $(PIQI_ROOT)/piqirun-erlang
+
 #EBIN_DIR = .
 
 
@@ -21,22 +29,18 @@ PIQIC_FLAGS =
 
 PIQI_FILES = piqi-rpc.piqi piqi-tools.piqi
 
-PIQI_ERL_FILES = piqi_rpc_piqi.erl piqi_tools_piqi.erl piqi.erl
-PIQI_HRL_FILES = piqi_rpc_piqi.hrl piqi_tools_piqi.hrl piqi.hrl
+PIQI_ERL_FILES = piqi_rpc_piqi.erl piqi_tools_piqi.erl
+PIQI_HRL_FILES = piqi_rpc_piqi.hrl piqi_tools_piqi.hrl
 
 
 PRE_TARGET = $(PIQI_FILES)
 
 
-PIQIC_PLUGIN = piqic-erlang-rpc
-
-
 VSN = $(shell cat $(PIQI_ROOT)/VERSION)
-#ERL_APP_FILE = piqirun.app
+ERL_APP_FILE = piqi_rpc.app
 
 
-all: ebin $(PIQIC_PLUGIN)
-	$(MAKE) -f Makefile.test
+all: ebin
 
 
 test: beams
@@ -54,26 +58,14 @@ $(PIQI_FILES): %: $(PIQI_ROOT)/piqi-tools/%
 	ln -s $< $@
 
 
-$(PIQI_ERL_FILES): $(PIQI_FILES) piqi.piqi
+$(PIQI_ERL_FILES): $(PIQI_FILES)
 	for i in $^; do \
 		$(PIQIC) erlang $(PIQIC_FLAGS) $$i; \
 	done
 
 
-PIQIC_PLUGIN_BEAMS = \
-    $(PIQI_ROOT)/piqirun-erlang/ebin/piqirun.beam \
-    ../ebin/piqi.beam \
-    ../ebin/piqic_erlang_rpc.beam
-
-$(PIQIC_PLUGIN): make_escript $(PIQIC_PLUGIN_BEAMS)
-	./make_escript $@ $(PIQIC_PLUGIN_BEAMS)
-	chmod +x $@
-
-
 clean::
 	rm -f $(ERL_APP_FILE) $(PIQI_ERL_FILES) $(PIQI_HRL_FILES)
-	rm -f $(PIQIC_PLUGIN)
-	$(MAKE) -f Makefile.test clean
 
 
 include $(PIQI_ROOT)/make/Makefile.erlang

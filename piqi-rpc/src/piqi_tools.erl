@@ -78,15 +78,14 @@ start_link() ->
 
 
 start_link(PiqiList) ->
-    Res = start_common(start_link, PiqiList),
-    case Res of
-        {ok, Pid} ->
-            % NOTE: calling link() is safe and has no effect after successful
-            % gen_server:start_link()
-            link(Pid);
-        _ -> ok
-    end,
-    Res.
+    case start_common(start_link, PiqiList) of
+        {error, {already_started, Pid}} ->
+            % the server can be started from many processes, but only one
+            % instance of the server will be running
+            link(Pid),
+            {ok, Pid};
+        Res -> Res
+    end.
 
 
 % independent start -- not as a part of OTP supervision tree
@@ -94,18 +93,17 @@ start() ->
     start([]).
 
 start(PiqiList) ->
-    start_common(start, PiqiList).
+    case start_common(start, PiqiList) of
+        {error, {already_started, Pid}} ->
+            % the server can be started from many processes, but only one
+            % instance of the server will be running
+            {ok, Pid};
+        Res -> Res
+    end.
 
 
 start_common(StartFun, PiqiList) ->
-    Res = gen_server:StartFun({local, ?SERVER}, ?MODULE, PiqiList, []),
-    case Res of
-        {error, {already_started, Pid}} ->
-            % server can be started from many processes, but only one instance
-            % of the server will be running
-            {ok, Pid};
-        _ -> Res
-    end.
+    gen_server:StartFun({local, ?SERVER}, ?MODULE, PiqiList, []).
 
 
 % manual stop (when started by start/0 *)

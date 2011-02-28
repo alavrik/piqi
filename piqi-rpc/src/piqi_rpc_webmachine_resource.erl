@@ -15,7 +15,7 @@
 %%
 %% @doc This module implements a Webmachine resource for Piqi-RPC over HTTP
 %%
--module(piqi_http_rpc).
+-module(piqi_rpc_webmachine_resource).
 
 -compile(export_all).
 
@@ -66,8 +66,12 @@ init_result() -> {trace, "/tmp"}.
 -endif.
 
 
-sservice_available(ReqData, Context) ->
+% an RPC-service can be temporarilty 'paused' e.g. during a code upgrade
+% procedure
+service_available(ReqData, Context) ->
     IsAvailable =
+        % NOTE: using "catch" as a safeguard in case if piqi_rpc_monitor is down
+        % at the moment
         case catch piqi_rpc_monitor:get_service_status(Context#context.impl_mod) of
             'active' -> true;
             _ -> false
@@ -76,8 +80,6 @@ sservice_available(ReqData, Context) ->
         case IsAvailable of
             true -> ReqData;
             false ->
-                % XXX: it also can be unavailable permanently if Piqi-RPC
-                % gen_server is down
                 set_string_error("service temporarily unavailable", ReqData)
         end,
     % if false, return 503 "Service Unavailable"

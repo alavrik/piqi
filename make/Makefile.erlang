@@ -23,7 +23,8 @@ EBIN_FILES = $(ERL_OBJECTS) $(ERL_APP_FILE:%.app=$(EBIN_DIR)/%.app)
 ERL_MODULES = $(ERL_SOURCES:%.erl=%)
 
 
-ERL_PA = $(ERL_APP_PATH:%=-pa %*/ebin)
+#ERL_PA = $(ERL_APP_PATH:%=-pa %*/ebin)
+ERL_PA = $(ERL_APP_PATH:%=-pa %*/)
 #ERL_INCLUDES = $(ERL_APP_PATH:%=-I %*/)
 ERLC_FLAGS += $(ERL_PA)
 

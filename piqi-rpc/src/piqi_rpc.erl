@@ -13,154 +13,102 @@
 %% limitations under the License.
 
 %%
-%% @doc Piqi-RPC runtime support library
+%% @doc Piqi-RPC high-level interface
 %%
-
 -module(piqi_rpc).
 
--compile(export_all).
+-export([start/0, stop/0, stop_all/0]).
+-export([add_service/1, remove_service/1, get_services/0]).
 
 
--include("piqi_rpc_piqi.hrl").
+-include("piqi_rpc.hrl").
 
 
-%-define(DEBUG, 1).
--include("debug.hrl").
+% @doc start Piqi-RPC
+start() ->
+    ensure_started(piqirun),
+    ensure_started(crypto),
+    ensure_started(mochiweb),
+    ensure_started(webmachine),
+    application:start(piqi_rpc).
 
 
-% TODO: -specs, doc
+% @doc stop Piqi-RPC
+stop() ->
+    Res = application:stop(piqi_rpc),
+    % NOTE: can't call this cleanup from piqi_rpc_app:stop() or :prep_stop(),
+    % because of a dead-lock caused by the fact that piqi_rpc_http stores its
+    % routes configuration in application environmnent, and deletion of an entry
+    % from there needs to go through the application controller which is already
+    % busy stopping the application
+    catch piqi_rpc_http:cleanup(),
+    Res.
 
 
-call(Mod, Name) ->
-    ?PRINT({call, Mod, Name}),
-    check_function_exported(Mod, Name, 0),
-    Mod:Name().
+% @doc stop Piqi-RPC and all dependencies that may have been started by start/0
+stop_all() ->
+    Res = stop(),
+    application:stop(webmachine),
+    application:stop(mochiweb),
+    application:stop(crypto),
+    application:stop(piqirun),
+    Res.
 
 
-call(Mod, Name, Input) ->
-    ?PRINT({call, Mod, Name, Input}),
-    check_function_exported(Mod, Name, 1),
-    Mod:Name(Input).
-
-
-check_function_exported(Mod, Name, Arity) ->
-    % NOTE: this function doesn't load the module automatically and returns
-    % false if the module is not loaded
-    case erlang:function_exported(Mod, Name, Arity) of
-        true -> ok;
-        false ->
-            Error = lists:concat([
-                "function ", Mod, ":", Name, "/", Arity, " is not exported"]),
-            throw_rpc_error({'internal_error', list_to_binary(Error)})
+ensure_started(App) ->
+    case application:start(App) of
+        ok -> ok;
+        {error, {already_started, App}} -> ok
     end.
 
 
-get_piqi(BinPiqiList, _OutputFormat = 'pb') ->
-    % return the Piqi module and all the dependencies encoded as a list of Piqi
-    % each encoded using Protobuf binary format
-    piqirun:gen_list('undefined', fun piqirun:binary_to_block/2, BinPiqiList);
+-spec add_service/1 :: ( piqi_rpc_service() ) -> ok.
 
-get_piqi(BinPiqiList, OutputFormat) -> % piq (i.e. text/plain), json, xml
-    L = [ convert_piqi(X, OutputFormat) || X <- BinPiqiList ],
-    string:join(L, "\n\n").
-
-
-convert(TypeName, InputFormat, OutputFormat, Data) ->
+add_service(RpcService = {_ImplMod, _RpcMod, _UrlPath}) ->
+    % atomic service addition to both piqi_rpc_monitor and piqi_rpc_http
     try
-        piqi_tools:convert(TypeName, InputFormat, OutputFormat, Data)
+        % adding Piqi-RPC service first, then adding HTTP resource binding
+        ok = piqi_rpc_monitor:add_service(RpcService),
+        ok = piqi_rpc_http:add_service(RpcService),
+        Services = get_services(),
+        ok = set_services([RpcService | Services])
     catch
-        % Piqi tools has exited, but hasn't been restarted by Piqi-RPC monitor
-        % yet
-        exit:{noproc, _} ->
-            % wait for the first restart attempt -- it should be really fast
-            case piqi_rpc_monitor:get_status() of
-                'active' ->
-                    % retry the request
-                    piqi_tools:convert(TypeName, InputFormat, OutputFormat, Data);
-                _ ->
-                    throw_rpc_error({'service_unavailable', "service temporarily unavailable"})
-            end
+        Class:Reason ->
+            catch remove_service(RpcService),
+            erlang:raise(Class, Reason, erlang:get_stacktrace())
     end.
 
 
-convert_piqi(BinPiqi, OutputFormat) ->
-    {ok, Bin} = convert("piqi", 'pb', OutputFormat, BinPiqi),
-    binary_to_list(Bin).
+-spec remove_service/1 :: ( piqi_rpc_service() ) -> ok.
+
+remove_service(RpcService = {_ImplMod, _RpcMod, _UrlPath}) ->
+    % removing HTTP resource binding first, then removing Piqi-RPC service
+    ok = piqi_rpc_http:remove_service(RpcService),
+    ok = piqi_rpc_monitor:remove_service(RpcService),
+    Services = get_services(),
+    ok = set_services(Services -- [RpcService]).
 
 
-decode_input(_Decoder, _TypeName, _InputFormat, 'undefined') ->
-    throw_rpc_error('missing_input');
-
-decode_input(Decoder, TypeName, InputFormat, InputData) ->
-    BinInput =
-        % NOTE: converting anyway even in the input is encoded using 'pb'
-        % encoding to check the validity
-        case convert(TypeName, InputFormat, 'pb', InputData) of
-            {ok, X} -> X;
-            {error, Error} ->
-                throw_rpc_error({'invalid_input', Error})
-        end,
-    Buf = piqirun:init_from_binary(BinInput),
-    Decoder(Buf).
+-spec get_services/0 :: () -> [piqi_rpc_service()].
+get_services() ->
+    get_env('rpc_services').
 
 
-encode_common(Encoder, TypeName, OutputFormat, Output) ->
-    IolistOutput = Encoder('undefined', Output),
-    BinOutput = iolist_to_binary(IolistOutput),
-    case OutputFormat of
-        'pb' -> {ok, BinOutput}; % already in needed format
-        _ -> convert(TypeName, 'pb', OutputFormat, BinOutput)
+-spec set_services/1 :: ( [piqi_rpc_service()] ) -> ok.
+% @hidden
+set_services(RpcServices) ->
+    set_env('rpc_services', RpcServices).
+
+
+% @hidden
+get_env(Key) ->
+    case application:get_env(piqi_rpc, Key) of
+        {ok, X} -> X;
+        'undefined' -> []
     end.
 
 
-encode_output(Encoder, TypeName, OutputFormat, Output) ->
-    case encode_common(Encoder, TypeName, OutputFormat, Output) of
-        {ok, OutputData} -> {ok, OutputData};
-        {error, Error} ->
-            throw_rpc_error(
-                {'invalid_output', "error converting output: " ++ Error})
-    end.
-
-
-encode_error(Encoder, TypeName, OutputFormat, Output) ->
-    case encode_common(Encoder, TypeName, OutputFormat, Output) of
-        {ok, ErrorData} -> {error, ErrorData};
-        {error, Error} ->
-            throw_rpc_error(
-                {'invalid_output', "error converting error: " ++ Error})
-    end.
-
-
--spec throw_rpc_error/1 :: (Error :: piqi_rpc_rpc_error()) -> none().
-throw_rpc_error(Error) ->
-    throw({'rpc_error', Error}).
-
-
-%
-% Error handlers
-%
-
-check_empty_input('undefined') -> ok;
-check_empty_input(_) ->
-    throw_rpc_error({'invalid_input', "empty input expected"}).
-
-
-handle_unknown_function() ->
-    throw_rpc_error('unknown_function').
-
-
-handle_invalid_result(Name, Result) ->
-    % XXX: limit the size of the returned Reason string by using "~P"?
-    ResultStr = io_lib:format("~p", [Result]),
-    Error = ["function ", Name, " returned invalid result: ", ResultStr],
-    throw_rpc_error({'internal_error', iolist_to_binary(Error)}).
-
-
-% already got the error formatted properly by one of the above handlers
-handle_runtime_exception(throw, {'rpc_error', _} = X) -> X;
-handle_runtime_exception(Class, Reason) ->
-    % XXX: limit the size of the returned Reason string by using "~P"?
-    Error = io_lib:format("~w:~p, stacktrace: ~p",
-        [Class, Reason, erlang:get_stacktrace()]),
-    {'rpc_error', {'internal_error', iolist_to_binary(Error)}}.
+% @hidden
+set_env(Key, Value) ->
+    ok = application:set_env(piqi_rpc, Key, Value).
 

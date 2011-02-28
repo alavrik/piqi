@@ -1,0 +1,6 @@
+*.beam
+
+piqi.erl
+piqi.hrl
+
+piqic-erlang-rpc

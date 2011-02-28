@@ -10,7 +10,4 @@ piqi_rpc_piqi.hrl
 piqi_tools_piqi.erl
 piqi_tools_piqi.hrl
 
-piqi.erl
-piqi.hrl
-
-piqic-erlang-rpc
+piqi_rpc.app
