@@ -22,15 +22,15 @@ EBIN_DIR = .
 
 
 PIQIC = piqic
-PIQIC_FLAGS = --gen-default-impl
+PIQIC_ERLANG_RPC = piqic-erlang-rpc
+PIQIC_FLAGS =
 
 
 all: ebin
 
 
 $(TEST_ERL_FILES) $(TEST_HRL_FILES): $(PIQI_FILE)
-	$(PIQIC) erlang $(PIQIC_FLAGS) $<
-	piqic-erlang-rpc $< > $(ERL_RPC_MOD)
+	$(PIQIC_ERLANG_RPC) $(PIQIC_FLAGS) $<
 
 
 clean::

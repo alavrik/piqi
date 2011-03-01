@@ -34,12 +34,6 @@
 % TODO: -specs, doc
 
 
-call(Mod, Name) ->
-    ?PRINT({call, Mod, Name}),
-    check_function_exported(Mod, Name, 0),
-    Mod:Name().
-
-
 call(Mod, Name, Input) ->
     ?PRINT({call, Mod, Name, Input}),
     check_function_exported(Mod, Name, 1),

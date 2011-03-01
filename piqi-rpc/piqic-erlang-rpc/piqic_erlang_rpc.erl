@@ -18,36 +18,109 @@
 -include("piqi_piqi.hrl").
 
 
-main([Filename]) ->
-    piqic(Filename);
-
-main(_) ->
-    erlang:halt(1).
+% TODO: check that the version of this plugin and "piqic version" are exactly
+% the same
 
 
-command(Cmd) ->
-    %os:cmd(Cmd).
-    case eunit_lib:command(Cmd) of
-        {0, _} -> ok;
-        {_Code, Error} ->
-            io:format("command \"~s\" failed with error: ~s~n", [Cmd, Error]),
-            erlang:halt(1)
+main(Args) ->
+    {Filename, Odir} = parse_args(Args),
+    piqic_erlang(Args),
+    piqic_erlang_rpc(Filename, Odir, Args).
+
+
+usage() ->
+    io:format(
+"Usage: piqic-erlang-rpc [options] <.piqi file>\n"
+"Options:
+  -I <dir> add directory to the list of imported .piqi search paths
+  --no-warnings don't print warnings
+  --trace turn on tracing
+  --debug <level> debug level; any number greater than 0 turns on debug messages
+  --noboot don't boot, i.e. don't use boot definitions while processing .piqi
+  -C <output directory> specify output directory
+  --normalize <true|false> normalize identifiers (default: true)
+  -help  Display this list of options
+  --help  Display this list of options
+"
+    ).
+
+
+% extract filename (last argument) and output directory (argument following -C)
+parse_args([]) ->
+    usage(),
+    erlang:halt(1);
+
+parse_args([X]) when X == "-help" orelse X == "--help" ->
+    usage(),
+    erlang:halt(0);
+
+parse_args(Args) ->
+    parse_args(Args, _Odir = 'undefined').
+
+
+parse_args([Filename], Odir) ->
+    {Filename, Odir};
+
+parse_args(["-C", Odir |T], _) ->
+    parse_args(T, Odir);
+
+parse_args([_|T], Odir) ->
+    parse_args(T, Odir).
+
+
+piqic_erlang(Args) ->
+    CustomArgs =
+        "--gen-default-impl --gen-defaults --embed-piqi --gen-impl-header ",
+    PiqicErlang = lists:concat([
+            "piqic erlang ", CustomArgs, join_args(Args)
+        ]),
+    command(PiqicErlang).
+
+
+join_args(Args) ->
+    Args1 = [escape_arg(X) || X <- Args],
+    string:join(Args1, " ").
+
+
+escape_arg(X) ->
+    case lists:member($\ , X) of
+        true -> "'" ++ X ++ "'";
+        false -> X
     end.
 
 
-piqic(Filename) ->
+set_cwd('undefined') -> ok;
+set_cwd(Dir) ->
+    ok = file:set_cwd(Dir).
+
+
+piqic_erlang_rpc(Filename, Odir, Args) ->
     ExpandedPiqi = Filename ++ ".expanded.pb",
     try
-        ExpandCmd = lists:concat([
-            "piqic expand --erlang -b -o ", ExpandedPiqi, " ", Filename
+        PiqicExpand = lists:concat([
+            "piqic expand --erlang -b -o ", ExpandedPiqi, " ", join_args(Args)
         ]),
-        command(ExpandCmd),
+        command(PiqicExpand),
+
+        set_cwd(Odir),
 
         Piqi = read_piqi(ExpandedPiqi),
 
         gen_piqi(Piqi)
     after
         file:delete(ExpandedPiqi)
+    end.
+
+
+command(Cmd) ->
+    %os:cmd(Cmd).
+    case eunit_lib:command(Cmd) of
+        {0, X} ->
+            io:put_chars(X),
+            ok;
+        {_Code, Error} ->
+            io:format("command \"~s\" failed with error: ~s~n", [Cmd, Error]),
+            erlang:halt(1)
     end.
 
 
@@ -64,7 +137,6 @@ gen_piqi(Piqi) ->
     FuncList = Piqi#piqi.func,
 
     Filename = binary_to_list(ErlMod) ++ "_rpc.erl",
-    {ok, File} = file:open(Filename, ['write']),
 
     Code = iod("\n\n", [
         [
@@ -75,8 +147,7 @@ gen_piqi(Piqi) ->
         gen_get_piqi(ErlMod),
         gen_rpc(Mod, ErlMod, FuncList)
     ]),
-    io:put_chars(File, Code),
-    ok.
+    ok = file:write_file(Filename, Code).
 
 
 gen_init(ErlMod) ->
@@ -124,7 +195,7 @@ gen_func_clause(F, Mod, ErlMod) ->
             'undefined' -> % the function doesn't have input
                 [
 "            piqi_rpc_runtime:check_empty_input(InputData),\n",
-"            case piqi_rpc_runtime:call(Mod, ",  ErlName, ") of\n"
+"            case piqi_rpc_runtime:call(Mod, ",  ErlName, ", 'undefined') of\n"
                 ];
             _ ->
                 [

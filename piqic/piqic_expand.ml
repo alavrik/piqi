@@ -57,9 +57,13 @@ let flag_binary_output = ref false
 
 
 let expand_file filename =
-  let ch = Main.open_output !ofile in
   let piqi = Piqi.load_piqi filename in
   let res_piqi = Piqi_ext.expand_piqi piqi in
+
+  (* chdir to the output directory *)
+  Main.chdir_output !odir;
+
+  let ch = Main.open_output !ofile in
 
   (* add the Module's name even if it wasn't set, this is required for custom
    * naming *)
@@ -83,6 +87,7 @@ let usage = "Usage: piqic expand [options] <.piqi file> [output file]\nOptions:"
 let speclist = Main.common_speclist @
   [
     arg_o;
+    arg_C;
     Piqic_common.arg__normalize;
 
     "-b", Arg.Set flag_binary_output,

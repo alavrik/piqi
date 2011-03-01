@@ -41,7 +41,7 @@ let gen_spec f =
   let open T.Func in
   let input, arity =
     match f.resolved_input with
-      | None -> ios "", "0"
+      | None -> ios "'undefined'", "1"
       | Some t -> gen_typename t, "1"
   in
   let output =
@@ -81,8 +81,8 @@ let gen_default_impl modname f =
   let fname = some_of f.erlang_name in
   let input =
     match f.resolved_input with
-      | None -> ios ""
-      | Some t -> ios "_"
+      | None -> ios "_"
+      | Some t -> ios "_Input"
   in
   let output =
     match f.resolved_output with
