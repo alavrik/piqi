@@ -1,7 +1,7 @@
 -module(list_people).
 -compile(export_all).
 
--include("addressbook.hrl").
+-include("addressbook_piqi.hrl").
 
 
 % Main function:  Reads the entire address book from a file and prints all
@@ -10,7 +10,7 @@ run([Filename]) ->
     % Read the existing address book.
     {ok, Bytes} = file:read_file(Filename),
     Buf = piqirun:init_from_binary(Bytes),
-    AddressBook = addressbook:parse_address_book(Buf),
+    AddressBook = addressbook_piqi:parse_address_book(Buf),
     list_people(AddressBook),
     ok;
 

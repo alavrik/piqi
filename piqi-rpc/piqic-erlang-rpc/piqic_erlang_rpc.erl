@@ -15,7 +15,7 @@
 -module(piqic_erlang_rpc).
 -compile(export_all).
 
--include("piqi.hrl").
+-include("piqi_piqi.hrl").
 
 
 main([Filename]) ->
@@ -54,7 +54,7 @@ piqic(Filename) ->
 read_piqi(Filename) ->
     {ok, Bytes} = file:read_file(Filename),
     Buf = piqirun:init_from_binary(Bytes),
-    Piqi = piqi:parse_piqi(Buf),
+    Piqi = piqi_piqi:parse_piqi(Buf),
     Piqi.
 
 

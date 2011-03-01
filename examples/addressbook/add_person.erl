@@ -1,7 +1,7 @@
 -module(add_person).
 -compile(export_all).
 
--include("addressbook.hrl").
+-include("addressbook_piqi.hrl").
 
 
 % Main function: Reads the entire address book from a file,
@@ -14,7 +14,7 @@ run([Argv0, Filename]) ->
             {ok, InBytes} ->
                 Buf = piqirun:init_from_binary(InBytes),
                 try
-                    addressbook:parse_address_book(Buf)
+                    addressbook_piqi:parse_address_book(Buf)
                 catch
                     {'piqirun_error', _Reason} ->
                         io:format("Failed to parse address book.\n"),
@@ -35,7 +35,7 @@ run([Argv0, Filename]) ->
     % NOTE: specifying -1 as the field code has a special meaning: it tells
     % generator not to generate the header (code/tag/len) -- just generate the
     % contents
-    OutBytes = addressbook:gen_address_book('undefined', NewAddressBook),
+    OutBytes = addressbook_piqi:gen_address_book('undefined', NewAddressBook),
     ok = file:write_file(Filename, OutBytes);
 
 run(_) ->

@@ -3,10 +3,6 @@
 % This file contains definitions for Piqi RPC request and response types.
 
 
-.erlang-module "piqi_rpc_piqi"
-.erlang-type-prefix "piqi_rpc_"
-
-
 %
 % RPC-request
 %

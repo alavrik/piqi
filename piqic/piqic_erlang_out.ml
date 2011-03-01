@@ -53,7 +53,7 @@ let rec gen_gen_type erlang_type wire_type x =
     | `any ->
         if !Piqic_common.is_self_spec
         then ios "gen_" ^^ ios !any_erlname
-        else ios "piqtype:gen_any"
+        else ios "piqtype_piqi:gen_any"
     | (#T.piqdef as x) ->
         let modname = gen_parent x in
         modname ^^ ios "gen_" ^^ ios (piqdef_erlname x)

@@ -16,9 +16,9 @@ EBIN_DIR = .
 PIQIC = piqic
 PIQIC_FLAGS =
 
-
-PIQI_ERL_FILES = piqi.erl
-PIQI_HRL_FILES = piqi.hrl
+PIQI_FILES = piqi.piqi
+PIQI_ERL_FILES = piqi_piqi.erl
+PIQI_HRL_FILES = piqi_piqi.hrl
 
 
 PRE_TARGET =
@@ -34,7 +34,7 @@ $(PIQI_FILES): %: $(PIQI_ROOT)/piqi-tools/%
 	ln -s $< $@
 
 
-$(PIQI_ERL_FILES): $(PIQI_FILES) piqi.piqi
+$(PIQI_ERL_FILES) $(PIQI_HRL_FILES): $(PIQI_FILES)
 	for i in $^; do \
 		$(PIQIC) erlang $(PIQIC_FLAGS) $$i; \
 	done
@@ -42,7 +42,7 @@ $(PIQI_ERL_FILES): $(PIQI_FILES) piqi.piqi
 
 PIQIC_PLUGIN_BEAMS = \
     $(PIQI_ROOT)/piqirun-erlang/ebin/piqirun.beam \
-    piqi.beam \
+    piqi_piqi.beam \
     piqic_erlang_rpc.beam
 
 

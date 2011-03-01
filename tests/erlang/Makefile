@@ -24,6 +24,6 @@ test:
 
 
 clean:
-	rm -f *.piqi piqi.* piqtype.* piqobj.* t.*
+	rm -f *.piqi piqi.* piqi_piqi.* piqtype_piqi.* piqobj_piqi.* t.*
 	$(MAKE) -f Makefile.erlang clean
 

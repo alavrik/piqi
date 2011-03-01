@@ -14,8 +14,8 @@ PIQI_MODULES = addressbook.piqi
 PIQIC = piqic
 PIQIC_FLAGS =
 
-PIQI_ERL_SOURCES = $(PIQI_MODULES:%.piqi=%.erl)
-PIQI_ERL_HEADERS = $(PIQI_MODULES:%.piqi=%.hrl)
+PIQI_ERL_SOURCES = $(PIQI_MODULES:%.piqi=%_piqi.erl)
+PIQI_ERL_HEADERS = $(PIQI_MODULES:%.piqi=%_piqi.hrl)
 
 ERL_SOURCES += $(PIQI_ERL_SOURCES)
 
@@ -26,16 +26,16 @@ PRE_TARGET = $(PIQI_ERL_SOURCES) $(PIQI_ERL_HEADERS)
 all: $(PRE_TARGET) ebin
 
 
-%.erl: %.piqi
+%_piqi.erl: %.piqi
 	$(PIQIC) erlang $(PIQIC_FLAGS) $<
 
-%.hrl: %.piqi
+%_piqi.hrl: %.piqi
 	$(PIQIC) erlang $(PIQIC_FLAGS) $<
 
-%.erl: %.proto.piqi
+%_piqi.erl: %.proto.piqi
 	$(PIQIC) erlang $(PIQIC_FLAGS) $<
 
-%.hrl: %.proto.piqi
+%_piqi.hrl: %.proto.piqi
 	$(PIQIC) erlang $(PIQIC_FLAGS) $<
 
 

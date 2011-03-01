@@ -4,10 +4,6 @@
 % functionality.
 
 
-.erlang-module "piqi_tools_piqi"
-.erlang-type-prefix "piqi_tools_"
-
-
 .function [
     .name add-piqi  % add Piqi module
 

@@ -131,19 +131,29 @@ let erlname_functions l =
 
 let erl_modname n =
   let n = Piqi_name.get_local_name n in (* cut module path *)
-  Some (erlang_name n)
+  erlang_name n
 
 
 let rec erlname_piqi (piqi:T.piqi) =
   let open P in
   begin
-    if piqi.erlang_module = None
-    then piqi.erlang_module <- erl_modname (some_of piqi.modname);
+    (* Erlang module name derived from Piqi module name *)
+    let derived_modname = erl_modname (some_of piqi.modname) in
 
     (* if type prefix is not defined by user, set it to
      * <erlang-module-name> "_" *)
     if piqi.erlang_type_prefix = None
-    then piqi.erlang_type_prefix <- Some (some_of piqi.erlang_module ^ "_");
+    then (
+      let base_prefix =
+        match piqi.erlang_module with
+          | Some x -> x
+          | None -> derived_modname
+      in
+      piqi.erlang_type_prefix <- Some (base_prefix ^ "_")
+    );
+
+    if piqi.erlang_module = None
+    then piqi.erlang_module <- Some (derived_modname ^ "_piqi");
 
     (* naming function parameters first, because otherwise they will be
      * overriden in erlname_defs *)
