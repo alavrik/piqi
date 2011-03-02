@@ -22,6 +22,8 @@ SOURCES += \
 	piqi_rpc.ml \
 	piqi_tools.ml \
 	piqi_server.ml \
+	\
+	piqi_http.ml \
 	piqi_call.ml \
 	\
 	piqi_run.ml \
