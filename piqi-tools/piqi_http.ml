@@ -236,7 +236,7 @@ let read_response ch =
   let status_code, headers, body_offset = parse_response_header read_buf len in
 
   (* create a buffer for reading HTTP message body *)
-  let body_buf = Buffer.create 8096 in
+  let body_buf = Buffer.create read_buf_size in
   (* add a piece of previously read body to the body buffer *)
   Buffer.add_substring body_buf read_buf body_offset (len - body_offset);
 
@@ -251,16 +251,124 @@ let read_response ch =
   (status_code, headers, body)
 
 
+let make_http_request ?body command =
+  (* TODO: add tracing
+  prerr_endline command;
+  *)
+  let send_body ch body =
+    match body with
+      | None -> ()
+      | Some x ->
+          output_string ch x;
+          close_out ch
+  in
+  let ((in_channel, out_channel) as handle) = Unix.open_process command in
+  send_body out_channel body;
+  let res =
+    try
+      `ok (read_response in_channel)
+    with
+      Error x -> `error x
+  in
+  let status = Unix.close_process handle in
+  match status, res with
+    | Unix.WEXITED 0, `ok x -> x
+    | Unix.WEXITED 0, `error x -> error x
+    | Unix.WEXITED n, _ ->
+        error ("curl exited with error code " ^ (string_of_int n))
+    | Unix.WSIGNALED n, _ ->
+        error ("curl was killed by signal " ^ (string_of_int n))
+    | Unix.WSTOPPED n, _ ->
+        error ("curl was stopped by signal " ^ (string_of_int n))
+
+
 (*
-let _ =
-  let ch = open_in "t" in
-  let (status_code, headers, body) = read_response ch in
+  -i stands for output reponse http header in addition to payload data
+  -s stands for silent
+*)
+(* XXX: add "User-Agent" header? *)
+(* XXX: add the ability to specify custom curl options *)
+let curl_command = "curl -i -s"
+
+
+let get ?accept url =
+  let accept_header =
+    match accept with
+      | None -> ""
+      | Some x -> "-H 'Accept: " ^ x ^ "'"
+  in
+  let command =
+    String.concat " " [
+      curl_command; "-X GET";
+      accept_header;
+      "'" ^ url ^ "'"
+    ]
+  in
+  make_http_request command
+
+
+let post ?body ?content_type ?accept url =
+  let content_type_header =
+    match content_type with
+      | None -> ""
+      | Some _ when body = None -> ""
+      | Some x -> "-H 'Content-Type: " ^ x ^ "'"
+  in
+  let accept_header =
+    match accept with
+      | None -> ""
+      | Some x -> "-H 'Accept: " ^ x ^ "'"
+  in
+  let data_binary =
+    match body with
+      | None -> ""
+      | Some x -> "--data-binary @-"
+  in
+  let command =
+    String.concat " " [
+      curl_command; "-X POST";
+      content_type_header;
+      accept_header;
+      data_binary;
+      "'" ^ url ^ "'"
+    ]
+  in
+  make_http_request command ?body
+
+
+let get_header name headers =
+  try
+    Some (List.assoc name headers)
+  with Not_found -> None
+
+
+(* some testing code:
+let print_response response =
+  let (status_code, headers, body) = response in
   Printf.printf "Status code: %d\n" status_code;
   Printf.printf "Headers:\n";
   List.iter (fun (n, v) -> Printf.printf "      %s: %s\n" n v) headers;
   Printf.printf "Length: %d\n" (String.length body);
   Printf.printf "Body:\n\n";
-  print_endline body;
+  print_endline body
+
+
+let _ =
+  let ch = open_in "t" in
+  let res = read_response ch in
+  print_response res;
+  exit 0
+
+
+let _ =
+  let res = get Sys.argv.(1) in
+  print_response res;
+  exit 0
+
+
+let _ =
+  let res = post Sys.argv.(1) in
+  print_response res;
   exit 0
 *)
 

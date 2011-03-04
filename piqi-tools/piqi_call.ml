@@ -26,6 +26,11 @@ module C = Piqi_common
 open C
 
 
+(* values of HTTP headers when making Piqi-RPC requests *)
+let content_type = "application/x-protobuf"
+let accept = content_type
+
+
 let send_request (_,och) request =
   Piqi_server.send_packet och request
 
@@ -54,6 +59,39 @@ let call_local_server handle request =
     | x -> x
 
 
+let call_http_server url body =
+  trace "piqi call: making HTTP call\n";
+  let status, headers, body =
+    Piqi_http.post url ~accept ~content_type ?body
+  in
+  let ct =
+    match Piqi_http.get_header "content-type" headers with
+      | None when status = 204 -> "" (* "No data" therefore no Content-Type *)
+      | None ->
+          piqi_error
+            "piqi HTTP call: Content-Type is missing in server's response"
+      | Some x -> x
+  in
+  (* TODO: catch Piqi_http.Error *)
+  match status with
+    | 204 -> (* "No Data" *)
+        `ok_empty
+    | 200 -> (* "OK" *)
+        if ct = content_type
+        then `ok body
+        else
+        piqi_error ("piqi-RPC error: " ^ body)
+    | 500 when ct = content_type ->
+        (* "Internal Server Error" with the application Content-Type header
+         * means application error *)
+        `error body
+    | _ ->
+        (* all other HTTP codes either mean `rpc_error or some other HTTP
+         * transport or server-related error *)
+        piqi_error
+          (Printf.sprintf "HTTP error: %d\n\n%s\n" status body)
+
+
 (* returns the last element of the list *)
 let rec last = function
   | [] -> failwith "last"
@@ -61,32 +99,50 @@ let rec last = function
   | _::t -> last t
 
 
-let init_piqi handle =
-  trace "piqi call: init Piqi\n";
-  (* issue a special command to get piqi modules from the server *) 
+let init_piqi_common data =
+  let buf = Piqirun.init_from_string data in
+  let bin_piqi_list = Piqirun.parse_list Piqirun.parse_string buf in
+  (* decode piqi modules *)
+  let piqi_list =
+      List.map (fun x ->
+          let buf = Piqirun.init_from_string x in
+          T.parse_piqi buf
+        ) bin_piqi_list
+  in
+  (* initialize the client with the server's piqi modules *)
+  List.iter (fun piqi ->
+      Piqi.process_piqi piqi
+    ) piqi_list;
+  (* return the last element of the list, it defines the interface to the
+   * server *)
+  last piqi_list
+
+
+let init_local_piqi handle =
+  trace "piqi local call: get Piqi\n";
+  (* issue a special command to get Piqi modules from the server *) 
   let request = Piqi_rpc.Request#{name = ""; data = None} in
   let input = Piqi_rpc.gen_request (-1) request in
   match call_local_server handle input with
     | `ok data ->
-        let buf = Piqirun.init_from_string data in
-        let bin_piqi_list = Piqirun.parse_list Piqirun.parse_string buf in
-        (* decode piqi modules *)
-        let piqi_list =
-            List.map (fun x ->
-                let buf = Piqirun.init_from_string x in
-                T.parse_piqi buf
-              ) bin_piqi_list
-        in
-        (* initialize the client with the server's piqi modules *)
-        List.iter (fun piqi ->
-            Piqi.process_piqi piqi
-          ) piqi_list;
-        (* return the last element of the list, it defines the interface to the
-         * server *)
-        last piqi_list
+        init_piqi_common data
     | `error _ | `ok_empty ->
         piqi_error "invalid response to Piqi modules request"
     | `rpc_error _ -> assert false (* checked earlier *)
+
+
+let init_http_piqi path =
+  trace "piqi http call: get Piqi from %s\n" path;
+  (* issue a HTTP GET request get Piqi modules from the server *)
+  let status, _headers, body = Piqi_http.get path ~accept in
+  (* TODO: check content type of the response *)
+  (* TODO: catch Piqi_http.Error *)
+  match status with
+    | 200 ->
+        init_piqi_common body
+    | _ ->
+        piqi_error
+          (Printf.sprintf "unexpected HTTP response: %d\n\n%s\n" status body)
 
 
 let find_function piqi name =
@@ -96,22 +152,20 @@ let find_function piqi name =
     piqi_error ("server doesn't implement function: " ^ name)
 
 
-let prepare_request name t args =
-  trace "piqi call: preparing request\n";
-  let data =
-    match t, args with
-      | Some _, None -> piqi_error "missing input arguments"
-      | None, Some _ -> piqi_error "function doesn't expect input arguments"
-      | None, None -> None
-      | Some piqtype, Some ast ->
-          trace "piqi call: parsing parameters\n";
-          (* XXX: C.resolve_defaults := true; *)
-          let piqobj = Piqobj_of_piq.parse_obj (piqtype :> T.piqtype) ast in
-          let iodata = Piqobj_to_wire.gen_embedded_obj piqobj in
-          let res = Piqirun.to_string iodata in
-          Some res
-  in
-  Piqi_rpc.Request#{name = name; data = data}
+let prepare_input_data f args =
+  trace "piqi call: preparing input data\n";
+  let t = f.T.Func#resolved_input in
+  match t, args with
+    | Some _, None -> piqi_error "missing input arguments"
+    | None, Some _ -> piqi_error "function doesn't expect input arguments"
+    | None, None -> None
+    | Some piqtype, Some ast ->
+        trace "piqi call: parsing parameters\n";
+        (* XXX: C.resolve_defaults := true; *)
+        let piqobj = Piqobj_of_piq.parse_obj (piqtype :> T.piqtype) ast in
+        let iodata = Piqobj_to_wire.gen_embedded_obj piqobj in
+        let res = Piqirun.to_string iodata in
+        Some res
 
 
 let decode_response ot et output =
@@ -151,25 +205,11 @@ let gen_error obj =
   output_char ch '\n'
 
 
-let local_call ch (server_command, func_name) args =
-  (* TODO: detect child process crash *)
-  let (in_channel, out_channel) = Unix.open_process server_command in
-  let ibuf = Piqirun.IBuf.of_channel in_channel in
-  let handle = (ibuf, out_channel) in
-
-  let piqi = init_piqi handle in
-
-  let f = find_function piqi func_name in
-
-  let request = prepare_request func_name f.T.Func#resolved_input args in
-  let input = Piqi_rpc.gen_request (-1) request in
-
-  let response = call_local_server handle input in
-
+let handle_response ch f response =
   let res =
     decode_response f.T.Func#resolved_output f.T.Func#resolved_error response
   in
-  (match res with
+  match res with
     | `ok_empty -> ()
     | `ok obj ->
         gen_output ch obj
@@ -178,24 +218,72 @@ let local_call ch (server_command, func_name) args =
         (* TODO: unify error handling of `error (application error) and
          * `rpc_error *)
         exit 1
-  );
-  ()
+
+
+let local_call ch (server_command, func_name) args =
+  (* TODO: detect child process crash *)
+  let (in_channel, out_channel) = Unix.open_process server_command in
+  let ibuf = Piqirun.IBuf.of_channel in_channel in
+  let handle = (ibuf, out_channel) in
+
+  let piqi = init_local_piqi handle in
+
+  let f = find_function piqi func_name in
+
+  let data = prepare_input_data f args in
+  let request = Piqi_rpc.Request#{name = func_name; data = data} in
+  let input = Piqi_rpc.gen_request (-1) request in
+
+  let response = call_local_server handle input in
+
+  handle_response ch f response
+
+
+let http_call ch (path, func_name) args =
+  let piqi = init_http_piqi path in
+
+  let f = find_function piqi func_name in
+
+  let input = prepare_input_data f args in
+
+  let url = path ^ "/" ^ func_name in
+  let response = call_http_server url input in
+
+  handle_response ch f response
 
 
 let is_remote_url url =
-  try String.sub url 0 7 = "http://" (* XXX: allow https? *)
+  try
+    String.sub url 0 7 = "http://" ||
+    String.sub url 0 8 = "https://"
   with _ -> false
 
 
 let parse_url url =
   if is_remote_url url
-  then `http url (* TODO: validate the remote url *) 
+  then
+    match Piqi_name.split_name url with
+      | Some path, func ->
+          (* remove a trailing '/' character if the url contains it *)
+          let path, func =
+            if func = ""
+            then
+              match Piqi_name.split_name path with
+                | Some path, func -> path, func
+                | _ -> piqi_error ("invalid HTTP URL: " ^ url)
+            else path, func
+          in
+          if Piqi_name.is_valid_name func (* XXX: don't check? *)
+          then `http (path, func)
+          else piqi_error ("invalid function name in HTTP URL: " ^ func)
+      | _ ->
+          piqi_error ("invalid HTTP URL: " ^ url)
   else
     match Piqi_name.split_name url with
       | Some server, func ->
           if Piqi_name.is_valid_name func (* XXX: don't check? *)
           then `local (server, func)
-          else piqi_error ("invalid function name: " ^ func)
+          else piqi_error ("invalid function name in local URL: " ^ func)
       | _ ->
           piqi_error ("invalid local URL: " ^ url)
 
@@ -213,8 +301,7 @@ let call url =
   let ch = open_output !ofile in
   match parse_url url with
     | `local x -> local_call ch x args
-    | `http _ ->
-        piqi_error "HTTP calls are not supported yet"
+    | `http x -> http_call ch x args
 
 
 let usage = "Usage: piqi call [options] <function url> -- [arguments]\nOptions:"
