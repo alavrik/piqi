@@ -27,9 +27,6 @@
 -include("debug.hrl").
 
 
-% XXX: or use "application/octet-stream" Content-Type instead of
-% "application/protobuf"?
-
 % XXX: set charset=UTF-8 in "Content-Type" response header for text (Piq), Json
 % and XML responses?
 
@@ -130,7 +127,7 @@ known_content_type(ReqData, Context) ->
     IsKnownType =
         case wrq:get_req_header("content-type", ReqData) of
             "application/json" -> true;
-            "application/protobuf" -> true;
+            "application/x-protobuf" -> true;
             % allow content-type to be undefined when the body is empty
             'undefined' when IsEmptyBody -> true;
             _ -> false
@@ -154,12 +151,12 @@ content_types_provided(ReqData, Context) ->
                 [
                     {"text/plain", get_piqi_piq},
                     {"application/json", get_piqi_json},
-                    {"application/protobuf", get_piqi_pb}
+                    {"application/x-protobuf", get_piqi_pb}
                 ];
             'POST' ->
                 [
                     {"application/json", unused_value},
-                    {"application/protobuf", unused_value},
+                    {"application/x-protobuf", unused_value},
                     {"text/plain", unused_value}
                 ]
         end,
@@ -177,12 +174,12 @@ process_post(ReqData, Context) ->
 % Utility functions
 %
 
-format_to_content_type('pb') -> "application/protobuf";
+format_to_content_type('pb') -> "application/x-protobuf";
 format_to_content_type('json') -> "application/json";
 format_to_content_type('piq') -> "text/plain".
 
 
-content_type_to_format("application/protobuf") -> 'pb';
+content_type_to_format("application/x-protobuf") -> 'pb';
 content_type_to_format("application/json") -> 'json';
 content_type_to_format("text/plain") -> 'piq';
 content_type_to_format(_) -> 'undefined'.
