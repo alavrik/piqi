@@ -28,11 +28,7 @@ open C
 module I = Piqi_tools
 
 
-let receive_packet buf =
-  (* read a length delimited block *)
-  Piqirun.parse_block buf
-
-
+(* serialize and send one length-delimited packet to the output channle *)
 let send_packet ch data =
   (* generate a length delimited block *)
   let data = Piqirun.gen_block data in
@@ -40,34 +36,49 @@ let send_packet ch data =
   flush ch
 
 
-(* read one request from the input buffer *)
-let receive_request buf =
-  let buf = receive_packet buf in
+(* receive one length-delimited packet from the input channle *)
+let receive_packet ch =
+  (* read a length delimited block *)
+  let buf = Piqirun.IBuf.of_channel ch in
+  Piqirun.parse_block buf
+
+
+(* encode and write request/response structure to the output channel *)
+let send_request ch request =
+  let request = Piqi_rpc.gen_request (-1) request in
+  send_packet ch request
+
+
+let send_response ch response =
+  let response = Piqi_rpc.gen_response (-1) response in
+  send_packet ch response
+
+
+(* read and decode one request/response structure from the input channel *)
+let receive_request ch =
+  let buf = receive_packet ch in
   Piqi_rpc.parse_request buf
 
 
-(* write serialized response structure to stdout *)
-let send_response response =
-  send_packet stdout response
+let receive_response ch =
+  let buf = receive_packet ch in
+  Piqi_rpc.parse_response buf
 
 
+(* utility functions for constructing Piqi_rpc responses *)
 let return_ok_empty () =
-  let res = Piqi_rpc.gen_response (-1) `ok_empty in
-  send_response res
+  `ok_empty
 
 let return_ok data =
   let data = Piqirun.to_string data in
-  let res = Piqi_rpc.gen_response (-1) (`ok data) in
-  send_response res
+  `ok data
 
 let return_error data =
   let data = Piqirun.to_string data in
-  let res = Piqi_rpc.gen_response (-1) (`error data) in
-  send_response res
+  `error data
 
 let return_rpc_error err =
-  let res = Piqi_rpc.gen_response (-1) (`rpc_error err) in
-  send_response res
+  `rpc_error err
 
 
 let fname = "input" (* XXX *)
@@ -139,8 +150,6 @@ let gen_pb obj =
 
 
 let parse_obj typename input_format data =
-  (* TODO: reset wire types and codes in Piq module before reading and writing
-   * wire *)
   let piqtype = Piqi_convert.get_piqtype typename in
   let is_piqi_input = (typename = "piqi") in
   let piqobj =
@@ -211,11 +220,7 @@ let add_piqi args =
   with_handle_piqi_errors add_piqi args
 
 
-exception Break
-
-
-let gen_error exn =
-  Printexc.to_string exn ^ " ; backtrace: " ^ Printexc.get_backtrace ()
+exception Break of Piqi_rpc.response
 
 
 let do_args f data =
@@ -223,22 +228,23 @@ let do_args f data =
     match data with
       | Some x -> x
       | None ->
-          return_rpc_error `missing_input;
-          raise Break
+          let response = return_rpc_error `missing_input in
+          raise (Break response)
   in
   let buf = Piqirun.init_from_string data in
   try f buf
   with exn ->
-    return_rpc_error (`invalid_input (gen_error exn));
-    raise Break
+    let response = return_rpc_error (`invalid_input (string_of_exn exn)) in
+    raise (Break response)
 
 
 let do_run f x =
   try f x
   with exn ->
-    return_rpc_error
-      (`internal_error ("error while running function: " ^ gen_error exn));
-    raise Break
+    let response = return_rpc_error
+      (`internal_error ("error while running function: " ^ string_of_exn exn))
+    in
+    raise (Break response)
 
 
 let execute_request req =
@@ -270,24 +276,29 @@ let execute_request req =
         return_rpc_error `unknown_function
 
 
+(* read one request from stdin, execute the request, and write the response to
+ * stdout *)
 let main_loop () =
-  let ibuf = Piqirun.IBuf.of_channel stdin in
   while true
   do
     let request =
       try
-        receive_request ibuf
+        receive_request stdin
       with exn -> (
-        return_rpc_error
+        let response = return_rpc_error
           (`protocol_error
-            ("error while reading command: " ^ Printexc.to_string exn));
+            ("error while reading command: " ^ Printexc.to_string exn))
+        in
+        send_response stdout response;
         exit 1
       )
     in
-    let _ =
+    let response =
       try execute_request request
-      with Break -> ()
+      with Break x -> x
     in
+    send_response stdout response;
+
     (* reset location db to allow GC to collect previously read objects *)
     Piqloc.reset ();
     (* XXX: run garbage collection on the minor heap to free all memory used for
@@ -299,7 +310,14 @@ let main_loop () =
 let start_server () =
   Piqi_json.init ();
   (* exit on SIGPIPE without printing a message about uncaught exception *)
-  Sys.set_signal Sys.sigpipe Sys.Signal_default;
+  Sys.set_signal Sys.sigpipe (Sys.Signal_handle (fun _ ->
+    (* have to close all channels explicilty to prevent getting an uncaught
+     * sigpipe during execution of at_exit *)
+    close_in_noerr stdin;
+    close_out_noerr stdout;
+    close_out_noerr stderr;
+    exit 0
+  ));
   main_loop ()
 
 
@@ -325,5 +343,5 @@ let run () =
  
 let _ =
   Main.register_command run "server"
-    "Piqi-tools server -- reads Piqi commands from stdin and writes results to stdout"
+    "Piqi-tools RPC-server -- reads commands from stdin and writes results to stdout"
 

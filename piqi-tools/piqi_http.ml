@@ -97,7 +97,7 @@ let regexp status_line_tail = sp reason_phrase crlf
                    of token, separators, and quoted-string>
 *)
 
-(* TODO: this regexp doesn't include quoted-sting case, only "*TEXT" *)
+(* NOTE, XXX: this regexp doesn't include quoted-string case, only "*TEXT" *)
 let regexp field_value = text*
 
 let regexp message_header = token ":" field_value?
@@ -115,6 +115,14 @@ let error s = raise (Error s)
 
 let unexpected_eof () = error "unexpected EOF"
 let invalid_character () = error "invalid character"
+
+
+let handle_exn context exn =
+  let s =
+    match exn with
+      | Error x -> x
+      | _ -> Piqi_common.string_of_exn exn
+  in error (context ^ ": " ^ s)
 
 
 let parse_status_line_head = lexer
@@ -143,8 +151,8 @@ let parse_status_line lexbuf =
     let code = parse_status_code lexbuf in
     parse_status_line_tail lexbuf;
     code
-  with _ ->
-    error "error parsing HTTP status line"
+  with exn ->
+    handle_exn "error parsing HTTP status line" exn
 
 
 let skip_lexeme_ws lexbuf pos len =
@@ -194,8 +202,8 @@ let parse_headers lexbuf =
     let headers = parse_headers [] lexbuf in
     let body_offset = Ulexing.lexeme_end lexbuf in
     (headers, body_offset)
-  with _ ->
-    error "error parsing HTTP headers"
+  with exn ->
+    handle_exn "error parsing HTTP headers" exn
 
 
 let parse_response_header buf len =
@@ -231,7 +239,7 @@ let rec read_body ch body_buf =
 
 let read_response ch =
   let len = read_next ch in
-  if len = 0 then error "empty input";
+  if len = 0 then error "response is empty";
 
   let status_code, headers, body_offset = parse_response_header read_buf len in
 
@@ -241,7 +249,7 @@ let read_response ch =
   Buffer.add_substring body_buf read_buf body_offset (len - body_offset);
 
   (* read the remainder of the body *)
-  (* TODO, XXX: use "Content-Length" header? *)
+  (* XXX: use "Content-Length" header? *)
   if len = read_buf_size
   then read_body ch body_buf;
 
@@ -252,28 +260,28 @@ let read_response ch =
 
 
 let make_http_request ?body command =
-  (* TODO: add tracing
-  prerr_endline command;
-  *)
-  let send_body ch body =
-    match body with
-      | None -> ()
-      | Some x ->
-          output_string ch x;
-          close_out ch
-  in
+  Piqi_common.trace "piqi_http: running curl: %s\n" command;
   let ((in_channel, out_channel) as handle) = Unix.open_process command in
-  send_body out_channel body;
+
+  (match body with
+    | None -> ()
+    | Some x ->
+        output_string out_channel x;
+        close_out out_channel
+  );
+
   let res =
     try
       `ok (read_response in_channel)
-    with
-      Error x -> `error x
+    with exn ->
+      `error exn
   in
   let status = Unix.close_process handle in
   match status, res with
     | Unix.WEXITED 0, `ok x -> x
-    | Unix.WEXITED 0, `error x -> error x
+    | Unix.WEXITED 0, `error exn -> raise exn
+    | Unix.WEXITED 127, _ ->
+        error ("shell command couldn't be executed: " ^ command)
     | Unix.WEXITED n, _ ->
         error ("curl exited with error code " ^ (string_of_int n))
     | Unix.WSIGNALED n, _ ->
@@ -282,56 +290,58 @@ let make_http_request ?body command =
         error ("curl was stopped by signal " ^ (string_of_int n))
 
 
-(*
-  -i stands for output reponse http header in addition to payload data
-  -s stands for silent
-*)
-(* XXX: add "User-Agent" header? *)
 (* XXX: add the ability to specify custom curl options *)
-let curl_command = "curl -i -s"
+let make_curl_command
+    ?accept
+    ?content_type
+    ?user_agent
+    ?body
+    http_method url =
 
-
-let get ?accept url =
   let accept_header =
     match accept with
       | None -> ""
       | Some x -> "-H 'Accept: " ^ x ^ "'"
   in
-  let command =
-    String.concat " " [
-      curl_command; "-X GET";
-      accept_header;
-      "'" ^ url ^ "'"
-    ]
-  in
-  make_http_request command
-
-
-let post ?body ?content_type ?accept url =
   let content_type_header =
     match content_type with
       | None -> ""
       | Some _ when body = None -> ""
       | Some x -> "-H 'Content-Type: " ^ x ^ "'"
   in
-  let accept_header =
-    match accept with
+  let user_agent_header =
+    match user_agent with
       | None -> ""
-      | Some x -> "-H 'Accept: " ^ x ^ "'"
+      | Some x -> "-A '" ^ x ^ "'"
   in
   let data_binary =
     match body with
       | None -> ""
       | Some x -> "--data-binary @-"
   in
+  (*
+    -i stands for output reponse http header in addition to payload data
+    -s stands for silent
+  *)
+  String.concat " " [
+    "curl -i -s -X"; http_method;
+    accept_header;
+    content_type_header;
+    user_agent_header;
+    data_binary;
+    "'" ^ url ^ "'"
+  ]
+
+
+let get ?accept ?user_agent url =
   let command =
-    String.concat " " [
-      curl_command; "-X POST";
-      content_type_header;
-      accept_header;
-      data_binary;
-      "'" ^ url ^ "'"
-    ]
+    make_curl_command ?accept ?user_agent "GET" url in
+  make_http_request command
+
+
+let post ?body ?content_type ?accept ?user_agent url =
+  let command =
+    make_curl_command ?accept ?content_type ?user_agent ?body "POST" url
   in
   make_http_request command ?body
 

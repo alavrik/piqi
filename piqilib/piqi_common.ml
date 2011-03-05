@@ -321,6 +321,10 @@ let strerr loc s =
   string_of_loc loc ^ ": " ^ s
 
 
+let string_of_exn exn =
+  Printexc.to_string exn ^ " ; backtrace: " ^ Printexc.get_backtrace ()
+
+
 (* piq/piqi language error *)
 exception Error of Piqloc.loc * string 
 

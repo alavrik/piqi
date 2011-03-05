@@ -151,8 +151,29 @@ let parse_argv start =
   aux start
 
 
-let getopt_piq argv_start_index =
-  let tokens = parse_argv argv_start_index in
+(* index of the "--" element in argv array *)
+let argv_start_index = ref 0
+
+
+(* find the position of the first argument after "--" *)
+let rest_fun arg =
+  if !argv_start_index = 0 (* first argument after first occurence of "--" *)
+  then argv_start_index := !Arg.current + 1
+  else ()
+
+
+let arg__rest =
+    "--", Arg.Rest rest_fun,
+    "separator between piqi command-line arguments and data arguments"
+
+
+let getopt_piq () =
+  let start =
+    if !argv_start_index = 0 (* "--" is not present in the list of arguments *)
+    then Array.length Sys.argv
+    else !argv_start_index
+  in
+  let tokens = parse_argv start in
   let piq_parser = Piq_parser.init_from_token_list getopt_filename tokens in
   let piq_objects = Piq_parser.read_all piq_parser in
   let piq_ast =

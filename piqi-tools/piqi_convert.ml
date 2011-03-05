@@ -35,6 +35,19 @@ let flag_embed_piqi = ref false
 let usage = "Usage: piqi convert [options] [input file] [output file]\nOptions:"
 
 
+let arg__t =
+    "-t", Arg.Set_string output_encoding,
+    "piq|wire|pb|json|piq-json output encoding (piq is used by default)"
+
+let arg__piqtype =
+    "--piqtype", Arg.Set_string typename,
+    "<typename> type of converted object when converting from .pb or plain .json"
+
+let arg__add_defaults =
+    "--add-defaults", Arg.Set flag_add_defaults,
+    "add field default values while converting records"
+
+
 let speclist = Main.common_speclist @
   [
     arg_o;
@@ -42,14 +55,9 @@ let speclist = Main.common_speclist @
     "-f", Arg.Set_string input_encoding,
     "piq|wire|pb|json|piq-json input encoding";
 
-    "-t", Arg.Set_string output_encoding,
-    "piq|wire|pb|json|piq-json output encoding (piq is used by default)";
-
-    "--piqtype", Arg.Set_string typename,
-    "<typename> type of converted object when converting from .pb or plain .json";
-
-    "--add-defaults", Arg.Set flag_add_defaults,
-    "add field default values while converting records";
+    arg__t;
+    arg__piqtype;
+    arg__add_defaults;
 
     "--embed-piqi", Arg.Set flag_embed_piqi,
     "embed Piqi dependencies, i.e. Piqi specs which the input depends on";

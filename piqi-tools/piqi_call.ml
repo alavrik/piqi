@@ -26,18 +26,14 @@ module C = Piqi_common
 open C
 
 
+(* command-line arguments *)
+let output_encoding = Piqi_convert.output_encoding
+
+
 (* values of HTTP headers when making Piqi-RPC requests *)
 let content_type = "application/x-protobuf"
 let accept = content_type
-
-
-let send_request (_,och) request =
-  Piqi_server.send_packet och request
-
-
-let receive_response (buf,_) =
-  let buf = Piqi_server.receive_packet buf in
-  Piqi_rpc.parse_response buf
+let user_agent = "Piqi/" ^ Piqi_version.version
 
 
 let string_of_rpc_error = function
@@ -50,37 +46,43 @@ let string_of_rpc_error = function
   | `protocol_error err -> "protocol error: " ^ err
 
 
-let call_local_server handle request =
-  trace "piqi call: making local call\n";
-  send_request handle request;
-  match receive_response handle with
+let call_local_server ((ich, och) as _handle) func_name data =
+  trace "piqi_call: calling %s\n" func_name;
+  let request = Piqi_rpc.Request#{name = func_name; data = data} in
+  Piqi_server.send_request och request;
+  match Piqi_server.receive_response ich with
     | `rpc_error err ->
-        piqi_error ("rpc error: " ^ string_of_rpc_error err)
+        piqi_error ("local rpc error: " ^ string_of_rpc_error err)
     | x -> x
 
 
+let get_content_type status headers =
+  match Piqi_http.get_header "content-type" headers with
+    | None when status = 204 -> "" (* "No data" therefore no Content-Type *)
+    | None ->
+        piqi_error
+          "HTTP rpc error: Content-Type header is missing in server's response"
+    | Some x -> x
+
+
+let bad_content_type ct =
+  piqi_error (Printf.sprintf
+    "HTTP rpc error: unexpected Content-Type for status code 200: %s" ct)
+
+
 let call_http_server url body =
-  trace "piqi call: making HTTP call\n";
+  trace "piqi_call: calling %s\n" url;
   let status, headers, body =
-    Piqi_http.post url ~accept ~content_type ?body
+    Piqi_http.post url ~accept ~content_type ~user_agent ?body
   in
-  let ct =
-    match Piqi_http.get_header "content-type" headers with
-      | None when status = 204 -> "" (* "No data" therefore no Content-Type *)
-      | None ->
-          piqi_error
-            "piqi HTTP call: Content-Type is missing in server's response"
-      | Some x -> x
-  in
-  (* TODO: catch Piqi_http.Error *)
+  let ct = get_content_type status headers in
   match status with
     | 204 -> (* "No Data" *)
         `ok_empty
-    | 200 -> (* "OK" *)
-        if ct = content_type
-        then `ok body
-        else
-        piqi_error ("piqi-RPC error: " ^ body)
+    | 200 when ct = content_type -> (* "OK" *)
+        `ok body
+    | 200 ->
+        bad_content_type ct
     | 500 when ct = content_type ->
         (* "Internal Server Error" with the application Content-Type header
          * means application error *)
@@ -88,8 +90,8 @@ let call_http_server url body =
     | _ ->
         (* all other HTTP codes either mean `rpc_error or some other HTTP
          * transport or server-related error *)
-        piqi_error
-          (Printf.sprintf "HTTP error: %d\n\n%s\n" status body)
+        piqi_error (Printf.sprintf
+          "HTTP rpc error: (status code = %d\n)\n%s" status body)
 
 
 (* returns the last element of the list *)
@@ -100,6 +102,7 @@ let rec last = function
 
 
 let init_piqi_common data =
+  trace "piqi_call: init Piqi modules returned by the server\n";
   let buf = Piqirun.init_from_string data in
   let bin_piqi_list = Piqirun.parse_list Piqirun.parse_string buf in
   (* decode piqi modules *)
@@ -118,49 +121,51 @@ let init_piqi_common data =
   last piqi_list
 
 
-let init_local_piqi handle =
-  trace "piqi local call: get Piqi\n";
+let get_local_piqi handle =
+  trace "piqi_call: get Piqi\n";
   (* issue a special command to get Piqi modules from the server *) 
-  let request = Piqi_rpc.Request#{name = ""; data = None} in
-  let input = Piqi_rpc.gen_request (-1) request in
-  match call_local_server handle input with
+  let func_name = "" and data = None in
+  match call_local_server handle func_name data with
     | `ok data ->
         init_piqi_common data
     | `error _ | `ok_empty ->
-        piqi_error "invalid response to Piqi modules request"
+        piqi_error "local rpc error: invalid response to get_piqi request"
     | `rpc_error _ -> assert false (* checked earlier *)
 
 
-let init_http_piqi path =
-  trace "piqi http call: get Piqi from %s\n" path;
+let get_http_piqi path =
+  trace "piqi_call: get Piqi from %s\n" path;
   (* issue a HTTP GET request get Piqi modules from the server *)
-  let status, _headers, body = Piqi_http.get path ~accept in
-  (* TODO: check content type of the response *)
-  (* TODO: catch Piqi_http.Error *)
+  let status, headers, body =
+    Piqi_http.get path ~accept ~user_agent
+  in
+  let ct = get_content_type status headers in
   match status with
-    | 200 ->
+    | 200 when ct = content_type ->
         init_piqi_common body
+    | 200 ->
+        bad_content_type ct
     | _ ->
-        piqi_error
-          (Printf.sprintf "unexpected HTTP response: %d\n\n%s\n" status body)
+        piqi_error (Printf.sprintf
+          "HTTP rpc error: unexpected response to get_piqi request (status code = %d)\n%s" status body)
 
 
 let find_function piqi name =
-  trace "piqi call: find function %s\n" (quote name);
+  trace "piqi_call: find function %s\n" (quote name);
   try List.find (fun x -> x.T.Func.name = name) piqi.P#resolved_func
   with Not_found ->
     piqi_error ("server doesn't implement function: " ^ name)
 
 
-let prepare_input_data f args =
-  trace "piqi call: preparing input data\n";
+let encode_input_data f args =
+  trace "piqi_call: preparing input data\n";
   let t = f.T.Func#resolved_input in
   match t, args with
     | Some _, None -> piqi_error "missing input arguments"
     | None, Some _ -> piqi_error "function doesn't expect input arguments"
     | None, None -> None
     | Some piqtype, Some ast ->
-        trace "piqi call: parsing parameters\n";
+        trace "piqi_call: parsing parameters\n";
         (* XXX: C.resolve_defaults := true; *)
         let piqobj = Piqobj_of_piq.parse_obj (piqtype :> T.piqtype) ast in
         let iodata = Piqobj_to_wire.gen_embedded_obj piqobj in
@@ -168,9 +173,9 @@ let prepare_input_data f args =
         Some res
 
 
-let decode_response ot et output =
-  trace "piqi call: decoding response\n";
-  match ot, output with
+let decode_response f output =
+  trace "piqi_call: decoding response\n";
+  match f.T.Func#resolved_output, output with
     | None, `ok_empty -> `ok_empty
     | Some _, `ok_empty ->
         piqi_error "unexpected empty result from server"
@@ -181,7 +186,7 @@ let decode_response ot et output =
         let obj = Piqobj_of_wire.parse_obj (piqtype :> T.piqtype) buf in
         `ok obj
     | _, `error data -> (
-        match et with
+        match f.T.Func#resolved_error with
           | None -> piqi_error "unexpected error result from server"
           | Some piqtype ->
               let buf = Piqirun.init_from_string data in
@@ -191,65 +196,46 @@ let decode_response ot et output =
     | _, `rpc_error _ -> assert false (* checked earlier *)
 
 
-let gen_output ch obj =
-  let ast = Piq.gen_piq (Piq.Piqobj obj) in
-  Piq_gen.to_channel ch ast;
-  output_char ch '\n'
-
-
-let gen_error obj =
-  let ch = stderr in (* XXX *)
-  let ast = Piq.gen_piq (Piq.Piqobj obj) in
-  output_string ch "error: ";
-  Piq_gen.to_channel ch ast;
-  output_char ch '\n'
-
-
-let handle_response ch f response =
+let local_call (server_command, func_name) args =
+  let (in_channel, out_channel) as handle = Unix.open_process server_command in
   let res =
-    decode_response f.T.Func#resolved_output f.T.Func#resolved_error response
+    try
+      let piqi = get_local_piqi handle in
+
+      let f = find_function piqi func_name in
+      let data = encode_input_data f args in
+
+      let response = call_local_server handle func_name data in
+      let res = decode_response f response in
+      `ok res
+    with exn ->
+      `error exn
   in
-  match res with
-    | `ok_empty -> ()
-    | `ok obj ->
-        gen_output ch obj
-    | `error obj ->
-        gen_error obj;
-        (* TODO: unify error handling of `error (application error) and
-         * `rpc_error *)
-        exit 1
+  let status = Unix.close_process handle in
+  match status, res with
+    | Unix.WEXITED 0, `ok x -> x
+    | Unix.WEXITED 0, `error exn -> raise exn
+    | Unix.WEXITED 127, _ ->
+        piqi_error ("shell command couldn't be executed: " ^ server_command)
+    | Unix.WEXITED n, _ ->
+        piqi_error ("server exited with error code " ^ (string_of_int n))
+    | Unix.WSIGNALED n, _ ->
+        piqi_error ("server was killed by signal " ^ (string_of_int n))
+    | Unix.WSTOPPED n, _ ->
+        piqi_error ("server was stopped by signal " ^ (string_of_int n))
 
 
-let local_call ch (server_command, func_name) args =
-  (* TODO: detect child process crash *)
-  let (in_channel, out_channel) = Unix.open_process server_command in
-  let ibuf = Piqirun.IBuf.of_channel in_channel in
-  let handle = (ibuf, out_channel) in
+let http_call (url, base_url, func_name) args =
+  try
+    let piqi = get_http_piqi base_url in
 
-  let piqi = init_local_piqi handle in
+    let f = find_function piqi func_name in
+    let data = encode_input_data f args in
 
-  let f = find_function piqi func_name in
-
-  let data = prepare_input_data f args in
-  let request = Piqi_rpc.Request#{name = func_name; data = data} in
-  let input = Piqi_rpc.gen_request (-1) request in
-
-  let response = call_local_server handle input in
-
-  handle_response ch f response
-
-
-let http_call ch (path, func_name) args =
-  let piqi = init_http_piqi path in
-
-  let f = find_function piqi func_name in
-
-  let input = prepare_input_data f args in
-
-  let url = path ^ "/" ^ func_name in
-  let response = call_http_server url input in
-
-  handle_response ch f response
+    let response = call_http_server url data in
+    decode_response f response
+  with
+    Piqi_http.Error s -> piqi_error ("HTTP rpc error: " ^ s)
 
 
 let is_remote_url url =
@@ -274,7 +260,7 @@ let parse_url url =
             else path, func
           in
           if Piqi_name.is_valid_name func (* XXX: don't check? *)
-          then `http (path, func)
+          then `http (url, path, func)
           else piqi_error ("invalid function name in HTTP URL: " ^ func)
       | _ ->
           piqi_error ("invalid HTTP URL: " ^ url)
@@ -288,30 +274,36 @@ let parse_url url =
           piqi_error ("invalid local URL: " ^ url)
 
 
+let call url args =
+  match parse_url url with
+    | `local x -> local_call x args
+    | `http x -> http_call x args
+
+
+let gen_result ch writer res =
+  match res with
+    | `ok_empty -> ()
+    | `ok obj ->
+        writer ch (Piq.Typed_piqobj obj)
+    | `error obj ->
+        trace "piqi_call: remote function returned error:\n";
+        writer stderr (Piq.Typed_piqobj obj);
+        exit 1
+
+
 module Main = Piqi_main
 open Main
 
 
-(* index of the "--" element in argv array *)
-let argv_start_index = ref 0
-
-
-let call url =
-  let args = Piqi_getopt.getopt_piq !argv_start_index in
+let run_call url =
+  let args = Piqi_getopt.getopt_piq () in
+  let writer = Piqi_convert.make_writer !output_encoding in
   let ch = open_output !ofile in
-  match parse_url url with
-    | `local x -> local_call ch x args
-    | `http x -> http_call ch x args
+  let res = call url args in
+  gen_result ch writer res
 
 
 let usage = "Usage: piqi call [options] <function url> -- [arguments]\nOptions:"
-
-
-(* find the position of the first argument after "--" *)
-let rest_fun arg =
-  if !argv_start_index = 0 (* first argument after first occurence of "--" *)
-  then argv_start_index := !Arg.current + 1
-  else ()
 
 
 (* URL: <server>/<method> *)
@@ -322,8 +314,14 @@ let custom_anon_fun s = url := s
 let speclist = Main.common_speclist @
   [
     arg_o;
-    "--", Arg.Rest rest_fun,
-    "separator between piqi command-line arguments and function arguments";
+
+    Piqi_convert.arg__t;
+
+    (* TODO: provide a flag for getting Piqi module spec without executing an
+     * actual request *)
+    (* XXX: --embed-piqi // embed Piqi specification in generated output *)
+
+    Piqi_getopt.arg__rest;
   ]
 
 
@@ -331,13 +329,10 @@ let run () =
   Main.parse_args ()
     ~speclist ~usage ~min_arg_count:1 ~max_arg_count:1 ~custom_anon_fun;
 
-  if !argv_start_index = 0 (* "--" is not present in the list of arguments *)
-  then argv_start_index := Array.length Sys.argv;
-
-  call !url
+  run_call !url
 
  
 let _ =
   Main.register_command run "call"
-    "Piqi RPC client -- reads command-line arguments ads calls remote functions"
+    "Piqi-RPC client -- call remote function with command-line arguments as input"
 

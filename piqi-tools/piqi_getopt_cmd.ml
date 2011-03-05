@@ -27,12 +27,8 @@ open C
 
 
 (* command-line arguments *)
-let output_encoding = ref ""
-let typename = ref ""
-
-
-(* index of the "--" element in argv array *)
-let argv_start_index = ref 0
+let output_encoding = Piqi_convert.output_encoding
+let typename = Piqi_convert.typename
 
 
 module Main = Piqi_main
@@ -52,7 +48,7 @@ let getopt_command () =
   (* open output file *)
   let och = Main.open_output !ofile in
   (* interpret command-line arguments after "--" as Piq data *)
-  let piq_ast = Piqi_getopt.getopt_piq !argv_start_index in
+  let piq_ast = Piqi_getopt.getopt_piq () in
   match piq_ast with
     | None -> () (* no data *)
     | Some ast when !typename = "" ->
@@ -70,13 +66,6 @@ let getopt_command () =
         writer och (Piq.Typed_piqobj piqobj)
 
 
-(* find the position of the first argument after "--" *)
-let rest_fun arg =
-  if !argv_start_index = 0 (* first argument after first occurence of "--" *)
-  then argv_start_index := !Arg.current + 1
-  else ()
-
-
 let usage = "Usage: piqi getopt [options] -- [<data arguments>] \nOptions:"
 
 
@@ -84,24 +73,17 @@ let speclist = Main.common_speclist @
   [
     arg_o;
 
-    "-t", Arg.Set_string output_encoding,
-    "piq|wire|pb|json|piq-json output encoding (piq is used by default)";
+    Piqi_convert.arg__t;
+    Piqi_convert.arg__piqtype;
+    Piqi_convert.arg__add_defaults;
 
-    "--piqtype", Arg.Set_string typename,
-    "<typename> type of the object represented by data arguments";
-
-    "--add-defaults", Arg.Set Piqi_convert.flag_add_defaults,
-    "add field default values while converting records";
-
-    "--", Arg.Rest rest_fun,
-    "separator between piqi command-line arguments and data arguments";
+    Piqi_getopt.arg__rest;
   ]
 
 
 let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:0;
-  if !argv_start_index = 0 (* "--" is not present in the list of arguments *)
-  then argv_start_index := Array.length Sys.argv;
+
   getopt_command ()
 
  
