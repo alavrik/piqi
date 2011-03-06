@@ -21,6 +21,79 @@
  *)
 
 
+(* @doc
+
+   Piqi getopt uses different option syntax than Posix/GNU getopt, because their
+   syntax is way too relaxed and imprecise. These are examples of GNU getopt
+   options and their possible meanings:
+
+        --c-long=10 // c-long = 10
+        -c 10 // c, 10
+        -c10 // c = 10
+        -ac10 // a, c = 10
+        -ca10 // c = a10
+
+   In Piqi getopt, both short and long options are supported. Both type of
+   options must be seprated from a value by whitespace, e.g.
+
+        -c 10
+        --c-long 10
+
+   Short options start with '-' character followed by one or more letters. In
+   the latter case, each letter is treated as if it was specified separaterly.
+   For example,
+
+        -abc 10
+
+        is equivalent to
+
+        -a -b -c 10
+
+   '-' followed by a <number> is normally treated as a negative number, e.g.
+
+        -10
+        -0.nan
+        -0.0
+        -0.infinity
+
+    Words will be treated either as Piq strings or binaries or words, depending
+    on the expected type. Examples of words:
+
+        a
+
+        foo
+
+    Strings or binaries can be specified explicitly using Piq string syntax.
+
+        '"a"'
+
+        '"foo\u0000"'
+
+        '"\x00\n\r"'
+
+    Lists can be specified using regular Piq syntax, but '[' and ']' characters
+    can be specified as separate arguments and not as a part of other arguments.
+    Examples:
+
+        []
+
+        [ a b ] // this is correct
+        [a b]   // this is incorrect
+
+        [ a b 10 -1 ]
+
+        [ a b [ c d ] ]
+
+
+    Values for the arguments that start with '@' character will be loaded from a
+    file which names follows the '@' character. For example:
+
+        @foo  // string or binary value will be loaded from file "foo"
+
+TODO:   @-    // string or binary value will be loaded from stdin
+*)
+
+
 module C = Piqi_common
 open C
 
@@ -98,11 +171,6 @@ let read_file filename =
 let parse_arg s =
   let len = String.length s in
 
-  if len = 0
-  then error "empty argument";
-  if s = "-" || s = "--"
-  then error ("invalid argument: " ^ s);
-
   match s with
     (* NOTE: we don't support '(' and ')' and '[]' is handeled separately below *)
     | "[" -> Piq_lexer.Lbr
@@ -114,15 +182,27 @@ let parse_arg s =
         (* Raw binary -- just a sequence of bytes: may be parsed as either
          * binary or utf8 string *)
         Piq_lexer.Raw_binary content
-    (* NOTE: it is safe to check s.[1] because a single '-' case is eliminated
-     * above *)
-    | s when s.[0] = '-' && (s.[1] < '0' || s.[1] > '9') -> parse_name_arg s
-    | s when s.[0] = '.' -> parse_name_arg s (* Piq -style names *)
+
+    (* parsing long options starting with "--"
+     *
+     * NOTE: it is safe to check s.[1] because a single '-' case is eliminated
+     * in the calling function *)
+    | s when s.[0] = '-' && s.[1] = '-' ->
+        let name = String.sub s 1 (len - 1) in (* skip first '-' *)
+        parse_name_arg name
+
+    | s when s.[0] = '.' ->
+        parse_name_arg s (* XXX: allowing Piq -style names *)
+
     (* XXX: support typenames and, possibly, other literals? *)
-    | s -> parse_word_arg s
+    | s ->
+        parse_word_arg s
 
 
 let parse_argv start =
+  let error i err =
+    C.error_at (getopt_filename, 0, i) err
+  in
   let make_token i tok =
     (* 1-based token position in the argv starting from the position after "--" *)
     let loc = (0, i - start + 1) in
@@ -131,22 +211,57 @@ let parse_argv start =
   let parse_make_arg i x =
     let tok =
       try parse_arg x
-      with Piq_lexer.Error (err, _loc) ->
-        C.error_at (getopt_filename, 0, i) err
+      with Piq_lexer.Error (err, _loc) -> error i err
     in
     make_token i tok
+  in
+  let parse_letter_args i s =
+    let len = String.length s in
+    let rec aux j =
+      if j = len
+      then [] (* end of string *)
+      else
+        let c = s.[j] in
+        match c with
+          (* only letters are allowed as single-letter options *)
+          | 'a'..'z' | 'A'..'Z' ->
+              (* creating Piq name: '.' followed by the letter *)
+              let word = String.create 2 in
+              word.[0] <- '.'; word.[1] <- c;
+              let tok = Piq_lexer.Word word in
+              (make_token i tok) :: (aux (j+1))
+          | _ ->
+              error i ("invalid single-letter argument: " ^ Char.escaped c)
+    in
+    aux 1 (* start at position 1 skipping the leading '-' *)
   in
   let len = Array.length Sys.argv in
   let rec aux i =
     if i >= len
     then [make_token i Piq_lexer.EOF]
     else
-      match Sys.argv.(i) with
+      let a = Sys.argv.(i) in
+      match a with
+        | "" ->
+            error i "empty argument"
+
+        | "-" | "--" ->
+            error i ("invalid argument: " ^ a)
+
         | "[]" -> (* split it into two tokens '[' and ']' *)
-            Sys.argv.(i) <- "]";
-            (parse_make_arg i "[") :: (aux i)
-        | x -> 
-            (parse_make_arg i x) :: (aux (i+1))
+            (parse_make_arg i "[") :: (parse_make_arg i "]") :: (aux (i+1))
+
+        (* After skipping negative integers, and those arguments that start with
+         * '--', we end up having '-' followed by one or more characters. We
+         * treat those characters as single-letter arguments.
+         *
+         * NOTE: it is safe to check s.[1] because a single '-' case is
+         * eliminated above *)
+        | s when s.[0] = '-' && s.[1] <> '-' && (s.[1] < '0' || s.[1] > '9') ->
+            (parse_letter_args i s) @ (aux (i+1))
+
+        | s ->
+            (parse_make_arg i s) :: (aux (i+1))
   in
   aux start
 
@@ -167,7 +282,7 @@ let arg__rest =
     "separator between piqi command-line arguments and data arguments"
 
 
-let getopt_piq () =
+let getopt_piq () :T.ast list =
   let start =
     if !argv_start_index = 0 (* "--" is not present in the list of arguments *)
     then Array.length Sys.argv
@@ -175,16 +290,22 @@ let getopt_piq () =
   in
   let tokens = parse_argv start in
   let piq_parser = Piq_parser.init_from_token_list getopt_filename tokens in
-  let piq_objects = Piq_parser.read_all piq_parser in
-  let piq_ast =
-    match piq_objects with
-      | [] -> None
-      | [x] -> Some x
+  let piq_ast_list = Piq_parser.read_all piq_parser in
+  piq_ast_list
+
+
+let parse_args (piqtype: T.piqtype) (args: T.ast list) :Piqobj.obj =
+  let ast =
+    (* if there's more that one element or we're parsing value for a
+     * container type, wrap elements into a list *)
+    match args with
+      | [x] when not (C.is_container_type piqtype) -> x
       | l ->
-          (* if there's more that one Piq objects, wrap them into a list *)
           let res = `list l in
-          Piqloc.addref (List.hd l) res; (* preserve the location info *)
-          Some res
+          (* set the location *)
+          let loc = (0, 1) in Piqloc.addref loc res;
+          res
   in
-  piq_ast
+  let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
+  piqobj
 

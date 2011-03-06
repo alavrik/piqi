@@ -162,13 +162,13 @@ let encode_input_data f args =
   trace "piqi_call: preparing input data\n";
   let t = f.T.Func#resolved_input in
   match t, args with
-    | Some _, None -> piqi_error "missing input arguments"
-    | None, Some _ -> piqi_error "function doesn't expect input arguments"
-    | None, None -> None
-    | Some piqtype, Some ast ->
-        trace "piqi_call: parsing parameters\n";
+    | None, [] -> None
+    | None, _ ->
+        piqi_error "function doesn't expect input arguments"
+    | Some piqtype, _ ->
+        trace "piqi_call: parsing arguments\n";
         (* XXX: C.resolve_defaults := true; *)
-        let piqobj = Piqobj_of_piq.parse_obj (piqtype :> T.piqtype) ast in
+        let piqobj = Piqi_getopt.parse_args (piqtype :> T.piqtype) args in
         let iodata = Piqobj_to_wire.gen_embedded_obj piqobj in
         let res = Piqirun.to_string iodata in
         Some res

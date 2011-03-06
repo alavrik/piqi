@@ -48,20 +48,28 @@ let getopt_command () =
   (* open output file *)
   let och = Main.open_output !ofile in
   (* interpret command-line arguments after "--" as Piq data *)
-  let piq_ast = Piqi_getopt.getopt_piq () in
-  match piq_ast with
-    | None -> () (* no data *)
-    | Some ast when !typename = "" ->
+  let piq_ast_list = Piqi_getopt.getopt_piq () in
+  match piq_ast_list with
+    | [] when !typename = "" -> () (* no data *)
+    | _ when !typename = "" ->
         (* with no --piqtype parameter given, just pretty-print the Piq AST *)
-        Piqi_pp.prettyprint_ast och ast;
-        output_char och '\n'
-    | Some ast ->
+        let ast =
+          (* if there's more that one element, wrap them into a list *)
+          match piq_ast_list with
+            | [x] -> x
+            | l -> `list l
+        in
+        Piqi_pp.prettyprint_ast och ast
+    | _ ->
         let writer = Piqi_convert.make_writer !output_encoding in
         let piqtype = Piqi_convert.find_piqtype !typename in
+
         (* parse the Piq AST according to "--piqtype" and convert to the output
          * format according to "-t" *)
         C.resolve_defaults := !Piqi_convert.flag_add_defaults;
-        let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
+
+        let piqobj = Piqi_getopt.parse_args piqtype piq_ast_list in
+
         (* write the object *)
         writer och (Piq.Typed_piqobj piqobj)
 
