@@ -28,6 +28,7 @@ open C
 
 (* command-line arguments *)
 let output_encoding = Piqi_convert.output_encoding
+let flag_get_piqi = ref false
 
 
 (* values of HTTP headers when making Piqi-RPC requests *)
@@ -196,17 +197,11 @@ let decode_response f output =
     | _, `rpc_error _ -> assert false (* checked earlier *)
 
 
-let local_call (server_command, func_name) args =
-  let (in_channel, out_channel) as handle = Unix.open_process server_command in
+let with_open_pipe shell_command f =
+  let handle = Unix.open_process shell_command in
   let res =
     try
-      let piqi = get_local_piqi handle in
-
-      let f = find_function piqi func_name in
-      let data = encode_input_data f args in
-
-      let response = call_local_server handle func_name data in
-      let res = decode_response f response in
+      let res = f handle in
       `ok res
     with exn ->
       `error exn
@@ -216,7 +211,7 @@ let local_call (server_command, func_name) args =
     | Unix.WEXITED 0, `ok x -> x
     | Unix.WEXITED 0, `error exn -> raise exn
     | Unix.WEXITED 127, _ ->
-        piqi_error ("shell command couldn't be executed: " ^ server_command)
+        piqi_error ("shell command couldn't be executed: " ^ shell_command)
     | Unix.WEXITED n, _ ->
         piqi_error ("server exited with error code " ^ (string_of_int n))
     | Unix.WSIGNALED n, _ ->
@@ -225,8 +220,29 @@ let local_call (server_command, func_name) args =
         piqi_error ("server was stopped by signal " ^ (string_of_int n))
 
 
+(* NOTE: in future, we may implement a full http client that will open
+ * connection once for all subsequent requests *)
+let with_open_http f =
+  try f ()
+  with
+    Piqi_http.Error s -> piqi_error ("HTTP rpc error: " ^ s)
+
+
+let local_call (server_command, func_name) args =
+  let f handle =
+    let piqi = get_local_piqi handle in
+
+    let f = find_function piqi func_name in
+    let data = encode_input_data f args in
+
+    let response = call_local_server handle func_name data in
+    decode_response f response
+  in
+  with_open_pipe server_command f
+
+
 let http_call (url, base_url, func_name) args =
-  try
+  let f () =
     let piqi = get_http_piqi base_url in
 
     let f = find_function piqi func_name in
@@ -234,11 +250,19 @@ let http_call (url, base_url, func_name) args =
 
     let response = call_http_server url data in
     decode_response f response
-  with
-    Piqi_http.Error s -> piqi_error ("HTTP rpc error: " ^ s)
+  in
+  with_open_http f
 
 
-let is_remote_url url =
+let local_get_piqi server_command =
+  with_open_pipe server_command (fun handle -> get_local_piqi handle)
+
+
+let http_get_piqi url =
+  with_open_http (fun () -> get_http_piqi url)
+
+
+let is_http_url url =
   try
     String.sub url 0 7 = "http://" ||
     String.sub url 0 8 = "https://"
@@ -246,7 +270,7 @@ let is_remote_url url =
 
 
 let parse_url url =
-  if is_remote_url url
+  if is_http_url url
   then
     match Piqi_name.split_name url with
       | Some path, func ->
@@ -280,6 +304,12 @@ let call url args =
     | `http x -> http_call x args
 
 
+let get_piqi url =
+  if is_http_url url
+  then http_get_piqi url
+  else local_get_piqi url
+
+
 let gen_result ch writer res =
   match res with
     | `ok_empty -> ()
@@ -296,14 +326,21 @@ open Main
 
 
 let run_call url =
-  let args = Piqi_getopt.getopt_piq () in
-  let writer = Piqi_convert.make_writer !output_encoding in
   let ch = open_output !ofile in
-  let res = call url args in
-  gen_result ch writer res
+  if not !flag_get_piqi
+  then
+    let args = Piqi_getopt.getopt_piq () in
+    let writer = Piqi_convert.make_writer !output_encoding in
+    let res = call url args in
+    gen_result ch writer res
+  else
+    let is_piqi_input = true in
+    let writer = Piqi_convert.make_writer !output_encoding ~is_piqi_input in
+    let piqi = get_piqi url in
+    writer ch (Piq.Piqi piqi)
 
 
-let usage = "Usage: piqi call [options] <function url> -- [arguments]\nOptions:"
+let usage = "Usage: piqi call [options] <HTTP or local URL> -- [arguments]\nOptions:"
 
 
 (* URL: <server>/<method> *)
@@ -317,9 +354,8 @@ let speclist = Main.common_speclist @
 
     Piqi_convert.arg__t;
 
-    (* TODO: provide a flag for getting Piqi module spec without executing an
-     * actual request *)
-    (* XXX: --embed-piqi // embed Piqi specification in generated output *)
+    "--get-piqi", Arg.Set flag_get_piqi,
+    "instead of calling a function, only get Piqi modules from a Piqi-RPC server";
 
     Piqi_getopt.arg__rest;
   ]
