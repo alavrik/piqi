@@ -23,11 +23,13 @@
 %    bool, int, int32, int64, uint, uint32, uint64, proto-int32, proto-int64,
 %    enum
 %
-% binary() of size 4 holds a value for fixed32 -encoded types:
+% {fixed32, binary()} with a binary of size 4 holds a value for fixed32 -encoded
+% types:
 %    
 %    int32-fixed, uint32-fixed, float32
 %
-% binary() of size 8 holds a value for fixed64 -encoded types:
+% {fixed64, binary()} with a binary of size 8 holds a value for fixed64 -encoded
+% types:
 %    
 %    int64-fixed, uint64-fixed, float64
 %
@@ -36,16 +38,16 @@
 %
 %    binaries, strings, records, variants, lists
 %
-% {top_block, binary()} is similar to block, but used at the very top-level to
-% allow special handling of pritimitive types encoded as a single field.
-%
 -type piqirun_return_buffer() ::
       non_neg_integer()
-    | binary()
+    | {'fixed32', binary()}
+    | {'fixed64', binary()}
     | {'block', binary()}.
 
 
--type piqirun_buffer() :: piqirun_buffer() | {'top_block', binary()}.
+% binary() is the only allowed value type for top-level values and is not used
+% in any other contexts
+-type piqirun_buffer() :: piqirun_buffer() | binary().
 
 
 % Wire field code which is used for identifying individual fields in binary

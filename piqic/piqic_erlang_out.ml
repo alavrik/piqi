@@ -230,7 +230,8 @@ let gen_list l =
   ]
 
 
-let gen_spec x =
+(* generate gen_<name>/2 specs and functions *)
+let gen_spec_2 x =
   iol [
     ios "-spec gen_"; ios (piqdef_erlname x); ios "/2 :: (";
       ios "Code :: piqirun_code(), ";
@@ -239,7 +240,7 @@ let gen_spec x =
   ]
 
 
-let gen_def x =
+let gen_def_2 x =
   let generator =
     match x with
       | `alias t -> gen_alias t
@@ -248,14 +249,37 @@ let gen_def x =
       | `enum t -> gen_enum t
       | `list t -> gen_list t
   in iol [
-    gen_spec x; eol;
+    gen_spec_2 x; eol;
+    generator;
+  ]
+
+
+(* generate gen_<name>/1 specs and functions *)
+let gen_spec_1 x =
+  iol [
+    ios "-spec gen_"; ios (piqdef_erlname x); ios "/1 :: (";
+      ios "X :: "; ios_gen_out_typeref (x :> T.typeref); ios ") -> ";
+    ios "iolist().";
+  ]
+
+let gen_def_1 x =
+  let func_name = ios "gen_" ^^ ios (piqdef_erlname x) in
+  let generator =
+    iol [
+      func_name; ios "(X) ->"; indent;
+        func_name; ios "('undefined', X).";
+      unindent; eol;
+    ]
+  in iol [
+    gen_spec_1 x; eol;
     generator;
   ]
 
 
 let gen_defs (defs:T.piqdef list) =
-  let defs = List.map gen_def defs in
-  iod "\n" defs
+  let defs_2 = List.map gen_def_2 defs in
+  let defs_1 = List.map gen_def_1 defs in
+  iod "\n" (defs_2 @ defs_1)
 
 
 let gen_piqi (piqi:T.piqi) =

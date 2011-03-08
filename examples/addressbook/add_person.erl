@@ -11,10 +11,9 @@ run([Argv0, Filename]) ->
     AddressBook =
         % Read the existing address book.
         case file:read_file(Filename) of
-            {ok, InBytes} ->
-                Buf = piqirun:init_from_binary(InBytes),
+            {ok, Bytes} ->
                 try
-                    addressbook_piqi:parse_address_book(Buf)
+                    addressbook_piqi:parse_address_book(Bytes)
                 catch
                     {'piqirun_error', _Reason} ->
                         io:format("Failed to parse address book.\n"),
@@ -32,10 +31,7 @@ run([Argv0, Filename]) ->
 
     % Write the new address book back to disk.
 
-    % NOTE: specifying -1 as the field code has a special meaning: it tells
-    % generator not to generate the header (code/tag/len) -- just generate the
-    % contents
-    OutBytes = addressbook_piqi:gen_address_book('undefined', NewAddressBook),
+    OutBytes = addressbook_piqi:gen_address_book(NewAddressBook),
     ok = file:write_file(Filename, OutBytes);
 
 run(_) ->

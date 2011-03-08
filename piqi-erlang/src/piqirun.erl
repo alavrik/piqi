@@ -55,13 +55,14 @@
 %
 % Initialize Piqirun input buffer from binary()
 %
+% NOTE: this function is no longer necessary, it remains here for backwards
+% compatibility with previous Piqi versions.
 -spec init_from_binary/1 :: (Bytes :: binary()) ->
     % NOTE: in fact, the return type should be piqirun_buffer(). Using specific
     % buffer's variant here to avoid Dialyzer warning.
-    {'top_block', binary()}.
+    TopBlock :: binary().
 
-init_from_binary(Bytes) when is_binary(Bytes) ->
-    {'top_block', Bytes}.
+init_from_binary(Bytes) when is_binary(Bytes) -> Bytes.
 
 
 %
@@ -153,15 +154,13 @@ gen_block(Data) ->
 
 
 -spec parse_block/1 :: (Bytes :: binary()) ->
-    {{'top_block', binary()}, Rest :: binary()}.
+    {TopBlock :: binary(), Rest :: binary()}.
 
 % parse length-delimited block, rases 'not_enough_data' if there's less data in
 % the actual block than the "length" bytes.
 parse_block(Bytes) ->
     {Length, Rest_1} = decode_varint(Bytes),
-    {Data, Rest} = my_split_binary(Rest_1, Length),
-    Buf = init_from_binary(Data),
-    {Buf, Rest}.
+    my_split_binary(Rest_1, Length).
 
 
 -spec gen_record/2 :: (
@@ -391,9 +390,11 @@ parse_field(Bytes) ->
                 {Value, R2} = my_split_binary(R1, Length),
                 {{'block', Value}, R2};
             ?TYPE_64BIT ->
-                my_split_binary(Content, 8);
+                {Value, R1} = my_split_binary(Content, 8),
+                {{'fixed64', Value}, R1};
             ?TYPE_32BIT ->
-                my_split_binary(Content, 4)
+                {Value, R1} = my_split_binary(Content, 4),
+                {{'fixed32', Value}, R1}
         end,
     {{FieldCode, FieldValue}, Rest}.
 
@@ -435,8 +436,8 @@ parse_field_part(Bytes) ->
 
 parse_record({'block', Bytes}) ->
     parse_record_buf(Bytes);
-parse_record({'top_block', Bytes}) ->
-    parse_record_buf(Bytes).
+parse_record(TopBlock) when is_binary(TopBlock) ->
+    parse_record_buf(TopBlock).
 
 
 parse_record_buf(Bytes) ->
@@ -691,7 +692,8 @@ parse_toplevel_header(Bytes) ->
 
 
 -define(top_block_parser(Name),
-    Name({'top_block', X}) -> Name(parse_toplevel_header(X))).
+    Name(TopBlock) when is_binary(TopBlock) ->
+        Name(parse_toplevel_header(TopBlock))).
 
 
 non_neg_integer_of_varint(X) when is_integer(X) -> X; ?top_block_parser(
@@ -718,24 +720,24 @@ boolean_of_varint).
 parse_bool(X) -> boolean_of_varint(X).
 
 
-non_neg_integer_of_fixed32(<<X:32/little-unsigned-integer>>) -> X; ?top_block_parser(
+non_neg_integer_of_fixed32({'fixed32', <<X:32/little-unsigned-integer>>}) -> X; ?top_block_parser(
 non_neg_integer_of_fixed32).
 
-integer_of_signed_fixed32(<<X:32/little-signed-integer>>) -> X; ?top_block_parser(
+integer_of_signed_fixed32({'fixed32', <<X:32/little-signed-integer>>}) -> X; ?top_block_parser(
 integer_of_signed_fixed32).
 
 
-non_neg_integer_of_fixed64(<<X:64/little-unsigned-integer>>) -> X; ?top_block_parser(
+non_neg_integer_of_fixed64({'fixed64', <<X:64/little-unsigned-integer>>}) -> X; ?top_block_parser(
 non_neg_integer_of_fixed64).
 
-integer_of_signed_fixed64(<<X:64/little-signed-integer>>) -> X; ?top_block_parser(
+integer_of_signed_fixed64({'fixed64', <<X:64/little-signed-integer>>}) -> X; ?top_block_parser(
 integer_of_signed_fixed64).
 
 
-float_of_fixed64(<<X:64/little-float>>) -> X + 0.0; ?top_block_parser(
+float_of_fixed64({'fixed64', <<X:64/little-float>>}) -> X + 0.0; ?top_block_parser(
 float_of_fixed64).
 
-float_of_fixed32(<<X:32/little-float>>) -> X + 0.0; ?top_block_parser(
+float_of_fixed32({'fixed32', <<X:32/little-float>>}) -> X + 0.0; ?top_block_parser(
 float_of_fixed32).
 
 

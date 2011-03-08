@@ -100,12 +100,11 @@ decode_input(RpcMod, Decoder, TypeName, InputFormat, InputData) ->
             {error, Error} ->
                 throw_rpc_error({'invalid_input', Error})
         end,
-    Buf = piqirun:init_from_binary(BinInput),
-    Decoder(Buf).
+    Decoder(BinInput).
 
 
 encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output) ->
-    IolistOutput = Encoder('undefined', Output),
+    IolistOutput = Encoder(Output),
     BinOutput = iolist_to_binary(IolistOutput),
     case OutputFormat of
         'pb' -> {ok, BinOutput}; % already in needed format

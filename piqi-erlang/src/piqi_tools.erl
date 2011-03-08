@@ -218,7 +218,7 @@ receive_rpc_packet(Port, PrevData) ->
 
 send_rpc_request(Port, Name, ArgsData) ->
     Request = #piqi_rpc_request{ name = Name, data = ArgsData },
-    Data = piqi_rpc_piqi:gen_request('undefined', Request),
+    Data = piqi_rpc_piqi:gen_request(Request),
     send_rpc_packet(Port, Data).
 
 
@@ -329,7 +329,7 @@ encode_add_piqi_input(BinPiqiList) ->
         format = 'pb',
         data = BinPiqiList
     },
-    BinInput = piqi_tools_piqi:gen_add_piqi_input('undefined', Input),
+    BinInput = piqi_tools_piqi:gen_add_piqi_input(Input),
     iolist_to_binary(BinInput).
 
 
@@ -337,8 +337,7 @@ decode_add_piqi_output(Output) ->
     case Output of
         ok -> ok;
         {error, BinError} ->
-            Buf = piqirun:init_from_binary(BinError),
-            Error = piqi_tools_piqi:parse_add_piqi_error(Buf),
+            Error = piqi_tools_piqi:parse_add_piqi_error(BinError),
             % NOTE: parsed strings are represented as binaries
             {error, binary_to_list(Error)};
         X ->
@@ -361,16 +360,14 @@ convert(PiqiMod, TypeName, InputFormat, OutputFormat, Data) ->
         output_format = OutputFormat,
         data = Data
     },
-    BinInput = piqi_tools_piqi:gen_convert_input('undefined', Input),
+    BinInput = piqi_tools_piqi:gen_convert_input(Input),
     case rpc(PiqiMod, <<"convert">>, BinInput) of
         {ok, BinOutput} ->
-            Buf = piqirun:init_from_binary(BinOutput),
-            Output = piqi_tools_piqi:parse_convert_output(Buf),
+            Output = piqi_tools_piqi:parse_convert_output(BinOutput),
             Res = Output#piqi_tools_convert_output.data,
             {ok, Res};
         {error, BinError} ->
-            Buf = piqirun:init_from_binary(BinError),
-            Error = piqi_tools_piqi:parse_convert_error(Buf),
+            Error = piqi_tools_piqi:parse_convert_error(BinError),
             % NOTE: parsed strings are represented as binaries
             {error, binary_to_list(Error)};
         X ->

@@ -3,11 +3,10 @@
 
 
 run() ->
-    {ok, InBytes} = file:read_file("piqi.piqi.pb"),
-    Buf = piqirun:init_from_binary(InBytes),
-    Piqi = piqi_piqi:parse_piqi(Buf),
+    {ok, Bytes} = file:read_file("piqi.piqi.pb"),
+    Piqi = piqi_piqi:parse_piqi(Bytes),
 
-    OutBytes = piqi_piqi:gen_piqi('undefined', Piqi),
-    ok = file:write_file("piqi.piqi.pb.pb", OutBytes),
+    IOList = piqi_piqi:gen_piqi(Piqi),
+    ok = file:write_file("piqi.piqi.pb.pb", IOList),
     ok.
 
