@@ -157,10 +157,10 @@ gen_init(ErlMod) ->
     ].
 
 
-gen_get_piqi(ErlMod) ->
+gen_get_piqi(_ErlMod) ->
     [
         "get_piqi(OutputFormat) ->\n",
-        "    piqi_rpc_runtime:get_piqi(", ErlMod, ":piqi(), OutputFormat).\n"
+        "    piqi_rpc_runtime:get_piqi(piqi(), OutputFormat).\n"
     ].
 
 
@@ -199,7 +199,7 @@ gen_func_clause(F, Mod, ErlMod) ->
                 ];
             _ ->
                 [
-"            Input = piqi_rpc_runtime:decode_input(fun ", ErlMod, ":parse_", ErlName, "_input/1, <<\"", ScopedName, "-input\">>, _InputFormat, InputData),\n"
+"            Input = piqi_rpc_runtime:decode_input(?MODULE, fun ", ErlMod, ":parse_", ErlName, "_input/1, <<\"", ScopedName, "-input\">>, _InputFormat, InputData),\n"
 "            case piqi_rpc_runtime:call(Mod, ", ErlName, ", Input) of\n"
                 ]
         end,
@@ -211,7 +211,7 @@ gen_func_clause(F, Mod, ErlMod) ->
             _ ->
                 [
 "                {ok, Output} ->\n"
-"                    piqi_rpc_runtime:encode_output(fun ", ErlMod, ":gen_", ErlName, "_output/2, <<\"", ScopedName, "-output\">>, _OutputFormat, Output)"
+"                    piqi_rpc_runtime:encode_output(?MODULE, fun ", ErlMod, ":gen_", ErlName, "_output/2, <<\"", ScopedName, "-output\">>, _OutputFormat, Output)"
                 ]
         end,
 
@@ -222,7 +222,7 @@ gen_func_clause(F, Mod, ErlMod) ->
             _ ->
                 [[
 "                {error, Error} ->\n"
-"                    piqi_rpc_runtime:encode_error(fun ", ErlMod, ":gen_", ErlName, "_error/2, <<\"", ScopedName, "-error\">>, _OutputFormat, Error)"
+"                    piqi_rpc_runtime:encode_error(?MODULE, fun ", ErlMod, ":gen_", ErlName, "_error/2, <<\"", ScopedName, "-error\">>, _OutputFormat, Error)"
                 ]]
         end,
 

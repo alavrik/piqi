@@ -62,9 +62,9 @@ get_piqi(BinPiqiList, OutputFormat) -> % piq (i.e. text/plain), json, xml
     string:join(L, "\n\n").
 
 
-convert(TypeName, InputFormat, OutputFormat, Data) ->
+convert(RpcMod, TypeName, InputFormat, OutputFormat, Data) ->
     try
-        piqi_tools:convert(TypeName, InputFormat, OutputFormat, Data)
+        piqi_tools:convert(RpcMod, TypeName, InputFormat, OutputFormat, Data)
     catch
         % Piqi tools has exited, but hasn't been restarted by Piqi-RPC monitor
         % yet
@@ -75,7 +75,7 @@ convert(TypeName, InputFormat, OutputFormat, Data) ->
             case catch piqi_rpc_monitor:get_status() of
                 'active' ->
                     % retry the request
-                    piqi_tools:convert(TypeName, InputFormat, OutputFormat, Data);
+                    piqi_tools:convert(RpcMod, TypeName, InputFormat, OutputFormat, Data);
                 _ ->
                     %TODO: log the error
                     throw_rpc_error({'service_unavailable', "service temporarily unavailable"})
@@ -84,18 +84,18 @@ convert(TypeName, InputFormat, OutputFormat, Data) ->
 
 
 convert_piqi(BinPiqi, OutputFormat) ->
-    {ok, Bin} = convert("piqi", 'pb', OutputFormat, BinPiqi),
+    {ok, Bin} = convert(_RpcMod = 'undefined', <<"piqi">>, 'pb', OutputFormat, BinPiqi),
     binary_to_list(Bin).
 
 
-decode_input(_Decoder, _TypeName, _InputFormat, 'undefined') ->
+decode_input(_RpcMod, _Decoder, _TypeName, _InputFormat, 'undefined') ->
     throw_rpc_error('missing_input');
 
-decode_input(Decoder, TypeName, InputFormat, InputData) ->
+decode_input(RpcMod, Decoder, TypeName, InputFormat, InputData) ->
     BinInput =
         % NOTE: converting anyway even in the input is encoded using 'pb'
         % encoding to check the validity
-        case convert(TypeName, InputFormat, 'pb', InputData) of
+        case convert(RpcMod, TypeName, InputFormat, 'pb', InputData) of
             {ok, X} -> X;
             {error, Error} ->
                 throw_rpc_error({'invalid_input', Error})
@@ -104,17 +104,17 @@ decode_input(Decoder, TypeName, InputFormat, InputData) ->
     Decoder(Buf).
 
 
-encode_common(Encoder, TypeName, OutputFormat, Output) ->
+encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output) ->
     IolistOutput = Encoder('undefined', Output),
     BinOutput = iolist_to_binary(IolistOutput),
     case OutputFormat of
         'pb' -> {ok, BinOutput}; % already in needed format
-        _ -> convert(TypeName, 'pb', OutputFormat, BinOutput)
+        _ -> convert(RpcMod, TypeName, 'pb', OutputFormat, BinOutput)
     end.
 
 
-encode_output(Encoder, TypeName, OutputFormat, Output) ->
-    case encode_common(Encoder, TypeName, OutputFormat, Output) of
+encode_output(RpcMod, Encoder, TypeName, OutputFormat, Output) ->
+    case encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output) of
         {ok, OutputData} -> {ok, OutputData};
         {error, Error} ->
             throw_rpc_error(
@@ -122,8 +122,8 @@ encode_output(Encoder, TypeName, OutputFormat, Output) ->
     end.
 
 
-encode_error(Encoder, TypeName, OutputFormat, Output) ->
-    case encode_common(Encoder, TypeName, OutputFormat, Output) of
+encode_error(RpcMod, Encoder, TypeName, OutputFormat, Output) ->
+    case encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output) of
         {ok, ErrorData} -> {error, ErrorData};
         {error, Error} ->
             throw_rpc_error(
