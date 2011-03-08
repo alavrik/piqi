@@ -1,8 +1,9 @@
 
 ERL_SOURCES = \
-	piqirun.erl \
-	\
 	$(PIQI_ERL_FILES) \
+	piqirun.erl \
+	piqirun_ext.erl \
+	\
 	piqi_tools.erl \
 	\
 	piqirun_tests.erl

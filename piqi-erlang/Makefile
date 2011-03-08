@@ -1,4 +1,4 @@
 include $(PIQI_ROOT)/make/Makefile.dirs
 
-DIRS = src
+DIRS = src piqic-erlang-ext
 
