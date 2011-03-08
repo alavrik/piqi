@@ -4,7 +4,7 @@ ERL_SOURCES = \
 	add_person.erl \
 
 
-ERL_APP_PATH = $(PIQI_ROOT)/piqirun-erlang
+ERL_APP_PATH = $(PIQI_ROOT)/piqi-erlang
 ERLC_FLAGS =
 EBIN_DIR = .
 

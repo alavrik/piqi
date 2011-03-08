@@ -26,7 +26,7 @@
 
 % @doc start Piqi-RPC
 start() ->
-    ensure_started(piqirun),
+    ensure_started(piqi),
     ensure_started(crypto),
     ensure_started(mochiweb),
     ensure_started(webmachine),
@@ -51,7 +51,7 @@ stop_all() ->
     application:stop(webmachine),
     application:stop(mochiweb),
     application:stop(crypto),
-    application:stop(piqirun),
+    application:stop(piqi),
     Res.
 
 

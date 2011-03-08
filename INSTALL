@@ -117,8 +117,8 @@ serialization system for Erlang.
 
         make erlang
 
-        Note that there is no support for installing the library, but binary
-        build as well as sources are located in "piqirun-erlang" directory which
+        Currently, there is no support for installing the library, but binary
+        build as well as sources are located in "piqi-erlang" directory which
         has an OTP-compliant structure.
 
 

@@ -242,7 +242,7 @@ let gen_erl modname piqi =
     ios "-module("; ios modname; ios ")."; eol;
     ios "-compile(export_all)."; eol;
     eol;
-    ios "-include_lib(\"piqirun/include/piqirun.hrl\")."; eol;
+    ios "-include_lib(\"piqi/include/piqirun.hrl\")."; eol;
     ios "-include("; ioq (modname ^ ".hrl"); ios ")."; eol;
     eol;
     code_gen; eol;

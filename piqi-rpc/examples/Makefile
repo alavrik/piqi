@@ -15,8 +15,8 @@ TEST_ERL_FILES = $(MOD)_piqi.erl \
 
 
 
-ERL_APP_PATH = $(PIQI_ROOT)/piqirun-erlang
-ERLC_FLAGS = #-pa $(PIQI_ROOT)/piqirun-erlang #-I $(PIQI_ROOT)/piqirun-erlang
+ERL_APP_PATH = $(PIQI_ROOT)/piqi-erlang
+ERLC_FLAGS = #-pa $(PIQI_ROOT)/piqi-erlang #-I $(PIQI_ROOT)/piqi-erlang
 
 EBIN_DIR = .
 

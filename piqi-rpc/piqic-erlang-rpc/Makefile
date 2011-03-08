@@ -4,10 +4,10 @@ ERL_SOURCES = \
 	piqic_erlang_rpc.erl
 
 
-ERLC_FLAGS = #-pa $(PIQI_ROOT)/piqirun-erlang #-I $(PIQI_ROOT)/piqirun-erlang
-ERL_APP_PATH = $(PIQI_ROOT)/piqirun-erlang
+ERLC_FLAGS = #-pa $(PIQI_ROOT)/piqi-erlang #-I $(PIQI_ROOT)/piqi-erlang
+ERL_APP_PATH = $(PIQI_ROOT)/piqi-erlang
 #alternative method:
-#ERL_LIBS = $(PIQI_ROOT)/piqirun-erlang
+#ERL_LIBS = $(PIQI_ROOT)/piqi-erlang
 #export ERL_LIBS
 
 EBIN_DIR = .
@@ -41,7 +41,7 @@ $(PIQI_ERL_FILES) $(PIQI_HRL_FILES): $(PIQI_FILES)
 
 
 PIQIC_PLUGIN_BEAMS = \
-    $(PIQI_ROOT)/piqirun-erlang/ebin/piqirun.beam \
+    $(PIQI_ROOT)/piqi-erlang/ebin/piqirun.beam \
     piqi_piqi.beam \
     piqic_erlang_rpc.beam
 

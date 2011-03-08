@@ -24,11 +24,11 @@ ocaml-uninstall:
 
 
 erlang:
-	$(MAKE) -C piqirun-erlang
+	$(MAKE) -C piqi-erlang
 
 
 erlang-clean:
-	$(MAKE) -C piqirun-erlang clean
+	$(MAKE) -C piqi-erlang clean
 
 
 clean:: erlang-clean

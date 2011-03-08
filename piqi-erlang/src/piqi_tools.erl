@@ -42,7 +42,7 @@
 %-compile(export_all).
 
 
--include_lib("piqirun/include/piqirun.hrl").
+-include("../include/piqirun.hrl").
 
 -include("piqi_rpc_piqi.hrl").
 -include("piqi_tools_piqi.hrl").

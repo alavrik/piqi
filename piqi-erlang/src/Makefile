@@ -1,23 +1,18 @@
 
 ERL_SOURCES = \
-	piqi_rpc_runtime.erl \
+	piqirun.erl \
 	\
-	piqi_rpc.erl \
-	piqi_rpc_app.erl \
-	piqi_rpc_sup.erl \
+	$(PIQI_ERL_FILES) \
+	piqi_tools.erl \
 	\
-	piqi_rpc_monitor.erl \
-	\
-	piqi_rpc_http.erl \
-	piqi_rpc_webmachine_resource.erl \
+	piqirun_tests.erl
 
 
-#ERL_TESTS =
+ERL_TESTS = piqirun
 
 
 ERL_APP_PATH = $(PIQI_ROOT)/piqi-erlang
-ERLC_FLAGS = #-pa $(PIQI_ROOT)/piqi-erlang #-I $(PIQI_ROOT)/piqi-erlang
-
+ERLC_FLAGS =
 #EBIN_DIR = .
 
 
@@ -25,20 +20,20 @@ PIQIC = piqic
 PIQIC_FLAGS =
 
 
-PIQI_FILES = piqi-rpc.piqi
+PIQI_FILES = piqi-rpc.piqi piqi-tools.piqi
 
-PIQI_ERL_FILES = piqi_rpc_piqi.erl
-PIQI_HRL_FILES = piqi_rpc_piqi.hrl
+PIQI_ERL_FILES = piqi_rpc_piqi.erl piqi_tools_piqi.erl
+PIQI_HRL_FILES = piqi_rpc_piqi.hrl piqi_tools_piqi.hrl
 
 
-PRE_TARGET = $(PIQI_FILES) $(PIQI_HRL_FILES)
+PRE_TARGET = $(PIQI_FILES)
 
 
 VSN = $(shell cat $(PIQI_ROOT)/VERSION)
-ERL_APP_FILE = piqi_rpc.app
+ERL_APP_FILE = piqi.app
 
 
-all: ebin
+all:  ebin
 
 
 test: beams
@@ -49,7 +44,6 @@ test: beams
 
 $(ERL_APP_FILE): $(ERL_APP_FILE).templ
 	sed -e 's;%VSN%;$(VSN);' $< > $@
-
 
 
 $(PIQI_FILES): %: $(PIQI_ROOT)/piqi-tools/%

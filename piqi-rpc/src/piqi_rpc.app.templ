@@ -7,13 +7,12 @@
         piqi_rpc_sup,
         piqi_rpc_runtime,
         piqi_rpc_monitor,
-        piqi_http_rpc,
-        piqi_tools
+        piqi_http_rpc
   ]},
-  {registered, []},
+  {registered, [piqi_rpc_monitor]},
   {applications, [
         kernel,stdlib,
-        piqirun,
+        piqi,
         crypto,
         mochiweb,
         webmachine
