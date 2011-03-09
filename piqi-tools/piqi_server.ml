@@ -330,14 +330,18 @@ let usage = "Usage: piqi server [options]\nOptions:"
 
 let speclist = Main.common_speclist @
   [
-    (* TODO: flag for disallowing implicit loading of Piqi modules from files *)
-
     (* XXX: disable warnings by default in order to prevent printing them on
      * stderr? *)
   ]
 
 let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:0;
+
+  (* reset Piqi module lookup paths in order to prevent them from getting loaded
+   * from the filesystem; now, they can only be loaded using "add_piqi" RPC call
+   *)
+  Config.reset_paths ();
+
   start_server ()
 
  

@@ -364,7 +364,15 @@ let speclist = Main.common_speclist @
 let run () =
   Main.parse_args ()
     ~speclist ~usage ~min_arg_count:1 ~max_arg_count:1 ~custom_anon_fun;
+
   Piqi_getopt.init ();
+
+  (* reset Piqi module lookup paths in order to prevent them from getting loaded
+   * from the filesystem; now, they can only be loaded by getting them from
+   * RPC-server using "get_piqi" RPC protocol request
+   *)
+  Config.reset_paths ();
+
   run_call !url
 
  

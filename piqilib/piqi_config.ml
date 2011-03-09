@@ -33,6 +33,10 @@ let add_path x =
   paths := !paths @ [x]
 
 
+let reset_paths () =
+  paths := []
+
+
 (*
  * command-line options 
  *)
