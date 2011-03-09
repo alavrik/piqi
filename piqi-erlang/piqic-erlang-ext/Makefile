@@ -30,10 +30,6 @@ PIQIC_PLUGIN = piqic-erlang-ext
 all: ebin $(PIQIC_PLUGIN)
 
 
-$(PIQI_FILES): %: $(PIQI_ROOT)/piqi-tools/%
-	ln -s $< $@
-
-
 $(PIQI_ERL_FILES) $(PIQI_HRL_FILES): $(PIQI_FILES)
 	for i in $^; do \
 		$(PIQIC) erlang $(PIQIC_FLAGS) $$i; \
