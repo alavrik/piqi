@@ -120,6 +120,7 @@ and DEFRECORD(Field,
     mode : Piqtype.field_mode;
     default : any option;
 
+    mutable alt_name : string option;
     mutable ocaml_name : string option;
     mutable code : int32 option; (* wire code *)
   >>)
@@ -137,6 +138,7 @@ and DEFRECORD(Option,
     name : string option;
     mutable typeref : Piqtype.typeref option;
 
+    mutable alt_name : string option;
     mutable ocaml_name : string option;
     mutable code : int32 option; (* wire code *)
   >>)

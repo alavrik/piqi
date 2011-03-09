@@ -91,7 +91,7 @@ let speclist = Main.common_speclist @
 
 let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:0;
-
+  Piqi_getopt.init ();
   getopt_command ()
 
  

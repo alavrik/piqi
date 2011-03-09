@@ -279,14 +279,14 @@ and parse_typed_obj ?piqtype x =
     | _ -> error x "typed object expected"
 
 
-and try_parse_obj field_name t x =
+and try_parse_obj f t x =
   (* unwind alias to obtain its real type *)
   match unalias t with
     | `record _ | `list _ ->
         (* NOTE: all records and lists should be labeled, so try-parsing them
          * always fails *)
         None
-    | `any when field_name <> None ->
+    | `any when f.T.Field#name <> None ->
         (* NOTE, XXX: try-parsing of labeled `any always failes *)
         None
     (* NOTE, XXX: try-parsing of unlabeled `any always succeeds *)
@@ -356,7 +356,7 @@ and do_parse_flag t l =
   let open T.Field in
   let name = name_of_field t in
   debug "do_parse_flag: %s\n" name;
-  let res, rem = find_flags name l in
+  let res, rem = find_flags name t.alt_name l in
   match res with
     | [] -> [], rem
     | x::tail ->
@@ -370,12 +370,11 @@ and do_parse_field loc t l =
   let open T.Field in
   let name = name_of_field t in
   debug "do_parse_field: %s\n" name;
-  let field_name = t.name in
   let field_type = piqtype (some_of t.typeref) in
   let values, rem =
     match t.mode with
       | `required -> 
-          let x, rem = parse_required_field loc name field_name field_type l in
+          let x, rem = parse_required_field t loc name field_type l in
           [x], rem
       | `optional ->
           let default =
@@ -383,11 +382,11 @@ and do_parse_field loc t l =
             then t.default
             else None
           in
-          let x, rem = parse_optional_field name field_name field_type default l in
+          let x, rem = parse_optional_field t name field_type default l in
           let res = (match x with Some x -> [x] | None -> []) in
           res, rem
       | `repeated ->
-          parse_repeated_field name field_name field_type l
+          parse_repeated_field t name field_type l
   in
   let fields =
     List.map (fun x ->
@@ -397,14 +396,14 @@ and do_parse_field loc t l =
   fields, rem
   
 
-and parse_required_field loc name field_name field_type l =
-  let res, rem = find_fields name l in
+and parse_required_field f loc name field_type l =
+  let res, rem = find_fields name f.T.Field#alt_name l in
   match res with
     | [] ->
         (* try finding the first field which is successfully parsed by
          * 'parse_obj' for a given field type *)
         begin
-          let res, rem = find_first_parsed field_name field_type l in
+          let res, rem = find_first_parsed f field_type l in
           match res with
             | Some x -> x, rem
             | None -> error loc ("missing field " ^ quote name)
@@ -414,46 +413,62 @@ and parse_required_field loc name field_name field_type l =
         parse_obj field_type x, rem
 
 
+and equals_name name alt_name x =
+  if x = name
+  then true
+  else
+    match alt_name with
+      | Some name -> x = name
+      | None -> false
+
+
+(* TODO: find_fields and find_flags are mostly identical -- combine them
+ * together and avoid code duplication *)
+
 (* find field by name, return found fields and remaining fields *)
-and find_fields (name:string) (l:T.ast list) :(T.ast list * T.ast list) =
+and find_fields (name:string) (alt_name:string option) (l:T.ast list) :(T.ast list * T.ast list) =
+  let equals_name = equals_name name alt_name in
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
-    | (`named n)::t when n.T.Named#name = name -> aux (n.T.Named#value::accu) rem t
+    | (`named n)::t when equals_name n.T.Named#name -> aux (n.T.Named#value::accu) rem t
+    | (`name n)::t when equals_name n ->
+        error n "value must be specified for a field"
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
 
 
 (* find flags by name, return found flags and remaining fields *)
-and find_flags (name:string) (l:T.ast list) :(string list * T.ast list) =
+and find_flags (name:string) (alt_name:string option) (l:T.ast list) :(string list * T.ast list) =
+  let equals_name = equals_name name alt_name in
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
-    | (`name n)::t when n = name -> aux (n::accu) rem t
-    | (`named n)::t when n.T.Named#name = name ->
+    | (`name n)::t when equals_name n -> aux (n::accu) rem t
+    | (`named n)::t when equals_name n.T.Named#name ->
         error n "value can not be specified for a flag"
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
 
 
-and find_first_parsed field_name field_type l =
+and find_first_parsed f field_type l =
   let rec aux rem = function
     | [] -> None, l
     | h::t ->
-        match try_parse_obj field_name field_type h with
+        match try_parse_obj f field_type h with
           | None -> aux (h::rem) t
           | x -> x, (List.rev rem) @ t
   in aux [] l
 
 
-and parse_optional_field name field_name field_type default l =
-  let res, rem = find_fields name l in
+and parse_optional_field f name field_type default l =
+  let res, rem = find_fields name f.T.Field#alt_name l in
   match res with
     | [] ->
         (* try finding the first field which is successfully parsed by
          * 'parse_obj for a given field_type' *)
         begin
-          let res, rem = find_first_parsed field_name field_type l in
+          let res, rem = find_first_parsed f field_type l in
           match res, default with
             | None, Some x ->
                 (* XXX: parsing the same default from ast each time is
@@ -471,8 +486,8 @@ and parse_optional_field name field_name field_type default l =
 
 (* parse repeated variant field allowing variant names if field name is
  * unspecified *) 
-and parse_repeated_field name field_name field_type l =
-  let res, rem = find_fields name l in
+and parse_repeated_field f name field_type l =
+  let res, rem = find_fields name f.T.Field#alt_name l in
   match res with
     | [] -> 
         (* XXX: ignore errors occuring when unknown element is present in the
@@ -481,7 +496,7 @@ and parse_repeated_field name field_name field_type l =
         let accu, rem =
           (List.fold_left
             (fun (accu, rem) x ->
-              match try_parse_obj field_name field_type x with
+              match try_parse_obj f field_type x with
                 | None -> accu, x::rem
                 | Some x -> x::accu, rem) ([], []) l)
         in List.rev accu, List.rev rem
@@ -569,10 +584,11 @@ and parse_covariant ~try_mode (o, v) x =
 and parse_name_option options name =
   let f o =
     let open T.Option in
+    let equals_name x = equals_name x o.alt_name name in
     match o.name, o.typeref with
-      | Some n, Some _ when n = name ->
+      | Some n, Some _ when equals_name n ->
           error name "option value expected" 
-      | Some n, None -> n = name 
+      | Some n, None -> equals_name n
       | _, _ -> false
   in
   let option = List.find f options in
@@ -582,10 +598,11 @@ and parse_name_option options name =
 and parse_named_option options name x =
   let f o =
     let open T.Option in
+    let equals_name x = equals_name x o.alt_name name in
     match o.name, o.typeref with
-      | Some n, None when n = name ->
+      | Some n, None when equals_name n ->
           error x "unexpected option value"
-      | Some n, Some _ -> n = name 
+      | Some n, Some _ -> equals_name n
       | None, Some t when piqi_typerefname t = name -> true
       | _, _ -> false
   in parse_typed_option options f x
@@ -637,7 +654,7 @@ and parse_raw_word_option ~try_mode options x s =
     let f o =
       let open T.Option in
       match o.name, o.typeref with
-        | Some n, None -> n = s
+        | Some n, None -> equals_name n o.alt_name s
         | _, _ -> false
     in
     let option = List.find f options in

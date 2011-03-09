@@ -98,8 +98,85 @@ module C = Piqi_common
 open C
 
 
-(* global constants *)
-let getopt_filename = "argv" (* fake filename for error reporting *)
+(*
+ * Set "alt-name" fields for Piqi options and fields based on "getopt-name"
+ * fields provided by user in the Piqi spec.
+ *
+ * "alt-name" field is specific to the library implementation while
+ * "getopt-name" field is a part of public Piqi specification.
+ *)
+
+let check_getopt_letter s =
+  let error err =
+    error s ("invalid getopt-letter " ^ quote s ^ ": " ^ err)
+  in
+  (* NOTE: getopt-letter is a Piq word and, therefore, it can't be empty -- so
+   * there's no need to check for that *)
+
+  if String.length s > 1
+  then error "must contain exactly one letter";
+
+  match s.[0] with
+    | 'a'..'z' | 'A'..'Z' -> ()
+    | c -> error "must be lower- or upper-case alphabet letter"
+
+
+let getopt_name_field x =
+  let open Field in
+  let letter = x.getopt_letter in
+  match letter with
+    | None -> ()
+    | Some n ->
+        check_getopt_letter n;
+        x.alt_name <- letter
+
+
+let getopt_name_option x =
+  let open Option in
+  let letter = x.getopt_letter in
+  match letter with
+    | None -> ()
+    | Some n ->
+        check_getopt_letter n;
+        x.alt_name <- letter
+
+
+(* name fields and options *)
+let getopt_name_record x =
+   List.iter getopt_name_field x.R#field
+
+let getopt_name_variant x =
+   List.iter getopt_name_option x.V#option
+
+let getopt_name_piqdef = function
+  | `record x -> getopt_name_record x
+  | `variant x | `enum x -> getopt_name_variant x
+  | _ -> ()
+
+
+let getopt_name_defs defs =
+    (* name fields and options *)
+    List.iter getopt_name_piqdef defs
+
+
+let getopt_name_piqi _idtable (piqi:T.piqi) =
+  let open P in
+  getopt_name_defs piqi.resolved_piqdef
+
+
+(* NOTE: this function is called only in case if a getopt-related operation is
+ * performed (e.g. "piqi getopt" or "piqi call". We don't need this startup
+ * overhead otherwise *)
+let init () =
+  trace "init getopt\n";
+  Piqi.register_processing_hook getopt_name_piqi
+
+
+(**)
+
+
+(* fake filename for error reporting *)
+let getopt_filename = "argv"
 
 
 let error s =

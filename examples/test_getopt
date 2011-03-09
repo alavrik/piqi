@@ -97,3 +97,53 @@ piqi getopt --piqtype string -- @string.piq
 # parsing file's contents as a binary
 piqi getopt --piqtype binary -- @string.piq
 
+
+#
+# parsing long and short options
+#
+
+# record fields
+piqi getopt --piqtype getopt/r -- --long-option 1
+piqi getopt --piqtype getopt/r -- -o 1
+
+
+piqi getopt --piqtype getopt/r -- --long-flag
+piqi getopt --piqtype getopt/r -- -f
+
+
+piqi getopt --piqtype getopt/r -- --long-flag -o 1
+piqi getopt --piqtype getopt/r -- -f --long-option 1
+
+
+# variant options
+piqi getopt --piqtype getopt/v -- --long-option 1
+piqi getopt --piqtype getopt/v -- -o 1
+
+
+piqi getopt --piqtype getopt/v -- --long-flag
+piqi getopt --piqtype getopt/v -- -f
+
+
+# enum flags
+piqi getopt --piqtype getopt/e -- --long-flag
+piqi getopt --piqtype getopt/e -- -f
+
+piqi getopt --piqtype getopt/e -- --long-g
+piqi getopt --piqtype getopt/e -- -g
+
+
+# list of variants
+# each option mentioned only once
+piqi getopt --piqtype getopt/l -- --long-option 1
+piqi getopt --piqtype getopt/l -- -o 1
+
+piqi getopt --piqtype getopt/l -- --long-flag
+piqi getopt --piqtype getopt/l -- -f
+
+# both options are present in the list
+piqi getopt --piqtype getopt/l -- -f --long-option 1
+piqi getopt --piqtype getopt/l -- -o 1 --long-flag
+
+# each option mentioned two times using different notations:
+piqi getopt --piqtype getopt/l -- -f --long-option 1 -o 1 --long-flag
+

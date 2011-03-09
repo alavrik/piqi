@@ -117,3 +117,18 @@
     ]
 ]
 
+
+% Alternative name for field and option. It is used by Piq parse
+% (piqobj_of_piqi) if a field or an option can be referred using an alternative
+% name. An example of such alternative name can be .getopt-letter defined in
+% piqi.org/piqi-getopt.piqi
+.extend [
+    (.name field option)
+
+    .field [
+        .name alt-name
+        .type word
+        .optional
+    ]
+]
+

@@ -364,7 +364,7 @@ let speclist = Main.common_speclist @
 let run () =
   Main.parse_args ()
     ~speclist ~usage ~min_arg_count:1 ~max_arg_count:1 ~custom_anon_fun;
-
+  Piqi_getopt.init ();
   run_call !url
 
  
