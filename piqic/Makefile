@@ -36,7 +36,7 @@ PIQIC_FLAGS = -I $(PIQI_ROOT)
 PIQICC_FLAGS = $(PIQIC_FLAGS)
 
 
-all: debug #nc
+all: nc
 
 debug: dc top
 
