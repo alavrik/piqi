@@ -333,7 +333,12 @@ let strerr loc s =
 
 
 let string_of_exn exn =
+  Printexc.to_string exn
+  (* this is not supported in all runtime modes, and it is not compatible with
+   * OCaml 3.10 *)
+  (*
   Printexc.to_string exn ^ " ; backtrace: " ^ Printexc.get_backtrace ()
+  *)
 
 
 (* piq/piqi language error *)
