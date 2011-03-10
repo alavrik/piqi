@@ -432,7 +432,7 @@ and find_fields (name:string) (alt_name:string option) (l:T.ast list) :(T.ast li
     | [] -> List.rev accu, List.rev rem
     | (`named n)::t when equals_name n.T.Named#name -> aux (n.T.Named#value::accu) rem t
     | (`name n)::t when equals_name n ->
-        error n "value must be specified for a field"
+        error n ("value must be specified for field " ^ quote n)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
@@ -445,7 +445,7 @@ and find_flags (name:string) (alt_name:string option) (l:T.ast list) :(string li
     | [] -> List.rev accu, List.rev rem
     | (`name n)::t when equals_name n -> aux (n::accu) rem t
     | (`named n)::t when equals_name n.T.Named#name ->
-        error n "value can not be specified for a flag"
+        error n ("value can not be specified for flag " ^ quote n.T.Named#name)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
@@ -587,7 +587,7 @@ and parse_name_option options name =
     let equals_name x = equals_name x o.alt_name name in
     match o.name, o.typeref with
       | Some n, Some _ when equals_name n ->
-          error name "option value expected" 
+          error name ("value expected for option " ^ quote n)
       | Some n, None -> equals_name n
       | _, _ -> false
   in
@@ -601,7 +601,7 @@ and parse_named_option options name x =
     let equals_name x = equals_name x o.alt_name name in
     match o.name, o.typeref with
       | Some n, None when equals_name n ->
-          error x "unexpected option value"
+          error x ("value can not be specified for option " ^ n)
       | Some n, Some _ -> equals_name n
       | None, Some t when piqi_typerefname t = name -> true
       | _, _ -> false

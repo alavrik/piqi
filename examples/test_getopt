@@ -111,8 +111,13 @@ piqi getopt --piqtype getopt/r -- --long-flag
 piqi getopt --piqtype getopt/r -- -f
 
 
-piqi getopt --piqtype getopt/r -- --long-flag -o 1
-piqi getopt --piqtype getopt/r -- -f --long-option 1
+piqi getopt --piqtype getopt/r -- --long-flag -o 1 --long-g
+piqi getopt --piqtype getopt/r -- -f --long-option 1 -g
+
+# short options combined
+piqi getopt --piqtype getopt/r -- -fo 1 -g
+piqi getopt --piqtype getopt/r -- -gfo 1
+piqi getopt --piqtype getopt/r -- -fgo 1
 
 
 # variant options
@@ -146,4 +151,10 @@ piqi getopt --piqtype getopt/l -- -o 1 --long-flag
 
 # each option mentioned two times using different notations:
 piqi getopt --piqtype getopt/l -- -f --long-option 1 -o 1 --long-flag
+
+# short options combined
+piqi getopt --piqtype getopt/l -- -fo 1 -g
+piqi getopt --piqtype getopt/l -- -gfo 1
+piqi getopt --piqtype getopt/l -- -fgo 1
+piqi getopt --piqtype getopt/l -- -fgo 1 -fgo 1 -gf
 

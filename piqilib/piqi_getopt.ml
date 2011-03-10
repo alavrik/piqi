@@ -372,11 +372,17 @@ let getopt_piq () :T.ast list =
 
 
 let parse_args (piqtype: T.piqtype) (args: T.ast list) :Piqobj.obj =
+  let is_scalar_type = not (C.is_container_type piqtype) in
+  let is_piqany_type = (unalias piqtype = `any) in
   let ast =
     (* if there's more that one element or we're parsing value for a
      * container type, wrap elements into a list *)
     match args with
-      | [x] when not (C.is_container_type piqtype) -> x
+      | [x] when is_scalar_type -> x
+      | _ when is_scalar_type && (not is_piqany_type) ->
+          piqi_error
+            ("a scalar value expected for type " ^
+              quote (full_piqi_typename piqtype))
       | l ->
           let res = `list l in
           (* set the location *)
