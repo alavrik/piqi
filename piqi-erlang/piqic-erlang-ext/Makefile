@@ -42,8 +42,8 @@ PIQIC_PLUGIN_BEAMS = \
     piqic_erlang_ext.beam
 
 
-$(PIQIC_PLUGIN): make_escript $(PIQIC_PLUGIN_BEAMS)
-	./make_escript $@ $(PIQIC_PLUGIN_BEAMS)
+$(PIQIC_PLUGIN): $(PIQIC_PLUGIN_BEAMS)
+	$(PIQI_ROOT)/make/make_escript $@ $(PIQIC_PLUGIN_BEAMS)
 	chmod +x $@
 
 
