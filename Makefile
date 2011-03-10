@@ -7,6 +7,13 @@ DIRS = \
 	piqicc piqic piqi-tools \
 
 
+.PHONY: deps install ocaml-install ocaml-uninstall erlang erlang-clean
+
+
+deps:
+	$(MAKE) -C deps
+
+
 install:
 	-install -d $(PIQI_PREFIX)/bin
 	install piqi-tools/piqi $(PIQI_PREFIX)/bin

@@ -88,9 +88,7 @@ NOTE: these instruction are applicable only to Unix/Linux systems.
 
 4. Build third-party components
         
-        cd deps
-        make 
-        cd ..
+        make deps
 
 5. Build Piqi
 
