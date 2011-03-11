@@ -13,13 +13,13 @@
 %% limitations under the License.
 
 %%
-%% @doc OTP supervisor behavior for Piqi-RPC 
+%% @doc OTP supervisor behavior for Piqi
 %%
--module(piqi_rpc_sup).
+-module(piqi_sup).
 
 -behaviour(supervisor).
 
--export([start_link/0]).
+-export([start_link/0, restart_piqi_tools_child/0]).
 % OTP supervisor callbacks
 -export([init/1]).
 
@@ -31,24 +31,19 @@ start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
 
+restart_piqi_tools_child() ->
+    supervisor:restart_child(?SUPERVISOR, piqi_tools).
+
 %
 % Supervisor callback
 %
 
 init(_Args) ->
-    PiqiRpcMonitor =
-        {piqi_rpc_monitor,
-            {piqi_rpc_monitor, start_link, []},
+    PiqiTools =
+        {piqi_tools, % Piqi-Tools bindings for Erlang
+            {piqi_tools, start_link, []},
             permanent, 1000, worker,
-            [piqi_rpc_monitor]
+            [piqi_tools]
         },
-
-    PiqiRpcMochiweb =
-        {piqi_rpc_http, % Piqi-RPC http server
-            {piqi_rpc_http, start_link, []},
-            permanent, 5000, worker,
-            dynamic % XXX
-        },
-
-    {ok, {{one_for_one, 1, 60}, [PiqiRpcMonitor, PiqiRpcMochiweb]}}.
+    {ok, {{one_for_one, 10, 1}, [PiqiTools]}}.
 

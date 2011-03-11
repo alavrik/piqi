@@ -24,7 +24,7 @@
 -compile(export_all).
 
 
--include("piqi_rpc_piqi.hrl").
+-include_lib("piqi/include/piqi_rpc_piqi.hrl").
 
 
 %-define(DEBUG, 1).
@@ -63,24 +63,7 @@ get_piqi(BinPiqiList, OutputFormat) -> % piq (i.e. text/plain), json, xml
 
 
 convert(RpcMod, TypeName, InputFormat, OutputFormat, Data) ->
-    try
-        piqi_tools:convert(RpcMod, TypeName, InputFormat, OutputFormat, Data)
-    catch
-        % Piqi tools has exited, but hasn't been restarted by Piqi-RPC monitor
-        % yet
-        exit:{noproc, _} ->
-            % wait for the first restart attempt -- it should be really fast.
-            % NOTE: using "catch" to prevent potential "noproc" if
-            % piqi_rpc_monitor is temporarily down.
-            case catch piqi_rpc_monitor:get_status() of
-                'active' ->
-                    % retry the request
-                    piqi_tools:convert(RpcMod, TypeName, InputFormat, OutputFormat, Data);
-                _ ->
-                    %TODO: log the error
-                    throw_rpc_error({'service_unavailable', "service temporarily unavailable"})
-            end
-    end.
+    piqi_tools:convert(RpcMod, TypeName, InputFormat, OutputFormat, Data).
 
 
 convert_piqi(BinPiqi, OutputFormat) ->

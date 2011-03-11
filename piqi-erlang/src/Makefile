@@ -4,6 +4,10 @@ ERL_SOURCES = \
 	piqirun.erl \
 	piqirun_ext.erl \
 	\
+	piqi.erl \
+	piqi_app.erl \
+	piqi_sup.erl \
+	\
 	piqi_tools.erl \
 	\
 	piqirun_tests.erl
