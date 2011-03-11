@@ -10,6 +10,8 @@ ERL_SOURCES = \
 	\
 	piqi_tools.erl \
 	\
+	piqic_erlang_ext.erl \
+	\
 	piqirun_tests.erl
 
 
@@ -25,13 +27,13 @@ PIQIC = piqic
 PIQIC_FLAGS =
 
 
-PIQI_FILES = piqi-rpc.piqi piqi-tools.piqi
+PIQI_FILES = piqi-rpc.piqi piqi-tools.piqi piqi.piqi
 
-PIQI_ERL_FILES = piqi_rpc_piqi.erl piqi_tools_piqi.erl
-PIQI_HRL_FILES = piqi_rpc_piqi.hrl piqi_tools_piqi.hrl
+PIQI_ERL_FILES = piqi_rpc_piqi.erl piqi_tools_piqi.erl piqi_piqi.erl
+PIQI_HRL_FILES = piqi_rpc_piqi.hrl piqi_tools_piqi.hrl piqi_piqi.hrl
 
 
-PRE_TARGET = $(PIQI_FILES)
+PRE_TARGET =
 
 
 VSN = $(shell cat $(PIQI_ROOT)/VERSION)
@@ -49,10 +51,6 @@ test: beams
 
 $(ERL_APP_FILE): $(ERL_APP_FILE).templ
 	sed -e 's;%VSN%;$(VSN);' $< > $@
-
-
-$(PIQI_FILES): %: $(PIQI_ROOT)/piqi-tools/%
-	ln -s $< $@
 
 
 $(PIQI_ERL_FILES) $(PIQI_HRL_FILES): $(PIQI_FILES)

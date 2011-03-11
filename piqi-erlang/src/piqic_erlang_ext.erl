@@ -12,6 +12,17 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
+%% @doc Extended Piqi compiler for Erlang
+%%
+%% This module contains extended version of the Piqi compiler for Erlang. It
+%% calls the base compiler ("piqic erlang") as a first step, and then generates
+%% `<mod>_piqi_ext.erl` file that contains extended codecs.
+%%
+%% Extended codecs are capable for serializing/deserialyzing Erlang data
+%% structures into several more data formats (Json, Piq, XML), in addition to
+%% Google Protocol Buffers binary format which is the only data format supported
+%% by the base codecs.
+
 -module(piqic_erlang_ext).
 -compile(export_all).
 
@@ -22,15 +33,17 @@
 % the same
 
 
+% Escript entry point
 main(Args) ->
-    {Filename, Odir} = parse_args(Args),
-    piqic_erlang(Args),
-    piqic_erlang_ext(Filename, Odir, Args).
+    % call piqic_erlang_ext with command-line arguments and ?MODULE as the
+    % callback module.
+    piqic_erlang_ext(?MODULE, Args).
 
 
 usage() ->
+    ScriptName = escript:script_name(),
     io:format(
-"Usage: piqic-erlang-ext [options] <.piqi file>\n"
+"Usage: " ++ ScriptName ++ " [options] <.piqi file>\n"
 "Options:
   -I <dir> add directory to the list of imported .piqi search paths
   --no-warnings don't print warnings
@@ -68,9 +81,7 @@ parse_args([_|T], Odir) ->
     parse_args(T, Odir).
 
 
-piqic_erlang(Args) ->
-    CustomArgs =
-        "--embed-piqi ",
+piqic_erlang(Args, CustomArgs) ->
     PiqicErlang = lists:concat([
             "piqic erlang ", CustomArgs, join_args(Args)
         ]),
@@ -94,7 +105,19 @@ set_cwd(Dir) ->
     ok = file:set_cwd(Dir).
 
 
-piqic_erlang_ext(Filename, Odir, Args) ->
+% `Mod` parameter is the name of the Erlang module that exports two callback
+% functions:
+%
+%       gen_piqi(Piqi)
+%
+%       custom_args()
+%
+piqic_erlang_ext(Mod, Args) ->
+    {Filename, Odir} = parse_args(Args),
+
+    % call the base compiler "piqic erlang"
+    piqic_erlang(Args, Mod:custom_args()),
+
     ExpandedPiqi = Filename ++ ".expanded.pb",
     try
         PiqicExpand = lists:concat([
@@ -106,7 +129,7 @@ piqic_erlang_ext(Filename, Odir, Args) ->
 
         Piqi = read_piqi(ExpandedPiqi),
 
-        gen_piqi(Piqi)
+        Mod:gen_piqi(Piqi)
     after
         file:delete(ExpandedPiqi)
     end.
@@ -131,6 +154,12 @@ read_piqi(Filename) ->
     Piqi.
 
 
+%
+% behavior-specific callbacks
+%
+custom_args() -> "--embed-piqi ".
+
+
 gen_piqi(Piqi) ->
     Mod = Piqi#piqi.module,
     ErlMod = Piqi#piqi.erlang_module,
@@ -143,14 +172,14 @@ gen_piqi(Piqi) ->
             "-module(", ErlMod, "_ext).\n",
             "-compile(export_all).\n"
         ],
-        gen_init(ErlMod),
+        gen_embedded_piqi(ErlMod),
         [ gen_parse(Mod, ErlMod, X) || X <- Defs ],
         [ gen_gen(Mod, ErlMod, X) || X <- Defs ]
     ]),
     ok = file:write_file(Filename, Code).
 
 
-gen_init(ErlMod) ->
+gen_embedded_piqi(ErlMod) ->
     [
         "piqi() ->\n",
         "    ", ErlMod, ":piqi().\n"

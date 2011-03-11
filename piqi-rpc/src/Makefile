@@ -10,6 +10,8 @@ ERL_SOURCES = \
 	\
 	piqi_rpc_http.erl \
 	piqi_rpc_webmachine_resource.erl \
+	\
+	piqic_erlang_rpc.erl
 
 
 #ERL_TESTS =

@@ -1,13 +1,13 @@
 piqi.app
 
-piqi-rpc.piqi
-piqi-tools.piqi
-
 piqi_rpc_piqi.erl
 piqi_rpc_piqi.hrl
 
 piqi_tools_piqi.erl
 piqi_tools_piqi.hrl
+
+piqi_piqi.erl
+piqi_piqi.hrl
 
 dialyzer_plt
 dialyzer.log
