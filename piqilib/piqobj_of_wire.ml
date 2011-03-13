@@ -190,24 +190,18 @@ and do_parse_field t l =
   let open T.Field in
   let code = Int32.to_int (some_of t.code) in
   let field_type = piqtype (some_of t.typeref) in
-  let parse_f = parse_obj field_type in
   let values, rem =
     match t.mode with
       | `required -> 
-          let x, rem = parse_required_field code parse_f l in
+          let x, rem = parse_required_field code field_type l in
           [x], rem
       | `optional ->
-          let default =
-            if !C.resolve_defaults
-            then t.default
-            else None
-          in
           (* XXX: location reference for default? *)
-          let x, rem = parse_optional_field code parse_f default l in
+          let x, rem = parse_optional_field code field_type t.default l in
           let res = (match x with Some x -> [x] | None -> []) in
           res, rem
       | `repeated ->
-          parse_repeated_field code parse_f l
+          parse_repeated_field code field_type l
   in
   let fields =
     List.map (fun x ->
@@ -217,21 +211,29 @@ and do_parse_field t l =
   fields, rem
 
 
-and parse_required_field code parse_f l =
-  Piqirun.parse_req_field code parse_f l
+and parse_required_field code field_type l =
+  Piqirun.parse_req_field code (parse_obj field_type) l
 
 
-and parse_optional_field code parse_f default l =
+and parse_optional_field code field_type default l =
+  let res = Piqirun.parse_opt_field code (parse_obj field_type) l in
+  match res with
+    | Some _, _ -> res
+    | None, rem -> parse_default field_type default, rem
+
+
+and parse_default piqtype default =
   match default with
-    | None -> Piqirun.parse_opt_field code parse_f l
+    | _ when not !C.resolve_defaults -> None
+    | None -> None
     | Some x ->
-        let default = some_of x.T.Any.binobj in
-        let res, rem = Piqirun.parse_req_field code parse_f l ~default in
-        Some res, rem
+        let binobj = some_of x.T.Any.binobj in
+        let res = parse_binobj binobj ~piqtype in
+        Some res
 
 
-and parse_repeated_field code parse_f l =
-  Piqirun.parse_rep_field code parse_f l
+and parse_repeated_field code field_type l =
+  Piqirun.parse_rep_field code (parse_obj field_type) l
 
 
 and parse_variant t x =

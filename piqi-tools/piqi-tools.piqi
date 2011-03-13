@@ -70,7 +70,6 @@
     .option [ piq ]
     .option [ json ]
     .option [ pb ]
-    .option [ wire ]
-    %.option [ xml ]
+    .option [ xml ]
 ]
 

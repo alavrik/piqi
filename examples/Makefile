@@ -49,4 +49,4 @@ test_complex:
 
 
 clean:
-	rm -f *.pb *.wire *.json *.proto* addressbook.* piqobj.piqi
+	rm -f *.pb *.wire *.json *.xml *.proto* addressbook.* piqobj.piqi

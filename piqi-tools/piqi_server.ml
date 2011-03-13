@@ -149,6 +149,19 @@ let gen_pb obj =
   Piqirun.to_string buf
 
 
+let parse_xml piqtype s =
+  let xml_parser = Piqi_xml.init_from_string ~fname s in
+  let obj = Piq.load_xml_obj piqtype xml_parser in
+  (* XXX: check eof? *)
+  obj
+
+
+let gen_xml obj =
+  let xml = Piq.gen_xml obj in
+  (* XXX: make pretty-printing optional? *)
+  Piqi_xml.xml_to_string xml
+
+
 let parse_obj typename input_format data =
   let piqtype = Piqi_convert.get_piqtype typename in
   let is_piqi_input = (typename = "piqi") in
@@ -157,7 +170,10 @@ let parse_obj typename input_format data =
       | `piq  -> parse_piq data ~is_piqi_input
       | `json -> parse_json piqtype data
       | `pb -> parse_pb piqtype data
+      | `xml -> parse_xml piqtype data
+      (*
       | `wire -> parse_wire data ~is_piqi_input
+      *)
   in piqobj
 
 
@@ -165,9 +181,9 @@ let parse_obj typename input_format data =
 let convert args =
   let open I.Convert_input in
   let piqobj =
-    (* XXX: We need to resolve all defaults before converting to JSON *)
+    (* XXX: We need to resolve all defaults before converting to JSON or XML *)
     C.with_resolve_defaults
-      (args.output_format = `json)
+      (args.output_format = `json || args.output_format = `xml)
       (parse_obj args.type_name args.input_format) args.data
   in
   let output =
@@ -175,7 +191,10 @@ let convert args =
       | `piq  -> gen_piq piqobj
       | `json -> gen_json piqobj
       | `pb -> gen_pb piqobj
+      | `xml -> gen_xml piqobj
+      (*
       | `wire -> gen_wire piqobj
+      *)
   in
   `ok I.Convert_output#{ data = output }
 
@@ -196,10 +215,10 @@ let add_one_piqi input_format data =
   match parse_obj "piqi" input_format data with
     | Piq.Piqi piqi ->
         (match input_format with
-          | `pb | `json ->
+          | `pb | `json | `xml ->
               (* cache Piqi spec *)
               Piqi_db.add_piqi piqi
-          | `piq | `wire ->
+          | `piq (* | `wire *) ->
               (* for Piq and Wire formats is enough to just read the Piqi spec
                * in order to get it processed and cached in the Piqi database
                * automatically *)

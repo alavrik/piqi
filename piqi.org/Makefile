@@ -45,6 +45,8 @@ test_piqi_piqi:
 	protoc -I.. -I. --decode=piqi_org.piqi.piqi piqi.piqi.proto < p.piqi.pb > p.piqi.text
 	piqi convert -t piq-json p.piqi
 	piqi convert p.piqi.json >/dev/null
+	piqi convert -t xml p.piqi
+	piqi convert --piqtype piqi p.piqi.xml >/dev/null
 
 
 test_piqtype_core:
@@ -53,5 +55,5 @@ test_piqtype_core:
 
 
 clean:
-	rm -f p.piqi pp.piqi p.piqi.text *.proto *.wire *.pb *.json piqtype-core.piq piqobj.piqi
+	rm -f p.piqi pp.piqi p.piqi.text *.proto *.wire *.pb *.json *.xml piqtype-core.piq piqobj.piqi
 

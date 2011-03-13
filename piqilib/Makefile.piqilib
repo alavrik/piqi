@@ -1,5 +1,6 @@
 include $(PIQI_ROOT)/piqilib/Makefile.piqi_extended
 
+PACKS += xmlm
 
 PIQI_SOURCES_LIB = \
 	piqi_json_common.ml \
@@ -10,6 +11,10 @@ PIQI_SOURCES_LIB = \
 	piqi_base64.ml \
 	piqobj_to_json.ml \
 	piqobj_of_json.ml \
+	\
+	piqi_xml.ml \
+	piqobj_to_xml.ml \
+	piqobj_of_xml.ml \
 	\
 	piq.ml \
 	\

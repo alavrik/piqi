@@ -127,6 +127,7 @@ known_content_type(ReqData, Context) ->
     IsKnownType =
         case wrq:get_req_header("content-type", ReqData) of
             "application/json" -> true;
+            "application/xml" -> true;
             "application/x-protobuf" -> true;
             % allow content-type to be undefined when the body is empty
             'undefined' when IsEmptyBody -> true;
@@ -151,11 +152,13 @@ content_types_provided(ReqData, Context) ->
                 [
                     {"text/plain", get_piqi_piq},
                     {"application/json", get_piqi_json},
+                    {"application/xml", get_piqi_xml},
                     {"application/x-protobuf", get_piqi_pb}
                 ];
             'POST' ->
                 [
                     {"application/json", unused_value},
+                    {"application/xml", unused_value},
                     {"application/x-protobuf", unused_value},
                     {"text/plain", unused_value}
                 ]
@@ -176,11 +179,13 @@ process_post(ReqData, Context) ->
 
 format_to_content_type('pb') -> "application/x-protobuf";
 format_to_content_type('json') -> "application/json";
+format_to_content_type('xml') -> "application/xml";
 format_to_content_type('piq') -> "text/plain".
 
 
 content_type_to_format("application/x-protobuf") -> 'pb';
 content_type_to_format("application/json") -> 'json';
+content_type_to_format("application/xml") -> 'xml';
 content_type_to_format("text/plain") -> 'piq';
 content_type_to_format(_) -> 'undefined'.
 
@@ -219,6 +224,10 @@ get_piqi_piq(ReqData, Context) ->
 
 get_piqi_json(ReqData, Context) ->
     get_piqi(ReqData, Context, 'json').
+
+
+get_piqi_xml(ReqData, Context) ->
+    get_piqi(ReqData, Context, 'xml').
 
 
 get_piqi_pb(ReqData, Context) ->

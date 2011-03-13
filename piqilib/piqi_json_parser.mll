@@ -149,6 +149,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     with Failure _ ->
       lexer_error "Int overflow" v lexbuf
 
+  let parse_float s v lexbuf =
+    try float_of_string s
+    with Failure _ ->
+      lexer_error "Invalid float constant" v lexbuf
 
   let set_file_name v fname =
     v.fname <- fname
@@ -268,7 +272,8 @@ rule read_json v = parse
                   addloc v lexbuf;
                   if not !Piqi_config.pp_mode
                   then
-                    `Float (float_of_string (lexeme lexbuf))
+                    let s = lexeme lexbuf in
+                    `Float (parse_float s v lexbuf)
                   else
                     `Floatlit (lexeme lexbuf)
                 }

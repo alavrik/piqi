@@ -340,6 +340,11 @@ let write_pb ch (obj :obj) =
   Piqirun.to_channel ch buf
 
 
+(*
+ * JSON reading and writing
+ *)
+
+
 let piqi_of_json json ~cache =
   let piqtype = !Piqi.piqi_def in
   let wire_parser = T.parse_piqi in
@@ -498,4 +503,71 @@ let load_piq_json_obj (piqtype: T.piqtype option) json_parser :obj =
 let load_json_obj (piqtype: T.piqtype) json_parser :obj =
   let ast = read_json_ast json_parser in
   load_json_common piqtype ast
+
+
+(*
+ * XML reading and writing
+ *)
+
+let piqi_of_xml xml =
+  let piqtype = !Piqi.piqi_def in
+  let wire_parser = T.parse_piqi in
+
+  (* don't resolve defaults when reading xml *)
+  let piqobj =
+    C.with_resolve_defaults false (Piqobj_of_xml.parse_obj piqtype) xml
+  in
+  let piqi = Piqi.mlobj_of_piqobj wire_parser piqobj in
+  Piqi.process_piqi piqi ~cache:false;
+  piqi
+
+
+let piqi_to_xml piqi =
+  let piqi = original_piqi piqi in
+
+  let piqtype = !Piqi.piqi_def in
+  let wire_generator = T.gen_piqi in
+
+  let piqobj =
+    Piqi.mlobj_to_piqobj piqtype wire_generator piqi
+  in
+  let xml = Piqobj_to_xml.gen_obj piqobj in
+  xml
+
+
+let gen_xml (obj :obj) :Piqi_xml.xml =
+  match obj with
+    | Typed_piqobj obj | Piqobj obj ->
+        Piqobj_to_xml.gen_obj obj
+    | Piqi piqi ->
+        (* output Piqi spec itself if we are converting .piqi *)
+        piqi_to_xml piqi
+    | Piqtype _ ->
+        (* XXX *)
+        assert false (* type hints are not supported by xml encoding *)
+
+
+let write_xml ch (obj:obj) =
+  let xml = gen_xml obj in
+  Piqi_xml.xml_to_channel ch xml;
+  (* XXX: add a newline for better readability *)
+  Pervasives.output_char ch '\n'
+
+
+let read_xml_ast xml_parser :Piqi_xml.xml =
+  let res = Piqi_xml.read_xml_obj xml_parser in
+  match res with
+    | Some ast -> ast
+    | None -> raise EOF
+
+
+let load_xml_obj (piqtype: T.piqtype) xml_parser :obj =
+  let ast = read_xml_ast xml_parser in
+  if piqtype == !Piqi.piqi_def (* XXX *)
+  then
+    let piqi = piqi_of_xml ast in
+    Piqi piqi
+  else
+    let obj = Piqobj_of_xml.parse_obj piqtype ast in
+    Typed_piqobj obj
 

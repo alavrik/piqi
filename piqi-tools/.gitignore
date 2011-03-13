@@ -48,6 +48,10 @@ piqi_base64.ml
 piqobj_to_json.ml
 piqobj_of_json.ml
 
+piqi_xml.ml
+piqobj_to_xml.ml
+piqobj_of_xml.ml
+
 piqi_pp.ml
 piq.ml
 
