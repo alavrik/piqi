@@ -947,6 +947,7 @@ struct
 	outs : std_string -> int -> int -> unit;           (* String output. *)
 	outc : char -> unit;                            (* character output. *)
 	mutable last_el_start : bool;   (* True if last signal was `El_start *)
+	mutable last_el_data : bool;    (* True if last signal was `El_data *)
 	mutable scopes : (name * (string list)) list;
                                        (* Qualified el. name and bound uris. *)
 	mutable depth : int; }                               (* Scope depth. *) 
@@ -976,6 +977,7 @@ struct
       h
     in
     { outs = outs; outc = outc; nl = nl; indent = indent; last_el_start = false;
+      last_el_data = false;
       prefixes = prefixes; scopes = []; depth = -1; fun_prefix = ns_prefix; }
  
   let outs o s = o.outs s 0 (Std_string.length s)
@@ -1063,6 +1065,7 @@ struct
 	  o.outc '<'; out_qname o qn; List.iter (out_attribute o) atts;
 	  o.scopes <- (qn, uris) :: o.scopes;
 	  o.depth <- o.depth + 1;
+          o.last_el_data <- false;
 	  o.last_el_start <- true
       | `El_end -> 
 	  begin match o.scopes with
@@ -1070,21 +1073,43 @@ struct
 	      o.depth <- o.depth - 1;
 	      if o.last_el_start then outs o "/>" else
 	      begin 
+                (* alavrik: don't use indentation for text nodes that as it
+                 * produces extra whitespace: *)
+
+                (* previously:
 		indent o;
+                *)
+                if not o.last_el_data then indent o;
+
 		outs o "</"; out_qname o n; o.outc '>';
 	      end;
 	      o.scopes <- scopes';
 	      List.iter (Ht.remove o.prefixes) uris;
+              o.last_el_data <- false;
 	      o.last_el_start <- false;
 	      if o.depth = 0 then (if o.nl then o.outc '\n'; o.depth <- -1;) 
 	      else unindent o
 	  | [] -> invalid_arg err_el_end
 	  end
       | `Data d -> 
-	  if o.last_el_start then (outs o ">"; unindent o);
+          (* alavrik: don't use indentation for text nodes that as it produces
+           * extra whitespace: *)
+
+          (* previously:
+          if o.last_el_start then (outs o ">"; unindent o);
+          *)
+          if o.last_el_start then outs o ">";
+
+          (* previously:
 	  indent o;
+          *)
+
 	  out_data o d;
+
+          (* previously:
 	  unindent o;
+          *)
+          o.last_el_data <- true;
 	  o.last_el_start <- false
       | `Dtd _ -> failwith err_dtd
       end
