@@ -39,9 +39,7 @@ test_complex:
 	./test_piq function
 	./test_piqi_proto function
 
-	ln -sf addressbook/addressbook.proto .
 	piqi of-proto --normalize addressbook.proto
-	ln -sf addressbook/addressbook.piq .
 	./test_piqi addressbook.proto
 	./test_piq addressbook
 
@@ -49,4 +47,4 @@ test_complex:
 
 
 clean:
-	rm -f *.pb *.wire *.json *.xml *.proto* addressbook.* piqobj.piqi
+	rm -f *.pb *.wire *.json *.xml *.piqi.proto* addressbook.proto.piqi piqobj.piqi

@@ -6,7 +6,7 @@ set -ex
 piqi convert -t pb addressbook.piq
 
 # create another copy of addressbook records using ocaml program
-./add_person_$1 addressbook.pb <<!
+./add_person addressbook.pb <<!
 0
 J. Random Hacker
 j.r.hacker@example.com
@@ -21,21 +21,21 @@ mobile
 
 !
 
-./add_person_$1 addressbook.pb <<!
+./add_person addressbook.pb <<!
 1
 Joe User
 
 
 !
 
-./add_person_$1 addressbook.pb <<!
+./add_person addressbook.pb <<!
 2
 Joe User Jr
 
 
 !
 
-./add_person_$1 addressbook.pb <<!
+./add_person addressbook.pb <<!
 3
 Joe User II
 joe.user@example.com
@@ -47,11 +47,13 @@ work
 !
 
 
-./list_people_$1 addressbook.piq.pb > l1
-./list_people_$1 addressbook.pb > l2
+./list_people addressbook.piq.pb > l1
+./list_people addressbook.pb > l2
 cmp l1 l2
 
 
+# check that the addressbook binary file created by "add_person" is readable by
+# "piqi convert"
 piqi convert --piqtype addressbook/address-book addressbook.pb > addressbook.pb.piq
 
 rm addressbook.pb

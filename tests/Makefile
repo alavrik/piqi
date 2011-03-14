@@ -4,10 +4,10 @@ include $(PIQI_ROOT)/make/Makefile.dirs
 DIRS = \
        boot_proto2piqi \
        piqi_proto \
-       ocaml \
+       ocaml_piqi \
        cpp \
        examples \
-       addressbook \
+       ocaml_addressbook \
        piqi.org \
        piqi_server \
 
@@ -15,12 +15,13 @@ DIRS = \
 .PHONY: erlang erlang-clean
 
 erlang:
-	$(MAKE) -C addressbook test-erlang
-	$(MAKE) -C erlang
+	$(MAKE) -C erlang_addressbook
+	$(MAKE) -C erlang_piqi
 
 
 erlang-clean:
-	$(MAKE) -C erlang clean
+	$(MAKE) -C erlang_addressbook clean
+	$(MAKE) -C erlang_piqi clean
 
 
 clean:: erlang-clean
