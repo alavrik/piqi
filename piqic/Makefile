@@ -20,7 +20,6 @@ SOURCES += \
 	piqic_erlang_out.ml \
 	piqic_erlang_in.ml \
 	piqic_erlang_defaults.ml \
-	piqic_erlang_impl.ml \
 	piqic_erlang.ml \
 	\
 	piqic_expand.ml \

@@ -182,11 +182,6 @@ module Main = Piqi_main
 open Main
 
 
-(* command-line flags *)
-let flag_gen_impl_header = ref false
-let flag_gen_default_impl = ref false
-
-
 let gen_hrl modname piqi =
   (* open output .hrl file *)
   let ofile = modname ^ ".hrl" in
@@ -229,12 +224,12 @@ let gen_erl modname piqi =
   let code_gen = Piqic_erlang_out.gen_piqi piqi in
   let code_parse = Piqic_erlang_in.gen_piqi piqi in
   let code_gen_defauls =
-    if !Piqic_common.flag_gen_defaults || !flag_gen_default_impl
+    if !Piqic_common.flag_gen_defaults
     then Piqic_erlang_defaults.gen_piqi piqi
     else iol []
   in
   let code_embedded_piqi =
-    if !Piqic_common.flag_embed_piqi || !flag_gen_default_impl
+    if !Piqic_common.flag_embed_piqi
     then gen_embedded_piqi piqi
     else iol []
   in
@@ -249,47 +244,6 @@ let gen_erl modname piqi =
     code_parse; eol;
     code_gen_defauls; eol;
     code_embedded_piqi; eol;
-  ]
-  in
-  Iolist.to_channel ch code;
-  Main.close_output ()
-
-
-let gen_impl_hrl modname piqi =
-  (* open output _impl.hrl file *)
-  let ofile = modname ^ "_impl.hrl" in
-  let ch = Main.open_output ofile in
-
-  let specs_code = Piqic_erlang_impl.gen_function_specs piqi in
-  let def = "__" ^ String.uppercase modname ^ "_IMPL_HRL__" in
-  let code = iol [
-    ios "-ifndef("; ios def; ios ")."; eol;
-    ios "-define("; ios def; ios ", 1)."; eol;
-    eol;
-    ios "-include("; ioq (modname ^ ".hrl"); ios ")."; eol;
-    eol;
-    specs_code; eol;
-    eol;
-    ios "-endif."; eol;
-  ]
-  in
-  Iolist.to_channel ch code;
-  Main.close_output ()
-
-
-let gen_default_impl_erl modname piqi =
-  (* open output _default_impl.erl file *)
-  let ofile = modname ^ "_default_impl.erl" in
-  let ch = Main.open_output ofile in
-  let impl = Piqic_erlang_impl.gen_function_default_impls piqi in
-  let code = iol [
-    ios "-module("; ios modname; ios "_default_impl)."; eol;
-    ios "-compile(export_all)."; eol;
-    eol;
-    ios "-include("; ioq (modname ^ "_impl.hrl"); ios ").";
-    eol; eol;
-    impl;
-    eol; eol;
   ]
   in
   Iolist.to_channel ch code;
@@ -317,12 +271,6 @@ let piqic (piqi: T.piqi) =
 
   gen_hrl modname piqi;
   gen_erl modname piqi;
-
-  if !flag_gen_impl_header || !flag_gen_default_impl
-  then gen_impl_hrl modname piqi;
-
-  if !flag_gen_default_impl
-  then gen_default_impl_erl modname piqi;
   ()
 
 
@@ -347,12 +295,6 @@ let speclist = Main.common_speclist @
     Piqic_common.arg__normalize;
     Piqic_common.arg__gen_defaults;
     Piqic_common.arg__embed_piqi;
-
-    "--gen-impl-header", Arg.Set flag_gen_impl_header,
-      "Genereate Erlang function specifications (_impl.hrl)";
-
-    "--gen-default-impl", Arg.Set flag_gen_default_impl,
-      "Genereate Erlang default function implementations (_default_impl.erl) (implies --embed-piqi, --gen-defaults, --gen-impl-header)"
   ]
 
 

@@ -29,10 +29,20 @@ main(Args) ->
 %
 
 custom_args() ->
-    "--embed-piqi --gen-default-impl --gen-defaults --gen-impl-header ".
+    "--embed-piqi --gen-defaults ".
 
 
 gen_piqi(Piqi) ->
+    gen_rpc_erl(Piqi),
+    gen_impl_hrl(Piqi),
+    gen_default_impl_erl(Piqi),
+    ok.
+
+%
+% Generating Piqi-RCP server stubs: <ErlMod>_rpc.erl
+%
+
+gen_rpc_erl(Piqi) ->
     Mod = Piqi#piqi.module,
     ErlMod = Piqi#piqi.erlang_module,
     FuncList = Piqi#piqi.func,
@@ -46,7 +56,7 @@ gen_piqi(Piqi) ->
         ],
         piqic_erlang_ext:gen_embedded_piqi(ErlMod),
         gen_get_piqi(ErlMod),
-        gen_rpc(Mod, ErlMod, FuncList)
+        gen_server_stubs(Mod, ErlMod, FuncList)
     ]),
     ok = file:write_file(Filename, Code).
 
@@ -58,7 +68,7 @@ gen_get_piqi(_ErlMod) ->
     ].
 
 
-gen_rpc(Mod, ErlMod, FuncList) ->
+gen_server_stubs(Mod, ErlMod, FuncList) ->
     FuncClauses = [ gen_func_clause(X, Mod, ErlMod) || X <- FuncList ],
     [
         "rpc(Mod, Name, InputData, _InputFormat, _OutputFormat) ->\n",
@@ -137,4 +147,99 @@ gen_func_clause(F, Mod, ErlMod) ->
 iod(_Delim, []) -> [];
 iod(Delim, [H|T]) ->
     lists:foldl(fun (X, Accu) -> [Accu, Delim, X] end, H, T).
+
+
+%
+% Generating Piqi-RCP function specs: <ErlMod>_impl.hrl
+%
+
+gen_impl_hrl(Piqi) ->
+    ErlMod = Piqi#piqi.erlang_module,
+    ErlTypePrefix = Piqi#piqi.erlang_type_prefix,
+    FuncList = Piqi#piqi.func,
+
+    Filename = binary_to_list(ErlMod) ++ "_impl.hrl",
+
+    ErlModStr = binary_to_list(ErlMod),
+    HeaderMacro = ["__", string:to_upper(ErlModStr), "_IMPL_HRL__" ],
+    Code =
+        [
+            "-ifndef(", HeaderMacro, ").\n"
+            "-define(", HeaderMacro, ", 1).\n\n"
+            "-include(\"", ErlMod, ".hrl\").\n\n",
+
+            gen_function_specs(ErlTypePrefix, FuncList),
+
+            "-endif.\n"
+        ],
+    ok = file:write_file(Filename, Code).
+
+
+gen_function_specs(ErlTypePrefix, FuncList) ->
+    [ gen_function_spec(ErlTypePrefix, X) || X <- FuncList ].
+
+
+gen_function_spec(ErlTypePrefix, F) ->
+    ErlName = F#func.erlang_name,
+    Input =
+        case F#func.input of
+            'undefined' -> "'undefined'";
+            _ -> [ ErlTypePrefix, ErlName, "_input()" ]
+        end,
+
+    Output =
+        case F#func.output of
+            'undefined' -> "ok";
+            _ -> [ "{ok, ", ErlTypePrefix, ErlName, "_output()}" ]
+        end,
+
+    Error =
+        case F#func.error of
+            'undefined' -> "";
+            _ -> [ " | {error, ",  ErlTypePrefix, ErlName, "_error()}" ]
+        end,
+
+    [ "-spec ", ErlName, "/1 :: (", Input, ") -> ", Output, Error, ".\n\n" ].
+
+
+%
+% Generating Piqi-RCP default implementation: <ErlMod>_default_impl.erl
+%
+
+gen_default_impl_erl(Piqi) ->
+    ErlMod = Piqi#piqi.erlang_module,
+    FuncList = Piqi#piqi.func,
+
+    Filename = binary_to_list(ErlMod) ++ "_default_impl.erl",
+
+    Code =
+        [
+            "-module(", ErlMod, "_default_impl).\n"
+            "-compile(export_all).\n\n"
+            "-include(\"", ErlMod, "_impl.hrl\").\n\n",
+
+            gen_default_impls(ErlMod, FuncList)
+        ],
+    ok = file:write_file(Filename, Code).
+
+
+gen_default_impls(ErlMod, FuncList) ->
+    [ gen_default_impl(ErlMod, X) || X <- FuncList ].
+
+
+gen_default_impl(ErlMod, F) ->
+    ErlName = F#func.erlang_name,
+    Input =
+        case F#func.input of
+            'undefined' -> "'undefined'";
+            _ -> "_Input"
+        end,
+
+    Output =
+        case F#func.output of
+            'undefined' -> "ok";
+            _ -> [ "{ok, ", ErlMod, ":default_", ErlName, "_output()}" ]
+        end,
+
+    [ ErlName, "(", Input, ") -> ", Output, ".\n\n" ].
 
