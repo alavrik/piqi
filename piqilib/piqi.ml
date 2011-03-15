@@ -1063,6 +1063,7 @@ let load_embedded_boot_module (modname, content) =
   trace_enter ();
   let fname = "embedded/" ^ modname in
   let piqi = load_piqi_string fname content in
+  piqi.P#modname <- Some modname; (* fix the modname *)
   Piqi_db.add_piqi piqi;
   trace_leave ();
   piqi
