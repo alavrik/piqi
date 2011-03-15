@@ -95,7 +95,7 @@ let call_http_server url body =
         (* all other HTTP codes either mean `rpc_error or some other HTTP
          * transport or server-related error *)
         piqi_error (Printf.sprintf
-          "HTTP rpc error: (status code = %d\n)\n%s" status body)
+          "HTTP rpc error: (status code = %d)\n%s" status body)
 
 
 (* returns the last element of the list *)
