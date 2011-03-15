@@ -128,10 +128,15 @@ let gen_record r =
   let fparserl = (* field parsers list *)
     List.map (gen_field_parser i) fields
   in
+  let parsers_code =
+    match fparserl with
+      | [] -> iol []
+      | _ -> iol [ iod ",\n    " fparserl; ios ","; eol; ]
+  in
   iol [
     ios "parse_"; ios name; ios "(X) -> "; indent;
       ios "R0 = piqirun:parse_record(X),"; eol;
-      iod ",\n    " fparserl; ios ","; eol;
+      parsers_code;
       ios "piqirun:check_unparsed_fields("; rest i; ios "),"; eol;
       ios "#"; ios (scoped_name name); ios "{"; indent;
       iod ",\n        " fconsl;
