@@ -78,10 +78,13 @@ let call_http_server url body =
   in
   let ct = get_content_type status headers in
   match status with
-    | 204 -> (* "No Data" *)
-        `ok_empty
     | 200 when ct = content_type -> (* "OK" *)
         `ok body
+    | 204 when ct = content_type -> (* "No Data" *)
+        (* this is actually an empty return data structure, e.g. empty list *)
+        `ok ""
+    | 204 -> (* "No Data" *)
+        `ok_empty
     | 200 ->
         bad_content_type ct
     | 500 when ct = content_type ->
