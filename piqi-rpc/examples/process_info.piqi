@@ -1,0 +1,329 @@
+
+.erlang-type-prefix ""
+
+
+.function [
+
+    .name list-processes
+
+    .output pid-list
+]
+
+
+.function [
+    .name get-process-info
+
+    .input [
+        .field [
+            .name pid
+            .type pid
+        ]
+    ]
+
+    .output process-info
+    
+    .error string
+]
+
+
+.function [
+
+    .name list-processes-ext
+
+    .input process-property-list
+
+    .output process-info-list
+]
+
+
+.enum [
+    .name process-property
+
+    .option [
+        .name registered-name
+
+        .getopt-letter n
+    ]
+
+    .option [
+        .name current-function
+
+        .getopt-letter f
+    ]
+
+    .option [
+        .name initial-call
+
+        .getopt-letter i
+    ]
+
+    .option [
+        .name status
+
+        .getopt-letter s
+    ]
+
+    .option [ message-queue-len ]
+    .option [ messages ]
+    .option [ links ]
+    .option [ dictionary ]
+    .option [ trap-exit ]
+    .option [ error-handler ]
+    .option [ priority ]
+    .option [ group-leader ]
+    .option [ total-heap-size ]
+    .option [ heap-size ]
+    .option [ stack-size ]
+
+    .option [ 
+        .name reductions
+
+        .getopt-letter r
+    ]
+
+    .option [ suspending ]
+]
+
+
+.record [
+    .name process-info
+
+    .field [
+        .name pid
+        .type pid 
+    ]
+    
+    .field [
+        .name registered-name
+        .type string
+        .optional
+    ]
+
+    .field [
+        .name current-function
+        .type function
+        .optional
+    ]
+
+    .field [
+        .name initial-call
+        .type function
+        .optional
+    ]
+
+    .field [
+        .type status
+        .optional
+    ]
+
+    .field [
+        .name message-queue-len
+        .type int
+        .optional
+    ]
+
+    .field [
+        .type messages
+        .optional
+    ]
+
+    .field [
+        .type links
+        .optional
+    ]
+
+    .field [
+        .type dictionary
+        .optional
+    ]
+
+    .field [
+        .name trap-exit
+        .type bool
+        .optional
+    ]
+
+    .field [
+        .name error-handler
+        .type string
+        .optional
+    ]
+
+
+    .field [
+        .type priority
+        .optional
+    ]
+
+    .field [
+        .name group-leader
+        .type pid
+        .optional
+    ]
+
+    .field [
+        .name total-heap-size
+        .type int
+        .optional
+    ]
+
+    .field [
+        .name heap-size
+        .type int
+        .optional
+    ]
+
+    .field [
+        .name stack-size
+        .type int
+        .optional
+    ]
+
+    .field [
+        .name reductions
+        .type int
+        .optional
+    ]
+
+    .field [
+        .name suspending
+        .type suspendee-list
+        .optional
+    ]
+
+% {garbage_collection, GCInfo} :
+%    GCInfo  is  a  list which contains miscellaneous
+%    information about garbage collection for this process. The
+%    content of GCInfo may be changed without prior notice.
+%
+%    .field [
+%        .type garbage-collection
+%        .optional
+%    ]
+
+]
+
+
+.list [
+    .name process-info-list
+    .type process-info
+]
+
+
+.list [
+    .name process-property-list
+    .type process-property
+]
+
+
+.alias [
+    .name pid
+    .erlang-name "epid"
+
+    .type string
+]
+
+
+.list [
+    .name pid-list
+    .type pid 
+]
+
+
+.record [
+    .name function 
+    .erlang-name "func"
+
+    .field [
+        .name module
+        .type string
+    ]
+
+    .field [
+        .name function
+        .type string
+    ]
+
+    .field [
+        .name arity
+        .type int
+    ]
+]
+
+
+.enum [
+    .name status
+    .option [ waiting ]
+    .option [ running ]
+    .option [ runnable ]
+    .option [ suspended ]
+]
+
+
+.list [
+    .name messages
+    .type string
+]
+
+
+.list [
+    .name links
+    .type pid
+]
+
+
+.list [
+    .name dictionary
+    .type dictionary-item
+]
+
+
+.record [
+    .name dictionary-item
+
+    .field [
+        .name key
+        .type string
+    ]
+
+    .field [
+        .name value
+        .type string
+    ]
+]
+
+
+.enum [
+    .name priority
+    .option [ low ]
+    .option [ normal ]
+    .option [ high ]
+    .option [ max ]
+]
+
+
+.list [
+    .name suspendee-list
+    .type suspendee
+]
+
+
+.record [
+    .name suspendee
+
+    .field [
+        .name suspendee
+        .type pid
+    ]
+
+    .field [
+        .name active-suspend-count
+        .type int
+    ]
+
+    .field [
+        .name outstanding-suspend-count
+        .type int
+    ]
+]
+
