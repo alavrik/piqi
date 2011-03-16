@@ -157,14 +157,10 @@ let gen_const c =
 let gen_enum e =
   let open Enum in
   let consts = List.map gen_const e.option in
-  let cases =
-    [ ios "Y when not is_integer(Y) -> piqirun:error_enum_const(Y)" ] @
-    consts @
-    [ ios "_ -> piqirun:error_enum_obj(X)" ]
-  in
+  let cases = consts @ [ ios "Y -> piqirun:error_enum_const(Y)" ] in
   iol [
     ios "parse_" ^^ ios (some_of e.erlang_name); ios "(X) ->"; indent;
-    ios "case X of"; indent;
+    ios "case piqirun:non_neg_integer_of_varint(X) of"; indent;
       iod ";\n        " cases;
       unindent; eol;
       ios "end.";

@@ -270,18 +270,7 @@ and parse_option t x =
 
 
 and parse_enum t x =
-  match x with
-    | Piqirun.Varint code ->
-        let code = Int32.of_int code in
-        do_parse_enum t x code
-    | Piqirun.Varint64 code ->
-        let code = Int64.to_int32 code in
-        do_parse_enum t x code
-    | _ ->
-        Piqirun.error_enum_obj x
-
-
-and do_parse_enum t x code32 =
+  let code32 = Piqirun.int32_of_varint x in
   let options = t.T.Variant#option in
   let option =
     try

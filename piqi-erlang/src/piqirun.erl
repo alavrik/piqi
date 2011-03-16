@@ -637,8 +637,6 @@ check_unparsed_fields(_L) -> ok.
 
 error_enum_const(X) -> error({'unknown_enum_const', X}).
 
-error_enum_obj(X) -> error({'invalid_enum_object', X}).
-
 error_option(_X, Code) -> error({'unknown_option', Code}).
 
 

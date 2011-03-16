@@ -189,7 +189,6 @@ let error_variant obj code =
 let error_missing obj code =
   error obj  ("missing field " ^ string_of_int code)
 
-let error_enum_obj obj = error obj "enum (varint) expected"
 let error_enum_const obj = error obj "unknown enum constant"
 
 
