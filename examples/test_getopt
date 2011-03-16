@@ -64,6 +64,7 @@ piqi getopt --piqtype record-variant-list/v -- -b 1
 
 # test for a top-level enum value
 piqi getopt --piqtype def/e -t pb -- -a | piqi convert -f pb --piqtype def/e
+piqi getopt --piqtype def/e -t json -- -a | piqi convert -f json --piqtype def/e
 
 
 piqi getopt --piqtype person/person -- \

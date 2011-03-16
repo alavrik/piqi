@@ -279,7 +279,11 @@ let is_piqdef t =
     | _ -> false
 
 
-let is_primitive_piqtype t = not (is_piqdef t)
+let is_primitive_piqtype t =
+  match unalias t with
+    | `enum _ -> true
+    | #T.piqdef -> false
+    | _ -> true
 
 
 (* is record or list or alias of the two *)
