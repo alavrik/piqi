@@ -335,10 +335,22 @@ and parse_alias t x =
 
 (* parse top-level Piq object formatted as XML *)
 let parse_obj t xml =
+  (* XXX: don't bother checking the name of the root element -- it's quite
+   * annoying in practice
+   *
+   * XXX: provide an optional "name" parameter for checking the root element's
+   * name *)
+  (*
   let name = C.piqi_typename t in
   match xml with
     | `Elem ((n, _) as xml_elem) when n = name ->
         parse_obj t xml_elem
     | _ ->
         error xml ("<" ^ name ^ "> XML root element expected")
+  *)
+  match xml with
+    | `Elem xml_elem ->
+        parse_obj t xml_elem
+    | _ ->
+        error xml "XML root element expected"
 
