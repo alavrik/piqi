@@ -120,7 +120,7 @@ gen_func_clause(F, Mod, ErlMod) ->
         end,
 
     ErrorCode =
-        case F#func.output of
+        case F#func.error of
             'undefined' -> % the function doesn't produce errors
                 [];
             _ ->
