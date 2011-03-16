@@ -112,6 +112,10 @@ let check_dup_names idtable funs =
   let names = List.map (fun x -> x.T.Func#name) funs in
   Piqi.check_dup_names "function" names;
   (* check that function names do not conflict with type names *)
+  ()
+  (* XXX: This check turned out to be an annoying limitation. Commenting it out
+   * for now: *)
+  (*
   List.iter
     (fun name ->
       try
@@ -121,6 +125,7 @@ let check_dup_names idtable funs =
            error_string def "defined here")
       with Not_found -> ()
     ) names
+  *)
 
 
 let get_func_defs f =
