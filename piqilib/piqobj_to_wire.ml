@@ -184,7 +184,6 @@ and gen_field x =
     | None ->
         (* using true for encoding flags -- the same encoding as for options
          * (see below) *)
-        refer x;
         Piqirun.gen_bool code true
     | Some obj -> gen_obj code obj
 

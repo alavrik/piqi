@@ -96,10 +96,7 @@ let gen_field_parser f =
     | None ->
         (* flag constructor *)
         iod " " [ 
-          (* NOTE: providing special handling for boxed values, see "refer" *)
-          gen_cc "(let count = next_count() in refer count";
           ios "Piqirun.parse_flag"; gen_code f.code; ios " x";
-          gen_cc ")";
         ]
   in
   (* field parsing code *)
