@@ -179,6 +179,13 @@ let encode_input_data f args =
 
 let decode_response f output =
   trace "piqi_call: decoding response\n";
+  let piqobj_of_bin piqtype data =
+    let buf = Piqirun.init_from_string data in
+    Piqloc.pause ();
+    let obj = Piqobj_of_wire.parse_obj (piqtype :> T.piqtype) buf in
+    Piqloc.resume ();
+    obj
+  in
   match f.T.Func#resolved_output, output with
     | None, `ok_empty -> `ok_empty
     | Some _, `ok_empty ->
@@ -186,15 +193,13 @@ let decode_response f output =
     | None, `ok _ ->
         piqi_error "unexpected non-empty result from server"
     | Some piqtype, `ok data ->
-        let buf = Piqirun.init_from_string data in
-        let obj = Piqobj_of_wire.parse_obj (piqtype :> T.piqtype) buf in
+        let obj = piqobj_of_bin piqtype data in
         `ok obj
     | _, `error data -> (
         match f.T.Func#resolved_error with
           | None -> piqi_error "unexpected error result from server"
           | Some piqtype ->
-              let buf = Piqirun.init_from_string data in
-              let obj = Piqobj_of_wire.parse_obj (piqtype :> T.piqtype) buf in
+              let obj = piqobj_of_bin piqtype data in
               `error obj
         )
     | _, `rpc_error _ -> assert false (* checked earlier *)

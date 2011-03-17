@@ -318,3 +318,11 @@ and parse_alias_obj t ?wire_type x =
     | `alias t -> `alias (parse_alias t x ?wire_type)
     | _ -> parse_obj t x
 
+
+(* This function is used from piqobj_of_json & piqobj_of_xml *)
+let parse_default piqtype default =
+  Piqloc.pause ();
+  let obj = parse_default piqtype default in
+  Piqloc.resume ();
+  obj
+

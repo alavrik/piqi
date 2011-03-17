@@ -346,6 +346,13 @@ let debug_loc prefix =
   debug "%s out count = %d, in count = %d\n" prefix !Piqloc.ocount !Piqloc.icount
 
 
+let assert_loc () =
+  if (!Piqloc.ocount <> !Piqloc.icount)
+  then
+    piqi_error
+     (Printf.sprintf "internal_error: out count = %d, in count = %d\n" !Piqloc.ocount !Piqloc.icount)
+
+
 let resolve_field_default x =
   let open F in
   match x.default, x.typeref with
@@ -371,6 +378,7 @@ let resolve_field_default x =
         Piqloc.icount := !Piqloc.icount + (!Piqloc.ocount - ocount);
 
         debug_loc "resolve_field_default(1)";
+        assert_loc ();
 
         default.T.Any.binobj <- Some binobj
     | _, None -> () (* there is no default for a flag *)
@@ -546,20 +554,24 @@ let assign_import_name x =
 
 
 let mlobj_to_piqobj piqtype wire_generator mlobj =
-  debug_loc "mlobj_to_obj(0)";
+  debug_loc "mlobj_to_piqobj(0)";
   let binobj = Piqirun.gen_binobj wire_generator mlobj in
-  debug_loc "mlobj_to_obj(1.5)";
+  debug_loc "mlobj_to_piqobj(1.5)";
 
   (* dont' resolve defaults when reading wire *)
   let piqobj =
     C.with_resolve_defaults false (Piqobj_of_wire.parse_binobj ~piqtype) binobj
   in
-  debug_loc "mlobj_to_obj(1)";
+  debug_loc "mlobj_to_piqobj(1)";
+  assert_loc ();
+
   piqobj
 
 
 let mlobj_to_ast piqtype wire_generator mlobj =
+  debug_loc "mlobj_to_ast(0)";
   let piqobj = mlobj_to_piqobj piqtype wire_generator mlobj in
+  debug_loc "mlobj_to_ast(1.5)";
   let ast = Piqobj_to_piq.gen_obj piqobj in
   debug_loc "mlobj_to_ast(1)";
   ast
@@ -592,10 +604,14 @@ let mlobj_of_ast piqtype wire_parser ast =
   let piqobj =
     C.with_resolve_defaults true (Piqobj_of_piq.parse_obj piqtype) ast
   in
+  debug_loc "mlobj_of_ast(1.5)";
+
   Piqobj_of_piq.delay_unknown_warnings := false;
 
   let mlobj = mlobj_of_piqobj wire_parser piqobj in
   debug_loc "mlobj_of_ast(1)";
+  assert_loc ();
+
   mlobj
 
 

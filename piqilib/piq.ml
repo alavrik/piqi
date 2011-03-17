@@ -210,9 +210,21 @@ let piqi_to_pb piqi =
 
 
 let piqi_of_wire bin ~cache =
+  (* don't store location references as we're loading from the binary object *)
+  Piqloc.pause ();
   let piqi = T.parse_piqi bin in
+  Piqloc.resume ();
+
   Piqi.process_piqi piqi ~cache;
   piqi
+
+
+let piqobj_of_wire piqtype buf =
+  (* don't store location references as we're loading from the binary object *)
+  Piqloc.pause ();
+  let obj = Piqobj_of_wire.parse_obj piqtype buf in
+  Piqloc.resume ();
+  obj
 
 
 let process_piqtype code typename =
@@ -246,7 +258,7 @@ let rec load_wire_obj buf :obj =
     | 2 ->
         (match !default_piqtype with
           | Some piqtype ->
-              let obj = Piqobj_of_wire.parse_obj piqtype field_obj in
+              let obj = piqobj_of_wire piqtype field_obj in
               Piqobj obj
           | None ->
               (* TODO: add stream position info *)
@@ -254,7 +266,7 @@ let rec load_wire_obj buf :obj =
         )
     | c -> (* the code is even which means typed piqobj *)
         let piqtype = find_piqtype_by_code (c/2) in
-        let obj = Piqobj_of_wire.parse_obj piqtype field_obj in
+        let obj = piqobj_of_wire piqtype field_obj in
         Typed_piqobj obj
 
 
@@ -320,7 +332,7 @@ let load_pb (piqtype:T.piqtype) wireobj :obj =
     let piqi = piqi_of_wire wireobj ~cache:false in
     Piqi piqi
   else
-    let obj = Piqobj_of_wire.parse_obj piqtype wireobj in
+    let obj = piqobj_of_wire piqtype wireobj in
     Typed_piqobj obj
 
 

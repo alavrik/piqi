@@ -19,6 +19,12 @@
 type loc = string * int * int (* file, line, column *)
 
 
+(* pause storing location references *)
+let is_paused = ref false
+let pause () = is_paused := true
+let resume () = is_paused := false
+
+
 (* internal locator structure: location can be represented by either location
  * itself or by reference to an object which is registered in the location DB *)
 type t = Loc of loc | Ref of Obj.t
@@ -135,7 +141,7 @@ let addref dst src =
   if !trace (* && not (Obj.is_int (Obj.repr dst)) *)
   then check_loc dst;
 
-  if Obj.repr src == Obj.repr dst
+  if Obj.repr src == Obj.repr dst || !is_paused
   then () (* do nothing *)
   else
     db := (Obj.repr src, Ref (Obj.repr dst))::!db
@@ -156,7 +162,12 @@ let icount = ref 0
 let ocount = ref 0
 
 let next_icount () =
-  let res = !icount in incr icount; res
+  let res = !icount in
+  if not !is_paused then incr icount;
+  res
 
 let next_ocount () =
-  let res = !ocount in incr ocount; res
+  let res = !ocount in
+  if not !is_paused then incr ocount;
+  res
+
