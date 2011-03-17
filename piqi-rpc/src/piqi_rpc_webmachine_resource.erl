@@ -87,11 +87,17 @@ service_available(ReqData, Context) ->
 
 allowed_methods(ReqData, Context) ->
     ?PRINT({allowed_methods, wrq:disp_path(ReqData)}),
-    Methods =
-        case wrq:disp_path(ReqData) of
-            "" -> ['GET']; % get_piqi request
-            _ -> ['POST']  % RPC call
-        end,
+
+    % 'POST' is used for making an actual RPC call
+    %
+    % 'GET' is used for get_piqi request
+    %
+    % NOTE: we will return the same Piqi modules regardless of the URL -- this
+    % makes is easier for the user
+    %
+    % XXX: return the base service URL somehow? Maybe using some HTTP header?
+    Methods = ['POST', 'GET'],
+
     % otherwise, return 405 Method not allowed
     {Methods, ReqData, Context}.
 
@@ -105,9 +111,13 @@ malformed_request(ReqData, Context) ->
             throw_malformed("empty query string expected"),
 
         % check that function name doesn't contain "/" characters
-        FuncName = wrq:disp_path(ReqData),
-        lists:member($/, FuncName) andalso
-            throw_malformed("invalid function name: " ++ FuncName),
+        case wrq:method(ReqData) of
+            'POST' ->
+                FuncName = wrq:disp_path(ReqData),
+                lists:member($/, FuncName) andalso
+                    throw_malformed("invalid function name: " ++ FuncName);
+            _ -> ok
+        end,
 
         {_IsMalformed = false, ReqData, Context}
     catch
