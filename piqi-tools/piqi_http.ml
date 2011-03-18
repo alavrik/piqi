@@ -228,13 +228,17 @@ let read_next ch =
 
 
 (* read the body unil eof *)
-let rec read_body ch body_buf =
-  let len = read_next ch in
-  (* add a portion of input we've just read to the buffer *)
-  Buffer.add_substring body_buf read_buf 0 len;
-  if len < read_buf_size
-  then () (* eof *)
-  else read_body ch body_buf
+let read_body ch body_buf =
+  let rec aux () =
+    let len = read_next ch in
+    if len = 0
+    then () (* eof *)
+    else (
+      (* add a portion of input we've just read to the buffer *)
+      Buffer.add_substring body_buf read_buf 0 len;
+      aux ()
+    )
+  in aux ()
 
 
 let read_response ch =
@@ -250,8 +254,7 @@ let read_response ch =
 
   (* read the remainder of the body *)
   (* XXX: use "Content-Length" header? *)
-  if len = read_buf_size
-  then read_body ch body_buf;
+  read_body ch body_buf;
 
   (* return the body as as a string *)
   let body = Buffer.contents body_buf in
