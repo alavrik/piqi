@@ -47,7 +47,7 @@ let gen_name_typeref name typeref =
 let gen_default = function
   | None -> iol [] (* there is no default *)
   | Some {T.Any.ast = Some ast} ->
-      let str = Piq_gen.to_string ast in
+      let str = Piq_gen.to_string ast ~nl:false in
       if String.contains str '\n' (* multiline? *)
       then
         let lines = Piq_gen.split_text str in

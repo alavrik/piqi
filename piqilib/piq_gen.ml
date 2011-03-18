@@ -371,14 +371,14 @@ let format_ast (x:T.ast) =
   aux x ~top:true
 
 
-let to_buffer buf x =
+let to_buffer ?(nl = true) buf x =
   Fmt.Pretty.to_buffer buf (format_ast x);
-  Buffer.add_char buf '\n' (* make sure that text file ends with a newline *)
+  if nl then Buffer.add_char buf '\n'
     
     
-let to_string x =
+let to_string ?(nl = true) x =
   let buf = Buffer.create 256 in
-  to_buffer buf x;
+  to_buffer ~nl buf x;
   Buffer.contents buf
 
 
