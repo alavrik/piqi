@@ -1,5 +1,10 @@
 #!/bin/sh
 
+
+# quit if there's no google/protobuf directoru
+test -d google/protobuf || exit 0
+
+
 #export PIQI_TRACE=1
 set -ex
 

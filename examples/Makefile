@@ -39,11 +39,11 @@ test_complex:
 	./test_piq function
 	./test_piqi_proto function
 
-	piqi of-proto --normalize addressbook.proto
-	./test_piqi addressbook.proto
-	./test_piq addressbook
-
 	./test_getopt
+
+	test ! `which protoc` || (piqi of-proto --normalize addressbook.proto; \
+	./test_piqi addressbook.proto; \
+	./test_piq addressbook;)
 
 
 clean:

@@ -1,15 +1,23 @@
 include $(PIQI_ROOT)/make/Makefile.dirs
 
 
-DIRS = \
-       boot_proto2piqi \
+# Are Protocol Buffers tools installed? Assuming here that the C++ .so libraries
+# are installed as well.
+ifneq ($(shell which protoc), )
+DIRS_DEPENDING_ON_PROTO = \
        piqi_proto \
-       ocaml_piqi \
-       cpp \
+       boot_proto2piqi \
+       cpp
+endif
+
+
+DIRS = \
        examples \
-       ocaml_addressbook \
        piqi.org \
        piqi_server \
+       ocaml_piqi \
+       ocaml_addressbook \
+       $(DIRS_DEPENDING_ON_PROTO)
 
 
 .PHONY: erlang erlang-clean
