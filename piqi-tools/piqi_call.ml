@@ -109,17 +109,13 @@ let init_piqi_common data =
   trace "piqi_call: init Piqi modules returned by the server\n";
   let buf = Piqirun.init_from_string data in
   let bin_piqi_list = Piqirun.parse_list Piqirun.parse_string buf in
-  (* decode piqi modules *)
+  (* decode and load Piqi modules *)
   let piqi_list =
       List.map (fun x ->
           let buf = Piqirun.init_from_string x in
-          T.parse_piqi buf
+          Piq.piqi_of_wire buf ~cache:true
         ) bin_piqi_list
   in
-  (* initialize the client with the server's piqi modules *)
-  List.iter (fun piqi ->
-      Piqi.process_piqi piqi
-    ) piqi_list;
   (* return the last element of the list, it defines the interface to the
    * server *)
   last piqi_list
@@ -181,10 +177,7 @@ let decode_response f output =
   trace "piqi_call: decoding response\n";
   let piqobj_of_bin piqtype data =
     let buf = Piqirun.init_from_string data in
-    Piqloc.pause ();
-    let obj = Piqobj_of_wire.parse_obj (piqtype :> T.piqtype) buf in
-    Piqloc.resume ();
-    obj
+    Piq.piqobj_of_wire (piqtype :> T.piqtype) buf
   in
   match f.T.Func#resolved_output, output with
     | None, `ok_empty -> `ok_empty
