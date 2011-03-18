@@ -28,7 +28,9 @@ open C
 
 (* command-line arguments *)
 let output_encoding = Piqi_convert.output_encoding
-let flag_get_piqi = ref false
+let flag_piqi = ref false
+let flag_piqi_all = ref false
+let flag_piqi_light = ref false
 
 
 (* values of HTTP headers when making Piqi-RPC requests *)
@@ -98,13 +100,6 @@ let call_http_server url body =
           "HTTP rpc error: (status code = %d)\n%s" status body)
 
 
-(* returns the last element of the list *)
-let rec last = function
-  | [] -> failwith "last"
-  | [x] -> x
-  | _::t -> last t
-
-
 let init_piqi_common data =
   trace "piqi_call: init Piqi modules returned by the server\n";
   let buf = Piqirun.init_from_string data in
@@ -116,9 +111,7 @@ let init_piqi_common data =
           Piq.piqi_of_wire buf ~cache:true
         ) bin_piqi_list
   in
-  (* return the last element of the list, it defines the interface to the
-   * server *)
-  last piqi_list
+  piqi_list
 
 
 let get_local_piqi handle =
@@ -229,9 +222,17 @@ let with_open_http f =
     Piqi_http.Error s -> piqi_error ("HTTP rpc error: " ^ s)
 
 
+(* returns the last element of the list *)
+let rec last = function
+  | [] -> failwith "last"
+  | [x] -> x
+  | _::t -> last t
+
+
 let local_call (server_command, func_name) args =
   let f handle =
-    let piqi = get_local_piqi handle in
+    (* the last Piqi module defines the interface to the server *)
+    let piqi = last (get_local_piqi handle) in
 
     let f = find_function piqi func_name in
     let data = encode_input_data f args in
@@ -244,7 +245,8 @@ let local_call (server_command, func_name) args =
 
 let http_call (url, base_url, func_name) args =
   let f () =
-    let piqi = get_http_piqi base_url in
+    (* the last Piqi module defines the interface to the server *)
+    let piqi = last (get_http_piqi base_url) in
 
     let f = find_function piqi func_name in
     let data = encode_input_data f args in
@@ -328,7 +330,7 @@ open Main
 
 let run_call url =
   let ch = open_output !ofile in
-  if not !flag_get_piqi
+  if not (!flag_piqi || !flag_piqi_all || !flag_piqi_light)
   then
     let args = Piqi_getopt.getopt_piq () in
     let writer = Piqi_convert.make_writer !output_encoding in
@@ -337,8 +339,19 @@ let run_call url =
   else
     let is_piqi_input = true in
     let writer = Piqi_convert.make_writer !output_encoding ~is_piqi_input in
-    let piqi = get_piqi url in
-    writer ch (Piq.Piqi piqi)
+    let piqi_list = get_piqi url in
+    if !flag_piqi
+    then
+      let piqi = Piq.original_piqi (last piqi_list) in
+      Piqi_pp.prettyprint_piqi ch piqi
+    else if !flag_piqi_light
+    then
+      let piqi = last piqi_list in
+      Piqi_light.gen_piqi ch piqi
+    else if !flag_piqi_all
+    then
+      List.iter (fun piqi -> writer ch (Piq.Piqi piqi)) piqi_list
+    else assert(false)
 
 
 let usage = "Usage: piqi call [options] <HTTP or local URL> -- [arguments]\nOptions:"
@@ -355,8 +368,17 @@ let speclist = Main.common_speclist @
 
     Piqi_convert.arg__t;
 
-    "--get-piqi", Arg.Set flag_get_piqi,
-    "instead of calling a function, only get Piqi modules from a Piqi-RPC server";
+    "--piqi", Arg.Set flag_piqi,
+    "instead of calling a function, only print the Piqi module that defines the service";
+
+    "--piqi-all", Arg.Set flag_piqi_all,
+    "similar to --piqi, but print all Piqi modules (i.e. dependencies)";
+
+    "--piqi-light", Arg.Set flag_piqi_light,
+    "similar to --piqi, but print the Piqi modules in Piqi-light syntax";
+
+    "-p", Arg.Set flag_piqi_light,
+    "the same as --piqi-light";
 
     Piqi_getopt.arg__rest;
   ]

@@ -18,7 +18,10 @@ set -ex
 # testing handshake and "ping" function
 #
 
-piqi call $flags --get-piqi "piqi server"
+piqi call $flags "piqi server" --piqi
+piqi call $flags "piqi server" --piqi-all
+piqi call $flags "piqi server" --piqi-light
+piqi call $flags "piqi server" -p
 
 piqi call $flags "piqi server/ping"
 
