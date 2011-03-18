@@ -87,7 +87,16 @@ decode_input(RpcMod, Decoder, TypeName, InputFormat, InputData) ->
 
 
 encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output) ->
-    IolistOutput = Encoder(Output),
+    IolistOutput =
+        try Encoder(Output)
+        catch
+            Class:Reason ->
+                Error = io_lib:format(
+                    "~p,~nexception ~w:~p, stacktrace: ~p",
+                    [Output, Class, Reason, erlang:get_stacktrace()]),
+                throw_rpc_error(
+                    {'invalid_output', "error encoding output: " ++ Error})
+        end,
     BinOutput = iolist_to_binary(IolistOutput),
     case OutputFormat of
         'pb' -> {ok, BinOutput}; % already in needed format
@@ -142,7 +151,7 @@ handle_invalid_result(Name, Result) ->
 handle_runtime_exception(throw, {'rpc_error', _} = X) -> X;
 handle_runtime_exception(Class, Reason) ->
     % XXX: limit the size of the returned Reason string by using "~P"?
-    Error = io_lib:format("~w:~p, stacktrace: ~p",
+    Error = io_lib:format("exception ~w:~p, stacktrace: ~p",
         [Class, Reason, erlang:get_stacktrace()]),
     {'rpc_error', {'internal_error', iolist_to_binary(Error)}}.
 
