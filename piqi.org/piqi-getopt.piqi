@@ -22,5 +22,11 @@
         .type word
         .optional
     ]
+
+    .field [
+        .name getopt-doc
+        .type string
+        .optional
+    ]
 ]
 

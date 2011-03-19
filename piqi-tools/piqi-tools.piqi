@@ -29,7 +29,7 @@
     .input [
         .field [
             .name type-name
-            .type piq-word  % string?
+            .type string
         ]
 
         .field [

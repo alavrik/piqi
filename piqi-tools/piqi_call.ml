@@ -31,6 +31,7 @@ let output_encoding = Piqi_convert.output_encoding
 let flag_piqi = ref false
 let flag_piqi_all = ref false
 let flag_piqi_light = ref false
+let flag_h = ref false
 
 
 (* values of HTTP headers when making Piqi-RPC requests *)
@@ -324,13 +325,233 @@ let gen_result ch writer res =
         exit 1
 
 
+(*
+ * Printing getopt help (piqi call <URL> -h)
+ *)
+
+open Iolist
+
+
+let gen_typename x = ios "<" ^^ ios x ^^ ios ">"
+
+
+let gen_piqtype t =
+  gen_typename (piqi_typename t)
+
+
+let gen_typeref (t:T.typeref) =
+  match t with
+    | `name x -> gen_typename x
+    | (#T.piqtype as t) -> gen_piqtype t
+
+
+let max_opt_len = ref 0
+let reset_padding () = max_opt_len := 0
+
+let padded s =
+  let str_len = String.length s in
+  let max_len = max !max_opt_len str_len in
+  max_opt_len := max_len;
+  let pad_len = max_len - str_len + 4 in
+  let padding = String.make pad_len ' ' in
+  iol [ ios s; ios padding ]
+
+
+let gen_option_help typeref name getopt_letter getopt_doc =
+  let short =
+    match getopt_letter with
+      | None -> ios ""
+      | Some x -> ios "-" ^^ ios x ^^ ios ", "
+  in
+  let long = ios "--" ^^ ios name in
+  let res = iol [ short; long ] in
+  let res =
+    match typeref with
+      | None -> res
+      | Some t -> iol [ res; ios " "; gen_typeref t ]
+  in
+  let res =
+    match getopt_doc with
+      | None -> res
+      | Some x ->
+          let s = Iolist.to_string res in
+          iol [ padded s; ios x ]
+  in
+  res
+
+
+let gen_default = function
+  | None -> iol [] (* there is no default *)
+  | Some {T.Any.ast = Some ast} ->
+      let str = Piq_gen.to_string ast ~nl:false in
+      if String.contains str '\n' (* multiline? *)
+      then
+        ios " (default = ...)"
+      else
+        iol [ ios " (default = "; ios str; ios ")" ]
+  | _ ->
+      assert false
+
+
+let gen_field_mode = function
+    | `required -> ""
+    | `optional -> " (optional)"
+    | `repeated -> " (repeated)"
+
+
+(* output indentation settings *)
+let func_indent = ios "  "
+let field_indent = ios "    "
+
+
+let gen_field x =
+  let open F in
+  let field_mode = gen_field_mode x.mode in
+  iol [
+    field_indent;
+    gen_option_help x.typeref (name_of_field x) x.getopt_letter x.getopt_doc;
+    ios field_mode;
+    gen_default x.default;
+  ]
+
+
+let gen_record name x =
+  let open R in
+  (* first run is to calculate padding *)
+  let _ =
+    reset_padding ();
+    List.map gen_field x.field
+  in
+  let fields = List.map gen_field x.field in
+  if fields = []
+  then iol []
+  else
+    iol [
+      gen_typename name; ios ", which ";
+      if List.tl fields = [] (* record contains only one field *)
+      then ios "is:"
+      else ios "is a combination of:";
+      ios "\n\n";
+      iod "\n" fields;
+    ]
+
+
+let gen_option x =
+  let open O in
+  iol [
+    field_indent;
+    gen_option_help x.typeref (name_of_option x) x.getopt_letter x.getopt_doc;
+  ]
+
+
+let gen_variant_options x =
+  let open V in
+  (* first run is to calculate padding *)
+  let _ =
+    reset_padding ();
+    List.map gen_option x.option
+  in
+  let options = List.map gen_option x.option in
+  iol [
+    ios "\n\n";
+    iod "\n" options;
+  ]
+
+
+let gen_variant name x =
+  let open V in
+  iol [
+    gen_typename name;
+    ios ", which is one of:";
+    gen_variant_options x;
+  ]
+
+
+let gen_enum = gen_variant
+
+
+let gen_list x =
+  let open L in
+  let typename = gen_typeref x.typeref in
+  iol [
+    ios "["; typename; ios " ...]";
+    match unalias (piqtype x.typeref) with
+      | `variant x | `enum x ->
+          iol [
+            ios ", where "; typename; ios " is one of:";
+            gen_variant_options x;
+          ]
+      | _ ->
+          iol []
+  ]
+
+
+let gen_def name t =
+  match t with
+    | `record t -> gen_record name t
+    | `variant t -> gen_variant name t
+    | `enum t -> gen_enum name t
+    | `list t -> gen_list t
+    | `alias t -> assert false
+    | t -> gen_typename name (* primitive type *)
+
+
+let gen_input def =
+  match def with
+    | `record x -> gen_record "input" x
+    | `alias x ->
+        let t = piqtype x.A#typeref in
+        let name = piqi_typename t in
+        gen_def name (unalias t)
+
+
+let gen_func_help f =
+  let open T.Func in
+  let help =
+    match f.resolved_input with
+      | None -> ios f.name
+      | Some t ->
+          let params = gen_input t in
+          iol [ ios f.name; ios " -- "; params ]
+  in
+  iol [
+    func_indent;
+    help;
+    ios "\n\n"
+  ]
+
+
+let print_help ch piqi =
+  let open P in
+
+  (* first display functions that don't have input *)
+  let func_list = piqi.resolved_func in
+  let l1, l2 = List.partition (fun x -> x.T.Func#input = None) func_list in
+  let func_list = l1 @ l2 in
+
+  let func_help = List.map gen_func_help func_list in
+  let code =
+    match func_help with
+      | [] ->
+          ios "\nPiqi-RPC service doesn't define any functions.\n\n"
+      | _ ->
+          iol [
+            ios "\nPiqi-RPC functions (use -p flag for more details):\n\n";
+            iol func_help;
+          ]
+  in
+  Iolist.to_channel ch code
+
+(* -- end printing getopt help *)
+
+
 module Main = Piqi_main
 open Main
 
 
 let run_call url =
   let ch = open_output !ofile in
-  if not (!flag_piqi || !flag_piqi_all || !flag_piqi_light)
+  if not (!flag_piqi || !flag_piqi_all || !flag_piqi_light || !flag_h)
   then
     let args = Piqi_getopt.getopt_piq () in
     let writer = Piqi_convert.make_writer !output_encoding in
@@ -351,10 +572,13 @@ let run_call url =
     else if !flag_piqi_all
     then
       List.iter (fun piqi -> writer ch (Piq.Piqi piqi)) piqi_list
+    else if !flag_h
+    then
+      print_help ch (last piqi_list)
     else assert(false)
 
 
-let usage = "Usage: piqi call [options] <HTTP or local URL> -- [arguments]\nOptions:"
+let usage = "Usage: piqi call [options] <URL> -- [call arguments]\nOptions:"
 
 
 (* URL: <server>/<method> *)
@@ -379,6 +603,9 @@ let speclist = Main.common_speclist @
 
     "-p", Arg.Set flag_piqi_light,
     "the same as --piqi-light";
+
+    "-h", Arg.Set flag_h,
+    "print command-line usage help for Piqi functions";
 
     Piqi_getopt.arg__rest;
   ]
