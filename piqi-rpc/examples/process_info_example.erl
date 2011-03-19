@@ -10,15 +10,15 @@ list_processes('undefined') ->
     {ok, Res}.
 
 
-get_process_info(Input) ->
-    try do_get_process_info(Input)
+process_info(Input) ->
+    try do_process_info(Input)
     catch
         {error, _} = Error -> Error
     end.
 
 
-do_get_process_info(Input) ->
-    PidBin = Input#get_process_info_input.pid,
+do_process_info(Input) ->
+    PidBin = Input#process_info_input.pid,
     Pid =
         try
             list_to_pid(binary_to_list(PidBin))
@@ -92,7 +92,7 @@ s(X) ->
 
 encode_func('undefined') -> 'undefined';
 encode_func({M, F, A}) ->
-    #func{module = s(M), function = s(F), arity = A}.
+    lists:concat([M, ":", F, "/", A]).
 
 
 encode_links('undefined') -> 'undefined';
@@ -123,8 +123,24 @@ encode_suspendee({Suspendee, ActiveSuspendCount, OutstandingSuspendCount}) ->
     }.
 
 
-list_processes_ext(Properties) ->
+list_process_info(Properties0) ->
     L = erlang:processes(),
+
+    Properties =
+        case lists:member(all, Properties0) of
+            true ->
+                % NOTE: this list doesn't include the 'messages' and
+                % 'dictionary' properties
+                DefaultProps = [
+                    registered_name, current_function, initial_call, status,
+                    message_queue_len, links, trap_exit, error_handler, priority,
+                    group_leader, total_heap_size, heap_size, stack_size,
+                    reductions
+                ],
+                lists:usort((Properties0 -- [all]) ++ DefaultProps);
+            false ->
+                Properties0
+        end,
     Res = [ make_process(X, Properties) || X <- L],
     {ok, Res}.
 
