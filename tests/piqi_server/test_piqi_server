@@ -73,6 +73,8 @@ echo ':string "foo bar"' | piqi convert -f piq -t json > t.json
 
 piqi call $flags $out 'piqi server/convert' -- --type-name string --data @t.pb --pb --json
 piqi call $flags $out 'piqi server/convert' -- --type-name string --data @t.json --json --pb
+piqi call -t json $flags $out 'piqi server/convert' -- --type-name string --data @t.json --json --pb
+piqi call -t xml $flags $out 'piqi server/convert' -- --type-name string --data @t.json --json --pb
 
 
 # TODO: test conversion of values with user-defined types
