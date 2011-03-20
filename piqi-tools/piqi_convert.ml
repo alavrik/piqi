@@ -156,7 +156,6 @@ let make_reader input_encoding =
         let wireobj = Piq.open_pb !ifile in
         make_reader (load_pb piqtype) wireobj
     | "json" | "piq-json" ->
-        Piqi_json.init ();
         let piqtype =
           if !typename <> ""
           then Some (get_piqtype !typename)
@@ -190,10 +189,8 @@ let make_writer ?(is_piqi_input=false) output_encoding =
     | "piq" -> Piq.write_piq
     | "wire" -> Piq.write_wire
     | "json" ->
-        Piqi_json.init ();
         write_plain Piq.write_json ~is_piqi_input
     | "piq-json" ->
-        Piqi_json.init ();
         Piq.write_piq_json
     | "pb" ->
         write_plain write_pb ~is_piqi_input
@@ -295,6 +292,7 @@ let validate_options input_encoding =
 
 
 let convert_file () =
+  Piqi_json.init ();
   let input_encoding =
     if !input_encoding <> ""
     then !input_encoding
