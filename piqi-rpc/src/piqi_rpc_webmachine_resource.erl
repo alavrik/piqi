@@ -344,9 +344,7 @@ rpc(ReqData, Context, InputFormat) ->
             {{halt, 500}, NewReqData, Context};
 
         {'rpc_error', {'service_unavailable', Err}} ->
-            % return 500 "Internal Server Error" NOTE: using the same status
-            % code as for application error, but different Content-Type. See the
-            % "{error, _}" case for the details.
+            % return 503 "Service Unavailable"
             NewReqData = set_string_error(Err, ReqData),
             {{halt, 503}, NewReqData, Context}
 
