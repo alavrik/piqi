@@ -69,8 +69,8 @@ FILES
   piqilib/              Piqi common library
   piqirun-ocaml/        Piqi runtime library for OCaml
   piqi-erlang/          Piqi runtime library and Piqi tools bindings for Erlang
+  piqi-rpc/             an RPC over HTTP system for Erlang
   examples/             examples
   tests/                tests for various piqi functionality; see tests/README
   editors/              text editor plugins for .piq and .piqi files
-  piqi-rpc/             an RPC over HTTP system for Erlang
 
