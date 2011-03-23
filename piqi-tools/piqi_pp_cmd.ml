@@ -31,7 +31,7 @@ let open_piq fname =
 
 
 let read_piq_obj piq_parser =
-  let res = Piq_parser.read_next piq_parser in
+  let res = Piq_parser.read_next piq_parser ~expand_abbr:!flag_expand_abbr in
   (* reset location db to allow GC to collect previously read objects *)
   Piqloc.reset ();
   res
@@ -58,16 +58,9 @@ let normalize ast =
 
 
 let transform_ast ast =
-  let ast =
-    if !flag_normalize
-    then normalize ast
-    else ast
-  in
-  let ast =
-    if !flag_expand_abbr
-    then Piq_parser.expand ast
-    else ast
-  in ast
+  if !flag_normalize
+  then normalize ast
+  else ast
 
 
 let prettyprint_piq ch piq_parser =
@@ -88,7 +81,7 @@ open Main
 
 let prettyprint_file filename =
   let ch = Main.open_output !ofile in
-  (* switch piq parser/generator to pretty-print mode *)
+  (* switch piq lexer and generator to pretty-printing mode *)
   Config.pp_mode := true;
   let piq_parser = open_piq filename in
   prettyprint_piq ch piq_parser

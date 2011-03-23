@@ -47,8 +47,32 @@ module Config = Piqi_config
 module Iolist = Piqi_iolist
 
 
+(*
+ * common global variables
+ *)
+
+(* provide default values automatically when loading data from various intput
+ * formats: Piq, Wire, JSON *)
+let resolve_defaults = ref false
+
+
 (* lazily loaded representation of piqi-boot.piqi (see piqi.ml for details) *)
 let boot_piqi :T.piqi option ref = ref None
+
+
+(*
+ * Common functions
+ *)
+
+(* Run a function with a specific resolve_defauls setting. The global
+ * "resolve_defaults" variable is preserved *)
+let with_resolve_defaults new_resolve_defaults f x =
+   let saved = !resolve_defaults in
+   resolve_defaults := new_resolve_defaults;
+   let res = f x in
+   resolve_defaults := saved;
+   res
+
 
 let is_boot_piqi p =
   match !boot_piqi with
@@ -249,6 +273,57 @@ let rec unalias = function
   | t -> t
 
 
+let is_piqdef t =
+  match unalias t with
+    | #T.piqdef -> true
+    | _ -> false
+
+
+let is_primitive_piqtype t =
+  match unalias t with
+    | `enum _ -> true
+    | #T.piqdef -> false
+    | _ -> true
+
+
+(* is record or list or alias of the two *)
+let is_container_type t =
+  match unalias t with
+    | (#T.piqdef as t) ->
+        (match t with
+          | `record _ | `list _ -> true
+          | _ -> false
+        )
+    | _ -> false
+
+
+(* check if the module is a Piqi self-specification, i.e. it is
+ * "piqi.org/piqtype" or includes it *)
+let is_self_spec (piqi: T.piqi) =
+  (* XXX: cache this information to avoid computing it over and over again *)
+  List.exists
+    (fun x -> x.P#modname = Some "piqi.org/piqtype")
+    piqi.P#included_piqi
+
+
+(* check if any of the module's definitions depends on "piq_any" type *)
+let depends_on_piq_any (piqi: T.piqi) =
+  let aux x =
+    let is_any x = (unalias (piqtype x)) = `any in
+    let is_any_opt = function
+      | Some x -> is_any x
+      | None -> false
+    in
+    match x with
+      | `record x -> List.exists (fun x -> is_any_opt x.F#typeref) x.R#field
+      | `variant x -> List.exists (fun x -> is_any_opt x.O#typeref) x.V#option
+      | `list x -> is_any x.L#typeref
+      | `enum _ -> false
+      | `alias _ -> false (* don't check aliases, we do unalias instead *)
+  in
+  List.exists aux piqi.P#resolved_piqdef
+
+
 (* 
  * error reporting, printing and handling
  *)
@@ -259,6 +334,15 @@ let string_of_loc (file, line, col) =
 
 let strerr loc s = 
   string_of_loc loc ^ ": " ^ s
+
+
+let string_of_exn exn =
+  Printexc.to_string exn
+  (* this is not supported in all runtime modes, and it is not compatible with
+   * OCaml 3.10 *)
+  (*
+  Printexc.to_string exn ^ " ; backtrace: " ^ Printexc.get_backtrace ()
+  *)
 
 
 (* piq/piqi language error *)

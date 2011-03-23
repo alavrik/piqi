@@ -37,15 +37,14 @@ test_complex:
 
 	./test_piqi function
 	./test_piq function
-
-	ln -sf addressbook/addressbook.proto .
-	piqi of-proto --normalize addressbook.proto
-	ln -sf addressbook/addressbook.piq .
-	./test_piqi addressbook.proto
-	./test_piq addressbook
+	./test_piqi_proto function
 
 	./test_getopt
 
+	test ! `which protoc` || (piqi of-proto --normalize addressbook.proto; \
+	./test_piqi addressbook.proto; \
+	./test_piq addressbook;)
+
 
 clean:
-	rm -f *.pb *.wire *.json *.proto* addressbook.* piqobj.piqi
+	rm -f *.pb *.wire *.json *.xml *.piqi.proto* addressbook.proto.piqi piqobj.piqi

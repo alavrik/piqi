@@ -33,9 +33,9 @@ open Piqic_erlang_out
 let rec gen_parse_type erlang_type wire_type x =
   match x with
     | `any ->
-        if !top_modname = "piqtype"
-        then ios "parse_any"
-        else ios "piqtype:parse_any"
+        if !Piqic_common.is_self_spec
+        then ios "parse_" ^^ ios !any_erlname
+        else ios "piqtype_piqi:parse_any"
     | (#T.piqdef as x) ->
         let modname = gen_parent x in
         modname ^^ ios "parse_" ^^ ios (piqdef_erlname x)
@@ -51,18 +51,22 @@ and gen_parse_typeref ?erlang_type ?wire_type (t:T.typeref) =
   gen_parse_type erlang_type wire_type (piqtype t)
 
 
+let gen_erlang_binary x =
+  let codes =
+    List.map (fun x ->
+      ios (string_of_int (Char.code x))) (list_of_string x)
+  in
+  iol [ ios "<<"; iod "," codes; ios ">>" ]
+
+
 (* XXX: parse defaults once at boot time rather than each time when we need to
  * parse a field *)
 let gen_default = function
   | None -> iol []
   | Some {T.Any.binobj = Some x} ->
-      let codes =
-        List.map (fun x ->
-          ios (string_of_int (Char.code x))) (list_of_string x)
-      in
       iol [
         ios ", "; (* separate Default from the previous parameter *)
-        ios "<<"; iod "," codes; ios ">>";
+        gen_erlang_binary x;
       ]
   | _ ->
       assert false (* binobj should be defined by that time *)
@@ -124,10 +128,15 @@ let gen_record r =
   let fparserl = (* field parsers list *)
     List.map (gen_field_parser i) fields
   in
+  let parsers_code =
+    match fparserl with
+      | [] -> iol []
+      | _ -> iol [ iod ",\n    " fparserl; ios ","; eol; ]
+  in
   iol [
     ios "parse_"; ios name; ios "(X) -> "; indent;
       ios "R0 = piqirun:parse_record(X),"; eol;
-      iod ",\n    " fparserl; ios ","; eol;
+      parsers_code;
       ios "piqirun:check_unparsed_fields("; rest i; ios "),"; eol;
       ios "#"; ios (scoped_name name); ios "{"; indent;
       iod ",\n        " fconsl;
@@ -148,14 +157,10 @@ let gen_const c =
 let gen_enum e =
   let open Enum in
   let consts = List.map gen_const e.option in
-  let cases =
-    [ ios "Y when not is_integer(Y) -> piqirun:error_enum_const(Y)" ] @
-    consts @
-    [ ios "_ -> piqirun:error_enum_obj(X)" ]
-  in
+  let cases = consts @ [ ios "Y -> piqirun:error_enum_const(Y)" ] in
   iol [
     ios "parse_" ^^ ios (some_of e.erlang_name); ios "(X) ->"; indent;
-    ios "case X of"; indent;
+    ios "case piqirun:non_neg_integer_of_varint(X) of"; indent;
       iod ";\n        " cases;
       unindent; eol;
       ios "end.";
@@ -247,18 +252,8 @@ let gen_def x =
   ]
 
 
-let gen_def x =
-  let open Alias in
-  match x with
-    | `alias a ->
-        if a.typeref = `any && not !Piqic_common.depends_on_piq_any
-        then []
-        else [gen_def x]
-    | _ -> [gen_def x]
-
-
 let gen_defs (defs:T.piqdef list) =
-  let defs = flatmap gen_def defs in
+  let defs = List.map gen_def defs in
   iod "\n" defs
 
 

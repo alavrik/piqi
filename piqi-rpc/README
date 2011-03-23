@@ -1,0 +1,44 @@
+This directory contains Piqi-RPC —- an RPC-over-HTTP system for Erlang.
+
+
+Full description and documentation are available at
+
+        http://piqi.org/doc/piqi-rpc
+
+
+The "examples" directory contains several examples of Piqi-RPC services
+implemented in Erlang.
+
+
+PREREQUISITES
+=============
+
+Piqi-RPC depends on several open-source components. They need to be installed
+before building or running Piqi-RPC.
+
+
+* Mochiweb 
+
+        HTTP server for Erlang
+        
+        Source code: http://github.com/mochi/mochiweb
+        
+
+* Webmachine
+
+        HTTP library for writing well-behaving HTTP services. It works on top of
+        Mochiweb.
+
+        Homepage: http://webmachine.basho.com/
+        Source code: http://github.com/basho/webmachine
+
+
+The easiest way to install both is to download webmachine and follow
+installation instructions.
+
+Once installed, make sure that they are added to Erlang code paths. There are
+many ways to do that, one of them is to set the "ERL_LIBS" environment variable:
+
+
+        export ERL_LIBS="<path-to-your-webmachine-directory>:$ERL_LIBS"
+

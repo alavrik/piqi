@@ -6,6 +6,7 @@ piqi_version.ml
 piqi_c_impl.c
 piqi_main.ml
 piqi.ml
+piqi_pp.ml
 piq_parser.ml
 piqi_common.ml
 piqobj_to_piq.ml

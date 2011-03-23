@@ -1,5 +1,5 @@
 
-Piqi tools
+The Piqi project
 Copyright 2009, 2010, 2011 Anton Lavrik
 
 This distribution includes software originally developed by Anton Lavrik as a
@@ -121,5 +121,15 @@ easy-format
 
         Location: deps/easy-format-1.0.0/
         Homepage: http://martin.jambon.free.fr/easy-format.html 
+        License: BSD
+
+
+xmlm
+====
+        Streaming XML input/output library for OCaml written by
+        Daniel C. Bünzli.
+
+        Location: deps/xmlm-1.0.2
+        Homepage: http://erratique.ch/software/xmlm
         License: BSD
 

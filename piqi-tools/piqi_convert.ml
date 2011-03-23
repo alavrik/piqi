@@ -35,21 +35,29 @@ let flag_embed_piqi = ref false
 let usage = "Usage: piqi convert [options] [input file] [output file]\nOptions:"
 
 
+let arg__t =
+    "-t", Arg.Set_string output_encoding,
+    "piq|wire|pb|json|piq-json|xml output encoding (piq is used by default)"
+
+let arg__piqtype =
+    "--piqtype", Arg.Set_string typename,
+    "<typename> type of converted object when converting from .pb, plain .json or .xml"
+
+let arg__add_defaults =
+    "--add-defaults", Arg.Set flag_add_defaults,
+    "add field default values while converting records"
+
+
 let speclist = Main.common_speclist @
   [
     arg_o;
 
     "-f", Arg.Set_string input_encoding,
-    "piq|wire|pb|json|piq-json input encoding";
+    "piq|wire|pb|json|piq-json|xml input encoding";
 
-    "-t", Arg.Set_string output_encoding,
-    "piq|wire|pb|json|piq-json output encoding (piq is used by default)";
-
-    "--piqtype", Arg.Set_string typename,
-    "<typename> type of converted object when converting from .pb or plain .json";
-
-    "--add-defaults", Arg.Set flag_add_defaults,
-    "add field default values while converting records";
+    arg__t;
+    arg__piqtype;
+    arg__add_defaults;
 
     "--embed-piqi", Arg.Set flag_embed_piqi,
     "embed Piqi dependencies, i.e. Piqi specs which the input depends on";
@@ -122,7 +130,9 @@ let write_pb ch (obj: Piq.obj) =
   else
     piqi_error "converting more than one object to \"pb\" is not allowed"
 
-let write_pb is_piqi_input ch (obj: Piq.obj) =
+
+(* write only data and skip Piqi specifications and data hints *)
+let write_plain ~is_piqi_input writer ch (obj: Piq.obj) =
   match obj with
     | Piq.Piqi _ when not is_piqi_input ->
         (* ignore embedded Piqi specs if we are not converting .piqi *)
@@ -130,28 +140,11 @@ let write_pb is_piqi_input ch (obj: Piq.obj) =
     | Piq.Piqtype _ ->
         (* ignore default type names *)
         ()
-    | _ -> write_pb ch obj
+    | _ -> writer ch obj
 
 
 let make_reader load_f input_param =
   (fun () -> load_f input_param)
-
-
-let init_json_writer () =
-  Piqi_json.init ();
-  (* XXX: We need to resolve all defaults before converting to JSON
-   * since it is a dynamic encoding *)
-  flag_add_defaults := true;
-  ()
-
-
-let init_json_reader () =
-  Piqi_json.init ();
-  if !typename <> ""
-  then
-    let piqtype = get_piqtype !typename in
-    Piq.default_piqtype := Some piqtype
-  else ()
 
 
 let make_reader input_encoding =
@@ -163,11 +156,21 @@ let make_reader input_encoding =
         let wireobj = Piq.open_pb !ifile in
         make_reader (load_pb piqtype) wireobj
     | "json" | "piq-json" ->
-        init_json_reader ();
+        let piqtype =
+          if !typename <> ""
+          then Some (get_piqtype !typename)
+          else None
+        in
         let json_parser = Piqi_json.open_json !ifile in
-        make_reader Piq.load_json_obj json_parser
+        make_reader (Piq.load_piq_json_obj piqtype) json_parser
+    | "xml" when !typename = "" ->
+        piqi_error "--piqtype parameter must be specified for \"xml\" input encoding"
+    | "xml" ->
+        let piqtype = get_piqtype !typename in
+        let xml_parser = Piqi_xml.open_xml !ifile in
+        make_reader (Piq.load_xml_obj piqtype) xml_parser
     | _ when !typename <> "" ->
-        piqi_error "--piqtype parameter is applicable only to \"pb\" or \"json\" input encodings"
+        piqi_error "--piqtype parameter is applicable only to \"pb\",\"json\" or \"xml\" input encodings"
     | "piq" ->
         let piq_parser = Piq.open_piq !ifile in
         make_reader Piq.load_piq_obj piq_parser
@@ -186,12 +189,13 @@ let make_writer ?(is_piqi_input=false) output_encoding =
     | "piq" -> Piq.write_piq
     | "wire" -> Piq.write_wire
     | "json" ->
-        init_json_writer ();
-        Piq.write_json is_piqi_input
+        write_plain Piq.write_json ~is_piqi_input
     | "piq-json" ->
-        init_json_writer ();
         Piq.write_piq_json
-    | "pb" -> write_pb is_piqi_input
+    | "pb" ->
+        write_plain write_pb ~is_piqi_input
+    | "xml" ->
+        write_plain Piq.write_xml ~is_piqi_input
     | _ ->
         piqi_error "unknown output encoding"
 
@@ -212,20 +216,21 @@ let remove_update_seen l =
   List.filter check_update_unseen l
 
 
-let get_piqi_deps piqi =
+let rec get_piqi_deps piqi =
   if C.is_boot_piqi piqi
   then [] (* boot Piqi is not a dependency *)
   else
     (* get all includes and includes from all included modules *)
     let includes = piqi.P#included_piqi in
-    (* get all imports and imports from all included modules *)
-    let imports =
-      List.map (fun x ->
-        let piqi = some_of x.T.Import#piqi in
-        piqi.P#included_piqi) piqi.P#resolved_import
+    (* get all dependencies from imports *)
+    let import_deps =
+      flatmap (fun x ->
+          let piqi = some_of x.T.Import#piqi in
+          flatmap get_piqi_deps piqi.P#included_piqi)
+        piqi.P#resolved_import
     in
     (* NOTE: imports go first in the list of dependencies *)
-    let l = (List.concat imports) @ includes in
+    let l = import_deps @ includes in
     (* remove duplicate entries *)
     C.uniqq l
 
@@ -277,14 +282,17 @@ let validate_options input_encoding =
       then piqi_error "can't --embed-piqi when converting .piqi to .pb"
     )
     else ( (* input_encoding <> "piqi" *)
-      if !output_encoding = "json" || !output_encoding = "pb"
-      then piqi_warning
-        "--embed-piqi doesn't have any effect when converting to .pb or .json; use .wire or .piq-json"
+      match !output_encoding with
+        | "json" | "xml" | "pb" ->
+          piqi_warning
+            "--embed-piqi doesn't have any effect when converting to .pb, .json or .xml; use .wire or .piq-json"
+        | _ -> ()
     )
   )
 
 
 let convert_file () =
+  Piqi_json.init ();
   let input_encoding =
     if !input_encoding <> ""
     then !input_encoding
@@ -309,9 +317,14 @@ let convert_file () =
   in
   let och = Main.open_output ofile in
 
-  (* XXX, TODO: unify this parameter across all readers, i.e. make it global *)
-  Piqobj_of_wire.resolve_defaults := !flag_add_defaults;
-  Piqobj_of_piq.resolve_defaults := !flag_add_defaults;
+  (* XXX: We need to resolve all defaults before converting to JSON or XML since
+   * they are dynamic encoding, and it would be too unreliable and inefficient
+   * to let a consumer decide what a default value for a field should be in case
+   * if the field is missing. *)
+  C.resolve_defaults := !flag_add_defaults ||
+    (match !output_encoding with
+      | "json" | "piq-json" | "xml" -> true
+      | _ -> false);
 
   (* main convert cycle *)
   try 
@@ -353,5 +366,5 @@ let run () =
  
 let _ =
   Main.register_command run "convert"
-    "convert data files between various encodings (piq, wire, pb, json, piq-json)"
+    "convert data files between various encodings (piq, wire, pb, json, piq-json, xml)"
 

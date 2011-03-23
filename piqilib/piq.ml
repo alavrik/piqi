@@ -71,7 +71,8 @@ let process_default_piqtype ?check typename =
 
 
 let piqi_of_piq fname ast =
-  let piqi = Piqi.load_piqi_ast fname ast in
+  let piqi = Piqi.parse_piqi ast in
+  Piqi.process_piqi piqi ~fname; (* NOTE: caching the loaded module *)
   piqi
 
 
@@ -134,18 +135,20 @@ let piqi_to_piq piqi =
   }
 
 
+let gen_piq (obj :obj) =
+  match obj with
+    | Piqtype typename ->
+        make_piqtype typename
+    | Piqi piqi ->
+        piqi_to_piq piqi
+    | Typed_piqobj obj ->
+        Piqobj_to_piq.gen_typed_obj obj
+    | Piqobj obj ->
+        Piqobj_to_piq.gen_obj obj
+
+
 let write_piq ch (obj:obj) =
-  let ast =
-    match obj with
-      | Piqtype typename ->
-          make_piqtype typename
-      | Piqi piqi ->
-          piqi_to_piq piqi
-      | Typed_piqobj obj ->
-          Piqobj_to_piq.gen_typed_obj obj
-      | Piqobj obj ->
-          Piqobj_to_piq.gen_obj obj
-  in
+  let ast = gen_piq obj in
   Piq_gen.to_channel ch ast;
   (* XXX: add one extra newline for better readability *)
   Pervasives.output_char ch '\n'
@@ -206,11 +209,22 @@ let piqi_to_pb piqi =
   T.gen_piqi (-1) (original_piqi piqi)
 
 
-let piqi_of_wire bin =
+let piqi_of_wire bin ~cache =
+  (* don't store location references as we're loading from the binary object *)
+  Piqloc.pause ();
   let piqi = T.parse_piqi bin in
-  let fname = "" in (* XXX *)
-  Piqi.process_piqi fname piqi; (* NOTE: caching the loaded module *)
+  Piqloc.resume ();
+
+  Piqi.process_piqi piqi ~cache;
   piqi
+
+
+let piqobj_of_wire piqtype buf =
+  (* don't store location references as we're loading from the binary object *)
+  Piqloc.pause ();
+  let obj = Piqobj_of_wire.parse_obj piqtype buf in
+  Piqloc.resume ();
+  obj
 
 
 let process_piqtype code typename =
@@ -227,7 +241,8 @@ let rec load_wire_obj buf :obj =
   let field_code, field_obj = read_wire_field buf in
   match field_code with
     | c when c = piqi_spec_wire_code -> (* embedded Piqi spec *)
-        let piqi = piqi_of_wire field_obj in
+        (* NOTE: caching the loaded module *)
+        let piqi = piqi_of_wire field_obj ~cache:true in
         Piqi piqi
     | c when c mod 2 = 1 ->
         let typename = Piqirun.parse_string field_obj in
@@ -243,7 +258,7 @@ let rec load_wire_obj buf :obj =
     | 2 ->
         (match !default_piqtype with
           | Some piqtype ->
-              let obj = Piqobj_of_wire.parse_obj piqtype field_obj in
+              let obj = piqobj_of_wire piqtype field_obj in
               Piqobj obj
           | None ->
               (* TODO: add stream position info *)
@@ -251,7 +266,7 @@ let rec load_wire_obj buf :obj =
         )
     | c -> (* the code is even which means typed piqobj *)
         let piqtype = find_piqtype_by_code (c/2) in
-        let obj = Piqobj_of_wire.parse_obj piqtype field_obj in
+        let obj = piqobj_of_wire piqtype field_obj in
         Typed_piqobj obj
 
 
@@ -263,40 +278,42 @@ let gen_piqtype code typename =
   Piqirun.gen_string code typename
 
 
-let write_piqtype ch code typename =
-  let data = gen_piqtype code typename in
-  Piqirun.to_channel ch data
-
-
-let find_add_piqtype_code ch name =
+let find_add_piqtype_code name =
   try 
     let (_, code) =
       List.find
         (function (name',_) when name = name' -> true | _ -> false)
         !out_piqtypes
-    in code
+    in None, code
   with Not_found ->
     let code = !next_out_code * 2 in
     incr next_out_code;
     out_piqtypes := (name, code)::!out_piqtypes;
-    write_piqtype ch (code-1) name;
-    code
+    let piqtype = gen_piqtype (code-1) name in
+    Some piqtype, code
+
+
+let gen_wire (obj :obj) =
+  match obj with
+    | Piqi piqi ->
+        piqi_to_wire piqi
+    | Piqtype typename ->
+        gen_piqtype 1 typename
+    | Piqobj obj ->
+        Piqobj_to_wire.gen_obj 2 obj
+    | Typed_piqobj obj ->
+        let typename = Piqobj_common.full_typename obj in
+        let piqtype, code = find_add_piqtype_code typename in
+        let data = Piqobj_to_wire.gen_obj code obj in
+        match piqtype with
+          | None -> data
+          | Some x ->
+              (* add the piqtype entry before the data *)
+              Piqirun.OBuf.iol [ x; data]
 
  
 let write_wire ch (obj :obj) =
-  let data =
-    match obj with
-      | Piqi piqi ->
-          piqi_to_wire piqi
-      | Piqtype typename ->
-          gen_piqtype 1 typename
-      | Piqobj obj ->
-          Piqobj_to_wire.gen_obj 2 obj
-      | Typed_piqobj obj ->
-          let typename = Piqobj_common.full_typename obj in
-          let code = find_add_piqtype_code ch typename in
-          Piqobj_to_wire.gen_obj code obj
-  in
+  let data = gen_wire obj in
   Piqirun.to_channel ch data
 
 
@@ -312,51 +329,44 @@ let load_pb (piqtype:T.piqtype) wireobj :obj =
   (* TODO: handle runtime wire read errors *)
   if piqtype == !Piqi.piqi_def (* XXX *)
   then
-    let piqi = piqi_of_wire wireobj in
+    let piqi = piqi_of_wire wireobj ~cache:false in
     Piqi piqi
   else
-    let obj = Piqobj_of_wire.parse_obj piqtype wireobj in
+    let obj = piqobj_of_wire piqtype wireobj in
     Typed_piqobj obj
 
 
+let gen_pb (obj :obj) =
+  match obj with
+    | Piqi piqi ->
+        piqi_to_pb piqi
+    | Typed_piqobj obj | Piqobj obj ->
+        Piqobj_to_wire.gen_embedded_obj obj
+    | Piqtype _ ->
+        (* ignore default type names *)
+        Piqirun.OBuf.iol [] (* == empty output *)
+
+
 let write_pb ch (obj :obj) =
-  let buf =
-    match obj with
-      | Piqi piqi ->
-          piqi_to_pb piqi
-      | Typed_piqobj obj | Piqobj obj ->
-          let piqtype = Piqobj_common.type_of obj in
-          (match unalias piqtype with
-            | `record _ | `variant _ | `list _ -> ()
-            | _ ->
-                piqi_error "only records, variants and lists can be written to .pb"
-          );
-          Piqobj_to_wire.gen_embedded_obj obj
-      | Piqtype _ ->
-          (* ignore default type names *)
-          Piqirun.OBuf.iol [] (* == empty output *)
-  in
+  let buf = gen_pb obj in
   Piqirun.to_channel ch buf
 
 
-let piqi_of_json json =
+(*
+ * JSON reading and writing
+ *)
+
+
+let piqi_of_json json ~cache =
   let piqtype = !Piqi.piqi_def in
   let wire_parser = T.parse_piqi in
 
-  (* dont' resolve defaults when reading Json;
-   * preseve the original setting *)
-  let saved_resolve_defaults = !Piqobj_of_json.resolve_defaults in
-  Piqobj_of_json.resolve_defaults := true;
-
-  let piqobj = Piqobj_of_json.parse_obj piqtype json in
-
-  Piqobj_of_json.resolve_defaults := saved_resolve_defaults;
-
+  (* don't resolve defaults when reading Json *)
+  let piqobj =
+    C.with_resolve_defaults false (Piqobj_of_json.parse_obj piqtype) json
+  in
   let piqi = Piqi.mlobj_of_piqobj wire_parser piqobj in
-
-  (* XXX: it appears that we actually don't need the name of the file here *)
-  let fname = "" in
-  Piqi.process_piqi fname piqi; (* NOTE: caching the loaded module *)
+  Piqi.process_piqi piqi ~cache;
   piqi
 
 
@@ -379,31 +389,50 @@ let write_json_obj ch json =
   Pervasives.output_char ch '\n'
 
 
+let gen_json_common (piqobj : Piqobj.obj) =
+  let ast = Piqobj_to_json.gen_obj piqobj in
+  let piqtype = Piqobj_common.type_of piqobj in
+  (* generating an associative array wrapper for primitive types because JSON
+   * doesn't support them as top-level objects, according to RFC 4627 that says:
+   * "A JSON text is a serialized object or array" *)
+  if C.is_primitive_piqtype piqtype
+  then `Assoc ["_", ast]
+  else ast
+
+
+let gen_piq_json (obj :obj) =
+  match obj with
+    | Piqi piqi -> (* embedded Piqi spec *)
+        let json = piqi_to_json piqi in
+        `Assoc [ "_piqi", json ]
+    | Piqtype typename ->
+        `Assoc [ "_piqtype", `String typename ]
+    | Typed_piqobj obj ->
+        Piqobj_to_json.gen_typed_obj obj
+    | Piqobj obj ->
+        gen_json_common obj
+
+
 let write_piq_json ch (obj:obj) =
-  let json =
-    match obj with
-      | Piqi piqi -> (* embedded Piqi spec *)
-          let json = piqi_to_json piqi in
-          `Assoc [ "_piqi", json ]
-      | Piqtype typename ->
-          `Assoc [ "_piqtype", `String typename ]
-      | Typed_piqobj obj ->
-          Piqobj_to_json.gen_typed_obj obj
-      | Piqobj obj ->
-          Piqobj_to_json.gen_obj obj
-  in
+  let json = gen_piq_json obj in
   write_json_obj ch json
 
 
-let write_json is_piqi_input ch (obj:obj) =
+let gen_json (obj :obj) =
   match obj with
     | Typed_piqobj obj | Piqobj obj ->
-        let json = Piqobj_to_json.gen_obj obj in
-        write_json_obj ch json
-    | Piqi piqi when is_piqi_input ->
+        gen_json_common obj
+    | Piqi piqi ->
         (* output Piqi spec itself if we are converting .piqi *)
-        write_json_obj ch (piqi_to_json piqi)
-    | Piqtype _ | Piqi _ -> () (* ignore embedded Piqi specs and type hints *)
+        piqi_to_json piqi
+    | Piqtype _ ->
+        (* XXX *)
+        assert false (* type hints are not supported by Json encoding *)
+
+
+let write_json ch (obj:obj) =
+  let json = gen_json obj in
+  write_json_obj ch json
 
 
 let read_json_ast json_parser :Piqi_json_common.json =
@@ -417,10 +446,38 @@ let piqobj_of_json piqtype json :Piqobj.obj =
   Piqobj_of_json.parse_obj piqtype json
 
 
-let load_json_obj json_parser :obj =
+let load_json_common piqtype ast =
+  let ast =
+    if C.is_primitive_piqtype piqtype
+    then
+    (* expecting primitive types to be wrapped in associative array because JSON
+     * doesn't support them as top-level objects, according to RFC 4627 that
+     * says: "A JSON text is a serialized object or array" *)
+      match ast with
+        | `Assoc [ "_", ast ] -> ast
+        | _ ->
+            error ast
+              "invalid toplevel value for primitive type: {\"_\": ...} expected"
+    else ast
+  in
+  if piqtype == !Piqi.piqi_def (* XXX *)
+  then
+    let piqi = piqi_of_json ast ~cache:false in
+    Piqi piqi
+  else
+    let obj = piqobj_of_json piqtype ast in
+    match !default_piqtype with
+      | Some x when x == piqtype ->
+          (* return as Piqobj when default_piqtype is used *)
+          Piqobj obj
+      | _ ->
+          Typed_piqobj obj
+
+
+let load_piq_json_obj (piqtype: T.piqtype option) json_parser :obj =
+  let ast = read_json_ast json_parser in
   (* check typenames, as Json parser doesn't do it unlike the Piq parser *)
   let check = true in
-  let ast = read_json_ast json_parser in
   match ast with
     | `Assoc [ "_piqtype", `String typename ] ->
         (* :piqtype <typename> *)
@@ -430,12 +487,11 @@ let load_json_obj json_parser :obj =
         error ast "invalid piqtype specification"
     | `Assoc [ "_piqi", ((`Assoc _) as json_ast) ] ->
         (* :piqi <typename> *)
-        let piqi = piqi_of_json json_ast in
+        (* NOTE: caching the loaded module *)
+        let piqi = piqi_of_json json_ast ~cache:true in
         Piqi piqi
     | `Assoc [ "_piqi", _ ] ->
         error ast "invalid piqi specification"
-    | `Null () ->
-        error ast "invalid toplevel value: null"
     | `Assoc [ "_piqtype", `String typename;
                "_piqobj", ast ] ->
         let piqtype = find_piqtype typename ~check in
@@ -444,15 +500,86 @@ let load_json_obj json_parser :obj =
     | `Assoc (("_piqtype", _ )::_) ->
         error ast "invalid type object specification"
     | _ ->
-        match !default_piqtype with
-          | Some piqtype ->
-              if piqtype == !Piqi.piqi_def (* XXX *)
-              then
-                let piqi = piqi_of_json ast in
-                Piqi piqi
-              else
-                let obj = piqobj_of_json piqtype ast in
-                Piqobj obj
-          | None ->
-              error ast "type of object is unknown"
+        let piqtype =
+          (* default piqtype taken from the stream overrides the user-specified
+           * one *)
+          match !default_piqtype, piqtype with
+            | Some x, _ -> x
+            | None, Some x -> x
+            | None, None ->
+                error ast "type of object is unknown"
+        in
+        load_json_common piqtype ast
+
+
+let load_json_obj (piqtype: T.piqtype) json_parser :obj =
+  let ast = read_json_ast json_parser in
+  load_json_common piqtype ast
+
+
+(*
+ * XML reading and writing
+ *)
+
+let piqi_of_xml xml =
+  let piqtype = !Piqi.piqi_def in
+  let wire_parser = T.parse_piqi in
+
+  (* don't resolve defaults when reading xml *)
+  let piqobj =
+    C.with_resolve_defaults false (Piqobj_of_xml.parse_obj piqtype) xml
+  in
+  let piqi = Piqi.mlobj_of_piqobj wire_parser piqobj in
+  Piqi.process_piqi piqi ~cache:false;
+  piqi
+
+
+let piqi_to_xml piqi =
+  let piqi = original_piqi piqi in
+
+  let piqtype = !Piqi.piqi_def in
+  let wire_generator = T.gen_piqi in
+
+  let piqobj =
+    Piqi.mlobj_to_piqobj piqtype wire_generator piqi
+  in
+  let xml = Piqobj_to_xml.gen_obj piqobj in
+  xml
+
+
+let gen_xml (obj :obj) :Piqi_xml.xml =
+  match obj with
+    | Typed_piqobj obj | Piqobj obj ->
+        Piqobj_to_xml.gen_obj obj
+    | Piqi piqi ->
+        (* output Piqi spec itself if we are converting .piqi *)
+        piqi_to_xml piqi
+    | Piqtype _ ->
+        (* XXX *)
+        assert false (* type hints are not supported by xml encoding *)
+
+
+let write_xml ch (obj:obj) =
+  let xml = gen_xml obj in
+  Piqi_xml.xml_to_channel ch xml;
+  (* XXX: add a newline for better readability *)
+  Pervasives.output_char ch '\n'
+
+
+let read_xml_ast xml_parser :Piqi_xml.xml =
+  let res = Piqi_xml.read_xml_obj xml_parser in
+  match res with
+    | Some ast -> ast
+    | None -> raise EOF
+
+
+let load_xml_obj (piqtype: T.piqtype) xml_parser :obj =
+  let ast = read_xml_ast xml_parser in
+  if piqtype == !Piqi.piqi_def (* XXX *)
+  then
+    let piqi = piqi_of_xml ast in
+    Piqi piqi
+  else
+    let obj = Piqobj_of_xml.parse_obj piqtype ast in
+    Typed_piqobj obj
 

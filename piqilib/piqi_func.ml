@@ -51,6 +51,7 @@ let make_param_alias name x =
 
       name = name;
       typeref = `name x;
+      is_func_param = true; (* mark the new alias as function parameter *)
     }
   in
   Piqloc.addref x res;
@@ -106,13 +107,15 @@ let process_func piqi idtable f =
   end
 
 
-let check_dup_names idtable piqi =
+let check_dup_names idtable funs =
   let open P in
-  (* get all functions from all the modules *)
-  let l = Piqi_ext.get_functions piqi.included_piqi in
-  let names = List.map (fun x -> x.T.Func#name) l in
+  let names = List.map (fun x -> x.T.Func#name) funs in
   Piqi.check_dup_names "function" names;
   (* check that function names do not conflict with type names *)
+  ()
+  (* XXX: This check turned out to be an annoying limitation. Commenting it out
+   * for now: *)
+  (*
   List.iter
     (fun name ->
       try
@@ -122,6 +125,7 @@ let check_dup_names idtable piqi =
            error_string def "defined here")
       with Not_found -> ()
     ) names
+  *)
 
 
 let get_func_defs f =
@@ -139,12 +143,14 @@ let get_func_defs f =
 
 let process_piqi idtable (piqi :T.piqi) =
   let open P in (
-    (* process functions and create a local copy of them *)
-    piqi.resolved_func <- List.map (process_func piqi idtable) piqi.func;
+    (* get all functions from this module and included modules *)
+    let funs = Piqi_ext.get_functions piqi.included_piqi in
     (* check for duplicate function names *)
-    check_dup_names idtable piqi;
+    check_dup_names idtable funs;
+    (* process functions and create a local copy of them *)
+    let resolved_funs = List.map (process_func piqi idtable) funs in
     (* add function type definitions to Piqi resolved defs *)
-    let resolved_funs = Piqi_ext.get_resolved_functions piqi.included_piqi in
+    piqi.resolved_func <- resolved_funs;
     let fun_defs = flatmap get_func_defs resolved_funs in
     if fun_defs <> []
     then piqi.resolved_piqdef <- piqi.resolved_piqdef @ fun_defs

@@ -48,8 +48,8 @@ let gen_name parent name =
               "." ^ package ^ "." ^ name
 
 
-(* indication whether 'any' type was used somewhere in .piqi specification *)
-let is_any_used = ref false
+(* indication if the module that is being processed is a Piqi self-spec *)
+let is_self_spec = ref false
 
 
 let rec typename (t:T.piqtype) =
@@ -67,27 +67,29 @@ let rec typename (t:T.piqtype) =
     | `list t -> gen_name t.L#parent t.L#proto_name
     | `alias t ->
         (* unwind aliases to their original type *)
-        gen_alias t
+        gen_alias_typename t
     | `any ->
-        is_any_used := true;
-        (* NOTE: protoc has a bug: when compiling C++ stubs it doesn't
-         * convert proto names into fully qualified C++ names,
-         * e.g. wire_type is converted to piqi::piqi::wire_type -- and not
-         * ::piqi::piqi::wire_type. Non-fully qualified name in case of
-         * repeated namespace parts confuses g++
-         *
-         * Thus, adding "_org" suffix to the top namespace for now.
-         *)
-        ".piqi_org.piqtype.any"
+        if !is_self_spec
+        then "any" (* there is a defined type in Piqi self-spec called "any" *)
+        else
+          (* NOTE: protoc has a bug: when compiling C++ stubs it doesn't
+           * convert proto names into fully qualified C++ names,
+           * e.g. wire_type is converted to piqi::piqi::wire_type -- and not
+           * ::piqi::piqi::wire_type. Non-fully qualified name in case of
+           * repeated namespace parts confuses g++
+           *
+           * Thus, adding "_org" suffix to the top namespace for now.
+           *)
+          ".piqi_org.piqtype.any"
 
 
-and gen_alias x =
+and gen_alias_typename x =
   let open Alias in
   match x.proto_type with
     | Some x -> x
     | None ->
         match piqtype x.typeref with
-          | `alias x -> gen_alias x
+          | `alias x -> gen_alias_typename x
           | x -> typename x
 
 
@@ -196,13 +198,14 @@ let gen_field f =
   fdef
 
 
-let gen_record r =
+let gen_record ?name r =
   let open R in
+  let name = match name with Some x -> x | _ -> some_of r.proto_name in
   (* field definition list *) 
   let fdefs = List.map gen_field r.field in
   let rdef = iol
     [
-      ios "message "; ios (some_of r.proto_name);
+      ios "message "; ios name;
       ios " {"; indent;
       iod "\n" fdefs; unindent; eol;
       ios "}"; eol;
@@ -217,12 +220,13 @@ let gen_const c =
   ]
 
 
-let gen_enum e =
+let gen_enum ?name e =
   let open E in
+  let name = match name with Some x -> x | _ -> some_of e.proto_name in
   let const_defs = List.map gen_const e.option in
   iol
     [
-      ios "enum "; ios (some_of e.proto_name); ios " {"; indent;
+      ios "enum "; ios name; ios " {"; indent;
         iod "\n" const_defs; unindent; eol;
       ios "}"; eol;
     ]
@@ -236,13 +240,14 @@ let gen_option o =
   ]
 
 
-let gen_variant v =
+let gen_variant ?name v =
   let open Variant in
+  let name = match name with Some x -> x | _ -> some_of v.proto_name in
   (* field definition list *) 
   let vdefs = List.map gen_option v.option in
   let vdef = iol
     [
-      ios "message "; ios (some_of v.proto_name);
+      ios "message "; ios name;
       ios " {"; indent;
       iod "\n" vdefs; unindent; eol;
       ios "}"; eol;
@@ -250,11 +255,12 @@ let gen_variant v =
   in vdef
 
 
-let gen_list l =
+let gen_list ?name l =
   let open L in
+  let name = match name with Some x -> x | _ -> some_of l.proto_name in
   let ldef = iol
     [
-      ios "message "; ios (some_of l.proto_name);
+      ios "message "; ios name;
       ios " {"; indent;
       ios "repeated "; gen_typeref l.typeref; ios " elem = 1;";
       unindent; eol;
@@ -263,18 +269,58 @@ let gen_list l =
   in ldef
 
 
-let gen_def = function
-  | `record t -> gen_record t
-  | `variant t -> gen_variant t
-  | `enum t -> gen_enum t
-  | `list t -> gen_list t
-  | _ -> assert false
+let gen_def0 ?name t =
+  match t with
+    | `record t -> gen_record t ?name
+    | `variant t -> gen_variant t ?name
+    | `enum t -> gen_enum t ?name
+    | `list t -> gen_list t ?name
+    | `alias _ -> assert false
+
+
+let rec gen_def ?name t =
+  match t with
+    | `alias t -> gen_alias t
+    | x ->
+        let res = gen_def0 ?name x
+        in [res]
+
+
+and gen_alias a =
+  let open A in
+  let t = C.unalias (`alias a) in
+  match t with
+    | #T.piqdef as def ->
+        (match get_parent def with
+          | `import _ ->
+              (* XXX: don't generate anything for aliases of imported types *)
+              []
+          | _ ->
+              (* generate the original definition with the new name *)
+              gen_def def ~name:(some_of a.proto_name)
+        )
+    | _ -> (* alias of a pritmitive type *)
+        if a.is_func_param
+        then
+          (* for primitive function parameters, generate a record that includes
+           * one field of that type *)
+          let res =
+            iol [
+              ios "message "; ios (some_of a.proto_name);
+              ios " {"; indent;
+              ios "required "; gen_typeref a.typeref; ios " elem = 1;";
+              unindent; eol;
+              ios "}"; eol;
+            ]
+          in [res]
+        else
+          (* skip as there's no way to represent redefinitions on of primitive
+           * type in protobuf *)
+          []
 
 
 let gen_defs (defs:T.piqdef list) =
-  (* don't generate alias definitions as protobuf doesn't have support for it *)
-  let _, defs = List.partition (function `alias _ -> true | _ -> false) defs in
-  let defs = List.map gen_def defs in
+  let defs = flatmap gen_def defs in
   iod "\n" defs
 
 
@@ -318,11 +364,13 @@ let gen_piqi (piqi:T.piqi) =
       | None -> iol [] (* no package name *)
       | Some n -> iol [ios "package "; ios n; ios ";"; eol; eol]
   in
+
   (* add import "piqi.org/piqtype.piqi.proto" if 'any' typeref is used *)
-  is_any_used := false;
+  is_self_spec := C.is_self_spec piqi;
+
   let defs = gen_defs piqi.P#resolved_piqdef in
-  let piqi_import = 
-    if !is_any_used && piqi.modname <> Some "piqi.org/piqtype"
+  let piqi_import =
+    if C.depends_on_piq_any piqi && not !is_self_spec
     then
       iol [
         ios "import \"piqi.org/piqtype.piqi.proto\";";
@@ -330,11 +378,13 @@ let gen_piqi (piqi:T.piqi) =
       ]
     else iol []
   in
-  iod "\n" [
+  iol [
     package;
     piqi_import;
     gen_imports piqi.P#resolved_import;
+    eol;
     defs;
+    eol;
   ]
 
 
@@ -447,7 +497,7 @@ and protoname_import import =
 
 
 let piqi_to_proto (piqi: T.piqi) ch =
-  (* implicitly add defintions (aliases) from the boot module to the current
+  (* implicitly add definitions (aliases) from the boot module to the current
    * module *)
   let boot_defs =
     match !boot_piqi with

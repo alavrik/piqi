@@ -1,0 +1,75 @@
+% Piqi Tools
+%
+% This file contains definitions for Piqi-RPC server that exposes Piqi Tools
+% functionality.
+
+
+.function [
+    .name add-piqi  % add Piqi module
+
+    .input [
+        .field [
+            .type format  % how Piqi module is encoded (typically, pb)
+        ]
+
+        .field [
+            .name data
+            .type binary
+            .repeated
+        ]
+    ]
+
+    .error string
+]
+
+
+.function [
+    .name convert
+
+    .input [
+        .field [
+            .name type-name
+            .type string
+        ]
+
+        .field [
+            .name data
+            % can be utf8 string for JSON, XML or Piq, binary for Wire and Proto
+            .type binary
+        ]
+
+        .field [
+            .name input-format
+            .type format
+        ]
+
+        .field [
+            .name output-format
+            .type format
+        ]
+    ]
+
+    .output [
+        .field [
+            .name data
+            .type binary
+        ]
+    ]
+
+    .error string
+]
+
+
+% not really useful for anything but testing
+.function [ .name ping ]
+
+
+.enum [
+    .name format
+
+    .option [ piq ]
+    .option [ json ]
+    .option [ pb ]
+    .option [ xml ]
+]
+

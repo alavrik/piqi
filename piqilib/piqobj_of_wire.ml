@@ -48,10 +48,6 @@ let reference f t x =
   Piqloc.addrefret count obj
 
 
-(* XXX: resolve_defaults should be disabled by default *)
-let resolve_defaults = ref false
-
-
 (* XXX: move to Piqi_wire? *)
 let parse_int ?wire_type x =
   let r0 = reference0 in
@@ -194,24 +190,18 @@ and do_parse_field t l =
   let open T.Field in
   let code = Int32.to_int (some_of t.code) in
   let field_type = piqtype (some_of t.typeref) in
-  let parse_f = parse_obj field_type in
   let values, rem =
     match t.mode with
       | `required -> 
-          let x, rem = parse_required_field code parse_f l in
+          let x, rem = parse_required_field code field_type l in
           [x], rem
       | `optional ->
-          let default =
-            if !resolve_defaults
-            then t.default
-            else None
-          in
           (* XXX: location reference for default? *)
-          let x, rem = parse_optional_field code parse_f default l in
+          let x, rem = parse_optional_field code field_type t.default l in
           let res = (match x with Some x -> [x] | None -> []) in
           res, rem
       | `repeated ->
-          parse_repeated_field code parse_f l
+          parse_repeated_field code field_type l
   in
   let fields =
     List.map (fun x ->
@@ -221,21 +211,29 @@ and do_parse_field t l =
   fields, rem
 
 
-and parse_required_field code parse_f l =
-  Piqirun.parse_req_field code parse_f l
+and parse_required_field code field_type l =
+  Piqirun.parse_req_field code (parse_obj field_type) l
 
 
-and parse_optional_field code parse_f default l =
+and parse_optional_field code field_type default l =
+  let res = Piqirun.parse_opt_field code (parse_obj field_type) l in
+  match res with
+    | Some _, _ -> res
+    | None, rem -> parse_default field_type default, rem
+
+
+and parse_default piqtype default =
   match default with
-    | None -> Piqirun.parse_opt_field code parse_f l
+    | _ when not !C.resolve_defaults -> None
+    | None -> None
     | Some x ->
-        let default = some_of x.T.Any.binobj in
-        let res, rem = Piqirun.parse_req_field code parse_f l ~default in
-        Some res, rem
+        let binobj = some_of x.T.Any.binobj in
+        let res = parse_binobj binobj ~piqtype in
+        Some res
 
 
-and parse_repeated_field code parse_f l =
-  Piqirun.parse_rep_field code parse_f l
+and parse_repeated_field code field_type l =
+  Piqirun.parse_rep_field code (parse_obj field_type) l
 
 
 and parse_variant t x =
@@ -272,18 +270,7 @@ and parse_option t x =
 
 
 and parse_enum t x =
-  match x with
-    | Piqirun.Varint code ->
-        let code = Int32.of_int code in
-        do_parse_enum t x code
-    | Piqirun.Varint64 code ->
-        let code = Int64.to_int32 code in
-        do_parse_enum t x code
-    | _ ->
-        Piqirun.error_enum_obj x
-
-
-and do_parse_enum t x code32 =
+  let code32 = Piqirun.int32_of_varint x in
   let options = t.T.Variant#option in
   let option =
     try
@@ -330,4 +317,12 @@ and parse_alias_obj t ?wire_type x =
     | `float -> `float (parse_float x ?wire_type)
     | `alias t -> `alias (parse_alias t x ?wire_type)
     | _ -> parse_obj t x
+
+
+(* This function is used from piqobj_of_json & piqobj_of_xml *)
+let parse_default piqtype default =
+  Piqloc.pause ();
+  let obj = parse_default piqtype default in
+  Piqloc.resume ();
+  obj
 

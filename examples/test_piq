@@ -48,6 +48,9 @@ piqi convert -t wire $f.piq.json
 # convert .wire to .json
 piqi convert -t json $f.piq.wire
 
+# convert .wire to .xml
+piqi convert -t xml $f.piq.wire
+
 
 #
 # Similar to the above but this time, embedding Piqi type specs while
@@ -88,5 +91,5 @@ piqi convert $f.piq.json
 # convert .json to .wire
 piqi convert -t wire $f.piq.json
 
-# convert .wire to .json
-piqi convert -t piq-json $f.piq.wire
+# convert .wire back to .json
+piqi convert -t piq-json $f.piq.json.wire

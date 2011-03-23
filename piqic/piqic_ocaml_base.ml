@@ -133,19 +133,19 @@ and mlname_imports imports = List.iter mlname_import imports
 and mlname_import import =
   let open Import in
   begin
-    mlname_piqi (some_of import.piqi);
-    import.ocaml_name <- Some (ocaml_ucname (some_of import.name))
+    match import.piqi with
+      | None -> () (* unresolved meaning that is called from piqic_expand.ml *)
+      | Some piqi -> (* normal "piqic ocaml" mode -- naming the dependencies *)
+          mlname_piqi piqi;
+          if import.ocaml_name = None
+          then import.ocaml_name <- Some (ocaml_ucname (some_of import.name))
   end
 
 
 open Iolist
 
 
-(* command-line flags *)
-let flag_gen_defaults = ref false
-
-
-let piqic (piqi: T.piqi) ch =
+let piqic (piqi: T.piqi) =
   Piqic_common.piqic_common piqi;
 
   (* set ocaml names which are not specified by user *)
@@ -160,11 +160,10 @@ let piqic (piqi: T.piqi) ch =
   let c2 = Piqic_ocaml_in.gen_piqi piqi in
   let c3 = Piqic_ocaml_out.gen_piqi piqi in
   let c4 =
-    if !flag_gen_defaults
+    if !Piqic_common.flag_gen_defaults
     then Piqic_ocaml_defaults.gen_piqi piqi
     else iol []
   in
-  let code = iol [ c1; c2; c3; c4 ]
-  in
-  Iolist.to_channel ch code
+  let code = iol [ c1; c2; c3; c4 ] in
+  code
 

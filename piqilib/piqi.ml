@@ -346,6 +346,13 @@ let debug_loc prefix =
   debug "%s out count = %d, in count = %d\n" prefix !Piqloc.ocount !Piqloc.icount
 
 
+let assert_loc () =
+  if (!Piqloc.ocount <> !Piqloc.icount)
+  then
+    piqi_error
+     (Printf.sprintf "internal_error: out count = %d, in count = %d\n" !Piqloc.ocount !Piqloc.icount)
+
+
 let resolve_field_default x =
   let open F in
   match x.default, x.typeref with
@@ -371,6 +378,7 @@ let resolve_field_default x =
         Piqloc.icount := !Piqloc.icount + (!Piqloc.ocount - ocount);
 
         debug_loc "resolve_field_default(1)";
+        assert_loc ();
 
         default.T.Any.binobj <- Some binobj
     | _, None -> () (* there is no default for a flag *)
@@ -534,37 +542,36 @@ let check_assign_module_name ?modname fname (piqi:T.piqi) =
 
 (* XXX: demand explicit import name to avoid potential problems after renaming
  * imported module name? *)
-let assign_import_name x piqi =
+let assign_import_name x =
   let open Import in
   match x.name with
     | Some x -> (* import name is already defined *)
         check_name x
     | None ->
         (* derive import name from the original module's name *)
-        let full_name = some_of piqi.P#modname in
-        let name = Piqi_name.get_local_name full_name in
+        let name = Piqi_name.get_local_name x.modname in
         x.name <- Some name
 
 
 let mlobj_to_piqobj piqtype wire_generator mlobj =
-  debug_loc "mlobj_to_obj(0)";
+  debug_loc "mlobj_to_piqobj(0)";
   let binobj = Piqirun.gen_binobj wire_generator mlobj in
-  debug_loc "mlobj_to_obj(1.5)";
+  debug_loc "mlobj_to_piqobj(1.5)";
 
-  (* dont' resolve defaults when reading wire;
-   * preseve the original setting *)
-  let saved_resolve_defaults = !Piqobj_of_wire.resolve_defaults in
-  Piqobj_of_wire.resolve_defaults := false;
+  (* dont' resolve defaults when reading wire *)
+  let piqobj =
+    C.with_resolve_defaults false (Piqobj_of_wire.parse_binobj ~piqtype) binobj
+  in
+  debug_loc "mlobj_to_piqobj(1)";
+  assert_loc ();
 
-  let piqobj = Piqobj_of_wire.parse_binobj ~piqtype binobj in
-
-  Piqobj_of_wire.resolve_defaults := saved_resolve_defaults;
-  debug_loc "mlobj_to_obj(1)";
   piqobj
 
 
 let mlobj_to_ast piqtype wire_generator mlobj =
+  debug_loc "mlobj_to_ast(0)";
   let piqobj = mlobj_to_piqobj piqtype wire_generator mlobj in
+  debug_loc "mlobj_to_ast(1.5)";
   let ast = Piqobj_to_piq.gen_obj piqobj in
   debug_loc "mlobj_to_ast(1)";
   ast
@@ -587,24 +594,24 @@ let mlobj_of_ast piqtype wire_parser ast =
   T.ocount := max_count;
   *)
 
+  (* XXX: find a better way to set this option *)
+  Piqobj_of_piq.delay_unknown_warnings := true;
+
   (* We have to resolve defaults while reading piqi in order to provide correct
    * location bindings. It is not possible to "fix" skewed location bindings
    * in piqtype.ml after default values get parsed. We rather decided to fix
    * location bindings here -- see resolve_defaults function for details *)
-  let saved_resolve_defaults = !Piqobj_of_piq.resolve_defaults in
-  Piqobj_of_piq.resolve_defaults := true;
-
-  (* XXX: find a better way to set this option *)
-  Piqobj_of_piq.delay_unknown_warnings := true;
-
-  let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
+  let piqobj =
+    C.with_resolve_defaults true (Piqobj_of_piq.parse_obj piqtype) ast
+  in
+  debug_loc "mlobj_of_ast(1.5)";
 
   Piqobj_of_piq.delay_unknown_warnings := false;
 
-  Piqobj_of_piq.resolve_defaults := saved_resolve_defaults;
-
   let mlobj = mlobj_of_piqobj wire_parser piqobj in
   debug_loc "mlobj_of_ast(1)";
+  assert_loc ();
+
   mlobj
 
 
@@ -832,7 +839,7 @@ let get_imported_defs imports =
 
 (* do include & extension expansion for the loaded piqi using extensions from
  * all included piqi modules *)
-let rec process_piqi ?modname ?(cache=true) fname (piqi: T.piqi) =
+let rec process_piqi ?modname ?(cache=true) ?(fname="") (piqi: T.piqi) =
   (* save the original piqi *)
   piqi.P#original_piqi <- Some (copy_obj piqi); (* shallow copy *)
 
@@ -915,13 +922,8 @@ let rec process_piqi ?modname ?(cache=true) fname (piqi: T.piqi) =
   let resolved_defs = copy_defs extended_defs in
 
   (* if the module includes (or is itself) piqi.org/piqtype, use hash-based
-   * field and option codes instead of auto-enumerated ones
-   *
-   * XXX, TODO: cache this information -- there's no need to compute this
-   * information again for each parent module
-   *)
-  if List.exists (fun x -> x.P#modname = Some "piqi.org/piqtype") modules
-  then Piqi_wire.add_hashcodes resolved_defs;
+   * field and option codes instead of auto-enumerated ones *)
+  if C.is_self_spec piqi then Piqi_wire.add_hashcodes resolved_defs;
 
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)
@@ -966,7 +968,7 @@ and load_piqi_string fname content =
 
 and load_piqi_ast ?modname ?(cache=true) fname (ast :T.ast) =
   let piqi = parse_piqi ast in
-  process_piqi ?modname ~cache fname piqi;
+  process_piqi ?modname ~cache ~fname piqi;
   piqi
 
 
@@ -1002,23 +1004,24 @@ and load_imports l = List.iter load_import l
 
 and load_import x =
   let open Import in (
-  trace "import: %s\n" x.Import.modname;
-  (* load imported module *)
-  let piqi = load_piqi_module x.modname in
-  (* save imported piqi in import.piqi field *)
-  x.piqi <- Some piqi;
-  assign_import_name x piqi;
-  ())
+    trace "import: %s\n" x.Import.modname;
+    (* load imported module *)
+    let piqi = load_piqi_module x.modname in
+    (* save imported piqi in import.piqi field *)
+    x.piqi <- Some piqi;
+    assign_import_name x;
+  )
 
 
 and load_includes l = List.map load_include l
 
 and load_include x =
   let open Includ in (
-  trace "include: %s\n" x.Includ.modname;
-  (* load included piqi module if it isn't already *)
-  let piqi = load_piqi_module x.modname in
-  piqi)
+    trace "include: %s\n" x.Includ.modname;
+    (* load included piqi module if it isn't already *)
+    let piqi = load_piqi_module x.modname in
+    piqi
+  )
 
 
 (* XXX: is it correct in case of piqicc and piqic? *)
@@ -1035,11 +1038,10 @@ let find_embedded_piqtype name =
 let boot () =
   trace "boot(0)\n";
   (* process embedded Piqi self-specification *)
-  let fname = "" in
   (* don't cache them as we are adding the spec to the DB explicitly below *)
-  process_piqi fname T.boot_piqi ~cache:false;
+  process_piqi T.boot_piqi ~cache:false;
   boot_piqi := Some T.boot_piqi;
-  process_piqi fname T.piqi ~cache:false;
+  process_piqi T.piqi ~cache:false;
 
   (* add the spec to the DB under special name *)
   T.boot_piqi.P#modname <- Some "embedded/piqi-boot";
@@ -1077,6 +1079,7 @@ let load_embedded_boot_module (modname, content) =
   trace_enter ();
   let fname = "embedded/" ^ modname in
   let piqi = load_piqi_string fname content in
+  piqi.P#modname <- Some modname; (* fix the modname *)
   Piqi_db.add_piqi piqi;
   trace_leave ();
   piqi
@@ -1163,7 +1166,7 @@ let convert_obj new_piqtype obj =
   debug "convert_obj(0)\n";
   trace_enter ();
   (* XXX *)
-  Piqobj_of_piq.resolve_defaults := false;
+  C.resolve_defaults := false;
   (* serialize to ast and read back as a differnt piqtype *)
   let ast = Piqobj_to_piq.gen_obj obj in
 

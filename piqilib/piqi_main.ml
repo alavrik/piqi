@@ -105,8 +105,8 @@ let chdir_output dir =
 
 
 let arg_count = ref 0
-let anon_fun s =
-  incr arg_count;
+
+let default_anon_fun s =
   match !arg_count with
     | 1 ->
         (* the first positional argument is input file *)
@@ -117,6 +117,10 @@ let anon_fun s =
         if !ofile = ""
         then ofile := s
     | _ -> ()
+
+let anon_fun f s =
+  incr arg_count;
+  f s
 
 
 let arg_I =
@@ -132,7 +136,7 @@ let arg_C =
     "<output directory> specify output directory"
 
 let arg__ =
-   "--", Arg.Rest anon_fun,
+   "--", Arg.Rest (anon_fun default_anon_fun),
      "supply other arguments possibly including '-' for stdin input/output"
 
 let arg__leave_tmp_files =
@@ -169,13 +173,15 @@ let common_speclist =
 let common_usage = "Usage: piqi <command> [options] <.piqi file>\nOptions:"
 
 
-let parse_args ?(speclist=common_speclist) ?(usage=common_usage) ?(min_arg_count=1) ?(max_arg_count=1) () =
+let parse_args
+    ?(speclist=common_speclist) ?(usage=common_usage)
+    ?(min_arg_count=1) ?(max_arg_count=1) ?(custom_anon_fun=default_anon_fun) () =
   (* XXX
   (* overwrite argv[1] to contain piqi command *)
   let cmd = "piqi " ^ Sys.argv.(1) in
   Sys.argv.(1) <- cmd;
   *)
-  Arg.parse speclist anon_fun usage;
+  Arg.parse speclist (anon_fun custom_anon_fun) usage;
   if !arg_count < min_arg_count || !arg_count > max_arg_count
   then
     begin

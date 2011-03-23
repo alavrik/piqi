@@ -30,39 +30,27 @@ open Piqic_ocaml_types
 open Piqic_ocaml_out
 
 
-(* generate a default value for one of built-in types *)
-let gen_builtin_value wire_type t =
-  let gen_obj code x =
-    match x with
-      | #T.piqdef | `any -> assert false (* already processed below *)
-      | `int -> Piqobj_to_wire.gen_int code 0L ?wire_type
-      | `float -> Piqobj_to_wire.gen_float code 0.0 ?wire_type
-      | `bool -> Piqobj_to_wire.gen_bool code false
-      | `string | `binary | `text | `word ->
-          Piqobj_to_wire.gen_string code ""
-  in
-  let str = Piqirun.gen_binobj gen_obj t in
-  iod " " [
-    ios "(Piqirun.parse_default"; ioq (String.escaped str); ios ")";
-  ]
-
-
 let gen_default_type ocaml_type wire_type x =
   match x with
     | `any ->
-        if !top_modname = "Piqtype"
+        if !Piqic_common.is_self_spec
         then ios "default_any ()"
         else ios "Piqtype.default_any ()"
     | (#T.piqdef as x) ->
         let modname = gen_parent x in
         modname ^^ ios "default_" ^^ ios (piqdef_mlname x) ^^ ios "()"
     | _ -> (* gen parsers for built-in types *)
+        let default = Piqic_common.gen_builtin_default_value wire_type x in
+        let default_expr = iod " " [
+          ios "(Piqirun.parse_default"; ioq (String.escaped default); ios ")";
+        ]
+        in
         iol [
-            ios "Piqirun.";
-            ios (gen_ocaml_type_name x ocaml_type);
-            ios "_of_";
-            ios (W.get_wire_type_name x wire_type);
-            gen_builtin_value wire_type x;
+          ios "Piqirun.";
+          ios (gen_ocaml_type_name x ocaml_type);
+          ios "_of_";
+          ios (W.get_wire_type_name x wire_type);
+          default_expr;
         ]
 
 
@@ -174,20 +162,8 @@ let gen_def = function
   | `alias t -> gen_alias t
 
 
-let gen_alias a = 
-  let open Alias in
-  if a.typeref = `any && not !Piqic_common.depends_on_piq_any
-  then []
-  else [gen_alias a]
-
-
-let gen_def = function
-  | `alias x -> gen_alias x
-  | x -> [gen_def x]
-
-
 let gen_defs (defs:T.piqdef list) =
-  let defs = flatmap gen_def defs in
+  let defs = List.map gen_def defs in
   if defs = []
   then iol []
   else iod " "

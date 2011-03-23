@@ -85,3 +85,50 @@
     .option [ .type alias ]
 ]
 
+
+.extend [
+    .name alias
+    .field [
+        .name is-func-param % if alias is a function parameter
+        .optional
+    ]
+]
+
+
+.extend [
+    .name ast
+
+    % These two token types are used only in several special cases, and can't be
+    % represented in Piq text format directly.
+
+    .option [
+        % Raw word -- a valid utf8 Piq word: may be parsed as either of these:
+        % word, bool, number, string, binary
+
+        .name raw-word
+        .type word
+    ]
+    .option [
+        % Raw binary -- just a sequence of bytes: may be parsed as either binary
+        % or utf8 string
+
+        .name raw-binary
+        .type binary
+    ]
+]
+
+
+% Alternative name for field and option. It is used by Piq parse
+% (piqobj_of_piqi) if a field or an option can be referred using an alternative
+% name. An example of such alternative name can be .getopt-letter defined in
+% piqi.org/piqi-getopt.piqi
+.extend [
+    (.name field option)
+
+    .field [
+        .name alt-name
+        .type word
+        .optional
+    ]
+]
+

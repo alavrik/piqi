@@ -149,6 +149,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     with Failure _ ->
       lexer_error "Int overflow" v lexbuf
 
+  let parse_float s v lexbuf =
+    try float_of_string s
+    with Failure _ ->
+      lexer_error "Invalid float constant" v lexbuf
 
   let set_file_name v fname =
     v.fname <- fname
@@ -163,15 +167,16 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   (* returning length of utf8 string, i.e. unicode character count *)
   let utf8_length s pos bytes =
     let rec aux n i =
-      if i >= pos + bytes
-      then
-        if i = pos + bytes then n else raise Utf8.MalFormed
+      if i = pos + bytes
+      then n
       else begin
-        (* check if the next unicode char is correctly encoded in utf8 *)
-        ignore (Utf8.next s i);
         let w = Utf8.width.(Char.code s.[i]) in
-        if w > 0 then aux (succ n) (i + w)
-        else raise Utf8.MalFormed
+        if w > 0 && i + w <= pos + bytes
+        then (
+          (* check if the next unicode char is correctly encoded in utf8 *)
+          ignore (Utf8.next s i);
+          aux (succ n) (i + w)
+        ) else raise Utf8.MalFormed
       end
     in
     aux 0 pos
@@ -267,7 +272,8 @@ rule read_json v = parse
                   addloc v lexbuf;
                   if not !Piqi_config.pp_mode
                   then
-                    `Float (float_of_string (lexeme lexbuf))
+                    let s = lexeme lexbuf in
+                    `Float (parse_float s v lexbuf)
                   else
                     `Floatlit (lexeme lexbuf)
                 }
@@ -446,24 +452,22 @@ and read_colon v = parse
       in
       let add x = addloc h x in
       let addret x = add x; t in
+      add x;
       match x with
-        | `Null () -> addret x
-        | `Bool b -> addret x
-        | `Int i -> addret x
-        | `Uint i -> addret x
-        | `Intlit s -> addret x
-        | `Float f -> addret x
-        | `Floatlit s -> addret x
-        | `String s -> addret x
-        | `Stringlit s -> addret x
+        | `Null () | `Bool _ -> t (* can't save locations for unboxed types *)
+        | `Int i -> addret i
+        | `Uint i -> addret i
+        | `Intlit s -> addret s
+        | `Float f -> addret f
+        | `Floatlit s -> addret s
+        | `String s -> addret s
+        | `Stringlit s -> addret s
         | `Assoc l ->
-            add x;
             List.fold_left
               (fun l (n, v) ->
                 addloc (List.hd l) n;
                 aux (List.tl l) v) t l
         | `List l ->
-            add x;
             List.fold_left (fun t v -> aux t v) t l
     in
     if not !Piqi_config.pp_mode

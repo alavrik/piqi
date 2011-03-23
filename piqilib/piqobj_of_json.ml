@@ -33,17 +33,12 @@ module Any = Piqobj.Any
 module L = Piqobj.List
 
 
-
-(* XXX: resolve_defaults should be disabled by default *)
-let resolve_defaults = ref true
-
-
 let error_duplicate obj name =
-  error obj ("duplicate field: " ^ name)
+  error obj ("duplicate field: " ^ quote name)
 
 
 let handle_unknown_field ((n, _) as x) =
-  warning x ("unknown field: " ^ n)
+  warning x ("unknown field: " ^ quote n)
 
 
 let parse_int (obj:json) = match obj with
@@ -161,24 +156,18 @@ and do_parse_field loc t l =
   let open T.Field in
   let name = some_of t.json_name in
   debug "do_parse_field: %s\n" name;
-  let field_name = t.name in
   let field_type = piqtype (some_of t.typeref) in
   let values, rem =
     match t.mode with
       | `required -> 
-          let x, rem = parse_required_field loc name field_name field_type l in
+          let x, rem = parse_required_field loc name field_type l in
           [x], rem
       | `optional ->
-          let default =
-            if !resolve_defaults
-            then t.default
-            else None
-          in
-          let x, rem = parse_optional_field name field_name field_type default l in
+          let x, rem = parse_optional_field name field_type t.default l in
           let res = (match x with Some x -> [x] | None -> []) in
           res, rem
       | `repeated ->
-          parse_repeated_field name field_name field_type l
+          parse_repeated_field name field_type l
   in
   let fields =
     List.map (fun x -> F#{ piqtype = t; obj = Some x }) values
@@ -186,7 +175,7 @@ and do_parse_field loc t l =
   fields, rem
   
 
-and parse_required_field loc name field_name field_type l =
+and parse_required_field loc name field_type l =
   let res, rem = find_fields name l in
   match res with
     | [] -> error loc ("missing field " ^ quote name)
@@ -210,16 +199,16 @@ and find_flags (name:string) (l:(string*json) list) :(string list * (string*json
     | [] -> List.rev accu, List.rev rem
     | (n, `Null ())::t when n = name -> aux (n::accu) rem t
     | (n, _)::t when n = name ->
-        error n "value can not be specified for a flag"
+        error n ("value can not be specified for flag " ^ quote n)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
 
 
-and parse_optional_field name field_name field_type default l =
+and parse_optional_field name field_type default l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> None, rem (* XXX: allowing field to be acutally missing *)
+    | [] -> Piqobj_of_wire.parse_default field_type default, rem
     | [`Null ()] -> None, rem
     | [x] -> Some (parse_obj field_type x), rem
     | _::o::_ -> error_duplicate o name
@@ -227,7 +216,7 @@ and parse_optional_field name field_name field_type default l =
 
 (* parse repeated variant field allowing variant names if field name is
  * unspecified *) 
-and parse_repeated_field name field_name field_type l =
+and parse_repeated_field name field_type l =
   let res, rem = find_fields name l in
   match res with
     | [] -> [], rem (* XXX: allowing repeated field to be acutally missing *)
@@ -251,7 +240,7 @@ and parse_variant t x =
             in
             parse_option o value
           with Not_found ->
-            error x ("unknown variant option: " ^ name)
+            error x ("unknown variant option: " ^ quote name)
         in
         V#{ piqtype = t; option = option }
     | `Assoc _ ->
@@ -285,7 +274,7 @@ and parse_enum t x =
             let o = List.find (fun o -> some_of o.T.Option#name = name) options in
             O#{ piqtype = o; obj = None }
           with Not_found ->
-            error x ("unknown enum option: " ^ name)
+            error x ("unknown enum option: " ^ quote name)
         in
         V#{ piqtype = t; option = option }
     | _ ->

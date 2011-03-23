@@ -86,7 +86,10 @@ let rec gen_piqtype t ocaml_type =
           | `float -> "float"
           | `bool -> "bool"
           | `string | `word | `binary | `text -> "string"
-          | `any -> "Piqtype.any"
+          | `any ->
+              if !Piqic_common.is_self_spec
+              then scoped_name "any"
+              else "Piqtype.any"
           | `record r -> gen_deftype r.R#parent r.R#ocaml_name
           | `variant v -> gen_deftype v.V#parent v.V#ocaml_name
           | `enum e -> gen_deftype e.E#parent e.E#ocaml_name
@@ -240,14 +243,8 @@ let gen_alias a =
   let name = some_of a.ocaml_name in
   let typename = gen_typeref a.typeref ?ocaml_type:a.ocaml_type in
   if name = typename
-  then [] (* don't generate syclic type abbreviation *)
-  else
-    if a.typeref = `any && not !Piqic_common.depends_on_piq_any
-    then
-      (* don't generate alias for "any" if nobody uses it (in order to avoid
-       * unnecessary dependency Piqtype module *)
-      []
-    else [ gen_alias a ]
+  then [] (* don't generate cyclic type abbreviation *)
+  else [ gen_alias a ]
 
 
 let gen_def = function (* gen everything except records *)

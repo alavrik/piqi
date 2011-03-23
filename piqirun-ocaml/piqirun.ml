@@ -167,16 +167,17 @@ type t =
   | Int32 of int32
   | Int64 of int64
   | Block of IBuf.t
+  | Top_block of IBuf.t (* top-level block *)
 
 
 (* initializers for embedded records/variants (i.e. their contents start without
  * any leading headers/delimiters/separators) *)
 let init_from_channel ch =
-  Block (IBuf.of_channel ch)
+  Top_block (IBuf.of_channel ch)
 
 
 let init_from_string s =
-  Block (IBuf.of_string s)
+  Top_block (IBuf.of_string s)
 
 
 let is_empty buf =
@@ -188,7 +189,6 @@ let error_variant obj code =
 let error_missing obj code =
   error obj  ("missing field " ^ string_of_int code)
 
-let error_enum_obj obj = error obj "enum (varint) expected"
 let error_enum_const obj = error obj "unknown enum constant"
 
 
@@ -199,142 +199,6 @@ let check_unparsed_fields l =
   (*
   List.iter (fun (code, x) -> error code "unknown field") l
   *)
-
-
-let expect_block = function
-  | Block buf -> buf
-  | obj -> error obj "block expected"
-
-
-let expect_varint = function
-  | Varint i -> i
-  | obj -> error obj "varint expected"
-
-
-let expect_int32 = function
-  | Int32 i -> i
-  | obj -> error obj "fixed32 expected"
-
-
-let expect_int64 = function
-  | Int64 i -> i
-  | obj -> error obj "fixed64 expected"
-
-
-let int_of_varint obj =
-  match obj with
-    | Varint x -> x
-    | Varint64 x ->
-        (* NOTE: all negative integers are returned as Varint64 *)
-        let (>=) x y = Int64.compare x (Int64.of_int y) >= 0 in
-        let (<=) x y = Int64.compare x (Int64.of_int y) <= 0 in
-        if x >= min_int && x <= max_int
-        then Int64.to_int x
-        else error obj "int overflow in 'int_of_varint'"
-    | _ ->
-        error obj "varint expected"
-
-
-let zigzag_varint_of_varint = function
-  | Varint x ->
-      let sign = - (x land 1) in
-      let res = (x lsr 1) lxor sign in
-      Varint res
-  | Varint64 x ->
-      let sign = Int64.neg (Int64.logand x 1L) in
-      let res = Int64.logxor (Int64.shift_right_logical x 1) sign in
-      Varint64 res
-  | obj -> error obj "varint expected"
-
-
-let int_of_zigzag_varint x =
-  int_of_varint (zigzag_varint_of_varint x)
-
-
-let int64_of_varint = function
-  | Varint x -> Int64.of_int x
-  | Varint64 x -> x
-  | obj -> error obj "varint expected"
-
-let int64_of_zigzag_varint x =
-  int64_of_varint (zigzag_varint_of_varint x)
-
-let int64_of_fixed64 = expect_int64
-let int64_of_fixed32 x = Int64.of_int32 (expect_int32 x)
-
-
-let int32_of_varint obj =
-  match obj with
-    | Varint x -> Int32.of_int x
-    | Varint64 x ->
-          let (>=) x y = Int64.compare x (Int64.of_int32 y) >= 0 in
-          let (<=) x y = Int64.compare x (Int64.of_int32 y) <= 0 in
-          if x >= Int32.min_int && x <= Int32.max_int
-          then Int64.to_int32 x
-          else error obj "int32 overflow in 'int32_of_varint'"
-    | obj ->
-        error obj "varint expected"
-
-
-let int32_of_zigzag_varint x =
-  int32_of_varint (zigzag_varint_of_varint x)
-
-
-let int32_of_fixed32 = expect_int32
-
-
-let int_of_fixed32 x =
-  Int32.to_int (int32_of_fixed32 x)
-
-
-let int_of_fixed64 x =
-  Int64.to_int (int64_of_fixed64 x)
-
-
-let int_of_signed_varint = int_of_varint
-let int32_of_signed_varint = int32_of_varint
-let int64_of_signed_varint = int64_of_varint
-
-
-(* XXX: add int_of_signed_fixed? *)
-let int32_of_signed_fixed32 = int32_of_fixed32
-let int64_of_signed_fixed64 = int64_of_fixed64
-let int64_of_signed_fixed32 = int64_of_fixed32
-
-
-let float_of_fixed64 buf = 
-  Int64.float_of_bits (expect_int64 buf)
-
-let float_of_fixed32 buf = 
-  Int32.float_of_bits (expect_int32 buf)
-
-let parse_float = float_of_fixed64
-
-
-let parse_bool obj =
-  match int_of_varint obj with
-    | 0 -> false
-    | 1 -> true
-    | _ -> error obj "invalid boolean constant"
-
-
-let bool_of_varint = parse_bool
-
-
-let validate_string s = s (* TODO: validate utf8-encoded string *)
-
-
-let parse_string obj = 
-  validate_string (IBuf.to_string (expect_block obj))
-
-
-let parse_binary obj =
-  IBuf.to_string (expect_block obj)
-
-
-let string_of_block = parse_string
-let word_of_block = parse_string (* word is encoded as string *)
-let text_of_block = parse_string (* text is encoded as string *)
 
 
 let next_varint_byte buf =
@@ -409,10 +273,9 @@ let parse_block buf =
   (* XXX: is there a length limit or it is implementation specific? *)
   match parse_varint buf with
     | Varint length when length >= 0 ->
-        let res = IBuf.next_block buf length in
-        Block res
-    | Varint _ | Varint64 _ -> 
-        IBuf.error buf "block length is too big"
+        IBuf.next_block buf length
+    | Varint _ | Varint64 _ ->
+        IBuf.error buf "block length is too long"
     | _ -> assert false
 
 
@@ -452,12 +315,156 @@ let parse_field buf =
     match wire_type with
       | 0 -> parse_varint buf
       | 1 -> parse_fixed64 buf
-      | 2 -> parse_block buf
+      | 2 -> Block (parse_block buf)
       | 5 -> parse_fixed32 buf
       | 3 | 4 -> IBuf.error buf "groups are not supported"
       | _ -> IBuf.error buf ("unknown wire type " ^ string_of_int wire_type)
   in
   (field_code, field_value)
+
+
+(* parse header of a top-level value of a primitive type (i.e. generated with a
+ * special "-1" code) *)
+let parse_toplevel_header buf =
+  let field_code, field_value = parse_field buf in
+  if field_code = 1
+  then field_value
+  else error buf "invalid top-level header for a primitive type"
+
+
+let rec expect_int32 = function
+  | Int32 i -> i
+  | Top_block buf -> expect_int32 (parse_toplevel_header buf)
+  | obj -> error obj "fixed32 expected"
+
+
+let rec expect_int64 = function
+  | Int64 i -> i
+  | Top_block buf -> expect_int64 (parse_toplevel_header buf)
+  | obj -> error obj "fixed64 expected"
+
+
+let rec int_of_varint obj =
+  match obj with
+    | Varint x -> x
+    | Varint64 x ->
+        (* NOTE: all negative integers are returned as Varint64 *)
+        let (>=) x y = Int64.compare x (Int64.of_int y) >= 0 in
+        let (<=) x y = Int64.compare x (Int64.of_int y) <= 0 in
+        if x >= min_int && x <= max_int
+        then Int64.to_int x
+        else error obj "int overflow in 'int_of_varint'"
+    | Top_block buf -> int_of_varint (parse_toplevel_header buf)
+    | _ ->
+        error obj "varint expected"
+
+
+let rec zigzag_varint_of_varint = function
+  | Varint x ->
+      let sign = - (x land 1) in
+      let res = (x lsr 1) lxor sign in
+      Varint res
+  | Varint64 x ->
+      let sign = Int64.neg (Int64.logand x 1L) in
+      let res = Int64.logxor (Int64.shift_right_logical x 1) sign in
+      Varint64 res
+  | Top_block buf -> zigzag_varint_of_varint (parse_toplevel_header buf)
+  | obj -> error obj "varint expected"
+
+
+let int_of_zigzag_varint x =
+  int_of_varint (zigzag_varint_of_varint x)
+
+
+let rec int64_of_varint = function
+  | Varint x -> Int64.of_int x
+  | Varint64 x -> x
+  | Top_block buf -> int64_of_varint (parse_toplevel_header buf)
+  | obj -> error obj "varint expected"
+
+let int64_of_zigzag_varint x =
+  int64_of_varint (zigzag_varint_of_varint x)
+
+let int64_of_fixed64 = expect_int64
+let int64_of_fixed32 x = Int64.of_int32 (expect_int32 x)
+
+
+let rec int32_of_varint obj =
+  match obj with
+    | Varint x -> Int32.of_int x
+    | Varint64 x ->
+          let (>=) x y = Int64.compare x (Int64.of_int32 y) >= 0 in
+          let (<=) x y = Int64.compare x (Int64.of_int32 y) <= 0 in
+          if x >= Int32.min_int && x <= Int32.max_int
+          then Int64.to_int32 x
+          else error obj "int32 overflow in 'int32_of_varint'"
+    | Top_block buf -> int32_of_varint (parse_toplevel_header buf)
+    | obj ->
+        error obj "varint expected"
+
+
+let int32_of_zigzag_varint x =
+  int32_of_varint (zigzag_varint_of_varint x)
+
+
+let int32_of_fixed32 = expect_int32
+
+
+let int_of_fixed32 x =
+  Int32.to_int (int32_of_fixed32 x)
+
+
+let int_of_fixed64 x =
+  Int64.to_int (int64_of_fixed64 x)
+
+
+let int_of_signed_varint = int_of_varint
+let int32_of_signed_varint = int32_of_varint
+let int64_of_signed_varint = int64_of_varint
+
+
+(* XXX: add int_of_signed_fixed? *)
+let int32_of_signed_fixed32 = int32_of_fixed32
+let int64_of_signed_fixed64 = int64_of_fixed64
+let int64_of_signed_fixed32 = int64_of_fixed32
+
+
+let float_of_fixed64 buf = 
+  Int64.float_of_bits (expect_int64 buf)
+
+let float_of_fixed32 buf = 
+  Int32.float_of_bits (expect_int32 buf)
+
+let parse_float = float_of_fixed64
+
+
+let parse_bool obj =
+  match int_of_varint obj with
+    | 0 -> false
+    | 1 -> true
+    | _ -> error obj "invalid boolean constant"
+
+
+let bool_of_varint = parse_bool
+
+
+let rec parse_binary obj =
+  match obj with
+    | Block buf -> IBuf.to_string buf
+    | Top_block buf -> parse_binary (parse_toplevel_header buf)
+    | obj -> error obj "block expected"
+
+
+let validate_string s = s (* TODO: validate utf8-encoded string *)
+
+
+let parse_string obj =
+  validate_string (parse_binary obj)
+
+
+let string_of_block = parse_string
+let word_of_block = parse_string (* word is encoded as string *)
+let text_of_block = parse_string (* text is encoded as string *)
 
 
 let parse_record_buf buf =
@@ -472,7 +479,10 @@ let parse_record_buf buf =
 
 
 let parse_record obj =
-  parse_record_buf (expect_block obj)
+  match obj with
+    | Block buf
+    | Top_block buf -> parse_record_buf buf
+    | obj -> error obj "block expected"
 
 
 let parse_variant obj = 
@@ -698,51 +708,61 @@ let gen_varint_value32 x =
 
 
 let gen_key ktype code =
-  if code = -1 (* special code meaning that key sould not be generated *)
-  then iol []
+  (* make sure that the field code is in the valid range *)
+  assert (code < 1 lsl 29 && code >= 1);
+  if code land (1 lsl 28) <> 0 && Sys.word_size == 32
+  then
+    (* prevent an overflow of 31-bit OCaml integer on 32-bit platform *)
+    let ktype = Int32.of_int ktype in
+    let code = Int32.of_int code in
+    let x = Int32.logor ktype (Int32.shift_left code 3) in
+    gen_unsigned_varint_value32 x
   else
-    begin
-      (* make sure that the field code is in the valid range *)
-      assert (code < 1 lsl 29 && code >= 1);
-      if code land (1 lsl 28) <> 0 && Sys.word_size == 32
-      then
-        (* prevent an overflow of 31-bit OCaml integer on 32-bit platform *)
-        let ktype = Int32.of_int ktype in
-        let code = Int32.of_int code in
-        let x = Int32.logor ktype (Int32.shift_left code 3) in
-        gen_unsigned_varint_value32 x
-      else
-        gen_unsigned_varint_value (ktype lor (code lsl 3))
-    end
+    gen_unsigned_varint_value (ktype lor (code lsl 3))
+
+
+(* gen key for primitive types *)
+let gen_primitive_key ktype code =
+  (* -1 is a special code meaning that values of primitive types must be
+   * generated with a field header with code 1: (abs (-1)) == 1
+   *
+   * This way, "-1" is treated the same as "1", leading to a uniform interface
+   * with generators for length-delimited types.
+   *
+   * For types which values are encoded as length-delimited blocks (i.e.
+   * records, variants, lists), -1 means suppress generation of a surrounding
+   * field header that includes the key and the length of data (see generators
+   * for these types below) *)
+  gen_key ktype (abs code)
 
 
 let gen_varint code x =
   iol [
-    gen_key 0 code;
+    gen_primitive_key 0 code;
     gen_varint_value x;
   ]
 
 let gen_unsigned_varint code x =
   iol [
-    gen_key 0 code;
+    gen_primitive_key 0 code;
     gen_unsigned_varint_value x;
   ]
 
 let gen_varint32 code x =
   iol [
-    gen_key 0 code;
+    gen_primitive_key 0 code;
     gen_varint_value32 x;
   ]
 
 let gen_unsigned_varint32 code x =
   iol [
-    gen_key 0 code;
+    gen_primitive_key 0 code;
     gen_unsigned_varint_value32 x;
   ]
 
 let gen_varint64 code x =
   iol [
-    gen_key 0 code;
+    gen_primitive_key 0 code;
     gen_varint_value64 x;
   ]
 
@@ -757,7 +777,7 @@ let gen_fixed32 code x = (* little-endian *)
     x := Int32.shift_right_logical !x 8
   done;
   iol [
-    gen_key 5 code;
+    gen_primitive_key 5 code;
     ios s;
   ]
 
@@ -772,7 +792,7 @@ let gen_fixed64 code x = (* little-endian *)
     x := Int64.shift_right_logical !x 8
   done;
   iol [
-    gen_key 1 code;
+    gen_primitive_key 1 code;
     ios s;
   ]
 
@@ -856,16 +876,12 @@ let gen_bool = bool_to_varint
 
 
 let gen_string code s = 
-  (* special code meaning that key and length sould not be generated *)
   let contents = ios s in
-  if code = -1
-  then contents
-  else
-    iol [
-      gen_key 2 code;
-      gen_unsigned_varint_value (String.length s);
-      contents;
-    ]
+  iol [
+    gen_primitive_key 2 code;
+    gen_unsigned_varint_value (String.length s);
+    contents;
+  ]
 
 
 let string_to_block = gen_string
@@ -884,6 +900,12 @@ let gen_opt_field code f = function
 
 let gen_rep_field code f l =
   iol (List.map (fun x -> f code x) l)
+
+
+let gen_flag code x =
+  match x with
+    | false -> iol [] (* no flag *)
+    | true -> gen_bool code true
 
 
 let gen_record code contents =
@@ -916,3 +938,17 @@ let gen_binobj gen_obj ?name x =
   in
   (* return the rusult encoded as a binary string *)
   OBuf.to_string l
+
+
+(* generate length-delimited block of data. The inverse operation to
+ * parse_block() below *)
+let gen_block iodata =
+  iol [
+      gen_unsigned_varint_value (OBuf.size iodata);
+      iodata;
+  ]
+
+
+let parse_block buf =
+  Top_block (parse_block buf)
+

@@ -91,18 +91,6 @@ let get_unknown_fields () =
   res
 
 
-(*
- * global constants
- *)
-
-(* use default values to initialize optional fields that are missing *)
-let resolve_defaults = ref false
-
-(* allow treating word literal as strings -- this mode is used by "piqi getopt"
- *)
-let parse_words_as_strings = ref false
-
-
 (* ------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------- *)
 (* ------------------------------------------------------------------- *)
@@ -127,10 +115,16 @@ let error obj s =
 
 
 (* TODO, XXX: handle integer overflows *)
-let parse_int (obj:T.ast) = match obj with
-  | `int x -> `int (Piqloc.addrefret obj x)
-  | `uint x -> `uint (Piqloc.addrefret obj x)
-  | o -> error o "int constant expected"
+let rec parse_int (obj:T.ast) =
+  match obj with
+    | `int x -> `int (Piqloc.addrefret obj x)
+    | `uint x -> `uint (Piqloc.addrefret obj x)
+    | `raw_word x ->
+        let t =
+          try Piq_parser.parse_int x
+          with Failure e -> error obj e
+        in parse_int t
+    | o -> error o "int constant expected"
 
 
 let uint64_to_float x =
@@ -142,31 +136,46 @@ let uint64_to_float x =
     Int64.to_float x
 
 
-let parse_float (x:T.ast) = match x with
-  | `int x -> Int64.to_float x
-  | `uint x -> uint64_to_float x
-  | `float x -> x
-  | o -> error o "float constant expected"
+let rec parse_float (obj:T.ast) =
+  match obj with
+    | `int x -> Int64.to_float x
+    | `uint x -> uint64_to_float x
+    | `float x -> x
+    | `raw_word x ->
+        let t =
+          try Piq_parser.parse_number x
+          with Failure e -> error obj e
+        in parse_float t
+    | o -> error o "float constant expected"
 
 
 let parse_bool (x:T.ast) = match x with
   | `bool x -> x
+  | `raw_word "true" -> true
+  | `raw_word "false" -> false
   | o -> error o "boolean constant expected"
 
 
-let parse_string (x:T.ast) = match x with
-  | `ascii_string s | `utf8_string s | `text s -> s
-  | `binary s ->
+let parse_string (x:T.ast) =
+  let unicode_error s =
       error s "string contains non-unicode binary data"
-  (* this mode is used by "piqi getopt" *)
-  | `word s when !parse_words_as_strings -> s
-  | o -> error o "string expected"
+  in
+  match x with
+    | `ascii_string s | `utf8_string s | `text s -> s
+    | `raw_binary s ->
+        if Piq_lexer.is_utf8_string s
+        then s
+        else unicode_error s
+    | `binary s -> unicode_error s
+    | `raw_word s -> s
+    | o -> error o "string expected"
 
 
 let parse_binary (x:T.ast) = match x with
-  | `ascii_string s | `binary s -> s
+  | `ascii_string s | `binary s | `raw_binary s -> s
   | `utf8_string s ->
       error s "binary contains unicode characters or code points"
+  | `raw_word s -> s
   | o -> error o "binary expected"
 
 
@@ -176,7 +185,7 @@ let parse_text (x:T.ast) = match x with
 
 
 let parse_word (x:T.ast) = match x with
-  | `word x -> x
+  | `word x | `raw_word x -> x
   | o -> error o "word expected"
 
 
@@ -228,7 +237,7 @@ let find_piqtype name =
 
 
 (* idtable implemented as map: string -> 'a *)
-let rec parse_obj0 (t: T.piqtype) (x: T.ast) :Piqobj.obj =
+let rec parse_obj0 ~try_mode (t: T.piqtype) (x: T.ast) :Piqobj.obj =
   (* fill the location DB *)
   let r f x = reference f x in
   let rr f t x = reference (f t) x in
@@ -244,12 +253,12 @@ let rec parse_obj0 (t: T.piqtype) (x: T.ast) :Piqobj.obj =
     | `any -> `any (r parse_any x)
     (* custom types *)
     | `record t -> `record (rr parse_record t x)
-    | `variant t -> `variant (rr parse_variant t x)
-    | `enum t -> `enum (rr parse_enum t x)
+    | `variant t -> `variant (rr (parse_variant ~try_mode) t x)
+    | `enum t -> `enum (rr (parse_enum ~try_mode) t x)
     | `list t -> `list (rr parse_list t x)
     | `alias t -> `alias (rr parse_alias t x)
 
-and parse_obj t x = reference (parse_obj0 t) x
+and parse_obj ?(try_mode=false) t x = reference (parse_obj0 ~try_mode t) x
 
 
 and parse_typed_obj ?piqtype x = 
@@ -270,20 +279,20 @@ and parse_typed_obj ?piqtype x =
     | _ -> error x "typed object expected"
 
 
-and try_parse_obj field_name t x =
+and try_parse_obj f t x =
   (* unwind alias to obtain its real type *)
   match unalias t with
     | `record _ | `list _ ->
         (* NOTE: all records and lists should be labeled, so try-parsing them
          * always fails *)
         None
-    | `any when field_name <> None ->
+    | `any when f.T.Field#name <> None ->
         (* NOTE, XXX: try-parsing of labeled `any always failes *)
         None
     (* NOTE, XXX: try-parsing of unlabeled `any always succeeds *)
     | _ ->
         let depth' = !depth in
-        try Some (parse_obj t x)
+        try Some (parse_obj t x ~try_mode:true)
         with
           (* ignore errors which occur at the same parse depth, i.e. when
            * parsing everything except for lists and records which increment
@@ -347,7 +356,7 @@ and do_parse_flag t l =
   let open T.Field in
   let name = name_of_field t in
   debug "do_parse_flag: %s\n" name;
-  let res, rem = find_flags name l in
+  let res, rem = find_flags name t.alt_name l in
   match res with
     | [] -> [], rem
     | x::tail ->
@@ -361,24 +370,23 @@ and do_parse_field loc t l =
   let open T.Field in
   let name = name_of_field t in
   debug "do_parse_field: %s\n" name;
-  let field_name = t.name in
   let field_type = piqtype (some_of t.typeref) in
   let values, rem =
     match t.mode with
       | `required -> 
-          let x, rem = parse_required_field loc name field_name field_type l in
+          let x, rem = parse_required_field t loc name field_type l in
           [x], rem
       | `optional ->
           let default =
-            if !resolve_defaults
+            if !C.resolve_defaults
             then t.default
             else None
           in
-          let x, rem = parse_optional_field name field_name field_type default l in
+          let x, rem = parse_optional_field t name field_type default l in
           let res = (match x with Some x -> [x] | None -> []) in
           res, rem
       | `repeated ->
-          parse_repeated_field name field_name field_type l
+          parse_repeated_field t name field_type l
   in
   let fields =
     List.map (fun x ->
@@ -388,14 +396,14 @@ and do_parse_field loc t l =
   fields, rem
   
 
-and parse_required_field loc name field_name field_type l =
-  let res, rem = find_fields name l in
+and parse_required_field f loc name field_type l =
+  let res, rem = find_fields name f.T.Field#alt_name l in
   match res with
     | [] ->
         (* try finding the first field which is successfully parsed by
          * 'parse_obj' for a given field type *)
         begin
-          let res, rem = find_first_parsed field_name field_type l in
+          let res, rem = find_first_parsed f field_type l in
           match res with
             | Some x -> x, rem
             | None -> error loc ("missing field " ^ quote name)
@@ -405,46 +413,62 @@ and parse_required_field loc name field_name field_type l =
         parse_obj field_type x, rem
 
 
+and equals_name name alt_name x =
+  if x = name
+  then true
+  else
+    match alt_name with
+      | Some name -> x = name
+      | None -> false
+
+
+(* TODO: find_fields and find_flags are mostly identical -- combine them
+ * together and avoid code duplication *)
+
 (* find field by name, return found fields and remaining fields *)
-and find_fields (name:string) (l:T.ast list) :(T.ast list * T.ast list) =
+and find_fields (name:string) (alt_name:string option) (l:T.ast list) :(T.ast list * T.ast list) =
+  let equals_name = equals_name name alt_name in
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
-    | (`named n)::t when n.T.Named#name = name -> aux (n.T.Named#value::accu) rem t
+    | (`named n)::t when equals_name n.T.Named#name -> aux (n.T.Named#value::accu) rem t
+    | (`name n)::t when equals_name n ->
+        error n ("value must be specified for field " ^ quote n)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
 
 
 (* find flags by name, return found flags and remaining fields *)
-and find_flags (name:string) (l:T.ast list) :(string list * T.ast list) =
+and find_flags (name:string) (alt_name:string option) (l:T.ast list) :(string list * T.ast list) =
+  let equals_name = equals_name name alt_name in
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
-    | (`name n)::t when n = name -> aux (n::accu) rem t
-    | (`named n)::t when n.T.Named#name = name ->
-        error n "value can not be specified for a flag"
+    | (`name n)::t when equals_name n -> aux (n::accu) rem t
+    | (`named n)::t when equals_name n.T.Named#name ->
+        error n ("value can not be specified for flag " ^ quote n.T.Named#name)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
 
 
-and find_first_parsed field_name field_type l =
+and find_first_parsed f field_type l =
   let rec aux rem = function
     | [] -> None, l
     | h::t ->
-        match try_parse_obj field_name field_type h with
+        match try_parse_obj f field_type h with
           | None -> aux (h::rem) t
           | x -> x, (List.rev rem) @ t
   in aux [] l
 
 
-and parse_optional_field name field_name field_type default l =
-  let res, rem = find_fields name l in
+and parse_optional_field f name field_type default l =
+  let res, rem = find_fields name f.T.Field#alt_name l in
   match res with
     | [] ->
         (* try finding the first field which is successfully parsed by
          * 'parse_obj for a given field_type' *)
         begin
-          let res, rem = find_first_parsed field_name field_type l in
+          let res, rem = find_first_parsed f field_type l in
           match res, default with
             | None, Some x ->
                 (* XXX: parsing the same default from ast each time is
@@ -462,8 +486,8 @@ and parse_optional_field name field_name field_type default l =
 
 (* parse repeated variant field allowing variant names if field name is
  * unspecified *) 
-and parse_repeated_field name field_name field_type l =
-  let res, rem = find_fields name l in
+and parse_repeated_field f name field_type l =
+  let res, rem = find_fields name f.T.Field#alt_name l in
   match res with
     | [] -> 
         (* XXX: ignore errors occuring when unknown element is present in the
@@ -472,7 +496,7 @@ and parse_repeated_field name field_name field_type l =
         let accu, rem =
           (List.fold_left
             (fun (accu, rem) x ->
-              match try_parse_obj field_name field_type x with
+              match try_parse_obj f field_type x with
                 | None -> accu, x::rem
                 | Some x -> x::accu, rem) ([], []) l)
         in List.rev accu, List.rev rem
@@ -482,7 +506,7 @@ and parse_repeated_field name field_name field_type l =
         res, rem
 
 
-and parse_variant t x =
+and parse_variant ~try_mode t x =
   debug "parse_variant: %s\n" t.T.Variant#name;
   let options = t.T.Variant#option in
   try
@@ -492,13 +516,15 @@ and parse_variant t x =
             parse_name_option options n
         | `word _ ->
             parse_word_option options x
+        | `raw_word s ->
+            parse_raw_word_option options x s ~try_mode
         | `bool _ ->
             parse_bool_option options x
         | `int _ ->
             parse_int_option options x
         | `float _ ->
             parse_float_option options x
-        | `ascii_string _ | `utf8_string _ | `binary _ ->
+        | `ascii_string _ | `utf8_string _ | `binary _ | `raw_binary _ ->
             parse_string_option options x
         | `text _ ->
             parse_text_option options x
@@ -533,35 +559,36 @@ and parse_variant t x =
       (List.map get_covariant
         (List.filter is_covariant options))
     in
-    let value = parse_covariants covariants x in
+    let value = parse_covariants covariants x ~try_mode in
     Piqloc.addref x value;
     V#{ piqtype = t; option = value }
 
 
-and parse_covariants covariants x =
+and parse_covariants ~try_mode covariants x =
   let rec aux = function
     | [] ->
         (* failed to parse among variant and its covariants *)
         handle_unknown_variant x
     | h::t ->
         try
-          parse_covariant h x
+          parse_covariant h x ~try_mode
         with Not_found -> aux t
   in aux covariants
 
 
-and parse_covariant (o, v) x =
-  let value = reference (parse_variant v) x in
+and parse_covariant ~try_mode (o, v) x =
+  let value = reference (parse_variant ~try_mode v) x in
   O#{ piqtype = o; obj = Some (`variant value) }
 
 
 and parse_name_option options name =
   let f o =
     let open T.Option in
+    let equals_name x = equals_name x o.alt_name name in
     match o.name, o.typeref with
-      | Some n, Some _ when n = name ->
-          error name "option value expected" 
-      | Some n, None -> n = name 
+      | Some n, Some _ when equals_name n ->
+          error name ("value expected for option " ^ quote n)
+      | Some n, None -> equals_name n
       | _, _ -> false
   in
   let option = List.find f options in
@@ -571,10 +598,11 @@ and parse_name_option options name =
 and parse_named_option options name x =
   let f o =
     let open T.Option in
+    let equals_name x = equals_name x o.alt_name name in
     match o.name, o.typeref with
-      | Some n, None when n = name ->
-          error x "unexpected option value"
-      | Some n, Some _ -> n = name 
+      | Some n, None when equals_name n ->
+          error x ("value can not be specified for option " ^ n)
+      | Some n, Some _ -> equals_name n
       | None, Some t when piqi_typerefname t = name -> true
       | _, _ -> false
   in parse_typed_option options f x
@@ -603,13 +631,34 @@ and parse_float_option options x =
 
 
 and parse_word_option options x =
-  let test_f =
-    if !parse_words_as_strings (* this mode is used by "piqi getopt" *)
-    then (function `word | `string -> true | _ -> false)
-    else ((=) `word)
+  let f = make_option_finder ((=) `word) in
+  parse_typed_option options f x
+
+
+and parse_raw_word_option ~try_mode options x s =
+  let len = String.length s in
+  let test_f = function
+    (* all of these type can have values represented as a raw (unparsed) word *)
+    | `word | `string | `binary -> true
+    | `bool when s = "true" || s = "false" -> true
+    | `int when s.[0] >= '0' && s.[0] <= '9' -> true
+    | `int when len > 1 && s.[0] = '-' && s.[1] >= '0' && s.[1] <= '9' -> true
+    | `float -> true
+    | _ -> false
   in
   let f = make_option_finder test_f in
-  parse_typed_option options f x
+  try
+    parse_typed_option options f x
+  with Not_found when not try_mode -> (* don't catch in try mode *)
+    (* try to parse it as a name *)
+    let f o =
+      let open T.Option in
+      match o.name, o.typeref with
+        | Some n, None -> equals_name n o.alt_name s
+        | _, _ -> false
+    in
+    let option = List.find f options in
+    O#{ piqtype = option; obj = None }
 
 
 and parse_string_option options x =
@@ -633,7 +682,7 @@ and parse_typed_option (options:T.Option.t list) f (x:T.ast) :Piqobj.Option.t =
   O#{ piqtype = option; obj = Some (parse_obj option_type x) }
 
 
-and parse_enum t x = parse_variant t x
+and parse_enum ~try_mode t x = parse_variant t x ~try_mode
 
 
 and parse_list t = function

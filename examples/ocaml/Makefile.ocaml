@@ -1,0 +1,42 @@
+include $(PIQI_ROOT)/make/Makefile.ocaml
+
+
+SOURCES = addressbook.ml
+
+
+ifeq ($(GOAL),add_person)
+RESULT = add_person
+SOURCES += add_person.ml
+else
+RESULT = list_people
+SOURCES += list_people.ml
+endif
+
+
+PRE_TARGETS = addressbook.ml
+
+
+LIBS = piqirun
+LIBDIRS = $(PIQI_ROOT)/piqirun-ocaml
+INCDIRS = $(PIQI_ROOT)/piqirun-ocaml
+
+PIQIC = piqic
+PIQIC_FLAGS = --pp --leave-tmp-files
+
+
+all: native-code #byte-code
+
+
+%.ml : %.piqi
+	$(PIQIC) ocaml $(PIQIC_FLAGS) -o $@ $<
+
+
+%.ml : %.proto.piqi
+	$(PIQIC) ocaml $(PIQIC_FLAGS) -o $@ $<
+
+
+clean::
+	rm -f *.tmp.ml
+
+
+include $(OCAMLMAKEFILE)

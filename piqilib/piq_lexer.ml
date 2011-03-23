@@ -38,6 +38,33 @@ type string_type =
   | String_u (* utf-8 encoded unicode string *)
 
 
+(* find out whether the string is a utf8, ascii, or a binary string *)
+let classify_string s =
+  let res = ref String_a in (* assuming that it is an ascii string *)
+  let len = String.length s in
+  let rec aux i =
+    if i = len
+    then !res
+    else begin
+      let w = Utf8.width.(Char.code s.[i]) in
+      if w > 0 && i + w <= len
+      then (
+        if w > 1 then res := String_u; (* width is > 1 => Utf8 *)
+        (* check if the next unicode char is correctly encoded in utf8 *)
+        ignore (Utf8.next s i);
+        aux (i + w)
+      )
+      else raise Utf8.MalFormed
+    end
+  in
+  try aux 0
+  with Utf8.MalFormed -> String_b
+
+
+let is_utf8_string s =
+  classify_string s <> String_b
+
+
 let type_of_char c =
   if c <= 127
   then String_a
@@ -120,11 +147,6 @@ let rec parse_string_literal ltype l = lexer
       parse_string_literal ltype (c::l) lexbuf
 
 
-let parse_string_literal s =
-  let lexbuf = Ulexing.from_utf8_string s in
-  parse_string_literal String_a [] lexbuf
-
-
 let utf8_of_list l =
   let a = Array.of_list l in
   Utf8.from_int_array a 0 (Array.length a)
@@ -140,15 +162,15 @@ let string_of_list l =
   aux 0 l; s
 
 
-let type_of_string_literal s =
-  let t, _ = parse_string_literal s in t
-
-
-let value_of_string_literal s =
-  let t, l = parse_string_literal s in
-  match t with
-    | String_u -> utf8_of_list l
-    | String_a | String_b -> string_of_list l
+let parse_string_literal s =
+  let lexbuf = Ulexing.from_utf8_string s in
+  let str_type, l = parse_string_literal String_a [] lexbuf in
+  let parsed_str =
+    match str_type with
+      | String_u -> utf8_of_list l
+      | String_a | String_b -> string_of_list l
+  in
+  (str_type, parsed_str)
 
 
 let add_ascii_char buf i =
@@ -209,6 +231,15 @@ type token =
   | Word of string
   | Text of string
   | EOF
+  (* The last two token types are used only in special cases, and can't be
+   * represented in Piq text format directly *)
+
+  (* Raw word -- a valid utf8 Piq word: may be parsed as either of these: word,
+   * bool, number, string, binary *)
+  | Raw_word of string
+  (* Raw binary -- just a sequence of bytes: may be parsed as either binary or
+   * utf8 string *)
+  | Raw_binary of string
 
 
 let regexp newline = ('\n' | "\r\n")
@@ -218,6 +249,28 @@ let regexp ws = [' ' '\t']+
 (* non-printable characters from ASCII range are not allowed
  * XXX: exclude Unicode non-printable characters as well? *)
 let regexp word = [^'(' ')' '[' ']' '{' '}' '"' '%' '#' 0-0x20 127]+
+
+
+(* accepts the same language as the regexp above *)
+let is_valid_word s =
+  let is_valid_char = function
+    | '(' | ')' | '[' | ']' | '{' | '}'
+    | '"' | '%' | '#' | '\000'..'\032' | '\127' -> false
+    | _ -> true
+  in
+  let len = String.length s in
+  (* NOTE: it works transparently on utf8 strings *)
+  let rec check_chars i =
+    if i >= len
+    then true
+    else
+      if is_valid_char s.[i]
+      then check_chars (i + 1)
+      else false
+  in
+  if len = 0
+  then false
+  else is_utf8_string s && check_chars 0
 
 
 type buf =
@@ -308,12 +361,24 @@ let rec token0 buf = lexer
   | '"'([^'"']|"\\\"")*'"' -> (* string literal *)
       let s = Ulexing.utf8_lexeme lexbuf in
       let s = String.sub s 1 (String.length s - 2) in (* cut double-quotes *)
-      (* check the string literal, resolve its type but do not transform it *)
-      let t = type_of_string_literal s in
-      String (t, s)
+
+      let (str_type, parsed_str) = parse_string_literal s in
+
+      (* In prettu-printing mode, return it as unparsed literal -- it will be
+       * printed as is in Piq_gen *)
+      if !Piqi_config.pp_mode
+      then Raw_binary s
+      else String (str_type, parsed_str)
+
   | '"' -> error "string literal overrun"
   | word -> (* utf8 word delimited by other tokens or whitespace *)
-      Word (Ulexing.utf8_lexeme lexbuf)
+      let s = Ulexing.utf8_lexeme lexbuf in
+      (* In pretty-printing mode, return it as a raw word -- this way it won't
+       * be parsed and converted to a boolean or a number *)
+      if !Piqi_config.pp_mode
+      then Raw_word s
+      else Word s
+
   | eof -> EOF
   | _ -> error "invalid character"
 

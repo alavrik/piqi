@@ -7,6 +7,7 @@ RESULT = piqic
 
 SOURCES += \
 	piqic_common.ml \
+	piqic_common_ext.ml \
 	\
 	piqic_ocaml_types.ml \
 	piqic_ocaml_out.ml \
@@ -18,7 +19,10 @@ SOURCES += \
 	piqic_erlang_types.ml \
 	piqic_erlang_out.ml \
 	piqic_erlang_in.ml \
+	piqic_erlang_defaults.ml \
 	piqic_erlang.ml \
+	\
+	piqic_expand.ml \
 	\
 	piqic_run.ml \
 
@@ -31,7 +35,7 @@ PIQIC_FLAGS = -I $(PIQI_ROOT)
 PIQICC_FLAGS = $(PIQIC_FLAGS)
 
 
-all: debug #nc
+all: nc
 
 debug: dc top
 

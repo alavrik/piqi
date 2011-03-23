@@ -155,15 +155,19 @@ and gen_any code x =
   let open Any in
   begin
     (* don't generate if x.any.bin already exists *)
-    (if x.any.T.Any.binobj = None &&
+    if x.any.T.Any.binobj = None &&
         (* normally x.obj is defined, but sometimes, for example, during
          * bootstrap for field's default ANY it is unknown *)
         x.obj <> None
-    then
+    then (
       (* generate "x.any.binobj" from "x.obj" *)
-      let binobj = gen_binobj (some_of x.obj) in
+      Piqloc.pause ();
+      let binobj = gen_binobj (some_of x.obj) ~named:false in
+      Piqloc.resume ();
       Piqloc.add_fake_loc binobj ~label:"_binobj";
-      x.any.T.Any.binobj <- Some binobj);
+      x.any.T.Any.binobj <- Some binobj
+    );
+
     (* generate "Piqtype.any" record *)
     Piqloc.check_add_fake_loc x.any ~label:"_any";
     T.gen_any code x.any
@@ -184,7 +188,6 @@ and gen_field x =
     | None ->
         (* using true for encoding flags -- the same encoding as for options
          * (see below) *)
-        refer x;
         Piqirun.gen_bool code true
     | Some obj -> gen_obj code obj
 

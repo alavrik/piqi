@@ -20,9 +20,13 @@ open Piqi_common
 
 
 let boot () = 
+  (* rename the embedded module to be treated as self-specification *)
+  T.piqi.P#modname <- Some "piqi.org/piqtype";
+
   (* call piq interface compiler for ocaml *)
   Piqic_ocaml_types.cc_mode := true;
-  Piqic_ocaml_base.piqic T.piqi stdout;
+  let code = Piqic_ocaml_base.piqic T.piqi in
+  Iolist.to_channel stdout code;
   print_endline "let embedded_piqi :(string * string) list ref = ref []";
   ()
 
@@ -37,7 +41,7 @@ let boot2 () =
   (* reload the boot module from the file *)
   Piqi.load_boot_piqi boot_fname;
 
-  let fname = "../piqi.org/piqast.piqi" in
+  let fname = "boot/piqast.piqi" in
   let piqi = Piqi.load_piqi fname in
 
   (* add hash-based field and option codes instead of auto-enumerated ones
@@ -51,7 +55,8 @@ let boot2 () =
 
   (* call piq interface compiler for ocaml *)
   Piqic_ocaml_types.cc_mode := true;
-  Piqic_ocaml_base.piqic piqi stdout;
+  let code = Piqic_ocaml_base.piqic piqi in
+  Iolist.to_channel stdout code;
   print_endline "let embedded_piqi :(string * string) list ref = ref []";
   ()
 

@@ -628,9 +628,6 @@ let read_proto_wire ifile =
 
 let prettyprint ch tmp_file code =
   let piqi_string = Iolist.to_string code in
-  (* switch piq parser to pretty-print mode *)
-  (* XXX: this way we can miss some conversion errors *)
-  (* Config.pp_mode := true; *)
   let ast = Piqi.read_piqi_string tmp_file piqi_string in
   Piqi_pp.prettyprint_piqi_ast ch ast
 

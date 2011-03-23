@@ -1,0 +1,15 @@
+#!/bin/sh
+
+if [ $# -ne 0 ]
+then
+    echo "Usage: $0"
+    exit 1
+fi
+
+
+RUN="test run"
+ERL_PATH=$PIQI_ROOT/piqi-erlang/ebin
+
+
+erl -pz $ERL_PATH -noshell -s piqi_tools start -run $RUN -s erlang halt
+

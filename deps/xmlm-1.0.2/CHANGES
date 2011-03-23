@@ -1,0 +1,34 @@
+# Version 1.0.2, 2009-11-11, 大足
+
+- Replaced a (non tail-recursive) use of List.map.
+
+
+# Version 1.0.1, 2008-08-01, Lausanne
+
+- POSIX compliant build shell script (thanks to Michael D Ekstrand).
+- Support for Debian packaging.
+
+
+# Version 1.0.0, 2008-03-17, Lausanne
+
+New features:
+- Streaming IO api with support to IO arborescent data structures.
+- Proper XML namespace support, all names are expanded names.
+- Whitespace stripping respects the xml:space attributes.
+- Xmlm.Make functor to use other types for strings and internal buffers.  
+- UTF-8 encoded documents can start with an UTF-8 encoded BOM.
+
+Incompatible changes:
+- Xmlm.encoding becomes a polymorphic variant.
+- Xmlm.error becomes a polymorphic variant and the "E_" prefix is dropped.
+- Removed the callback api.
+- Removed the tree and cursor api.
+
+Other:
+- test/xhtml.ml has a mapping from XHTML entities to their UTF-8 sequence.
+- Build system switched from make to ocamlbuild 
+
+
+# Version 0.9.0, 2007-02-26, Lausanne
+
+First release.

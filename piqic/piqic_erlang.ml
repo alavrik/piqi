@@ -131,26 +131,36 @@ let erlname_functions l =
 
 let erl_modname n =
   let n = Piqi_name.get_local_name n in (* cut module path *)
-  Some (erlang_name n)
+  erlang_name n
 
 
 let rec erlname_piqi (piqi:T.piqi) =
   let open P in
   begin
-    if piqi.erlang_module = None
-    then piqi.erlang_module <- erl_modname (some_of piqi.modname);
+    (* Erlang module name derived from Piqi module name *)
+    let derived_modname = erl_modname (some_of piqi.modname) in
 
     (* if type prefix is not defined by user, set it to
      * <erlang-module-name> "_" *)
     if piqi.erlang_type_prefix = None
-    then piqi.erlang_type_prefix <- Some (some_of piqi.erlang_module ^ "_");
+    then (
+      let base_prefix =
+        match piqi.erlang_module with
+          | Some x -> x
+          | None -> derived_modname
+      in
+      piqi.erlang_type_prefix <- Some (base_prefix ^ "_")
+    );
+
+    if piqi.erlang_module = None
+    then piqi.erlang_module <- Some (derived_modname ^ "_piqi");
 
     (* naming function parameters first, because otherwise they will be
      * overriden in erlname_defs *)
     erlname_functions piqi.P#resolved_func;
 
     erlname_defs piqi.P#resolved_piqdef;
-    erlname_defs piqi.P#imported_piqdef; (* XXX: why do we need that? *)
+    erlname_defs piqi.P#imported_piqdef;
     erlname_imports piqi.P#resolved_import;
   end
 
@@ -159,8 +169,10 @@ and erlname_imports imports = List.iter erlname_import imports
 and erlname_import import =
   let open Import in
   begin
-    erlname_piqi (some_of import.piqi);
-    import.erlang_name <- erlname (some_of import.name)
+    match import.piqi with
+      | None -> () (* unresolved meaning that is called from piqic_expand.ml *)
+      | Some piqi -> (* normal "piqic erlang" mode -- naming the dependencies *)
+          erlname_piqi piqi
   end
 
 
@@ -168,6 +180,74 @@ open Iolist
 
 module Main = Piqi_main
 open Main
+
+
+let gen_hrl modname piqi =
+  (* open output .hrl file *)
+  let ofile = modname ^ ".hrl" in
+  let ch = Main.open_output ofile in
+
+  (* call piq interface compiler for Erlang *)
+  let types = Piqic_erlang_types.gen_piqi piqi in
+  let def = "__" ^ String.uppercase modname ^ "_HRL__" in
+  let code = iol [
+    ios "-ifndef("; ios def; ios ")."; eol;
+    ios "-define("; ios def; ios ", 1)."; eol;
+    eol;
+    types;
+    eol;
+    ios "-endif."; eol;
+  ]
+  in
+  Iolist.to_channel ch code;
+  Main.close_output ()
+
+
+let gen_embedded_piqi piqi =
+  let l = Piqic_common_ext.build_piqi_deps piqi in
+  let l = List.map Piqic_erlang_in.gen_erlang_binary l in
+  iol [
+    ios "piqi() ->"; indent;
+      ios "["; indent;
+        iod ",\n        " l;
+        unindent; eol;
+      ios "].";
+    unindent; eol;
+  ]
+
+
+let gen_erl modname piqi =
+  (* open output .erl file *)
+  let ofile = modname ^ ".erl" in
+  let ch = Main.open_output ofile in
+
+  let code_gen = Piqic_erlang_out.gen_piqi piqi in
+  let code_parse = Piqic_erlang_in.gen_piqi piqi in
+  let code_gen_defauls =
+    if !Piqic_common.flag_gen_defaults
+    then Piqic_erlang_defaults.gen_piqi piqi
+    else iol []
+  in
+  let code_embedded_piqi =
+    if !Piqic_common.flag_embed_piqi
+    then gen_embedded_piqi piqi
+    else iol []
+  in
+  let code = iol [
+    ios "-module("; ios modname; ios ")."; eol;
+    ios "-compile(export_all)."; eol;
+    eol;
+    ios "-include_lib(\"piqi/include/piqirun.hrl\")."; eol;
+    ios "-include("; ioq (modname ^ ".hrl"); ios ")."; eol;
+    eol;
+    code_gen; eol;
+    code_parse; eol;
+    code_gen_defauls; eol;
+    code_embedded_piqi; eol;
+  ]
+  in
+  Iolist.to_channel ch code;
+  Main.close_output ()
 
 
 let piqic (piqi: T.piqi) =
@@ -181,48 +261,17 @@ let piqic (piqi: T.piqi) =
   Piqic_erlang_types.top_modname := some_of piqi.P#erlang_module;
   Piqic_erlang_types.type_prefix := some_of piqi.P#erlang_type_prefix;
 
-  (* open output .hrl file *)
-  let ofile = modname ^ ".hrl" in
-  let ch = Main.open_output ofile in
+  (* set Erlang name for the type "any" *)
+  if !Piqic_common.is_self_spec
+  then (
+    let def = Piqi_db.find_local_piqdef piqi "any" in
+    let erl_name = Piqic_erlang_types.piqdef_erlname def in
+    Piqic_erlang_types.any_erlname := erl_name
+  );
 
-  (* call piq interface compiler for Erlang *)
-  let types = Piqic_erlang_types.gen_piqi piqi in
-  let def = "__" ^ String.uppercase modname ^ "_HRL__" in
-  let def = ios def in
-  let code = iol [
-    ios "-ifndef("; def; ios ")."; eol;
-    ios "-define("; def; ios ", 1)."; eol;
-    eol;
-    types;
-    eol;
-    ios "-endif."; eol;
-  ]
-  in
-  Iolist.to_channel ch code;
-  Main.close_output ();
-
-  (* open output .erl file *)
-  let ofile = modname ^ ".erl" in
-  let ch = Main.open_output ofile in
-
-  let code_gen = Piqic_erlang_out.gen_piqi piqi in
-  let code_parse = Piqic_erlang_in.gen_piqi piqi in
-  let code = iol [
-    ios "-module("; ios modname; ios ")."; eol;
-    ios "-compile(export_all)."; eol;
-    eol;
-    ios "-include_lib(\"piqirun/include/piqirun.hrl\")."; eol;
-    ios "-include("; ioq (modname ^ ".hrl"); ios ")."; eol;
-    eol;
-    code_gen; eol;
-    code_parse; eol;
-  ]
-  in
-  Iolist.to_channel ch code;
+  gen_hrl modname piqi;
+  gen_erl modname piqi;
   ()
-
-
-(* command-line flags *)
 
 
 let piqic_file ifile =
@@ -244,6 +293,8 @@ let speclist = Main.common_speclist @
   [
     arg_C;
     Piqic_common.arg__normalize;
+    Piqic_common.arg__gen_defaults;
+    Piqic_common.arg__embed_piqi;
   ]
 
 

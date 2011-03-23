@@ -257,9 +257,18 @@ and format_field (name, x) =
   Label ((Atom (s, atom), label), format x)
 
 
+let pretty_to_buffer buf x =
+  Easy_format.Pretty.to_buffer buf (format x);
+  Buffer.add_char buf '\n' (* make sure that text file ends with a newline *)
+
+
 let pretty_to_string x =
-  Easy_format.Pretty.to_string (format x)
+  let buf = Buffer.create 256 in
+  pretty_to_buffer buf x;
+  Buffer.contents buf
+
 
 let pretty_to_channel oc x =
-  Easy_format.Pretty.to_channel oc (format x)
+  Easy_format.Pretty.to_channel oc (format x);
+  output_char oc '\n' (* make sure that text file ends with a newline *)
 

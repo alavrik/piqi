@@ -20,7 +20,9 @@
  * Piq interface compiler for OCaml
  *)
 
-open Piqi_common
+module C = Piqi_common
+open C
+open Iolist
 
 
 let mlname_func_param func_name param_name param =
@@ -64,6 +66,14 @@ let ocaml_pretty_print ifile ofile =
   then piqi_error ("command execution failed: " ^ cmd)
 
 
+let gen_embedded_piqi piqi =
+  let l = Piqic_common_ext.build_piqi_deps piqi in
+  let l = List.map (fun s -> ioq (String.escaped s)) l in
+  iol [
+    ios "let piqi = ["; iod ";" l; ios "]"
+  ]
+
+
 (* command-line flags *)
 let flag_pp = ref false
 
@@ -71,16 +81,6 @@ let flag_pp = ref false
 let piqic_file ifile =
   Piqic_common.init ();
 
-  (* obtain modname of the file by cutting out the directory and extension
-   * parts *)
-  let modname = Piqi_file.basename ifile in
-
-  (* open output .ml file *)
-  (*
-  let modname = some_of piqi.T.Piqi.ocaml_name in
-  let modname = String.lowercase modname in
-  let ofile = modname ^ ".ml" in
-  *)
   (* load input .piqi file *)
   let piqi = Piqi.load_piqi ifile in
 
@@ -88,26 +88,44 @@ let piqic_file ifile =
    * in Piqic_ocaml_base.mlname_defs *)
   mlname_functions piqi.P#resolved_func;
 
+  let code = Piqic_ocaml_base.piqic piqi in
+  let code =
+    if !Piqic_common.flag_embed_piqi
+    then iol [ code; gen_embedded_piqi piqi ]
+    else code
+  in
+
   (* chdir to the output directory *)
   Main.chdir_output !odir;
 
   let ofile =
     match !ofile with
-      | "" -> modname ^ ".ml"
+      | "" ->
+          (* XXX:
+          let modname = some_of piqi.P#ocaml_module in
+          let fname_base = String.lowercase modname in
+          *)
+          let modname = Piqi_file.basename ifile in
+          (* XXX:
+          let fname_base = dashes_to_underscores (String.lowercase modname) in
+          *)
+          let fname_base = modname in
+          fname_base ^ ".ml"
       | x -> x
   in
   (* call piq interface compiler for ocaml *)
   if not !flag_pp
   then
     let ch = Main.open_output ofile in
-    Piqic_ocaml_base.piqic piqi ch
+    Iolist.to_channel ch code;
+    Main.close_output ()
   else
     begin
       (* prettyprint generated OCaml code using Camlp4 *)
-      let tmp_file = modname ^ ".tmp.ml" in
+      let tmp_file = ofile ^ ".tmp.ml" in
       (try
         let tmp_ch = open_out tmp_file in
-        Piqic_ocaml_base.piqic piqi tmp_ch;
+        Iolist.to_channel tmp_ch code;
         close_out tmp_ch;
       with Sys_error s ->
         piqi_error ("error writing temporary file: " ^ s));
@@ -126,10 +144,9 @@ let speclist = Main.common_speclist @
 
     "--pp", Arg.Set flag_pp,
       "pretty-print output using CamlP4 (camlp4o)"; 
-    "--gen-defaults", Arg.Set Piqic_ocaml_base.flag_gen_defaults,
-      "generate default values for all generated OCaml types";
-
+    Piqic_common.arg__gen_defaults;
     Piqic_common.arg__normalize;
+    Piqic_common.arg__embed_piqi;
     arg__leave_tmp_files;
   ]
 

@@ -1,4 +1,4 @@
-% Current piqi specification
+% The current Piqi self-specification
 %
 % This file contains specification for piqi as it is supported by "piqi"
 % command-line utility.
@@ -12,12 +12,13 @@
 .ocaml-module "Piqi_top"
 
 
-% base piqi:
+% base Piqi:
 .include [ .module piqi.org/piqi-base ]
 
 % extensions:
 .include [ .module piqi.org/piqi-proto ]
 .include [ .module piqi.org/piqi-json ]
+.include [ .module piqi.org/piqi-getopt ]
 
 
 .custom-field ocaml-module

@@ -51,9 +51,9 @@ let gen_parent x =
 let rec gen_gen_type erlang_type wire_type x =
   match x with
     | `any ->
-        if !top_modname = "piqtype"
-        then ios "gen_any"
-        else ios "piqtype:gen_any"
+        if !Piqic_common.is_self_spec
+        then ios "gen_" ^^ ios !any_erlname
+        else ios "piqtype_piqi:gen_any"
     | (#T.piqdef as x) ->
         let modname = gen_parent x in
         modname ^^ ios "gen_" ^^ ios (piqdef_erlname x)
@@ -98,7 +98,7 @@ let gen_field rname f =
       | None ->
           (* flag generation code *)
           iod " " [
-            ios "piqirun:gen_bool(";
+            ios "piqirun:gen_flag(";
               gen_code f.code; ios ", ";
               ffname;
             ios ")";
@@ -230,7 +230,8 @@ let gen_list l =
   ]
 
 
-let gen_spec x =
+(* generate gen_<name>/2 specs and functions *)
+let gen_spec_2 x =
   iol [
     ios "-spec gen_"; ios (piqdef_erlname x); ios "/2 :: (";
       ios "Code :: piqirun_code(), ";
@@ -239,7 +240,7 @@ let gen_spec x =
   ]
 
 
-let gen_def x =
+let gen_def_2 x =
   let generator =
     match x with
       | `alias t -> gen_alias t
@@ -248,25 +249,37 @@ let gen_def x =
       | `enum t -> gen_enum t
       | `list t -> gen_list t
   in iol [
-    gen_spec x; eol;
+    gen_spec_2 x; eol;
     generator;
   ]
 
 
-let gen_def x =
-  let open Alias in
-  match x with
-    | `alias a ->
-        if a.typeref = `any && not !Piqic_common.depends_on_piq_any
-        then []
-        else [gen_def x]
-    | _ ->
-        [gen_def x]
+(* generate gen_<name>/1 specs and functions *)
+let gen_spec_1 x =
+  iol [
+    ios "-spec gen_"; ios (piqdef_erlname x); ios "/1 :: (";
+      ios "X :: "; ios_gen_out_typeref (x :> T.typeref); ios ") -> ";
+    ios "iolist().";
+  ]
+
+let gen_def_1 x =
+  let func_name = ios "gen_" ^^ ios (piqdef_erlname x) in
+  let generator =
+    iol [
+      func_name; ios "(X) ->"; indent;
+        func_name; ios "('undefined', X).";
+      unindent; eol;
+    ]
+  in iol [
+    gen_spec_1 x; eol;
+    generator;
+  ]
 
 
 let gen_defs (defs:T.piqdef list) =
-  let defs = flatmap gen_def defs in
-  iod "\n" defs
+  let defs_2 = List.map gen_def_2 defs in
+  let defs_1 = List.map gen_def_1 defs in
+  iod "\n" (defs_2 @ defs_1)
 
 
 let gen_piqi (piqi:T.piqi) =

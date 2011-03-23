@@ -1,8 +1,8 @@
 
-
-all: google/protobuf
+all:
 	./test
 
 
 clean:
-	test ! -s google || find google/protobuf \( -name '*.proto.pb*' -or -name '*.piqi*' \) -delete
+	test ! -d google/protobuf || find google/protobuf \( -name '*.proto.pb*' -or -name '*.piqi*' \) -delete
+	rm -f l

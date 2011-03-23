@@ -15,3 +15,8 @@ build
 # vim:
 *.swp
 
+# FIXME: get rid of these symlinks added to be able to run Dialyzer on sources
+examples/erlang/piqi-erlang
+piqi-rpc/src/piqi-erlang
+tests/erlang_piqi/piqi-erlang
+

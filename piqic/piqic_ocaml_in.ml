@@ -33,7 +33,7 @@ open Piqic_ocaml_out
 let rec gen_parse_type ocaml_type wire_type x =
   match x with
     | `any ->
-        if !top_modname = "Piqtype"
+        if !Piqic_common.is_self_spec
         then ios "parse_any"
         else ios "Piqtype.parse_any"
     | (#T.piqdef as x) ->
@@ -96,10 +96,7 @@ let gen_field_parser f =
     | None ->
         (* flag constructor *)
         iod " " [ 
-          (* NOTE: providing special handling for boxed values, see "refer" *)
-          gen_cc "(let count = next_count() in refer count";
           ios "Piqirun.parse_flag"; gen_code f.code; ios " x";
-          gen_cc ")";
         ]
   in
   (* field parsing code *)
@@ -135,37 +132,8 @@ let gen_record r =
 
 let gen_const c =
   let open Option in
-  (* NOTE: using int32 codes which can't be represented on 32-bit and 64-bit
-   * uniformely *)
-  let code_str = gen_code c.code in
-  let code = some_of c.code in
-  let varint_pattern =
-    ios "Piqirun.Varint " ^^ code_str
-  in
-  let varint64_pattern =
-    ios "Piqirun.Varint64 " ^^ code_str ^^ ios "L"
-  in
-  let varint_safe_pattern =
-    ios "Piqirun.Varint x " ^^
-      ios "when Sys.word_size = 64 && Int64.of_int x = " ^^ code_str ^^ ios "L"
-  in
   let name = gen_pvar_name (some_of c.ocaml_name) in
-  let make_expr pattern =
-    iod " " [ios "| "; pattern; ios "->"; name]
-  in
-  let (>=) a b = Int32.compare a b >= 0 in
-  let (<=) a b = Int32.compare a b <= 0 in
-  let expr =
-    if code <= 0x3fff_ffffl && code >= -0x4000_0000l (* int31? *)
-    then
-      (* code literal is safe on both 64-bit and 32-bit platforms *)
-      make_expr varint_pattern
-    else
-      iol [
-        make_expr varint64_pattern;
-        make_expr varint_safe_pattern;
-      ]
-  in expr
+  iol [ios "| "; gen_code c.code; ios "l -> "; name]
 
 
 let gen_enum e =
@@ -175,10 +143,9 @@ let gen_enum e =
     [
       ios "parse_" ^^ ios (some_of e.ocaml_name); ios "x =";
       gen_cc "let count = next_count() in refer count (";
-        ios "match x with";
+        ios "match Piqirun.int32_of_varint x with";
         iol consts;
-        ios "| Piqirun.Varint x -> Piqirun.error_enum_const x";
-        ios "| obj -> Piqirun.error_enum_obj obj";
+        ios "| x -> Piqirun.error_enum_const x";
       gen_cc ")";
     ]
 
@@ -264,20 +231,8 @@ let gen_def = function
   | `alias t -> gen_alias t
 
 
-let gen_alias a = 
-  let open Alias in
-  if a.typeref = `any && not !Piqic_common.depends_on_piq_any
-  then []
-  else [gen_alias a]
-
-
-let gen_def = function
-  | `alias x -> gen_alias x
-  | x -> [gen_def x]
-
-
 let gen_defs (defs:T.piqdef list) =
-  let defs = flatmap gen_def defs in
+  let defs = List.map gen_def defs in
   if defs = []
   then iol []
   else iod " "

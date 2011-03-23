@@ -1,5 +1,5 @@
 
-DIRS = ulex-1.1 easy-format-1.0.0
+DIRS = ulex-1.1 easy-format-1.0.0 xmlm-1.0.2
 
 
 .PHONY: all build-install clean install uninstall install-dir

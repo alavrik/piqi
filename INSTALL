@@ -88,9 +88,7 @@ NOTE: these instruction are applicable only to Unix/Linux systems.
 
 4. Build third-party components
         
-        cd deps
-        make 
-        cd ..
+        make deps
 
 5. Build Piqi
 
@@ -117,8 +115,8 @@ serialization system for Erlang.
 
         make erlang
 
-        Note that there is no support for installing the library, but binary
-        build as well as sources are located in "piqirun-erlang" directory which
+        Currently, there is no support for installing the library, but binary
+        build as well as sources are located in "piqi-erlang" directory which
         has an OTP-compliant structure.
 
 

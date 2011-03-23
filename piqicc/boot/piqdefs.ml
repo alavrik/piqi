@@ -25,6 +25,30 @@ module A = Alias
 module L = Piqlist
 
 
+(* default field *)
+let f = F#{
+  name = None;
+  typeref = None;
+  mode = `required;
+  default = None;
+
+  alt_name = None;
+  ocaml_name = None;
+  code = None;
+}
+
+
+(* default option *)
+let o = O#{
+  name = None;
+  typeref = None;
+
+  alt_name = None;
+  ocaml_name = None;
+  code = None;
+}
+
+
 let piqdef_list =
   [
     `record
@@ -35,98 +59,73 @@ let piqdef_list =
         wire_field = [];
         field =
           [
-            F#{
+            F#{f with
               name = Some "module";
               typeref = Some `word;
               mode = `optional;
-              default = None;
-              ocaml_name = Some "modname"; code = None;
+              ocaml_name = Some "modname";
             };
-            F#{
+            F#{f with
               name = Some "ocaml-module";
               typeref = Some `string;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "piqdef");
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "include");
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "import");
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "extend");
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "custom-field";
               typeref = Some `word;
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
 
 
-            F#{
+            F#{f with
               name = Some "extended-piqdef";
               typeref = Some (`name "piqdef");
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "resolved-piqdef";
               typeref = Some (`name "piqdef");
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "imported-piqdef";
               typeref = Some (`name "piqdef");
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "resolved-import";
               typeref = Some (`name "import");
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "included-piqi";
               typeref = Some (`name "piqi");
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "original-piqi";
               typeref = Some (`name "piqi");
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
           ]
       };
@@ -137,11 +136,11 @@ let piqdef_list =
         parent = None;
         option = 
           [
-            O#{ name = None; typeref = Some (`name "record");  ocaml_name = None; code = None; };
-            O#{ name = None; typeref = Some (`name "variant"); ocaml_name = None; code = None; };
-            O#{ name = None; typeref = Some (`name "enum");    ocaml_name = None; code = None; };
-            O#{ name = None; typeref = Some (`name "alias");   ocaml_name = None; code = None; };
-            O#{ name = None; typeref = Some (`name "list");    ocaml_name = Some "list"; code = None; };
+            O#{o with typeref = Some (`name "record");  };
+            O#{o with typeref = Some (`name "variant"); };
+            O#{o with typeref = Some (`name "enum");    };
+            O#{o with typeref = Some (`name "alias");   };
+            O#{o with typeref = Some (`name "list"); ocaml_name = Some "list"; };
           ];
       };
     `list
@@ -158,17 +157,17 @@ let piqdef_list =
         parent = None;
         option = 
           [
-            O#{ name = None; typeref = Some (`name "piqdef"); ocaml_name = None; code = None; };
+            O#{o with name = None; typeref = Some (`name "piqdef"); };
             (* built-in types *)
-            O#{ name = Some "int";    typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "float";  typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "bool";   typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "string"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "binary"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "text";   typeref = None; ocaml_name = None; code = None; };
+            O#{o with name = Some "int";    typeref = None; };
+            O#{o with name = Some "float";  typeref = None; };
+            O#{o with name = Some "bool";   typeref = None; };
+            O#{o with name = Some "string"; typeref = None; };
+            O#{o with name = Some "binary"; typeref = None; };
+            O#{o with name = Some "text";   typeref = None; };
 
-            O#{ name = Some "word";   typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "any";    typeref = None; ocaml_name = None; code = None; };
+            O#{o with name = Some "word";   typeref = None; };
+            O#{o with name = Some "any";    typeref = None; };
           ];
       };
     `variant
@@ -178,8 +177,8 @@ let piqdef_list =
         parent = None;
         option = 
           [
-            O#{ name = Some "name"; typeref = Some `word;             ocaml_name = None; code = None; };
-            O#{ name = None; typeref = Some (`name "piqtype");        ocaml_name = None; code = None; };
+            O#{o with name = Some "name"; typeref = Some `word;      };
+            O#{o with name = None; typeref = Some (`name "piqtype"); };
           ];
       };
     `record
@@ -190,40 +189,30 @@ let piqdef_list =
         wire_field = [];
         field =
           [
-            F#{
+            F#{f with
               name = Some "name";
               typeref = Some `word;
               mode = `required;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "field");
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "ocaml-name";
               typeref = Some `string;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "parent";
               typeref = Some (`name "namespace");
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "wire-field";
               typeref = Some (`name "field");
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
           ]
       };
@@ -235,48 +224,42 @@ let piqdef_list =
         wire_field = [];
         field =
           [
-            F#{
+            F#{f with
               name = Some "name";
               typeref = Some `word;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "type");
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "mode";
               typeref = Some (`name "field-mode");
               mode = `optional;
               default =
                  Some Any#{ ast = Some (`name "required"); binobj = None; };
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "default";
               typeref = Some `any;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "ocaml-name";
               typeref = Some `string;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "code";
               typeref = Some (`name "int32");
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
+            };
+            F#{f with
+              name = Some "alt-name";
+              typeref = Some `word;
+              mode = `optional;
             };
           ]
       };
@@ -287,9 +270,9 @@ let piqdef_list =
         parent = None;
         option = 
           [
-            O#{ name = Some "required"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "optional"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "repeated"; typeref = None; ocaml_name = None; code = None; };
+            O#{o with name = Some "required"; typeref = None; };
+            O#{o with name = Some "optional"; typeref = None; };
+            O#{o with name = Some "repeated"; typeref = None; };
           ];
       };
     `record
@@ -300,33 +283,25 @@ let piqdef_list =
         wire_field = [];
         field =
           [
-            F#{
+            F#{f with
               name = Some "name";
               typeref = Some `word;
               mode = `required;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "option");
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "ocaml-name";
               typeref = Some `string;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "parent";
               typeref = Some (`name "namespace");
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
           ]
       };
@@ -338,33 +313,30 @@ let piqdef_list =
         wire_field = [];
         field =
           [
-            F#{
+            F#{f with
               name = Some "name";
               typeref = Some `word;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "type");
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "ocaml-name";
               typeref = Some `string;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "code";
               typeref = Some (`name "int32");
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
+            };
+            F#{f with
+              name = Some "alt-name";
+              typeref = Some `word;
+              mode = `optional;
             };
           ]
       };
@@ -392,47 +364,35 @@ let piqdef_list =
         wire_field = [];
         field =
           [
-            F#{
+            F#{f with
               name = Some "name";
               typeref = Some `word;
               mode = `required;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "type");
               mode = `required;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "ocaml-name";
               typeref = Some `string;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "wire-type");
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "ocaml-type";
               typeref = Some `string;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "parent";
               typeref = Some (`name "namespace");
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
           ]
       };
@@ -444,33 +404,25 @@ let piqdef_list =
         wire_field = [];
         field =
           [
-            F#{
+            F#{f with
               name = Some "name";
               typeref = Some `word;
               mode = `required;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "type");
               mode = `required;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "ocaml-name";
               typeref = Some `string;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "parent";
               typeref = Some (`name "namespace");
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
           ]
       };
@@ -482,19 +434,16 @@ let piqdef_list =
         wire_field = [];
         field =
           [
-            F#{
+            F#{f with
               name = Some "module";
               typeref = Some `word;
               mode = `required;
-              default = None;
-              ocaml_name = Some "modname"; code = None;
+              ocaml_name = Some "modname";
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "piqi");
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
           ]
       };
@@ -506,33 +455,26 @@ let piqdef_list =
         wire_field = [];
         field =
           [
-            F#{
+            F#{f with
               name = Some "module";
               typeref = Some `word;
               mode = `required;
-              default = None;
-              ocaml_name = Some "modname"; code = None;
+              ocaml_name = Some "modname";
             };
-            F#{
+            F#{f with
               name = Some "name";
               typeref = Some `word;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               typeref = Some (`name "piqi");
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = Some "ocaml-name";
               typeref = Some `string;
               mode = `optional;
-              default = None;
-              ocaml_name = None; code = None;
             };
           ]
       };
@@ -544,34 +486,18 @@ let piqdef_list =
         wire_field = [];
         field =
           [
-            F#{
+            F#{f with
               name = Some "name";
               typeref = Some `word;
               mode = `repeated;
-              default = None;
-              ocaml_name = None; code = None;
             };
-            F#{
+            F#{f with
               name = None;
               ocaml_name = Some "quote";
               typeref = Some `any;
               mode = `repeated;
-              default = None;
-              code = None;
             };
           ]
-      };
-    `enum
-      E#{
-        name = "ocaml-type";
-        ocaml_name = None;
-        parent = None;
-        option = 
-          [
-            O#{ name = Some "int"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "int32"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "int64"; typeref = None; ocaml_name = None; code = None; };
-          ];
       };
     `enum
       E#{
@@ -580,14 +506,14 @@ let piqdef_list =
         parent = None;
         option = 
           [
-            O#{ name = Some "varint"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "zigzag-varint"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "fixed32"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "fixed64"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "signed-varint"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "signed-fixed32"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "signed-fixed64"; typeref = None; ocaml_name = None; code = None; };
-            O#{ name = Some "block"; typeref = None; ocaml_name = None; code = None; };
+            O#{o with name = Some "varint"; };
+            O#{o with name = Some "zigzag-varint"; };
+            O#{o with name = Some "fixed32"; };
+            O#{o with name = Some "fixed64"; };
+            O#{o with name = Some "signed-varint"; };
+            O#{o with name = Some "signed-fixed32"; };
+            O#{o with name = Some "signed-fixed64"; };
+            O#{o with name = Some "block"; };
           ];
       };
     `variant
@@ -597,8 +523,8 @@ let piqdef_list =
         parent = None;
         option = 
           [
-            O#{ name = None; typeref = Some (`name "piqi");    ocaml_name = None; code = None; };
-            O#{ name = None; typeref = Some (`name "import");  ocaml_name = None; code = None; };
+            O#{o with name = None; typeref = Some (`name "piqi");    };
+            O#{o with name = None; typeref = Some (`name "import");  };
           ];
       };
   ]
