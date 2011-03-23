@@ -25,11 +25,13 @@ DIRS = \
 erlang:
 	$(MAKE) -C erlang_addressbook
 	$(MAKE) -C erlang_piqi
+	$(MAKE) -C erlang_perf
 
 
 erlang-clean:
 	$(MAKE) -C erlang_addressbook clean
 	$(MAKE) -C erlang_piqi clean
+	$(MAKE) -C erlang_perf clean
 
 
 clean:: erlang-clean
