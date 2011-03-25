@@ -37,6 +37,7 @@ $(PIQI_ERLANG_FILES): $(PIQI_FILE)
 
 clean::
 	rm -f $(PIQI_ERLANG_FILES)
+	rm -f addressbook person.piq.json
 
 
 include $(PIQI_ROOT)/make/Makefile.erlang
