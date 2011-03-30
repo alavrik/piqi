@@ -28,8 +28,8 @@
 start() ->
     ensure_started(piqi),
     ensure_started(crypto),
-    ensure_started(mochiweb),
     ensure_started(webmachine),
+    ensure_started(mochiweb),
     application:start(piqi_rpc).
 
 
