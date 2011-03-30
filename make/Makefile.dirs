@@ -1,4 +1,4 @@
-.PHONY: dirs clean post_target
+.PHONY: all dirs clean pre_target post_target
 
 all: dirs pre_target post_target
 

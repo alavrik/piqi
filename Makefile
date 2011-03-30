@@ -7,11 +7,37 @@ DIRS = \
 	piqicc piqic piqi-tools \
 
 
-.PHONY: deps install ocaml-install ocaml-uninstall erlang erlang-clean
+.PHONY: deps install ocaml-install ocaml-uninstall erlang erlang-clean distclean
+
+
+# export installation and search path for OCaml dependencies
+ifeq ($(MAKECMDGOALS),deps)
+OCAMLFIND_DESTDIR = $(PIQI_BUILD)/lib/ocaml
+OCAMLPATH = $(OCAMLFIND_DESTDIR)
+export OCAMLFIND_DESTDIR OCAMLPATH
+endif
+
+
+# export installation path for Piqi OCaml libraries
+OCAML_INSTALL_GOAL = true
+ifeq ($(MAKECMDGOALS),ocaml-install)
+else ifeq ($(MAKECMDGOALS),ocaml-uninstall)
+else
+OCAML_INSTALL_GOAL = false
+endif
+
+ifeq ($(OCAML_INSTALL_GOAL),true)
+ifneq ($(PIQI_OCAML_PREFIX),)
+OCAMLFIND_DESTDIR = $(PIQI_OCAML_PREFIX)
+export OCAMLFIND_DESTDIR
+endif
+endif
 
 
 deps:
 	$(MAKE) -C deps
+	mkdir -p $(OCAMLFIND_DESTDIR)
+	$(MAKE) -C deps install
 
 
 install:
@@ -36,9 +62,15 @@ erlang:
 
 erlang-clean:
 	$(MAKE) -C piqi-erlang clean
+	$(MAKE) -C piqi-rpc clean
 
 
 clean:: erlang-clean
 	$(MAKE) -C deps clean
 	$(MAKE) -C tests clean
+
+
+distclean:
+	$(MAKE) clean
+	rm -rf $(PIQI_BUILD)
 

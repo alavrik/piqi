@@ -1,3 +1,6 @@
 OCAMLMAKEFILE := $(PIQI_ROOT)/make/OCamlMakefile
 
+OCAMLPATH = $(PIQI_BUILD)/lib/ocaml
+export OCAMLPATH
+
 # vim:ft=make
