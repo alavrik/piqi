@@ -6,12 +6,21 @@
 
 
 run() ->
+    test_piqi_server(),
     test_addressbook(),
     test_piqi(),
     ok.
 
 
+test_piqi_server() ->
+    io:format("*** testing piqi_tools:ping() i.e. 'piqi server' roundtrip ***~n~n"),
+    N = 60000,
+    F = fun () -> piqi_tools:ping() end,
+    test(F, N).
+
+
 test_addressbook() ->
+    io:format("*** testing Erlang serialization of medium objects ***~n~n"),
     Filename = "addressbook.piq.pb",
 
     % Read the addressbook encoded in Protobuf format
@@ -33,6 +42,7 @@ test_addressbook() ->
 
 
 test_piqi() ->
+    io:format("*** testing Erlang serialization of big objects ***~n~n"),
     Filename = "piqi.piq.pb",
 
     % Read the Piqi-self specification encoded in Protobuf format
@@ -68,23 +78,28 @@ test_rw(Reader, Writer, Format, Bytes, N) ->
     Input = Writer(Output, Format),
     %io:format("input: ~p~n", [Input]),
 
-    io:format("reading ~w ~w objects...~n", [N, Format]),
-    IRate = test(Reader, Format, Input, N),
-    io:format("writing ~w ~w objects...~n", [N, Format]),
-    ORate = test(Writer, Format, Output, N),
+    io:format("reading ~w objects...~n", [Format]),
+    IRate = test_convert(Reader, Format, Input, N),
+    io:format("writing ~w objects...~n", [Format]),
+    ORate = test_convert(Writer, Format, Output, N),
     io:format("~w read/write rate: ~w/~w~n~n", [Format, IRate, ORate]),
     ok.
 
 
-test(Codec, Format, Input, N) ->
+test_convert(Codec, Format, Input, N) ->
     Fun = fun () -> Codec(Input, Format) end,
+    test(Fun, N).
+
+
+test(Fun, N) ->
+    io:format("count: ~w~n", [N]),
     {Time, _} = timer:tc(?MODULE, repeat, [Fun, N]),
 
     Seconds = Time / 1000000,
     PerSecond = (N * 1000000) div Time,
 
     io:format("time: ~w seconds~n", [Seconds]),
-    io:format("rate: ~w objects per second~n~n", [PerSecond]),
+    io:format("rate: ~w calls per second~n~n", [PerSecond]),
 
     PerSecond.
 
