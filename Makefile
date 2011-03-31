@@ -19,14 +19,7 @@ endif
 
 
 # export installation path for Piqi OCaml libraries
-OCAML_INSTALL_GOAL = true
-ifeq ($(MAKECMDGOALS),ocaml-install)
-else ifeq ($(MAKECMDGOALS),ocaml-uninstall)
-else
-OCAML_INSTALL_GOAL = false
-endif
-
-ifeq ($(OCAML_INSTALL_GOAL),true)
+ifneq ($(findstring ocaml-,$(MAKECMDGOALS)),)
 ifneq ($(PIQI_OCAML_PREFIX),)
 OCAMLFIND_DESTDIR = $(PIQI_OCAML_PREFIX)
 export OCAMLFIND_DESTDIR
