@@ -131,10 +131,13 @@ let parse_json piqtype s =
   obj
 
 
-let gen_json obj =
+let gen_json ?(pp=true) obj =
   let json = Piq.gen_json obj in
-  (* XXX: make pretty-printing optional? *)
-  Piqi_json_gen.pretty_to_string json
+  if pp
+  then
+    Piqi_json_gen.pretty_to_string json
+  else
+    Piqi_json_gen.to_string json
 
 
 let parse_pb piqtype s =
@@ -189,7 +192,7 @@ let convert args =
   let output =
     match args.output_format with
       | `piq  -> gen_piq piqobj
-      | `json -> gen_json piqobj
+      | `json -> gen_json piqobj ~pp:args.pretty_print
       | `pb -> gen_pb piqobj
       | `xml -> gen_xml piqobj
       (*
@@ -321,7 +324,8 @@ let main_loop () =
     (* reset location db to allow GC to collect previously read objects *)
     Piqloc.reset ();
     (* XXX: run garbage collection on the minor heap to free all memory used for
-     * the request *)
+     * the request -- testing has not reveal any performance penalty for doing
+     * this *)
     Gc.minor ();
   done
 

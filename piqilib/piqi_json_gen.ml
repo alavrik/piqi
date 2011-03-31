@@ -191,11 +191,14 @@ and write_list ob l =
   Buffer.add_char ob ']'
 
 
-let to_outbuf ?(std = false) ob x =
+let to_outbuf ob x =
   write_json ob x
+  (* XXX:
+  Buffer.add_char ob '\n' (* make sure that text file ends with a newline *)
+  *)
 
 
-let to_string ?buf ?(len = 256) ?std x =
+let to_string ?buf ?(len = 256) x =
   let ob =
     match buf with
 	None -> Buffer.create len
@@ -203,18 +206,18 @@ let to_string ?buf ?(len = 256) ?std x =
 	  Buffer.clear ob;
 	  ob
   in
-  to_outbuf ?std ob x;
+  to_outbuf ob x;
   let s = Buffer.contents ob in
   Buffer.clear ob;
   s
 
-let to_channel ?buf ?len ?std oc x =
+let to_channel ?buf ?len oc x =
   let ob =
     match buf with
 	None -> Buffer.create 100
       | Some ob -> ob
   in
-  to_outbuf ?std ob x;
+  to_outbuf ob x;
   Buffer.output_buffer oc ob 
   
 

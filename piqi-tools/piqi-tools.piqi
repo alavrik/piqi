@@ -47,6 +47,13 @@
             .name output-format
             .type format
         ]
+
+        .field [
+            .name pretty-print  %NOTE: affects only JSON output
+            .type bool
+            .optional
+            .default true
+        ]
     ]
 
     .output [
