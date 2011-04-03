@@ -163,9 +163,9 @@ let open_wire fname =
 
 let read_wire_field buf =
   (* TODO: handle runtime wire read errors *)
-  if Piqirun.is_empty buf
-  then raise EOF
-  else Piqirun.parse_field buf
+  match Piqirun.parse_field buf with
+    | Some x -> x
+    | None -> raise EOF
 
 
 let piqtypes = ref []

@@ -60,15 +60,12 @@ module IBuf =
         mutable pos : int; 
       }
 
-    type stream_buf = char Stream.t
-
     type t =
-      | Stream of stream_buf
       | String of string_buf
+      | Channel of in_channel
 
 
-    let of_channel x =
-      Stream (Stream.of_channel x)
+    let of_channel x = Channel x
 
 
     let of_string x start_pos =
@@ -80,18 +77,27 @@ module IBuf =
 
     let to_string buf =
       match buf with
-        | Stream x ->
-            let res = Buffer.create 20 in
-            Stream.iter (Buffer.add_char res) x;
-            Buffer.contents res
         | String x ->
+            (* XXX, TODO: try to avoid extra alloaction if the buffer holds the
+             * whole desired string? *)
             String.sub x.s x.pos (x.len - x.pos)
+        | Channel x ->
+            (* XXX: optimize using block reads? OTOH, it seems like this
+             * function is not supposed to be called for channels at all *)
+            let res = Buffer.create 20 in
+            try
+              while true (* this cycle exist only on End_of_file exception *)
+              do
+                Buffer.add_char res (input_char x)
+              done; ""
+            with End_of_file ->
+              Buffer.contents res
 
 
     let pos buf =
       match buf with
-        | Stream x -> Stream.count x
         | String x -> x.pos + x.start_pos
+        | Channel x -> pos_in x
 
 
     let error buf s =
@@ -99,61 +105,47 @@ module IBuf =
       buf_error loc s
 
 
-    let next buf =
-      try
-        match buf with
-          | Stream x -> Stream.next x
-          | String x ->
-              if x.pos >= x.len
-              then
-                raise Stream.Failure
-              else
-                let res = x.s.[x.pos] in
-                x.pos <- x.pos + 1;
-                res
-      with Stream.Failure -> 
-        error buf "unexpected end of block while reading integer"
+    exception End_of_buffer
 
 
-    let skip_one buf =
+    (* get the next byte from the buffer and return it as an integer *)
+    let next_byte buf =
       match buf with
-        | Stream x -> Stream.junk x
-        | String x -> x.pos <- x.pos + 1
-
-
-    let is_empty buf =
-      match buf with
-        | Stream x ->
-            Stream.peek x = None
         | String x ->
-            x.pos = x.len
+            if x.pos >= x.len
+            then
+              raise End_of_buffer
+            else
+              let res = x.s.[x.pos] in
+              x.pos <- x.pos + 1;
+              Char.code res
+        | Channel x ->
+            (try input_byte x
+             with End_of_file -> raise End_of_buffer)
 
 
+    (* get the next [length] bytes the buffer and return it as a string *)
     let next_block buf length =
-      try
-        match buf with
-          | Stream x ->
-              let s = String.create length in
-              let start_pos = Stream.count x in
-              for i = 0 to length-1
-              do
-                s.[i] <- Stream.next x
-              done;
-              of_string s start_pos
-          | String x ->
-              if x.pos + length > x.len
-              then
-                (* XXX: adjusting position to provide proper EOB location *)
-                (x.pos <- x.len; raise Stream.Failure)
-              else
-                (* NOTE: start_pos, pos and the string itself remain the same in
-                 * the new buffer *)
-                let res = String { x with len = x.pos + length } in
-                (* skip the new buffer in the current buffer *)
-                x.pos <- x.pos + length;
-                res
-      with Stream.Failure -> 
-        error buf "unexpected end of block"
+      match buf with
+        | String x ->
+            if x.pos + length > x.len
+            then
+              (* XXX: adjusting position to provide proper EOB location *)
+              (x.pos <- x.len; raise End_of_buffer)
+            else
+              (* NOTE: start_pos, pos and the string itself remain the same in
+               * the new buffer *)
+              let res = String { x with len = x.pos + length } in
+              (* skip the new buffer in the current buffer *)
+              x.pos <- x.pos + length;
+              res
+        | Channel x ->
+            let start_pos = pos_in x in
+            let s = String.create length in
+            (try Pervasives.really_input x s 0 length
+             with End_of_file -> raise End_of_buffer
+            );
+            of_string s start_pos
 
 
     let of_string x =
@@ -180,10 +172,6 @@ let init_from_string s =
   Top_block (IBuf.of_string s)
 
 
-let is_empty buf =
-  IBuf.is_empty buf
-
-
 let error_variant obj code =
   error obj ("unknown variant: " ^ string_of_int code)
 let error_missing obj code =
@@ -202,11 +190,11 @@ let check_unparsed_fields l =
 
 
 let next_varint_byte buf =
-    let x = Char.code (IBuf.next buf) in
-    (* msb indicating that more bytes will follow *)
-    let msb = x land 0x80 in
-    let x = x land 0x7f in
-    msb, x
+  let x = IBuf.next_byte buf in
+  (* msb indicating that more bytes will follow *)
+  let msb = x land 0x80 in
+  let x = x land 0x7f in
+  msb, x
 
 
 let parse_varint64 i buf msb x partial_res =
@@ -226,8 +214,8 @@ let parse_varint64 i buf msb x partial_res =
   in aux i msb x (Int64.of_int partial_res)
 
 
-(* TODO: optimize using Sys.word_size *)
-let parse_varint buf =
+(* TODO: optimize using Sys.word_size and manual cycle unrolling *)
+let parse_varint_common buf i res =
   let rec aux i res =
     let msb, x = next_varint_byte buf in
     let y = x lsl (i*7) in
@@ -243,37 +231,59 @@ let parse_varint buf =
       then Varint res (* no more octets => return *)
       else aux (i+1) res (* continue reading octets *)
   in
-  aux 0 0
+  try aux i res
+  with IBuf.End_of_buffer ->
+    IBuf.error buf "unexpected end of buffer while reading varint"
+
+
+let parse_varint buf =
+  parse_varint_common buf 0 0
+
+
+let try_parse_varint buf =
+  (* try to read the first byte and don't handle End_of_buffer exception *)
+  let msb, x = next_varint_byte buf in
+  if msb = 0
+  then Varint x (* no more octets => return *)
+  else parse_varint_common buf 1 x
 
 
 (* TODO, XXX: check signed overflow *)
+(* TODO: optimize for little-endian achitecture *)
 let parse_fixed32 buf =
-  let res = ref 0l in
-  for i = 0 to 3
-  do
-    let x = Char.code (IBuf.next buf) in
-    let x = Int32.of_int x in
-    let x = Int32.shift_left x (i*8) in
-    res := Int32.logor !res x
-  done; Int32 !res
+  try
+    let res = ref 0l in
+    for i = 0 to 3
+    do
+      let x = IBuf.next_byte buf in
+      let x = Int32.of_int x in
+      let x = Int32.shift_left x (i*8) in
+      res := Int32.logor !res x
+    done; Int32 !res
+  with IBuf.End_of_buffer ->
+    IBuf.error buf "unexpected end of buffer while reading fixed32"
 
 
 let parse_fixed64 buf =
-  let res = ref 0L in
-  for i = 0 to 7
-  do
-    let x = Char.code (IBuf.next buf) in
-    let x = Int64.of_int x in
-    let x = Int64.shift_left x (i*8) in
-    res := Int64.logor !res x
-  done; Int64 !res
+  try
+    let res = ref 0L in
+    for i = 0 to 7
+    do
+      let x = IBuf.next_byte buf in
+      let x = Int64.of_int x in
+      let x = Int64.shift_left x (i*8) in
+      res := Int64.logor !res x
+    done; Int64 !res
+  with IBuf.End_of_buffer ->
+    IBuf.error buf "unexpected end of buffer while reading fixed64"
 
 
 let parse_block buf =
   (* XXX: is there a length limit or it is implementation specific? *)
   match parse_varint buf with
     | Varint length when length >= 0 ->
-        IBuf.next_block buf length
+        (try IBuf.next_block buf length
+         with IBuf.End_of_buffer -> error buf "unexpected end of block")
     | Varint _ | Varint64 _ ->
         IBuf.error buf "block length is too long"
     | _ -> assert false
@@ -292,7 +302,7 @@ let check_field_code buf i =
 let parse_field_header buf =
   (* the range for field codes is 1 - (2^29 - 1) which mean on 32-bit
    * machine ocaml's int may not hold the full value *)
-  match parse_varint buf with
+  match try_parse_varint buf with
     | Varint key ->
         let wire_type = key land 7 in
         let field_code = key lsr 3 in
@@ -310,26 +320,32 @@ let parse_field_header buf =
 
 
 let parse_field buf =
-  let wire_type, field_code = parse_field_header buf in
-  let field_value =
-    match wire_type with
-      | 0 -> parse_varint buf
-      | 1 -> parse_fixed64 buf
-      | 2 -> Block (parse_block buf)
-      | 5 -> parse_fixed32 buf
-      | 3 | 4 -> IBuf.error buf "groups are not supported"
-      | _ -> IBuf.error buf ("unknown wire type " ^ string_of_int wire_type)
-  in
-  (field_code, field_value)
+  try
+    let wire_type, field_code = parse_field_header buf in
+    let field_value =
+      match wire_type with
+        | 0 -> parse_varint buf
+        | 1 -> parse_fixed64 buf
+        | 2 -> Block (parse_block buf)
+        | 5 -> parse_fixed32 buf
+        | 3 | 4 -> IBuf.error buf "groups are not supported"
+        | _ -> IBuf.error buf ("unknown wire type " ^ string_of_int wire_type)
+    in
+    Some (field_code, field_value)
+  with
+    IBuf.End_of_buffer -> None
 
 
 (* parse header of a top-level value of a primitive type (i.e. generated with a
  * special "-1" code) *)
 let parse_toplevel_header buf =
-  let field_code, field_value = parse_field buf in
-  if field_code = 1
-  then field_value
-  else error buf "invalid top-level header for a primitive type"
+  match parse_field buf with
+    | None ->
+        error buf "unexpected end of buffer when reading top-level header"
+    | Some (field_code, field_value) ->
+        if field_code = 1
+        then field_value
+        else error buf "invalid top-level header for a primitive type"
 
 
 let rec expect_int32 = function
@@ -469,11 +485,9 @@ let text_of_block = parse_string (* text is encoded as string *)
 
 let parse_record_buf buf =
   let rec aux accu =
-    if IBuf.is_empty buf
-    then List.rev accu
-    else
-      let field = parse_field buf in
-      aux (field::accu)
+    match parse_field buf with
+      | Some field -> aux (field::accu)
+      | None -> List.rev accu
   in
   aux []
 
@@ -949,6 +963,7 @@ let gen_block iodata =
   ]
 
 
+(* XXX, TODO: return Some or None on End_of_buffer *)
 let parse_block buf =
   Top_block (parse_block buf)
 
