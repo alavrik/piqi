@@ -318,10 +318,10 @@ let gen_result ch writer res =
   match res with
     | `ok_empty -> ()
     | `ok obj ->
-        writer ch (Piq.Typed_piqobj obj)
+        writer ch (Piq.Piqobj obj)
     | `error obj ->
         trace "piqi_call: remote function returned error:\n";
-        writer stderr (Piq.Typed_piqobj obj);
+        writer stderr (Piq.Piqobj obj);
         exit 1
 
 
