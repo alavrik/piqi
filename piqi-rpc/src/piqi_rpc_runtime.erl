@@ -151,7 +151,7 @@ handle_invalid_result(Name, Result) ->
 handle_runtime_exception(throw, {'rpc_error', _} = X) -> X;
 handle_runtime_exception(Class, Reason) ->
     % XXX: limit the size of the returned Reason string by using "~P"?
-    Error = io_lib:format("exception ~w:~p, stacktrace: ~p",
+    Error = io_lib:format("exception ~w:~p,~nstacktrace: ~p",
         [Class, Reason, erlang:get_stacktrace()]),
     {'rpc_error', {'internal_error', iolist_to_binary(Error)}}.
 
