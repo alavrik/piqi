@@ -45,12 +45,12 @@ let receive_packet ch =
 
 (* encode and write request/response structure to the output channel *)
 let send_request ch request =
-  let request = Piqi_rpc_piqi.gen_request (-1) request in
+  let request = Piqi_rpc_piqi.gen_request request in
   send_packet ch request
 
 
 let send_response ch response =
-  let response = Piqi_rpc_piqi.gen_response (-1) response in
+  let response = Piqi_rpc_piqi.gen_response response in
   send_packet ch response
 
 
@@ -275,14 +275,14 @@ let execute_request req =
     | "convert", data -> (
         let args = do_args I.parse_convert_input data in
         match do_run convert args with
-          | `ok res -> return_ok (I.gen_convert_output (-1) res)
-          | `error err -> return_error (I.gen_convert_error (-1) err)
+          | `ok res -> return_ok (I.gen_convert_output res)
+          | `error err -> return_error (I.gen_convert_error err)
         )
     | "add-piqi", data -> (
         let args = do_args I.parse_add_piqi_input data in
         match do_run add_piqi args with
           | `ok_empty -> return_ok_empty ()
-          | `error err -> return_error (I.gen_add_piqi_error (-1) err)
+          | `error err -> return_error (I.gen_add_piqi_error err)
         )
     | "ping", None ->
         return_ok_empty ()

@@ -101,7 +101,7 @@ let _ =
   (* NOTE: specifying -1 as the field code has a special meaning: it tells
    * generator not to generate the header (code/tag/len) -- just generate the
    * contents *)
-  let data = A.gen_address_book (-1) address_book in
+  let data = A.gen_address_book address_book in
   Piqirun.to_channel och data;
   close_out och
 

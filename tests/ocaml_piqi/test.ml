@@ -5,7 +5,7 @@ let t () =
   let piqi = Piqi_piqi.parse_piqi buf in
 
   let och = open_out "piqi.piqi.pb.pb" in
-  let data = Piqi_piqi.gen_piqi (-1) piqi in
+  let data = Piqi_piqi.gen_piqi piqi in
   Piqirun.to_channel och data;
 
   close_in ich;

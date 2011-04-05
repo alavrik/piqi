@@ -175,7 +175,7 @@ let piqi_to_ast ?(simplify=false) piqi =
    * custom-fields at this stage *)
   let piqi = P#{piqi with custom_field = []} in
   (* XXX, TODO: move this call to Piqi.gen_piqi? *)
-  let ast = Piqi.mlobj_to_ast !Piqi.piqi_def T.gen_piqi piqi in
+  let ast = Piqi.mlobj_to_ast !Piqi.piqi_def T.gen__piqi piqi in
   let ast = sort_piqi_items ast in
   if simplify
   then simplify_piqi_ast ast

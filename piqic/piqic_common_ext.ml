@@ -47,7 +47,7 @@ let encode_embedded_piqi piqi =
   (* add the Module's name even if it wasn't set *)
   res_piqi.P#modname <- piqi.P#modname;
   (* generate embedded object (i.e. without field header) *)
-  let iodata = T.gen_piqi (-1) res_piqi in
+  let iodata = T.gen_piqi res_piqi in
   Piqirun.to_string iodata
 
 

@@ -94,7 +94,7 @@ include Piqrepr
 
 
 (* bootstrap stubs *)
-let gen_any code x = assert false
+let gen__any code x = assert false
 
 let parse_any x = assert false
 

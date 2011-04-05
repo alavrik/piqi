@@ -170,7 +170,7 @@ and gen_any code x =
 
     (* generate "Piqtype.any" record *)
     Piqloc.check_add_fake_loc x.any ~label:"_any";
-    T.gen_any code x.any
+    T.gen__any code x.any
   end
 
 

@@ -51,11 +51,11 @@ let rec gen_gen_type ocaml_type wire_type x =
   match x with
     | `any ->
         if !Piqic_common.is_self_spec
-        then ios "(fun code x -> gen_any code x)"
-        else ios "(fun code x -> Piqtype.gen_any code x)"
+        then ios "(fun code x -> gen__any code x)"
+        else ios "(fun code x -> Piqtype.gen__any code x)"
     | (#T.piqdef as x) ->
         let modname = gen_parent x in
-        modname ^^ ios "gen_" ^^ ios (piqdef_mlname x)
+        modname ^^ ios "gen__" ^^ ios (piqdef_mlname x)
     | _ -> (* gen generators for built-in types *)
         iol [
           gen_cc "(reference ";
@@ -124,7 +124,7 @@ let gen_record r =
   in (* gen_<record-name> function delcaration *)
   iod " "
     [
-      ios "gen_" ^^ ios (some_of r.R#ocaml_name); ios "code x =";
+      ios "gen__" ^^ ios (some_of r.R#ocaml_name); ios "code x =";
         gen_cc "refer x;";
         iod " in " fgens_code;
         ios "in";
@@ -147,7 +147,7 @@ let gen_enum e =
   let consts = List.map gen_const e.option in
   iod " "
     [
-      ios "gen_" ^^ ios (some_of e.ocaml_name);
+      ios "gen__" ^^ ios (some_of e.ocaml_name);
       ios "code x =";
         gen_cc "refer x;";
         ios "match x with";
@@ -183,7 +183,7 @@ let gen_variant v =
   let options = List.map gen_option v.option in
   iod " "
     [
-      ios "gen_" ^^ ios (some_of v.ocaml_name);
+      ios "gen__" ^^ ios (some_of v.ocaml_name);
       ios "code (x:" ^^ ios_gen_typeref (`variant v) ^^ ios ") =";
       gen_cc "refer x;";
       ios "Piqirun.gen_record code [(match x with"; iol options; ios ")]";
@@ -193,7 +193,7 @@ let gen_variant v =
 let gen_alias a =
   let open Alias in
   iod " " [
-    ios "gen_" ^^ ios (some_of a.ocaml_name);
+    ios "gen__" ^^ ios (some_of a.ocaml_name);
     ios "code x =";
       gen_gen_typeref a.typeref ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
       ios "code x";
@@ -210,7 +210,7 @@ let gen_gen_list t =
 let gen_list l =
   let open L in
   iod " " [
-    ios "gen_" ^^ ios (some_of l.ocaml_name);
+    ios "gen__" ^^ ios (some_of l.ocaml_name);
     ios "code x =";
     gen_gen_list l.typeref; ios "code x";
   ]
@@ -224,12 +224,23 @@ let gen_def = function
   | `list t -> gen_list t
 
 
+(* generate gen_<name>/1 functions *)
+let gen_def_1 x =
+  let name = ios (piqdef_mlname x) in
+  iol [
+    ios "let gen_"; name; ios " x = ";
+      ios"gen__"; name; ios " (-1) x";
+    ios "\n";
+  ]
+
+
 let gen_defs (defs:T.piqdef list) =
-  let defs = List.map gen_def defs in
   if defs = []
   then iol []
-  else iod " "
-    [
+  else
+    let defs_2 = List.map gen_def defs in
+    let defs_1 = List.map gen_def_1 defs in
+    iod " " [
       gen_cc "let next_count = Piqloc.next_ocount";
       (* NOTE: providing special handling for boxed objects, since they are not
        * references and can not be uniquely identified. Moreover they can mask
@@ -239,11 +250,10 @@ let gen_defs (defs:T.piqdef list) =
         if not (Obj.is_int (Obj.repr obj))
         then Piqloc.addref obj count";
       gen_cc "let reference f code x = refer x; f code x";
-      ios "let rec"; iod " and " defs;
+      ios "let rec"; iod " and " defs_2;
+      ios "\n\n";
+      iol defs_1;
       ios "\n";
-      (*
-      ios "end\n";
-      *)
     ]
 
 

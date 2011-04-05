@@ -77,7 +77,7 @@ let expand_file filename =
   then
     Piqi_pp.prettyprint_piqi ch res_piqi
   else
-    let code = T.gen_piqi (-1) res_piqi in
+    let code = T.gen_piqi res_piqi in
     Piqirun.to_channel ch code
 
 

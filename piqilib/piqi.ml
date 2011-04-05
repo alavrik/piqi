@@ -755,7 +755,7 @@ let apply_extensions piqdef extensions custom_fields =
   let trace' = !Piqloc.trace in
   (* Piqloc.trace := false; *)
   debug "apply_extensions(0)\n";
-  let piqdef_ast = mlobj_to_ast !piqdef_def T.gen_piqdef piqdef in
+  let piqdef_ast = mlobj_to_ast !piqdef_def T.gen__piqdef piqdef in
   let extension_entries =
     List.concat (List.map (fun x -> x.Extend#quote) extensions)
   in

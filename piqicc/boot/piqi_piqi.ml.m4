@@ -210,7 +210,7 @@ let parse_piqi x = assert false
 
 let parse_piqdef x = assert false
 
-let gen_piqdef code x = assert false
+let gen__piqdef code x = assert false
 
 let embedded_piqi :(string * string) list ref = ref []
 

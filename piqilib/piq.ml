@@ -202,11 +202,11 @@ let piqi_spec_wire_code = (1 lsl 29) - 1
 
 
 let piqi_to_wire piqi =
-  T.gen_piqi piqi_spec_wire_code (original_piqi piqi)
+  T.gen__piqi piqi_spec_wire_code (original_piqi piqi)
 
 let piqi_to_pb piqi =
   (* -1 means don't generate wire code *)
-  T.gen_piqi (-1) (original_piqi piqi)
+  T.gen_piqi (original_piqi piqi)
 
 
 let piqi_of_wire bin ~cache =
@@ -374,7 +374,7 @@ let piqi_to_json piqi =
   let piqi = original_piqi piqi in
 
   let piqtype = !Piqi.piqi_def in
-  let wire_generator = T.gen_piqi in
+  let wire_generator = T.gen__piqi in
 
   let piqobj =
     Piqi.mlobj_to_piqobj piqtype wire_generator piqi
@@ -538,7 +538,7 @@ let piqi_to_xml piqi =
   let piqi = original_piqi piqi in
 
   let piqtype = !Piqi.piqi_def in
-  let wire_generator = T.gen_piqi in
+  let wire_generator = T.gen__piqi in
 
   let piqobj =
     Piqi.mlobj_to_piqobj piqtype wire_generator piqi

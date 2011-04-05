@@ -87,7 +87,7 @@ and gen_any x =
   (* TODO: handle typed *)
   let ast = some_of x.any.T.Any.ast in
   (* convert ast to binary *)
-  let binobj = Piqirun.gen_binobj T.gen_ast ast in
+  let binobj = Piqirun.gen_binobj T.gen__ast ast in
   (* convert binary ast to piqobj of type ast *)
   let piqtype = Piqobj_to_json.ast_def in
   let piqobj = Piqobj_of_wire.parse_binobj ~piqtype binobj in
