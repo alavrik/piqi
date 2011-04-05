@@ -27,6 +27,7 @@
 % @doc start Piqi-RPC
 start() ->
     ensure_started(piqi),
+    ensure_started(inets), % inets is listed as a mochiweb dependency
     ensure_started(crypto),
     ensure_started(webmachine),
     ensure_started(mochiweb),
