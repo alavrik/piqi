@@ -101,16 +101,8 @@ let piqic_file ifile =
   let ofile =
     match !ofile with
       | "" ->
-          (* XXX:
           let modname = some_of piqi.P#ocaml_module in
-          let fname_base = String.lowercase modname in
-          *)
-          let modname = Piqi_file.basename ifile in
-          (* XXX:
-          let fname_base = dashes_to_underscores (String.lowercase modname) in
-          *)
-          let fname_base = modname in
-          fname_base ^ ".ml"
+          String.uncapitalize modname ^ ".ml"
       | x -> x
   in
   (* call piq interface compiler for ocaml *)

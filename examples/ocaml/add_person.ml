@@ -1,7 +1,7 @@
 (*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
 
 
-module A = Addressbook
+module A = Addressbook_piqi
 
 
 let read_phone_type () =

@@ -9,7 +9,6 @@
 .module piqi.org/piqi
 
 .proto-package "piqi_org.piqi"
-.ocaml-module "Piqi_top"
 
 
 % base Piqi:

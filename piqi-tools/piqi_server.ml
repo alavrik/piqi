@@ -25,7 +25,7 @@
 module C = Piqi_common
 open C
 
-module I = Piqi_tools
+module I = Piqi_tools_piqi
 
 
 (* serialize and send one length-delimited packet to the output channle *)
@@ -45,24 +45,24 @@ let receive_packet ch =
 
 (* encode and write request/response structure to the output channel *)
 let send_request ch request =
-  let request = Piqi_rpc.gen_request (-1) request in
+  let request = Piqi_rpc_piqi.gen_request (-1) request in
   send_packet ch request
 
 
 let send_response ch response =
-  let response = Piqi_rpc.gen_response (-1) response in
+  let response = Piqi_rpc_piqi.gen_response (-1) response in
   send_packet ch response
 
 
 (* read and decode one request/response structure from the input channel *)
 let receive_request ch =
   let buf = receive_packet ch in
-  Piqi_rpc.parse_request buf
+  Piqi_rpc_piqi.parse_request buf
 
 
 let receive_response ch =
   let buf = receive_packet ch in
-  Piqi_rpc.parse_response buf
+  Piqi_rpc_piqi.parse_response buf
 
 
 (* utility functions for constructing Piqi_rpc responses *)
@@ -242,7 +242,7 @@ let add_piqi args =
   with_handle_piqi_errors add_piqi args
 
 
-exception Break of Piqi_rpc.response
+exception Break of Piqi_rpc_piqi.response
 
 
 let do_args f data =
@@ -270,7 +270,7 @@ let do_run f x =
 
 
 let execute_request req =
-  let open Piqi_rpc.Request in
+  let open Piqi_rpc_piqi.Request in
   match req.name, req.data with
     | "convert", data -> (
         let args = do_args I.parse_convert_input data in

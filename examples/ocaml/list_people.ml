@@ -1,5 +1,5 @@
 
-open Addressbook
+open Addressbook_piqi
 
 
 let printf = Printf.printf

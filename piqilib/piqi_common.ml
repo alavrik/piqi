@@ -16,7 +16,7 @@
 *)
 
 
-module T = Piqtype
+module T = Piqi_piqi
 
 
 module Record = T.Record

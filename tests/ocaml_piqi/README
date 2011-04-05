@@ -8,6 +8,6 @@ which happens to be a serialized "piqi.piqi" specification.
 Also testing piqi imports in OCaml by compiling and linking "piqobj.piqi" which
 imports "piqtype.piqi"
 
-NOTE: "piqtype.ml" is required for "piqi.ml", since "piqi.piqi" uses "piq-any"
-type which implicitly requires "piqtype.ml" when compiled to .ml.
+NOTE: "piqtype_piqi.ml" is required for "piqi_piqi.ml", since "piqi.piqi" uses "piq-any"
+type which implicitly requires "piqtype_piqi.ml" when compiled to .ml.
 

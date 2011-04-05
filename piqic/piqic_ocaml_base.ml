@@ -114,7 +114,7 @@ let mlname_defs (defs:T.piqdef list) =
 
 let mlmodname n =
   let n = Piqi_name.get_local_name n in (* cut module path *)
-  Some (ocaml_ucname n)
+  Some (ocaml_ucname n ^ "_piqi")
 
 
 let rec mlname_piqi (piqi:T.piqi) =

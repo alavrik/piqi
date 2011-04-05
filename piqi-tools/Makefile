@@ -14,13 +14,11 @@ SOURCES += \
 	piqi_light_cmd.ml \
 	piqi_getopt_cmd.ml \
 	\
-	piqi_to_proto.ml \
+	$(PIQI_ML_SOURCES) \
 	\
-	descriptor.ml \
+	piqi_to_proto.ml \
 	piqi_of_proto.ml \
 	\
-	piqi_rpc.ml \
-	piqi_tools.ml \
 	piqi_server.ml \
 	\
 	piqi_http.ml \
@@ -31,14 +29,11 @@ SOURCES += \
 
 PIQI_MODULES = descriptor.piqi piqi-tools.piqi piqi-rpc.piqi
 
-PIQI_ML_SOURCES = $(PIQI_MODULES:%.piqi=%.ml)
-PIQI_ML_USOURCES = $(PIQI_MODULES:%.piqi=%.ml)
+PIQI_ML_SOURCES = descriptor_piqi.ml piqi_tools_piqi.ml piqi_rpc_piqi.ml
 
 
 PRE_TARGETS += \
-	$(PIQI_SOURCES) $(PIQI_PIQI) $(PIQI_ML_SOURCES) \
-	piqi_tools.ml \
-	piqi_rpc.ml
+	$(PIQI_SOURCES) $(PIQI_PIQI) $(PIQI_ML_SOURCES)
 	
 
 PACKS += unix
@@ -58,14 +53,11 @@ all: nc
 debug: dc top
 
 
-$(PIQI_ML_SOURCES): %.ml: %.piqi
-	$(PIQIC) ocaml $(PIQIC_FLAGS) --pp -o $@ $<
-
-piqi_tools.ml: piqi-tools.ml
-	ln -s $< $@
-
-piqi_rpc.ml: piqi-rpc.ml
-	ln -s $< $@
+$(PIQI_ML_SOURCES): $(PIQI_MODULES)
+	for i in $^; \
+	do \
+		$(PIQIC) ocaml $(PIQIC_FLAGS) --pp $$i; \
+	done
 
 
 clean::

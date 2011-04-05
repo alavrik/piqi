@@ -6,19 +6,19 @@ RESULT = piqi_boot2
 SOURCES += boot.ml
 
 
-piqtype.ml: boot/piqdefs.ml boot/piqast.ml.m4
-	m4 boot/piqast.ml.m4 >piqtype.tmp.ml
-	./piqi_boot | sed -e 's/Piqtype.any/any/g' >>piqtype.tmp.ml
+piqi_piqi.ml: boot/piqdefs.ml boot/piqast.ml.m4
+	m4 boot/piqast.ml.m4 >piqi_piqi.tmp.ml
+	./piqi_boot | sed -e 's/Piqtype.any/any/g' >>piqi_piqi.tmp.ml
 	rm -f *.cmo *.cmi
-	$(CAMLP4)o -o piqtype.1.ml piqtype.tmp.ml
-	#ln -sf piqtype.1.ml $@
+	$(CAMLP4)o -o piqi_piqi.1.ml piqi_piqi.tmp.ml
+	#ln -sf piqi_piqi.1.ml $@
 	echo "(*pp camlp4o -I $$PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)" >$@
-	cat piqtype.1.ml >>$@
+	cat piqi_piqi.1.ml >>$@
 	cat boot/piqdefs.ml >>$@
 
 
 clean::
-	rm -f piqtype.tmp.ml piqtype.1.ml
+	rm -f piqi_piqi.tmp.ml piqi_piqi.1.ml
 
 
 include $(OCAMLMAKEFILE)

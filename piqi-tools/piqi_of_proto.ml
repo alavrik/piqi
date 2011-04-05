@@ -16,7 +16,7 @@
 *)
 
 
-module D = Descriptor
+module D = Descriptor_piqi
 
 module ProtoFileSet = D.File_descriptor_set
 module ProtoFile = D.File_descriptor_proto

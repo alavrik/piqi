@@ -81,37 +81,37 @@ module rec Types: DEFTYPES(
   >>)
 and DEFRECORD(Record,
   <<
-    mutable piqtype : Piqtype.record;
+    mutable piqtype : Piqi_piqi.record;
     mutable field : Types.field list;
   >>)
 and DEFRECORD(Field,
   <<
-    mutable piqtype : Piqtype.field;
+    mutable piqtype : Piqi_piqi.field;
     mutable obj: Types.obj option;
   >>)
 and DEFRECORD(Variant,
   <<
-    mutable piqtype : Piqtype.variant;
+    mutable piqtype : Piqi_piqi.variant;
     mutable option : Types.option;
   >>)
 and DEFRECORD(Option,
   <<
-    mutable piqtype : Piqtype.option;
+    mutable piqtype : Piqi_piqi.option;
     mutable obj: Types.obj option; (* None for named options, i.e. constants *)
   >>)
 and DEFRECORD(List,
   <<
-    mutable piqtype : Piqtype.piqlist;
+    mutable piqtype : Piqi_piqi.piqlist;
     mutable obj: Types.obj list;
   >>)
 and DEFRECORD(Alias,
   <<
-    mutable piqtype : Piqtype.alias;
+    mutable piqtype : Piqi_piqi.alias;
     mutable obj: Types.obj;
   >>)
 and DEFRECORD(Any,
   <<
-    mutable any : Piqtype.any;
+    mutable any : Piqi_piqi.any;
     (* it is not possible to convert "any" to object at any given time, some
        typing hints may be required to do that which causes the delay, hence
        defining it as "optional" *)

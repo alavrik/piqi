@@ -1,5 +1,5 @@
 piqicc
-/piqtype.*
+/piqi_piqi.*
 piqobj.ml
 piqi_boot*
 piqi_reboot

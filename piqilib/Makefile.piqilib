@@ -36,7 +36,7 @@ PIQICC = ../piqicc/piqicc
 PIQICC_FLAGS = -I $(PIQI_ROOT)
 
 
-piqtype.ml: $(PIQI_PIQI)
+piqi_piqi.ml: $(PIQI_PIQI)
 	# Note, using standard piqi.org/piqi-boot as boot module for piqicc
 	$(PIQICC) $(PIQICC_FLAGS) -o $@.tmp.ml \
 		--boot piqi-boot.piqi --piqi piqi.piqi --impl piqi-impl.piqi
@@ -44,5 +44,5 @@ piqtype.ml: $(PIQI_PIQI)
 
 
 clean::
-	rm -f piqtype.ml.tmp.ml
+	rm -f piqi_piqi.ml.tmp.ml
 

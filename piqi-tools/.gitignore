@@ -1,11 +1,9 @@
 piqi
-piqtype.*
+piqi_piqi.*
 piqobj.ml
-descriptor.*
-piqi-tools.ml
-piqi_tools.ml
-piqi-rpc.ml
-piqi_rpc.ml
+descriptor_piqi.ml
+piqi_tools_piqi.ml
+piqi_rpc_piqi.ml
 piqi_version.ml
 piqi_json_parser.ml
 

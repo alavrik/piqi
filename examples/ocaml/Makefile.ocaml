@@ -1,7 +1,7 @@
 include $(PIQI_ROOT)/make/Makefile.ocaml
 
 
-SOURCES = addressbook.ml
+SOURCES = addressbook_piqi.ml
 
 
 ifeq ($(GOAL),add_person)
@@ -13,7 +13,7 @@ SOURCES += list_people.ml
 endif
 
 
-PRE_TARGETS = addressbook.ml
+PRE_TARGETS = addressbook_piqi.ml
 
 
 LIBS = piqirun
@@ -27,11 +27,7 @@ PIQIC_FLAGS = --pp --leave-tmp-files
 all: native-code #byte-code
 
 
-%.ml : %.piqi
-	$(PIQIC) ocaml $(PIQIC_FLAGS) -o $@ $<
-
-
-%.ml : %.proto.piqi
+addressbook_piqi.ml: addressbook.proto.piqi
 	$(PIQIC) ocaml $(PIQIC_FLAGS) -o $@ $<
 
 

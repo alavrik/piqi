@@ -42,12 +42,12 @@ PIQI_SOURCES = $(PIQI_SOURCES_HEAD) $(PIQI_SOURCES_TAIL)
 SOURCES = \
 	piqi_version.ml \
 	$(PIQI_SOURCES_HEAD) \
-	piqtype.ml \
+	piqi_piqi.ml \
 	piqobj.ml \
 	$(PIQI_SOURCES_TAIL)
 
 
-PRE_TARGETS = piqi_version.ml piqtype.ml piqobj.ml
+PRE_TARGETS = piqi_version.ml piqi_piqi.ml piqobj.ml
 
 
 PACKS = ulex easy-format
