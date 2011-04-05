@@ -19,7 +19,7 @@ ERL_TESTS = piqirun
 
 
 ERL_APP_PATH = $(PIQI_ROOT)/piqi-erlang
-ERLC_FLAGS =
+ERLC_FLAGS = -I ../include
 #EBIN_DIR = .
 
 

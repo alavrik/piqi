@@ -22,7 +22,7 @@
 -module(piqirun_ext).
 -compile(export_all).
 
--include("../include/piqirun.hrl").
+-include("piqirun.hrl").
 
 -include("piqi_tools_piqi.hrl").
 

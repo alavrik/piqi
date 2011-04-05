@@ -49,7 +49,7 @@
 -module(piqirun).
 -compile(export_all).
 
--include("../include/piqirun.hrl").
+-include("piqirun.hrl").
 
 
 %
