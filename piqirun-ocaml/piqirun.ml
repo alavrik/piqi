@@ -516,22 +516,14 @@ let find_fields code l =
   aux [] [] l
 
 
-let parse_binobj binobj =
-  let buf = IBuf.of_string binobj in
-  let l = parse_record_buf buf in
-  match l with
-    | [(2, piqobj)] -> (* anonymous binobj *)
-        None, piqobj
-    | [(1, nameobj); (2, piqobj)] -> (* named binobj *)
-        let name = parse_string nameobj in
-        Some name, piqobj
-    | x ->
-        error binobj "invalid binobj" (* XXX: better diagnostic? *)
+let parse_binobj parse_fun binobj =
+  let buf = init_from_string binobj in
+  parse_fun buf
 
 
-let parse_default x =
-  let _name, piqobj = parse_binobj x in
-  piqobj
+let parse_default binobj =
+  let buf = init_from_string binobj in
+  buf
 
 
 let check_duplicate code tail =
@@ -943,15 +935,10 @@ let gen_list f code l =
   gen_record code contents
 
 
-let gen_binobj gen_obj ?name x =
-  let obj = gen_obj 2 x in
-  let l =
-    match name with
-      | Some name -> iol [ gen_string 1 name; obj ]
-      | None -> obj
-  in
-  (* return the rusult encoded as a binary string *)
-  OBuf.to_string l
+let gen_binobj gen_obj x =
+  let obuf = gen_obj (-1) x in
+  (* return the result encoded as a binary string *)
+  OBuf.to_string obuf
 
 
 (* generate length-delimited block of data. The inverse operation to

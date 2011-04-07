@@ -135,20 +135,8 @@ let rec gen_obj code (x:Piqobj.obj) =
 
 
 (* generate obj without leading code/tag element *)
-and gen_embedded_obj obj =
-  (* -1 is a special code meaning that key and length for blocks should not be
-   * generated *)
-  gen_obj (-1) obj
-
-
-(* XXX: provide separate functions: gen_binobj and gen_typed_binobj *)
-and gen_binobj ?(named=true) x = 
-  if not named 
-  then
-    Piqirun.gen_binobj gen_obj x
-  else
-    let name = Piqobj_common.full_typename x in
-    Piqirun.gen_binobj gen_obj x ~name
+and gen_binobj x =
+  Piqirun.gen_binobj gen_obj x
 
 
 and gen_any code x =
@@ -162,7 +150,7 @@ and gen_any code x =
     then (
       (* generate "x.any.binobj" from "x.obj" *)
       Piqloc.pause ();
-      let binobj = gen_binobj (some_of x.obj) ~named:false in
+      let binobj = gen_binobj (some_of x.obj) in
       Piqloc.resume ();
       Piqloc.add_fake_loc binobj ~label:"_binobj";
       x.any.T.Any.binobj <- Some binobj

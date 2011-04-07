@@ -479,81 +479,6 @@ find_fields(Code, [H | T], Accu, Rest) ->
     find_fields(Code, T, Accu, [H | Rest]).
 
 
--type binobj() ::
-    {ObjName :: 'undefined' | binary(), ObjValue :: piqirun_return_buffer()}.
-
--spec parse_binobj/1 :: (Bytes :: binary()) -> binobj().
-
-parse_binobj(Bytes) ->
-    {Binobj, _Rest = <<>>} = parse_binobj_common(Bytes),
-    Binobj.
-
-
-parse_binobj_common(Bytes) ->
-    {Value1, Rest1} = parse_field(Bytes),
-    case Value1 of
-        {2, X} -> % anonymous binobj
-            {{'undefined', X}, Rest1};
-        {1, Nameobj} -> % named binobj
-            Name = string_of_block(Nameobj),
-            {{2, X}, Rest2} = parse_field(Rest1),
-            {{Name, X}, Rest2}
-    end.
-
-
--spec parse_binobj_part/1 ::
-    (Bytes :: binary()) -> 'undefined' | {binobj(), Rest :: binary()}.
-
-% Similar to parse_binobj/1, but also returns the binary remainder left after
-% parsing the binobj. If there's not enough data, 'undefined' is returned as
-% the result.
-parse_binobj_part(Bytes) ->
-    try
-        parse_binobj_common(Bytes)
-    catch
-        % raised in either parse_field_header/1 or in parse_field/1 meaning that
-        % there's not enough data
-        {'piqirun_error', 'not_enough_data'} -> 'undefined'
-    end.
-
-
--spec parse_default/1 ::
-    (X :: binary()) -> ObjValue :: piqirun_return_buffer().
-
-parse_default(X) ->
-  {_, Res} = parse_binobj(X),
-  Res.
-
-
--spec gen_binobj/2 :: (
-    Generator :: function(),
-    Data :: any() ) -> iolist().
-
-% generate anonymous binobj
-gen_binobj(Generator, Data) ->
-    gen_binobj('undefined', Generator, Data).
-
-
--spec gen_binobj/3 :: (
-    Name :: 'undefined' | binary(),
-    Generator :: function(),
-    Data :: any() ) -> iolist().
-
-% generate named binobj
-% TODO: add a unit test for gen_binobj/parse_binobj
-gen_binobj(Name, Generator, Data) ->
-    DataField = Generator(2, Data),
-    Fields =
-        case Name of
-            'undefined' -> [DataField];
-            _ ->
-                NameField = binary_to_block(1, Name),
-                [NameField, DataField]
-        end,
-    % generate record without a header
-    gen_record('undefined', Fields).
-
-
 -spec error/1 :: (any()) -> no_return().
 
 error(X) ->
@@ -598,7 +523,7 @@ parse_req_field(Code, ParseValue, L) ->
 parse_opt_field(Code, ParseValue, L, Default) ->
     case parse_opt_field(Code, ParseValue, L) of
         {'undefined', Rest} ->
-            Res = ParseValue(parse_default(Default)),
+            Res = ParseValue(Default),
             {Res, Rest};
         X -> X
     end.

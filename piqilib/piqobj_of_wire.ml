@@ -101,51 +101,18 @@ and parse_obj t x =
   Piqloc.addrefret count res
 
 
-and try_parse_binobj ?piqtype binobj =
-  let name, x = Piqirun.parse_binobj binobj in
-  if name = None && piqtype = None
-  then None (* type of binary object is unknown *)
-  else
-    let t =
-      match name, piqtype with
-        | None, Some t -> t
-        | Some n, Some t ->
-            let n'= C.full_piqi_typename t in
-            if n = n'
-            then t
-            else
-              (* XXX: warning? *)
-              piqi_error
-                ("mismatch between supplied type and binobj type: " ^ n' ^ " v/s " ^ n)
-        | Some n, None ->
-            begin
-              try 
-                Piqi_db.find_piqtype n
-              with Not_found -> 
-                (* XXX: location? *)
-                piqi_error ("unknown binobj type: " ^ n)
-            end
-        | _ -> assert false
-    in
-    let res = parse_obj t x in
-    Some res
+and parse_binobj piqtype binobj =
+  Piqirun.parse_binobj (parse_obj piqtype) binobj
 
 
-and parse_binobj ?piqtype binobj = 
-  match try_parse_binobj ?piqtype binobj with
-    | Some x -> x
-    | None -> 
-        piqi_error "error parsing binobj: type is unspecified/unknown"
-        
-
-and parse_any x =
+and parse_any ?piqtype x =
   let piq_any = T.parse_any x in
   let obj =
-    match piq_any.T.Any#binobj with
-      | Some x ->
-          (* parse binobj if it is named (i.e. typed) *)
-          try_parse_binobj x
-      | None -> None
+    match piq_any.T.Any#binobj, piqtype with
+      | Some x, Some t ->
+          (* parse binobj if the type is known *)
+          Some (parse_binobj t x)
+      | _ -> None
   in
   Any#{ any = piq_any; obj = obj }
 
@@ -228,7 +195,7 @@ and parse_default piqtype default =
     | None -> None
     | Some x ->
         let binobj = some_of x.T.Any.binobj in
-        let res = parse_binobj binobj ~piqtype in
+        let res = parse_binobj piqtype binobj in
         Some res
 
 

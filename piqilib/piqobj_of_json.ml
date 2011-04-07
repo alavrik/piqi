@@ -100,10 +100,9 @@ and parse_any x =
   let piqtype = Piqobj_to_json.ast_def in
   let piqobj = parse_obj piqtype x in
   (* convert ast piqobj to binobj *)
-  let binobj = Piqobj_to_wire.gen_binobj piqobj ~named:false in
+  let binobj = Piqobj_to_wire.gen_binobj piqobj in
   (* parse binobj into ast OCaml representation *)
-  let _name, t = Piqirun.parse_binobj binobj in
-  let ast = T.parse_ast t in
+  let ast = Piqirun.parse_binobj T.parse_ast binobj in
 
   let piq_any = T.Any#{ast = Some ast; binobj = None} in
   Any#{ any = piq_any; obj = Some piqobj }

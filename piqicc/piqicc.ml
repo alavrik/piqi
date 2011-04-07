@@ -148,8 +148,7 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
 
   let code = iod " " [
     ios "let parse_piqi_binobj x = ";
-      ios "let _name, piqwire = Piqirun.parse_binobj x in";
-      ios "parse_piqi piqwire";
+      ios "Piqirun.parse_binobj parse_piqi x";
     eol;
 
     ios "let piqi = ";

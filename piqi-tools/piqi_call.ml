@@ -162,9 +162,8 @@ let encode_input_data f args =
         trace "piqi_call: parsing arguments\n";
         (* XXX: C.resolve_defaults := true; *)
         let piqobj = Piqi_getopt.parse_args (piqtype :> T.piqtype) args in
-        let iodata = Piqobj_to_wire.gen_embedded_obj piqobj in
-        let res = Piqirun.to_string iodata in
-        Some res
+        let binobj = Piqobj_to_wire.gen_binobj piqobj in
+        Some binobj
 
 
 let decode_response f output =

@@ -372,7 +372,7 @@ let resolve_field_default x =
 
         (* XXX: pack default to contain only binary representation of
          * the value, i.e. don't include object typename *)
-        let binobj = Piqobj_to_wire.gen_binobj piqobj ~named:false in
+        let binobj = Piqobj_to_wire.gen_binobj piqobj in
 
         (* XXX: or just rather do Piqloc.ocount := !Piqloc.icount? *)
         Piqloc.icount := !Piqloc.icount + (!Piqloc.ocount - ocount);
@@ -560,7 +560,7 @@ let mlobj_to_piqobj piqtype wire_generator mlobj =
 
   (* dont' resolve defaults when reading wire *)
   let piqobj =
-    C.with_resolve_defaults false (Piqobj_of_wire.parse_binobj ~piqtype) binobj
+    C.with_resolve_defaults false (Piqobj_of_wire.parse_binobj piqtype) binobj
   in
   debug_loc "mlobj_to_piqobj(1)";
   assert_loc ();
@@ -578,9 +578,8 @@ let mlobj_to_ast piqtype wire_generator mlobj =
 
 
 let mlobj_of_piqobj wire_parser piqobj =
-  let binobj = Piqobj_to_wire.gen_binobj piqobj ~named:false in
-  let _name, t = Piqirun.parse_binobj binobj in
-  let mlobj = wire_parser t in
+  let binobj = Piqobj_to_wire.gen_binobj piqobj in
+  let mlobj = Piqirun.parse_binobj wire_parser binobj in
   mlobj
 
 
@@ -1162,6 +1161,10 @@ let load_piqi fname :T.piqi =
   piqi
 
 
+(*
+ * this code was previously used by piqicc; keeping it here for a while just
+ * in case:
+
 let convert_obj new_piqtype obj =
   debug "convert_obj(0)\n";
   trace_enter ();
@@ -1188,13 +1191,13 @@ let convert_obj new_piqtype obj =
 let convert_binobj piqtype new_piqtype binobj =
   debug "convert_binobj(0)\n";
   trace_enter ();
-  let obj = Piqobj_of_wire.parse_binobj ~piqtype binobj in
+  let obj = Piqobj_of_wire.parse_binobj piqtype binobj in
   debug_loc "convert_binobj(1)";
   let new_obj = convert_obj new_piqtype obj in
   debug_loc "convert_binobj(2)";
-  let res = Piqobj_to_wire.gen_binobj new_obj ~named:false in
+  let res = Piqobj_to_wire.gen_binobj new_obj in
   Piqloc.icount := !Piqloc.ocount;
   debug_loc "convert_binobj(3)";
   trace_leave ();
   res
-
+*)

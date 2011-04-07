@@ -41,12 +41,7 @@ let gen_default_type erlang_type wire_type x =
         modname ^^ ios "default_" ^^ ios (piqdef_erlname x) ^^ ios "()"
     | _ -> (* gen parsers for built-in types *)
         let default = Piqic_common.gen_builtin_default_value wire_type x in
-        let default_expr = iol [
-          ios "piqirun:parse_default(";
-                Piqic_erlang_in.gen_erlang_binary default;
-          ios ")";
-        ]
-        in
+        let default_expr = Piqic_erlang_in.gen_erlang_binary default in
         iol [
           ios "piqirun:";
           ios (gen_erlang_type_name x erlang_type);

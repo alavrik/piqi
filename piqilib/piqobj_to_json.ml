@@ -84,7 +84,7 @@ and gen_any x =
   let binobj = Piqirun.gen_binobj T.gen__ast ast in
   (* convert binary ast to piqobj of type ast *)
   let piqtype = ast_def in
-  let piqobj = Piqobj_of_wire.parse_binobj ~piqtype binobj in
+  let piqobj = Piqobj_of_wire.parse_binobj piqtype binobj in
   (* generate json from the piqobj *)
   gen_obj piqobj
 
