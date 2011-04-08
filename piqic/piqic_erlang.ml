@@ -20,7 +20,8 @@
  * piq interface compiler for Erlang
  *)
 
-open Piqi_common
+module C = Piqi_common
+open C
 
 
 (*
@@ -253,7 +254,11 @@ let gen_erl modname piqi =
 let piqic (piqi: T.piqi) =
   Piqic_common.piqic_common piqi;
 
-  (* set Erlang names which are not specified by user *)
+  (* set Erlang names that are not specified by user *)
+  (match !C.boot_piqi with
+    | None -> ()
+    | Some x -> erlname_piqi x
+  );
   erlname_piqi piqi;
 
   (* set current module's name and type prefix *)
