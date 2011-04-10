@@ -67,7 +67,7 @@ piqi getopt --piqtype def/e -t pb -- -a | piqi convert -f pb --piqtype def/e
 piqi getopt --piqtype def/e -t json -- -a | piqi convert -f json --piqtype def/e
 
 
-piqi getopt --piqtype person/person -- \
+piqi getopt --add-defaults -t json --piqtype person/person -- \
     --name "J. Random Hacker" \
     --id 0 \
     --email "j.r.hacker@example.com" \

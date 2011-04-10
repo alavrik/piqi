@@ -331,7 +331,7 @@ let main_loop () =
 
 
 let start_server () =
-  Piqi_json.init ();
+  Piqi_convert.init ();
   (* exit on SIGPIPE without printing a message about uncaught exception *)
   Sys.set_signal Sys.sigpipe (Sys.Signal_handle (fun _ ->
     (* have to close all channels explicilty to prevent getting an uncaught

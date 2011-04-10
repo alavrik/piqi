@@ -291,8 +291,14 @@ let validate_options input_encoding =
   )
 
 
+let init () =
+  (* XXX: this is necessary when we convert to/from json, but now calling it
+   * regardless of whether we actually need it *)
+  Piqi_json.init ()
+
+
 let convert_file () =
-  Piqi_json.init ();
+  init ();
   let input_encoding =
     if !input_encoding <> ""
     then !input_encoding

@@ -614,7 +614,7 @@ let run () =
   Main.parse_args ()
     ~speclist ~usage ~min_arg_count:1 ~max_arg_count:1 ~custom_anon_fun;
 
-  Piqi_json.init ();
+  Piqi_convert.init ();
   Piqi_getopt.init ();
 
   (* reset Piqi module lookup paths in order to prevent them from getting loaded
