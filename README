@@ -4,33 +4,40 @@ OVERVIEW
 Piqi is a set of languages and open-source tools for working with structured
 data. It includes:
 
-        * A cross-language data serialization system compatible with Google
-        Protocol Buffers. It allows programs implemented in various languages to
-        exchange and persist data in a portable manner.
+    - A cross-language data serialization system compatible with Google Protocol
+      Buffers. It allows programs implemented in various languages to exchange
+      and persist data in a portable manner.
 
-        * High-level data representation (Piq) and data definition languages
-        (Piqi).
+    - Piq -- a human-friendly typed data representation language. It is designed
+      to be more convenient for representing, viewing and editing data than
+      JSON, XML, CSV, S-expressions and other formats.
 
-        * Tools for validating, pretty-printing and converting data between
-        Piq, JSON and portable binary encoding.
+    - Piqi -- a powerful data definition language. It is specially designed to be
+      used with Piq, but also works as a schema language for other data formats
+      including JSON, XML and Protocol Buffers binary format. Tools for
+      validating, pretty-printing and converting data between Piq, JSON, XML and
+      Protocol Buffers binary format.
 
-As a data serialization system, Piqi follows a static approach, when high-level
-data specification is used to generate static code for serializing and
-deserializing data structures.
+    - Piqi-RPC -- an RPC-over-HTTP system for Erlang. It provides a simple way to
+      expose Erlang services via JSON, XML and Google Protocol Buffers over
+      HTTP.
 
-Piqi implements native support for OCaml and Erlang programming languages.
-Connectivity with other languages is provided via Google Protocol Buffers.
+As a data serialization system, Piqi implements native support for OCaml and
+Erlang. Connectivity with other programming languages is provided via Google
+Protocol Buffers. Overall, Piqi provides a more natural mapping to functional
+programming languages compared to various serialization systems that were
+originally designed for imperative or object-oriented languages.
 
-In fact, Piqi was inspired by Google Protocol Buffers and specially designed to
-be largely compatible with it. Like Protocol Buffers, Piqi relies on type
+Piqi was inspired by Google Protocol Buffers and specially designed to be
+largely compatible with it. Like Protocol Buffers, Piqi relies on type
 definitions and supports data schema evolution. The main difference is that Piqi
-has a richer data model, high-level modules and a human-friendly data
-representation language (Piq).
+has a richer data model, high-level modules and a powerful data representation
+language (Piq).
 
 The combination of data representation (Piq) and data definition (Piqi)
 languages is similar to the concept of "valid XML" (i.e. XML conforming to some
 XML Schema). However, unlike XML, Piq has a concise, clean syntax and a data
-model similar to those of high-level programming languages such as ML.
+model similar to those of high-level programming languages.
 
 
 FURTHER INFORMATION
@@ -69,7 +76,7 @@ FILES
   piqilib/              Piqi common library
   piqirun-ocaml/        Piqi runtime library for OCaml
   piqi-erlang/          Piqi runtime library and Piqi tools bindings for Erlang
-  piqi-rpc/             an RPC over HTTP system for Erlang
+  piqi-rpc/             Piqi-RPC -- an RPC-over-HTTP system for Erlang
   examples/             examples
   tests/                tests for various piqi functionality; see tests/README
   editors/              text editor plugins for .piq and .piqi files

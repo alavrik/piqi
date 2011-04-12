@@ -1,3 +1,107 @@
+Piqi 0.5.5 (April 12, 2011)
+===========================
+
+Highlights:
+
+  - Multi-format data serialization for Erlang (JSON, XML, Protocol Buffers)
+  - Piqi-RPC -- an RPC-over-HTTP system for Erlang
+  - Support for XML encoding
+  - Function definitions in the Piqi language
+  - Piqi getopt -- type-based command-line arguments parsing
+
+Backward-incompatible changes:
+
+  - "piqirun" Erlang application is renamed to "piqi" (contains the old
+    "piqirun.erl" and some new functionality). The new application runs a
+    supervisor and some servers which are used by Piqi-RPC and multi-format data
+    serialization (see below).
+
+  - (piqic ocaml, piqic erlang) Both Piqi compilers now generate
+    "<Mod>_piqi.ml|.erl|.hrl" instead of "<Mod>.ml|.erl|.hrl". For OCaml it is
+    still possible to specify the name of the output file explicitly using "-o"
+    parameter. OCaml and Erlang module names can be also set using
+    "ocaml-module" and "erlang-module" directly in the .piqi file.
+
+  - (ocaml) Generated OCaml serialization functions (i.e. gen_<typename>) now
+    accept 1 arguments instead of 2. Old functions accepting 2 arguments are
+    renamed to gen__<typename>. The removed argument is an integer tag for a
+    Protobuf field -- there's rarely a need to specify it explicitly.
+
+Important changes in Erlang serialization:
+
+  - Generated Erlang serialization functions (i.e. gen_<type>/2) can also accept
+    only 1 argument. It is now possible to use gen_<type>(X) instead of
+    gen_<type>('undefined', X).
+
+  - Calling piqirun:init_from_binary/1 is no longer necessary as all
+    parse_<typename>/1 functions will accept Erlang binaries.
+
+Other changes:
+
+  - (piqirun-erlang) Improved error reporting when deserializing incomplete
+    data: a special 'not_enough_data' exception will be thrown in such case.
+  - (json) Wrapping top-level primitive values into {"_": <value>} object to
+    conform with JSON RFC4627 specification.
+  - Piqi-light syntax improvements for better readability.
+  - Don't generate {<field>: null} for optional fields missing in JSON records.
+  - Tests will now work even if Protocol Buffers is not installed.
+  - (piqirun-ocaml) Remove "Stream" layer and use channels directly in the input
+    buffer.
+
+Bug fixes:
+
+  - (erlang) Fixed incorrect Erlang mapping for some built-in types (problem was
+    introduced in 0.5.4 release).
+  - (erlang) A proper support for records with no fields.
+  - (piqic ocaml) crash on imports of built-in aliases (Issue #2).
+  - (make ocaml-install) Fixed installation of OCaml libraries which conflicted
+    with installation of OCaml dependencies (Issue #1).
+
+New functionality (XML support):
+  - "piqi convert" can now convert data between Protobuf, XML, JSON and Piq
+    formats. Other Piqi commands that rely on conversion functionality, such as
+    "piqi getopt", can work with XML as well.
+
+New functionality (XML, JSON and Piq serialization for Erlang):
+
+  - "piqic-erlang-ext" -- a command-line Piqi compiler (an extended version of
+    "piqic erlang" command). It generates Erlang code for
+    serializing/deserializing data XML, JSON, Piq, Protobuf formats.
+  - piqi_tools.erl -- Erlang bindings for Piqi tools implemented as Erlang
+    port running "piqi server".
+
+New functionality (miscellaneous):
+
+  - Support for serializing top-level values of primitive types (ocaml, erlang,
+    piqi tools, all formats).
+  - (piqirun-erlang, piqirun-ocaml) New functions for encoding/decoding
+    length-delimited blocks (gen_block/parse_block). Compatible with similar
+    functionality in Protocol Buffers.
+  - (piqic-ocaml, piqic-erlang) Support for generating default values for types:
+    'piqic ocaml|erlang --gen-defaults ...'.
+  - A new "piqi getopt" command interprets idiomatic command-line arguments as
+    Piq data object (according to a Piqi type spec) and converts it to JSON,
+    XML, Piq and Protobuf formats.
+  - Piqi-RPC -- an PRC-over-HTTP system for Erlang (see below).
+  - Performance tests for Erlang serialization to/from Protobuf, JSON, XML, Piq.
+
+New functionality (Piqi-RPC):
+
+  - Support for function definitions in the Piqi language, all the Piqi tools,
+    compilers, OCaml, Erlang and Protocol Buffer mappings.
+  - A new "piqi server" command that talks Piqi-RPC over Unix pipe and exposes
+    data conversion functionality.
+  - A new "piqi call" -- Piqi-RPC command-line client that interprets
+    command-line arguments as input parameters for remote functions and
+    communicates with Piqi-RPC servers via HTTP or Unix pipe.
+  - piqi-rpc -- an Erlang application containing runtime support libraries and
+    HTTP interface for Piqi-RPC.
+  - "piqic-erlang-rpc" -- a command-line Piqi compiler and server stubs
+    generator for Piqi-RPC/Erlang.
+  - A new "piqic expand" command. It is similar to "piqi expand" but also sets
+    piqic-specific fields, such as OCaml and Erlang names.
+
+
 Piqi 0.5.4 (December 19, 2010)
 ==============================
 
