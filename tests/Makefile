@@ -6,6 +6,7 @@ include $(PIQI_ROOT)/make/Makefile.dirs
 ifneq ($(shell which protoc), )
 DIRS_DEPENDING_ON_PROTO = \
        piqi_proto \
+       piqi_proto1 \
        boot_proto2piqi \
        cpp
 endif
