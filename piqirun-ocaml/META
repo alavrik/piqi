@@ -1,4 +1,3 @@
-name = "piqi.runtime"
 description = "Runtime support for wire parsers and generators produced by 'piqic ocaml'"
 archive(byte) = "piqirun.cma"
 archive(native) = "piqirun.cmxa"

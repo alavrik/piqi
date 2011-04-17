@@ -15,10 +15,11 @@ endif
 
 PRE_TARGETS = addressbook_piqi.ml
 
+PACKS = piqi.runtime
 
-LIBS = piqirun
-LIBDIRS = $(PIQI_ROOT)/piqirun-ocaml
-INCDIRS = $(PIQI_ROOT)/piqirun-ocaml
+# LIBS = piqirun
+# LIBDIRS = $(PIQI_ROOT)/piqirun-ocaml
+# INCDIRS = $(PIQI_ROOT)/piqirun-ocaml
 
 PIQIC = piqic
 PIQIC_FLAGS = --pp --leave-tmp-files

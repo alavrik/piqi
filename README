@@ -66,9 +66,9 @@ FILES
   CHANGES               release history
   VERSION               current version
   Makefile              main Makefile
-  make/                 make files for building the project
+  make/                 makefiles and build scripts
   deps/                 third-party components (see NOTICE for details)
-  camlp4/               camlp4 extensions
+  piqi-camlp4/          Piqi syntax extensions for OCaml
   piqicc/               Piqi compiler compiler
   piqic/                Piq interface compiler for OCaml and Erlang
   piqi-tools/           "piqi" command-line utility (piqi tools)

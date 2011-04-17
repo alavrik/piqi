@@ -1,4 +1,3 @@
-name = "piqi.camlp4"
 requires = "camlp4"
 description = "Useful Camlp4 macro for dealing with OCaml types genereated by 'piqic ocaml'"
 archive(syntax,toploop) = "pa_labelscope.cmo pa_openin.cmo"

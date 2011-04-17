@@ -1,6 +1,19 @@
 OCAMLMAKEFILE := $(PIQI_ROOT)/make/OCamlMakefile
 
-OCAMLPATH = $(PIQI_BUILD)/lib/ocaml
-export OCAMLPATH
+
+OCAMLFIND_DESTDIR = $(PIQI_BUILD)/lib/ocaml
+OCAMLPATH = $(OCAMLFIND_DESTDIR)
+export OCAMLFIND_DESTDIR OCAMLPATH
+
+
+.PHONY: piqi-all pre_target post_target
+
+
+piqi-all: pre_target all post_target
+
+pre_target::
+
+post_target::
+
 
 # vim:ft=make

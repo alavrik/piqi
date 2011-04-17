@@ -50,16 +50,13 @@ SOURCES = \
 PRE_TARGETS = piqi_version.ml piqi_piqi.ml piqobj.ml
 
 
-PACKS = ulex easy-format
-LIBS = piqirun
-LIBDIRS = ../piqirun-ocaml
-INCDIRS = ../piqirun-ocaml
+PACKS = piqi.ulex piqi.easy-format piqi.runtime
 
 
-#RESULTDEPS = ../piqirun-ocaml/piqirun.cma
-
-
-# PACKS +=
+# LIBS = piqirun
+# LIBDIRS = ../piqirun-ocaml
+# INCDIRS = ../piqirun-ocaml
+# RESULTDEPS = ../piqirun-ocaml/piqirun.cma
 # ANNOTATE = yes
 # INCDIRS += +camlp4
 # USE_CAMLP4 = yes

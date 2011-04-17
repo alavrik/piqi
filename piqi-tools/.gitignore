@@ -56,3 +56,4 @@ piq.ml
 piqi_light.ml
 piqi_getopt.ml
 
+piqilib.mli

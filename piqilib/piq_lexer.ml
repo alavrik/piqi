@@ -1,4 +1,4 @@
-(*pp camlp4o -I `ocamlfind query ulex` pa_ulex.cma *)
+(*pp camlp4o -I `ocamlfind query piqi.ulex` pa_ulex.cma *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 

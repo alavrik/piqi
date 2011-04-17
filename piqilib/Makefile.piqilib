@@ -1,6 +1,6 @@
 include $(PIQI_ROOT)/piqilib/Makefile.piqi_extended
 
-PACKS += xmlm
+PACKS += piqi.xmlm
 
 PIQI_SOURCES_LIB = \
 	piqi_json_common.ml \
@@ -20,6 +20,8 @@ PIQI_SOURCES_LIB = \
 	\
 	piqi_light.ml \
 	piqi_getopt.ml \
+	\
+	piqilib.mli \
 
 
 PIQI_SOURCES_TAIL += $(PIQI_SOURCES_LIB)
