@@ -5,7 +5,18 @@
 -include("piqi_piqi.hrl").
 
 
-run() ->
+main() ->
+    run(1).
+
+
+main([NParallel]) ->
+    Factor = list_to_integer(NParallel),
+    run(Factor).
+
+
+run(Factor) ->
+    put(parallel_factor, Factor),
+
     test_piqi_server(),
     test_addressbook(),
     test_piqi(),
@@ -14,7 +25,7 @@ run() ->
 
 test_piqi_server() ->
     io:format("*** testing piqi_tools:ping() i.e. 'piqi server' roundtrip ***~n~n"),
-    N = 60000,
+    N = 100000,
     F = fun () -> piqi_tools:ping() end,
     test(F, N).
 
@@ -93,7 +104,7 @@ test_convert(Codec, Format, Input, N) ->
 
 test(Fun, N) ->
     io:format("count: ~w~n", [N]),
-    {Time, _} = timer:tc(?MODULE, repeat, [Fun, N]),
+    {Time, _} = timer:tc(?MODULE, repeat_n, [Fun, N]),
 
     Seconds = Time / 1000000,
     PerSecond = (N * 1000000) div Time,
@@ -108,9 +119,10 @@ repeat(_Fun, 0) -> ok;
 repeat(Fun, N) -> Fun(), repeat(Fun, N-1).
 
 
-repeat2(Fun, N) -> repeat_n(2, Fun, N).
-repeat3(Fun, N) -> repeat_n(3, Fun, N).
-repeat4(Fun, N) -> repeat_n(4, Fun, N).
+repeat_n(Fun, N) ->
+    Factor = get(parallel_factor),
+    io:format("parallel_factor: ~w~n", [Factor]),
+    repeat_n(Factor, Fun, N).
 
 
 repeat_n(Factor, Fun, N) ->
