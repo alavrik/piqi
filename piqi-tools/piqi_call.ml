@@ -53,8 +53,8 @@ let string_of_rpc_error = function
 let call_local_server ((ich, och) as _handle) func_name data =
   trace "piqi_call: calling %s\n" func_name;
   let request = Piqi_rpc_piqi.Request#{name = func_name; data = data} in
-  Piqi_server.send_request och request;
-  let response, _caller_ref = Piqi_server.receive_response ich in
+  Piqi_rpc.send_request och request;
+  let response, _caller_ref = Piqi_rpc.receive_response ich in
   match response with
     | `rpc_error err ->
         piqi_error ("local rpc error: " ^ string_of_rpc_error err)

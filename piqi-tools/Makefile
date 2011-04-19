@@ -19,9 +19,9 @@ SOURCES += \
 	piqi_to_proto.ml \
 	piqi_of_proto.ml \
 	\
-	piqi_server.ml \
-	\
 	piqi_http.ml \
+	piqi_rpc.ml \
+	piqi_server.ml \
 	piqi_call.ml \
 	\
 	piqi_run.ml \
