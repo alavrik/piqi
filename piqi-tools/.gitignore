@@ -52,6 +52,7 @@ piqobj_of_xml.ml
 
 piqi_pp.ml
 piq.ml
+piqi_convert.ml
 
 piqi_light.ml
 piqi_getopt.ml

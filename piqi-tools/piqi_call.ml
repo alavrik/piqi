@@ -27,7 +27,7 @@ open C
 
 
 (* command-line arguments *)
-let output_encoding = Piqi_convert.output_encoding
+let output_encoding = Piqi_convert_cmd.output_encoding
 let flag_piqi = ref false
 let flag_piqi_all = ref false
 let flag_piqi_light = ref false
@@ -554,12 +554,12 @@ let run_call url =
   if not (!flag_piqi || !flag_piqi_all || !flag_piqi_light || !flag_h)
   then
     let args = Piqi_getopt.getopt_piq () in
-    let writer = Piqi_convert.make_writer !output_encoding in
+    let writer = Piqi_convert_cmd.make_writer !output_encoding in
     let res = call url args in
     gen_result ch writer res
   else
     let is_piqi_input = true in
-    let writer = Piqi_convert.make_writer !output_encoding ~is_piqi_input in
+    let writer = Piqi_convert_cmd.make_writer !output_encoding ~is_piqi_input in
     let piqi_list = get_piqi url in
     if !flag_piqi
     then
@@ -590,7 +590,7 @@ let speclist = Main.common_speclist @
   [
     arg_o;
 
-    Piqi_convert.arg__t;
+    Piqi_convert_cmd.arg__t;
 
     "--piqi", Arg.Set flag_piqi,
     "instead of calling a function, only print the Piqi module that defines the service";

@@ -8,7 +8,7 @@ SOURCES += \
 	piqi_json_pp.ml \
 	\
 	piqi_pp_cmd.ml \
-	piqi_convert.ml \
+	piqi_convert_cmd.ml \
 	piqi_check.ml \
 	piqi_expand.ml \
 	piqi_light_cmd.ml \

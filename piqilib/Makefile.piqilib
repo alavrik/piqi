@@ -17,6 +17,7 @@ PIQI_SOURCES_LIB = \
 	piqobj_of_xml.ml \
 	\
 	piq.ml \
+	piqi_convert.ml \
 	\
 	piqi_light.ml \
 	piqi_getopt.ml \

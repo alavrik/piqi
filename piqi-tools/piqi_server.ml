@@ -135,123 +135,12 @@ let return_rpc_error err =
   `rpc_error err
 
 
-let fname = "input" (* XXX *)
-
-
-let parse_piq_common get_next ~is_piqi_input =
-  let rec aux () =
-    let obj = get_next () in
-    match obj with
-      | Piq.Piqtype _ -> aux () (* skip default type *)
-      | Piq.Piqi _ when not is_piqi_input -> aux () (* skip embedded piqi *)
-      | Piq.Piqobj obj -> Piq.Typed_piqobj obj
-      | _ -> obj (* Typed_piqobj or Piqi *)
-  in aux ()
-
-
-(* NOTE: parsers always return either Piqi or Typed_piqobj *)
-
-
-let parse_piq s ~is_piqi_input =
-  let piq_parser = Piq_parser.init_from_string fname s in
-  let get_next () = Piq.load_piq_obj piq_parser in
-  let obj = parse_piq_common get_next ~is_piqi_input in
-  (* XXX: check eof? *)
-  obj
-
-
-let gen_piq obj =
-  let ast = Piq.gen_piq obj in
-  Piq_gen.to_string ast
-
-
-let parse_wire s ~is_piqi_input =
-  let buf = Piqirun.IBuf.of_string s in
-  let get_next () = Piq.load_wire_obj buf in
-  let obj = parse_piq_common get_next ~is_piqi_input in
-  (* XXX: check eof? *)
-  obj
-
-
-let gen_wire obj =
-  let buf = Piq.gen_wire obj in
-  Piqirun.to_string buf
-
-
-let parse_json piqtype s =
-  let json_parser = Piqi_json_parser.init_from_string ~fname s in
-  let obj = Piq.load_json_obj piqtype json_parser in
-  (* XXX: check eof? *)
-  obj
-
-
-let gen_json ?(pp=true) obj =
-  let json = Piq.gen_json obj in
-  if pp
-  then
-    Piqi_json_gen.pretty_to_string json
-  else
-    Piqi_json_gen.to_string json
-
-
-let parse_pb piqtype s =
-  let buf = Piqirun.init_from_string s in
-  let obj = Piq.load_pb piqtype buf in
-  (* XXX: check eof? *)
-  obj
-
-
-let gen_pb obj =
-  let buf = Piq.gen_pb obj in
-  Piqirun.to_string buf
-
-
-let parse_xml piqtype s =
-  let xml_parser = Piqi_xml.init_from_string ~fname s in
-  let obj = Piq.load_xml_obj piqtype xml_parser in
-  (* XXX: check eof? *)
-  obj
-
-
-let gen_xml obj =
-  let xml = Piq.gen_xml obj in
-  (* XXX: make pretty-printing optional? *)
-  Piqi_xml.xml_to_string xml
-
-
-let parse_obj typename input_format data =
-  let piqtype = Piqi_convert.get_piqtype typename in
-  let is_piqi_input = (typename = "piqi") in
-  let piqobj =
-    match input_format with
-      | `piq  -> parse_piq data ~is_piqi_input
-      | `json -> parse_json piqtype data
-      | `pb -> parse_pb piqtype data
-      | `xml -> parse_xml piqtype data
-      (*
-      | `wire -> parse_wire data ~is_piqi_input
-      *)
-  in piqobj
-
-
 (* "convert" call handler *)
 let convert args =
   let open I.Convert_input in
-  let piqobj =
-    (* XXX: We need to resolve all defaults before converting to JSON or XML *)
-    C.with_resolve_defaults
-      (args.output_format = `json || args.output_format = `xml)
-      (parse_obj args.type_name args.input_format) args.data
-  in
-  let output =
-    match args.output_format with
-      | `piq  -> gen_piq piqobj
-      | `json -> gen_json piqobj ~pp:args.pretty_print
-      | `pb -> gen_pb piqobj
-      | `xml -> gen_xml piqobj
-      (*
-      | `wire -> gen_wire piqobj
-      *)
+  let output = Piqi_convert.convert
+      args.type_name args.input_format args.output_format args.data
+      ~pretty_print:args.pretty_print
   in
   `ok I.Convert_output#{ data = output }
 
@@ -269,7 +158,7 @@ let convert args =
 
 
 let add_one_piqi input_format data =
-  match parse_obj "piqi" input_format data with
+  match Piqi_convert.parse_obj "piqi" input_format data with
     | Piq.Piqi piqi ->
         (match input_format with
           | `pb | `json | `xml ->
