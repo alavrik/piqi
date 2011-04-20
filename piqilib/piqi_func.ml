@@ -162,3 +162,8 @@ let _ =
   (* register a hook for processing functions when a Piqi module is loaded *)
   Piqi.register_processing_hook process_piqi
 
+
+(* we don't really need this call, but it is used in order to prevent exclusion
+ * of this module during library linking *)
+let init () = ()
+

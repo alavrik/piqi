@@ -15,8 +15,24 @@
 *)
 
 
-let _ =
-  Piqilib.init ();
-  Piqi_main.run ()
+(* This module serves the purpose of initilizing all the neccessary Piqi .ml
+ * modules, and forcing them to be linked when linking the Piqilib library. *)
 
+
+let init () =
+  Piqi_func.init ()
+
+
+let inited = ref false
+
+let init () =
+  if not !inited
+  then (
+    inited := true;
+    init ()
+  )
+
+
+let _ =
+  init ()
 

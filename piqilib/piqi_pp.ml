@@ -19,6 +19,9 @@
 open Piqi_common 
 
 
+let _ = Piqilib.init ()
+
+
 (* old method for pretty-printing:
 let prettyprint_ast ast =
   let code = Piq_gen.print_ast ast in

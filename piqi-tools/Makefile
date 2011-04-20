@@ -1,10 +1,12 @@
 include $(PIQI_ROOT)/make/Makefile.ocaml
-include $(PIQI_ROOT)/piqilib/Makefile.piqilib
 
 
 RESULT = piqi
 
-SOURCES += \
+
+PACKS = piqi.lib unix
+
+SOURCES = \
 	piqi_json_pp.ml \
 	\
 	piqi_pp_cmd.ml \
@@ -35,9 +37,6 @@ PIQI_ML_SOURCES = descriptor_piqi.ml piqi_tools_piqi.ml piqi_rpc_piqi.ml
 PRE_TARGETS += \
 	$(PIQI_SOURCES) $(PIQI_PIQI) $(PIQI_ML_SOURCES)
 	
-
-PACKS += unix
-
 
 PIQIC = ../piqic/piqic
 # TODO: we don't need to embed piqi in descriptor.ml

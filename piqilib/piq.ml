@@ -22,6 +22,9 @@ module C = Piqi_common
 open C
 
 
+let _ = Piqilib.init ()
+
+
 exception EOF
 
 (* piq stream object *)

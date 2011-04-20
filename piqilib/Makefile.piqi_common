@@ -50,7 +50,7 @@ SOURCES = \
 PRE_TARGETS = piqi_version.ml piqi_piqi.ml piqobj.ml
 
 
-PACKS = piqi.ulex piqi.easy-format piqi.runtime
+PACKS = ulex easy-format piqirun
 
 
 # LIBS = piqirun

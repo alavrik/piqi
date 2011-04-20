@@ -23,6 +23,9 @@ module C = Piqi_common
 open C
 
 
+let _ = Piqilib.init ()
+
+
 let init () =
   (* XXX: this is necessary when we convert to/from json, but now calling it
    * regardless of whether we actually need it *)
