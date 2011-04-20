@@ -31,6 +31,7 @@ PIQI_SOURCES_LIB = \
 	\
 	piq.ml \
 	piqi_convert.ml \
+	piqirun_ext.ml \
 	\
 	piqi_light.ml \
 	piqi_getopt.ml \
@@ -49,7 +50,7 @@ PIQICC_FLAGS = -I $(PIQI_ROOT)
 all: bcl ncl
 
 
-debug: dcl
+debug: dcl install
 
 
 post_target:: install

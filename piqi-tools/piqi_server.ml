@@ -67,7 +67,8 @@ let convert args =
 
 
 let add_one_piqi input_format data =
-  match Piqi_convert.parse_obj "piqi" input_format data with
+  let piqtype = Piqi_convert.find_piqtype "piqi" in
+  match Piqi_convert.parse_obj piqtype input_format data with
     | Piq.Piqi piqi ->
         (match input_format with
           | `pb | `json | `xml ->

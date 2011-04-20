@@ -15,6 +15,7 @@ SOURCES += \
 	piqic_ocaml_defaults.ml \
 	piqic_ocaml_base.ml \
 	piqic_ocaml.ml \
+	piqic_ocaml_ext.ml \
 	\
 	piqic_erlang_types.ml \
 	piqic_erlang_out.ml \

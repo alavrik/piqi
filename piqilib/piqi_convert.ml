@@ -26,6 +26,9 @@ open C
 let _ = Piqilib.init ()
 
 
+type format = [ `piq | `json | `xml | `pb | `wire ]
+
+
 let init () =
   (* XXX: this is necessary when we convert to/from json, but now calling it
    * regardless of whether we actually need it *)
@@ -132,9 +135,9 @@ let gen_xml obj =
   Piqi_xml.xml_to_string xml
 
 
-let parse_obj typename input_format data =
-  let piqtype = find_piqtype typename in
-  let is_piqi_input = (typename = "piqi") in
+let parse_obj piqtype input_format data =
+  (* XXX *)
+  let is_piqi_input = (piqtype == !Piqi.piqi_def) in
   let piqobj =
     match input_format with
       | `piq  -> parse_piq data ~is_piqi_input
@@ -156,13 +159,18 @@ let gen_obj ~pretty_print output_format piqobj =
     | `wire -> gen_wire piqobj
 
 
-let convert ?(pretty_print=true) type_name input_format output_format data =
+let convert_piqtype ?(pretty_print=true) piqtype input_format output_format data =
   let piqobj =
     (* XXX: We need to resolve all defaults before converting to JSON or XML *)
     C.with_resolve_defaults
       (output_format = `json || output_format = `xml)
-      (fun () -> parse_obj type_name input_format data)
+      (fun () -> parse_obj piqtype input_format data)
       ()
   in
   gen_obj output_format piqobj ~pretty_print
+
+
+let convert ?(pretty_print=true) type_name input_format output_format data =
+  let piqtype = find_piqtype type_name in
+  convert_piqtype piqtype input_format output_format data ~pretty_print
 
