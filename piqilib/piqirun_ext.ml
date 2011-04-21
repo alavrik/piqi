@@ -53,5 +53,7 @@ let convert (piqtype :T.piqtype)
             (input_format :Piqi_convert.format)
             (output_format :Piqi_convert.format)
             (data :string) =
-  Piqi_convert.convert_piqtype piqtype input_format output_format data
+  if `input_format = `output_format
+  then data
+  else Piqi_convert.convert_piqtype piqtype input_format output_format data
 
