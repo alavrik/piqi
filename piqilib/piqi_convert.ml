@@ -26,9 +26,6 @@ open C
 let _ = Piqilib.init ()
 
 
-type format = [ `piq | `json | `xml | `pb | `wire ]
-
-
 let init () =
   (* XXX: this is necessary when we convert to/from json, but now calling it
    * regardless of whether we actually need it *)
@@ -129,10 +126,9 @@ let parse_xml piqtype s =
   obj
 
 
-let gen_xml obj =
+let gen_xml ?pretty_print obj =
   let xml = Piq.gen_xml obj in
-  (* XXX: make pretty-printing optional? *)
-  Piqi_xml.xml_to_string xml
+  Piqi_xml.xml_to_string xml ?pretty_print
 
 
 let parse_obj piqtype input_format data =
@@ -154,7 +150,7 @@ let gen_obj ~pretty_print output_format piqobj =
     | `piq  -> gen_piq piqobj
     | `json -> gen_json piqobj ~pretty_print
     | `pb -> gen_pb piqobj
-    | `xml -> gen_xml piqobj
+    | `xml -> gen_xml piqobj ~pretty_print
     (* XXX *)
     | `wire -> gen_wire piqobj
 

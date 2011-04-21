@@ -25,10 +25,23 @@ let _ =
   let address_book' = Ab.parse_address_book json `json in
   assert (address_book' = address_book);
 
+  (* Serialize addressbook to pretty-printed JSON format *)
+  let json = Ab.gen_address_book address_book `json_pretty in
+  Printf.printf "\n\npretty-printed JSON: \n\n%s\n" json;
+  (* Read back from JSON *)
+  let address_book' = Ab.parse_address_book json `json in
+  assert (address_book' = address_book);
 
   (* Serialize addressbook to XML format *)
   let xml = Ab.gen_address_book address_book `xml in
   Printf.printf "\n\nXML: \n\n%s\n" xml;
+  (* Read back from XML *)
+  let address_book' = Ab.parse_address_book xml `xml in
+  assert (address_book' = address_book);
+
+  (* Serialize addressbook to pretty-printed XML format *)
+  let xml = Ab.gen_address_book address_book `xml_pretty in
+  Printf.printf "\n\npretty-printed XML: \n\n%s\n" xml;
   (* Read back from XML *)
   let address_book' = Ab.parse_address_book xml `xml in
   assert (address_book' = address_book);

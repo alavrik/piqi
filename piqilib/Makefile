@@ -8,7 +8,7 @@ LIBINSTALL_FILES = \
 	$(RESULT).cma $(RESULT).cmxa \
 	$(RESULT).$(EXT_LIB) $(RES_CLIB) \
 	$(shell ls *.cmi) \
-	# *.mli -- TODO
+	piqirun_ext.mli
 
 
 PACKS += xmlm
@@ -31,6 +31,8 @@ PIQI_SOURCES_LIB = \
 	\
 	piq.ml \
 	piqi_convert.ml \
+	\
+	piqirun_ext.mli \
 	piqirun_ext.ml \
 	\
 	piqi_light.ml \
