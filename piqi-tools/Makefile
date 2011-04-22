@@ -29,6 +29,10 @@ SOURCES = \
 	piqi_run.ml \
 
 
+# make sure piqi gets rebuilt when we change the library
+RESULTDEPS = ../piqilib/piqilib.cmxa ../piqilib/piqilib.cma
+
+
 PIQI_MODULES = descriptor.piqi piqi-tools.piqi piqi-rpc.piqi
 
 PIQI_ML_SOURCES = descriptor_piqi.ml piqi_tools_piqi.ml piqi_rpc_piqi.ml
