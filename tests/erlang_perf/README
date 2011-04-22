@@ -10,5 +10,9 @@ To run the tests:
 
         make
 
-        ./test
+        ./test <parallel_factor>
+
+
+, where <parallel_factor> is the number of Erlang processes performing the work
+in parallel.
 

@@ -44,7 +44,9 @@ test_addressbook() ->
 
     %test_rw(Reader, Writer, 'pb', Bytes, N),
     %test_rw(Reader, Writer, 'json', Bytes, N),
+    %test_rw(Reader, Writer, 'json_pretty', Bytes, N),
     %test_rw(Reader, Writer, 'xml', Bytes, N),
+    %test_rw(Reader, Writer, 'xml_pretty', Bytes, N),
     %test_rw(Reader, Writer, 'piq', Bytes, N),
 
     test_rw_all(Reader, Writer, Bytes, N),
@@ -75,7 +77,7 @@ test_piqi() ->
 
 
 test_rw_all(Reader, Writer, Bytes, N) ->
-    Formats = ['pb', 'json', 'xml', 'piq'],
+    Formats = ['pb', 'json', 'json_pretty', 'xml', 'xml_pretty', 'piq'],
     lists:foreach(fun (X) -> test_rw(Reader, Writer, X, Bytes, N) end, Formats).
 
 
@@ -89,8 +91,15 @@ test_rw(Reader, Writer, Format, Bytes, N) ->
     Input = Writer(Output, Format),
     %io:format("input: ~p~n", [Input]),
 
+    InputFormat =
+        case Format of
+            'json_pretty' -> 'json';
+            'xml_pretty' -> 'xml';
+            F -> F
+        end,
+
     io:format("reading ~w objects...~n", [Format]),
-    IRate = test_convert(Reader, Format, Input, N),
+    IRate = test_convert(Reader, InputFormat, Input, N),
     io:format("writing ~w objects...~n", [Format]),
     ORate = test_convert(Writer, Format, Output, N),
     io:format("~w read/write rate: ~w/~w~n~n", [Format, IRate, ORate]),
