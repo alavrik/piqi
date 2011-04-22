@@ -16,8 +16,9 @@ DIRS = \
        examples \
        piqi.org \
        piqi_server \
-       ocaml_piqi \
        ocaml_addressbook \
+       ocaml_piqi \
+       ocaml_perf \
        $(DIRS_DEPENDING_ON_PROTO)
 
 

@@ -4,7 +4,7 @@ RESULT = otest
 
 
 SOURCES = $(PIQI_ML_SOURCES) test.ml
-PIQI_ML_SOURCES = piqtype_piqi.ml piqi_piqi.ml piqobj_piqi.ml
+PIQI_ML_SOURCES = piqtype.ml piqi_piqi.ml piqobj_piqi.ml
 
 
 PRE_TARGETS = $(PIQI_ML_SOURCES)
