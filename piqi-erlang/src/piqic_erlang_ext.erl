@@ -83,7 +83,7 @@ parse_args([_|T], Odir) ->
 
 piqic_erlang(Args, CustomArgs) ->
     PiqicErlang = lists:concat([
-            "piqic erlang ", CustomArgs, join_args(Args)
+            piqi:get_command("piqic"), " erlang ", CustomArgs, join_args(Args)
         ]),
     command(PiqicErlang).
 
@@ -121,7 +121,8 @@ piqic_erlang_ext(Mod, Args) ->
     ExpandedPiqi = Filename ++ ".expanded.pb",
     try
         PiqicExpand = lists:concat([
-            "piqic expand --erlang -b -o ", ExpandedPiqi, " ", join_args(Args)
+            piqi:get_command("piqic"),
+            " expand --erlang -b -o ", ExpandedPiqi, " ", join_args(Args)
         ]),
         command(PiqicExpand),
 

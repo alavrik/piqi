@@ -44,7 +44,7 @@ debug: dc top
 piqi_piqi.ml: $(wildcard *.piqi)
 	$(PIQICC) $(PIQICC_FLAGS) -o $@.tmp.ml \
 		--boot piqic-boot.piqi --piqi piqic.piqi --impl piqic-impl.piqi
-	$(CAMLP4)o -o $@ $@.tmp.ml
+	$(CAMLP4_O) -o $@ $@.tmp.ml
 
 
 clean::

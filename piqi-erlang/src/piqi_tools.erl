@@ -124,7 +124,7 @@ stop() ->
 
 %% @private
 init([]) ->
-    Command = "piqi server" ++ ?PIQI_FLAGS,
+    Command = piqi:get_command("piqi") ++ " server" ++ ?PIQI_FLAGS,
     %Command = "tee ilog | piqi server --trace | tee olog",
 
     Port = start_port_receiver(Command),

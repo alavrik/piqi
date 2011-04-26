@@ -49,8 +49,8 @@ test: beams
 	done
 
 
-$(ERL_APP_FILE): $(ERL_APP_FILE).templ
-	sed -e 's;%VSN%;$(VSN);' $< > $@
+$(ERL_APP_FILE): $(ERL_APP_FILE).src
+	sed -e 's/git/"$(VSN)"/' $< > $@
 
 
 $(PIQI_ERL_FILES) $(PIQI_HRL_FILES): $(PIQI_FILES)

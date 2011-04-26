@@ -6,6 +6,11 @@ OCAMLPATH = $(OCAMLFIND_DESTDIR)
 export OCAMLFIND_DESTDIR OCAMLPATH
 
 
+# make sure camlp4o produces pretty-printed text instead of AST
+CAMLP4_O = $(CAMLP4)o -printer o
+export OCAMLP4_O
+
+
 .PHONY: piqi-all pre_target post_target
 
 

@@ -1,13 +1,15 @@
 {application, piqi_rpc, [
   {description, "Piqi-RPC"},
-  {vsn, "%VSN%"},
+  {vsn, git},
   {modules, [
         piqi_rpc,
         piqi_rpc_app,
         piqi_rpc_sup,
         piqi_rpc_runtime,
         piqi_rpc_monitor,
-        piqi_http_rpc
+        piqi_rpc_http,
+        piqi_rpc_webmachine_resource,
+        piqic_erlang_rpc
   ]},
   {registered, [piqi_rpc_monitor, piqi_rpc_sup]},
   {applications, [
