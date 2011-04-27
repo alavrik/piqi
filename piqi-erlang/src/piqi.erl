@@ -47,8 +47,9 @@ get_command(Name) ->
                 erlang:error({"can't locate Piqi application: ", Error});
             X -> X
         end,
-    KernelName = os:cmd("uname -s"),
-    Machine = os:cmd("uname -m"),
-    lists:concat([filename:join(PiqiDir, Name), "-", KernelName, "-", Machine]).
+    KernelName = os:cmd("uname -s") -- "\n",
+    Machine = os:cmd("uname -m") -- "\n",
+    BinDir = lists:concat(["bin-", KernelName, "-", Machine]),
+    filename:join([PiqiDir, "priv", BinDir, Name]).
 -endif.
 
