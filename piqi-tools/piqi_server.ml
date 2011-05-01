@@ -151,35 +151,43 @@ let execute_request req =
         return_rpc_error `unknown_function
 
 
+let do_work () =
+  let request, caller_ref =
+    try
+      Piqi_rpc.receive_request stdin
+    with exn -> (
+      let response = return_rpc_error
+        (`protocol_error
+          ("error while reading command: " ^ Printexc.to_string exn))
+      in
+      Piqi_rpc.send_response stdout response;
+      exit 1
+    )
+  in
+  let response =
+    try execute_request request
+    with Break x -> x
+  in
+  Piqi_rpc.send_response stdout response ~caller_ref
+
+
 (* read one request from stdin, execute the request, and write the response to
  * stdout *)
 let main_loop () =
   while true
   do
-    let request, caller_ref =
-      try
-        Piqi_rpc.receive_request stdin
-      with exn -> (
-        let response = return_rpc_error
-          (`protocol_error
-            ("error while reading command: " ^ Printexc.to_string exn))
-        in
-        Piqi_rpc.send_response stdout response;
-        exit 1
-      )
-    in
-    let response =
-      try execute_request request
-      with Break x -> x
-    in
-    Piqi_rpc.send_response stdout response ~caller_ref;
+    do_work ();
 
     (* reset location db to allow GC to collect previously read objects *)
     Piqloc.reset ();
-    (* XXX: run garbage collection on the minor heap to free all memory used for
-     * the request -- testing has not reveal any performance penalty for doing
-     * this *)
-    Gc.minor ();
+
+    (* Run a garbage collection cycle, as we don't need any created memory
+     * objects any more. A short garbage collection cycle helps to improve
+     * overall througput and latency.
+     *
+     * NOTE: Use of Gc.major_slice instead of Gc.minor showed better results.
+     *)
+    ignore (Gc.major_slice 0);
   done
 
 
@@ -195,6 +203,17 @@ let start_server () =
     exit 0
   ));
   main_loop ()
+
+
+let set_gc_options () =
+  (* Don't set custom options if the OCAMLRUNPARAM environment variable is
+   * defined *)
+  try ignore (Sys.getenv "OCAMLRUNPARAM")
+  with Not_found ->
+    let opt = Gc.get () in
+    opt.Gc.minor_heap_size <- 4 * 1024 * 1024; (* Minor heap size: 4m *)
+    opt.Gc.space_overhead <- 20;
+    Gc.set opt
 
 
 module Main = Piqi_main
@@ -217,6 +236,9 @@ let run () =
    * from the filesystem; now, they can only be loaded using "add_piqi" RPC call
    *)
   Config.reset_paths ();
+
+  (* Configure OCaml Garbage collector *)
+  set_gc_options ();
 
   start_server ()
 
