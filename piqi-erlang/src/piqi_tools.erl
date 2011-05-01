@@ -27,7 +27,7 @@
 % TODO: tests, edoc
 
 
--export([start_link/0, start/0, stop/0]).
+-export([start_link/0]).
 % API
 -export([add_piqi/1, convert/5, convert/6, ping/0]).
 % gen_server callbacks
@@ -52,10 +52,6 @@
 -ifdef(DEBUG).
 -include("debug.hrl").
 -endif.
-
-
-% gen_server name (when started by start/0)
--define(SERVER, ?MODULE).
 
 
 % gen_server:call timeout
@@ -100,16 +96,6 @@ start_link() ->
     gen_server:start_link(?MODULE, [], []).
 
 
-% independent start -- not as a part of OTP supervision tree
-start() ->
-    gen_server:start({local, ?SERVER}, ?MODULE, [], []).
-
-
-% manual stop (when started by start/0 *)
-stop() ->
-    gen_server:cast(?SERVER, stop).
-
-
 %
 % gen_server callbacks
 %
@@ -130,10 +116,10 @@ handle_call({rpc, PiqiMod, Request}, From, State = #sender_state{port = Port}) -
     {noreply, State}.
 
 
-%% @private user-initiated stop
-handle_cast(stop, State) ->
-    % NOTE: linked port receiver will be shut down automatically
-    {stop, normal, State}.
+%% @private
+handle_cast(Info, State) ->
+    StopReason = {?PIQI_TOOLS_ERROR, {'unexpected_cast', Info}},
+    {stop, StopReason, State}.
 
 
 handle_info(Info, State) ->
