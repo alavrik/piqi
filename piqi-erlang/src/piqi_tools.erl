@@ -54,16 +54,12 @@
 -endif.
 
 
-% gen_server name
+% gen_server name (when started by start/0)
 -define(SERVER, ?MODULE).
 
 
 % gen_server:call timeout
--ifndef(DEBUG).
--define(CALL_TIMEOUT, 5000).
--else.
--define(CALL_TIMEOUT, infinity).
--endif.
+-define(CALL_TIMEOUT, 1000).
 
 
 % Options for "piqi server" port command
@@ -101,16 +97,12 @@
 %
 
 start_link() ->
-    start_common(start_link).
+    gen_server:start_link(?MODULE, [], []).
 
 
 % independent start -- not as a part of OTP supervision tree
 start() ->
-    start_common(start).
-
-
-start_common(StartFun) ->
-    gen_server:StartFun({local, ?SERVER}, ?MODULE, [], []).
+    gen_server:start({local, ?SERVER}, ?MODULE, [], []).
 
 
 % manual stop (when started by start/0 *)
@@ -365,13 +357,14 @@ call_server(Args) ->
     % without failing the calls. This might be useful for "piqi server" upgrades
     % and in case of potential "piqi server" crashes.
     try
-        gen_server:call(?SERVER, Args, ?CALL_TIMEOUT)
+        Pid = piqi_sup:pick_piqi_server(),
+        gen_server:call(Pid, Args, ?CALL_TIMEOUT)
     catch
         % Piqi tools has exited, but hasn't been restarted by Piqi supervisor
         % yet
         exit:{noproc, _} ->
-            piqi_sup:restart_piqi_tools_child(),
-            gen_server:call(?SERVER, Args, ?CALL_TIMEOUT)
+            Pid1 = piqi_sup:force_pick_piqi_server(),
+            gen_server:call(Pid1, Args, ?CALL_TIMEOUT)
     end.
 
 

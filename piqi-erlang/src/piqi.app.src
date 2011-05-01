@@ -12,4 +12,11 @@
   {registered, [piqi_tools, piqi_sup]},
   {applications, [kernel, stdlib]},
   {mod, {piqi_app, []}},
-  {env, []}]}.
+  {env, [
+
+        % The number of "piqi server" instances that perform "convert" and other
+        % Piqi tools requests
+        {worker_pool_size, 1}
+
+        ]}
+ ]}.

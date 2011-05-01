@@ -27,7 +27,8 @@
 %
 
 start(_Type, _StartArgs) ->
-    piqi_sup:start_link().
+    {ok, N} = application:get_env(piqi, worker_pool_size),
+    piqi_sup:start_link(N).
 
 
 stop(_State) ->

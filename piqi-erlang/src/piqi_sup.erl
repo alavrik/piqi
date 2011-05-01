@@ -19,7 +19,9 @@
 
 -behaviour(supervisor).
 
--export([start_link/0, restart_piqi_tools_child/0]).
+-export([start_link/1]).
+-export([pick_piqi_server/0, force_pick_piqi_server/0, get_piqi_servers/0]).
+
 % OTP supervisor callbacks
 -export([init/1]).
 
@@ -27,23 +29,55 @@
 -define(SUPERVISOR, ?MODULE).
 
 
-start_link() ->
-    supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
+start_link(WorkerPoolSize) ->
+    supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, [WorkerPoolSize]).
 
 
-restart_piqi_tools_child() ->
-    supervisor:restart_child(?SUPERVISOR, piqi_tools).
+% randomly pick a piqi tools Pid from the [cached] list of servers
+pick_piqi_server() ->
+    case get('piqi_servers') of
+        'undefined' ->
+            Pids = get_piqi_servers(),
+            PidsTuple = list_to_tuple(Pids),
+            put('piqi_servers', PidsTuple),
+            do_pick_piqi_server(PidsTuple);
+        PidsTuple ->
+            do_pick_piqi_server(PidsTuple)
+    end.
+
+
+% randomly pick a piqi tools and refresh the cache
+force_pick_piqi_server() ->
+    erase('piqi_servers'),
+    pick_piqi_server().
+
+
+get_piqi_servers() ->
+    L = supervisor:which_children(?SUPERVISOR),
+    [ Child || {_Id,Child,_Type,_Modules} <- L, is_pid(Child) ].
+
+
+do_pick_piqi_server(PidsTuple) ->
+    Size = tuple_size(PidsTuple),
+    true = Size > 0,
+    Index0 = erlang:phash2({self(), now()}, Size),
+    _Pid = element(Index0 + 1, PidsTuple).
+
 
 %
 % Supervisor callback
 %
 
-init(_Args) ->
-    PiqiTools =
-        {piqi_tools, % Piqi-Tools bindings for Erlang
-            {piqi_tools, start_link, []},
-            permanent, 1000, worker,
-            [piqi_tools]
-        },
-    {ok, {{one_for_one, 10, 1}, [PiqiTools]}}.
+init([WorkerPoolSize]) ->
+    % Piqi-Tools bindings for Erlang
+    PiqiServers = [ piqi_server_spec(I) || I <- lists:seq(1, WorkerPoolSize) ],
 
+    {ok, {{one_for_one, 10, 1}, PiqiServers}}.
+
+
+piqi_server_spec(N) ->
+    {{piqi_tools, N},
+        {piqi_tools, start_link, []},
+        permanent, 1000, worker,
+        [piqi_tools]
+    }.
