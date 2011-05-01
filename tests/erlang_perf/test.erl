@@ -25,7 +25,7 @@ run(Factor) ->
 
 test_piqi_server() ->
     io:format("*** testing piqi_tools:ping() i.e. 'piqi server' roundtrip ***~n~n"),
-    N = 100000,
+    N = 500000,
     F = fun () -> piqi_tools:ping() end,
     test(F, N).
 
@@ -40,7 +40,7 @@ test_addressbook() ->
     Reader = fun addressbook_piqi_ext:parse_address_book/2,
     Writer = fun addressbook_piqi_ext:gen_address_book/2,
 
-    N = 30000,
+    N = 100000,
 
     %test_rw(Reader, Writer, 'pb', Bytes, N),
     %test_rw(Reader, Writer, 'json', Bytes, N),
@@ -64,7 +64,7 @@ test_piqi() ->
     Reader = fun piqi_piqi_ext:parse_piqi/2,
     Writer = fun piqi_piqi_ext:gen_piqi/2,
 
-    N = 3000,
+    N = 20000,
 
     %test_rw(Reader, Writer, 'pb', Bytes, N),
     %test_rw(Reader, Writer, 'json', Bytes, N),
@@ -124,10 +124,6 @@ test(Fun, N) ->
     PerSecond.
 
 
-repeat(_Fun, 0) -> ok;
-repeat(Fun, N) -> Fun(), repeat(Fun, N-1).
-
-
 repeat_n(Fun, N) ->
     Factor = get(parallel_factor),
     io:format("parallel_factor: ~w~n", [Factor]),
@@ -137,7 +133,9 @@ repeat_n(Fun, N) ->
 repeat_n(Factor, Fun, N) ->
     SpawnFun =
         fun () ->
-            spawn(?MODULE, repeat_spawned, [self(), Fun, N div Factor])
+            spawn(?MODULE, repeat_spawned, [self(), Fun, N div Factor]),
+            %timer:sleep(1), % sleep for 1 millisecond
+            ok
         end,
     WaitFun =
         fun () ->
@@ -154,6 +152,56 @@ do_n(Fun, N) ->
 
 
 repeat_spawned(Parent, Fun, N) ->
+    init_time(N),
     repeat(Fun, N),
     Parent ! done.
 
+
+repeat(_Fun, 0) -> ok;
+repeat(Fun, N) ->
+
+    T1 = now(),
+    Fun(),
+    T2 = now(),
+    update_time(T1, T2, N),
+
+    repeat(Fun, N-1).
+
+
+init_time(N) ->
+    reset_time(N, now()).
+
+
+reset_time(N, Now) ->
+    put(min_time, 1000000000000),
+    put(max_time, 0),
+    put(prev_now, Now),
+    put(prev_count, N + 1),
+    ok.
+
+
+update_time(T1, T2 = Now, Count) ->
+
+    T = timer:now_diff(T2, T1),
+
+    case T > get(max_time) of
+        true -> put(max_time, T);
+        false -> ok
+    end,
+    case T < get(min_time) of
+        true -> put(min_time, T);
+        false -> ok
+    end,
+
+    TimeDiff = timer:now_diff(Now, get(prev_now)),
+    case TimeDiff > 3 * 1000000 of
+        true ->
+            CountDiff = get(prev_count) - Count,
+            io:format("min: ~w, max: ~w, avg: ~.1f, count: ~w~n", [
+                get(min_time), get(max_time),
+                TimeDiff / CountDiff,
+                CountDiff
+            ]),
+            reset_time(Count, Now);
+        false -> ok
+    end.
