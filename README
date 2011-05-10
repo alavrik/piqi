@@ -80,4 +80,5 @@ FILES
   examples/             examples
   tests/                tests for various piqi functionality; see tests/README
   editors/              text editor plugins for .piq and .piqi files
+  src/                  makes rebar happy (rebar is a build tool for Erlang)
 
