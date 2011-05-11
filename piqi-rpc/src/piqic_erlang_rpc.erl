@@ -172,7 +172,7 @@ gen_impl_hrl(Piqi) ->
 
             "-endif.\n"
         ],
-    ok = file:write_file(Filename, Code).
+    ok = file:write_file(Filename, iolist_to_binary(Code)).
 
 
 gen_function_specs(ErlTypePrefix, FuncList) ->
@@ -220,7 +220,7 @@ gen_default_impl_erl(Piqi) ->
 
             gen_default_impls(ErlMod, FuncList)
         ],
-    ok = file:write_file(Filename, Code).
+    ok = file:write_file(Filename, iolist_to_binary(Code)).
 
 
 gen_default_impls(ErlMod, FuncList) ->

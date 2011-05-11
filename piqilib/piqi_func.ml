@@ -70,7 +70,7 @@ let resolve_param piqi idtable func param_name param =
       | `name x ->
           (* make an alias from name reference *)
           make_param_alias type_name x
-      | `anonymous_record x ->
+      | `record x ->
           (* make a normal record with name = type_name from anonymous record *)
           make_param_record type_name x
   in

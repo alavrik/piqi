@@ -143,7 +143,7 @@ decode_varint(Bytes, _Acc) when is_binary(Bytes) ->
     % Return the same error as returned by my_split_binary/2 when parsing
     % fields (see below). This way, when there's not enough data for parsing a
     % field, the returned error is the same regardless of where it occured.
-    error('not_enough_data').
+    throw_error('not_enough_data').
 
 
 -spec gen_block/1 :: (Data :: iodata()) -> iolist().
@@ -402,7 +402,7 @@ parse_field(Bytes) ->
 my_split_binary(X, Pos) when byte_size(X) >= Pos ->
     split_binary(X, Pos);
 my_split_binary(_X, _Pos) ->
-    error('not_enough_data').
+    throw_error('not_enough_data').
 
 
 -spec parse_field_part/1 :: (
@@ -479,9 +479,9 @@ find_fields(Code, [H | T], Accu, Rest) ->
     find_fields(Code, T, Accu, [H | Rest]).
 
 
--spec error/1 :: (any()) -> no_return().
+-spec throw_error/1 :: (any()) -> no_return().
 
-error(X) ->
+throw_error(X) ->
     throw({'piqirun_error', X}).
 
 
@@ -515,7 +515,7 @@ error(X) ->
 
 parse_req_field(Code, ParseValue, L) ->
     case parse_opt_field(Code, ParseValue, L) of
-        {'undefined', _Rest} -> error({'missing_field', Code});
+        {'undefined', _Rest} -> throw_error({'missing_field', Code});
         X -> X
     end.
 
@@ -547,7 +547,7 @@ parse_flag(Code, L) ->
     case parse_opt_field(Code, fun parse_bool/1, L) of
         {'undefined', Rest} -> {false, Rest};
         X = {true, _Rest} -> X;
-        {false, _} -> error({'invalid_flag_encoding', Code})
+        {false, _} -> throw_error({'invalid_flag_encoding', Code})
     end.
 
 
@@ -560,9 +560,17 @@ parse_rep_field(Code, ParseValue, L) ->
 % XXX, TODO: print warnings on unrecognized fields
 check_unparsed_fields(_L) -> ok.
 
-error_enum_const(X) -> error({'unknown_enum_const', X}).
 
-error_option(_X, Code) -> error({'unknown_option', Code}).
+-spec error_enum_const/1 :: (X :: any()) -> no_return().
+
+error_enum_const(X) -> throw_error({'unknown_enum_const', X}).
+
+
+-spec error_option/2 :: (
+    _X :: any(),
+    Code :: piqirun_code()) -> no_return().
+
+error_option(_X, Code) -> throw_error({'unknown_option', Code}).
 
 
 
@@ -610,7 +618,7 @@ parse_toplevel_header(Bytes) ->
     {{FieldCode, FieldValue}, _Rest} = parse_field(Bytes),
     case FieldCode of
         1 -> FieldValue;
-        _ -> error('invalid_toplevel_header')
+        _ -> throw_error('invalid_toplevel_header')
     end.
 
 

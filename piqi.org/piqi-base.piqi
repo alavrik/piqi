@@ -114,7 +114,10 @@
 .variant [
     .name function-param
     .option [ .type name ]
-    .option [ .type anonymous-record ]
+    .option [
+        .name record
+        .type anonymous-record
+    ]
 ]
 
 

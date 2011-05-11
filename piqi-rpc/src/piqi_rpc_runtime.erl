@@ -122,7 +122,7 @@ encode_error(RpcMod, Encoder, TypeName, OutputFormat, Output) ->
     end.
 
 
--spec throw_rpc_error/1 :: (Error :: piqi_rpc_rpc_error()) -> none().
+-spec throw_rpc_error/1 :: (Error :: piqi_rpc_rpc_error()) -> no_return().
 throw_rpc_error(Error) ->
     throw({'rpc_error', Error}).
 
@@ -136,9 +136,15 @@ check_empty_input(_) ->
     throw_rpc_error({'invalid_input', "empty input expected"}).
 
 
+-spec handle_unknown_function/0 :: () -> no_return().
+
 handle_unknown_function() ->
     throw_rpc_error('unknown_function').
 
+
+-spec handle_invalid_result/2 :: (
+    Name :: binary(),
+    Result :: any()) -> no_return().
 
 handle_invalid_result(Name, Result) ->
     % XXX: limit the size of the returned Reason string by using "~P"?
