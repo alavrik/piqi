@@ -148,6 +148,7 @@ known_content_type(ReqData, Context) ->
             "application/x-protobuf" -> true;
             % allow content-type to be undefined when the body is empty
             'undefined' when Body == <<>> -> true;
+            "" when Body == <<>> -> true;
             _ -> false
         end,
 
@@ -156,7 +157,10 @@ known_content_type(ReqData, Context) ->
     % empty record is sent as the input parameter
     RealBody =
         case Body of
-            <<>> when ContentType == 'undefined' -> 'undefined'; % no body
+            <<>> when ContentType =:= 'undefined';
+                      ContentType =:= "";
+                      ContentType =/= "application/x-protobuf" ->
+                'undefined'; % no body
             _ -> Body
         end,
     NewContext = Context#context{ request_body = RealBody },
