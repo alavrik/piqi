@@ -290,6 +290,11 @@ rpc(ReqData, Context, InputFormat) ->
     % this field is initialized above by the known_content_type/2 function
     InputData = Context#context.request_body,
 
+    % make the "ReqData" handle available to the server implementation in case
+    % it needs to analyze HTTP headers or some other parts of the original HTTP
+    % request
+    erlang:put(wrq, ReqData), % I guess "wrq" stands for "Webmachine request"
+
     % make the actual call
     RpcResponse = RpcMod:rpc(ImplMod, FuncName, InputData, InputFormat, OutputFormat),
 
