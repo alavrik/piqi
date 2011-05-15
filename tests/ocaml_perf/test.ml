@@ -29,16 +29,10 @@ let test f n =
   for i = 1 to n
   do
     f ();
-
-    (* reset location db to allow GC to collect previously read objects *)
-    Piqloc.reset ();
-    (* XXX: run garbage collection on the minor heap to free all memory used for
-     * the request -- testing has not reveal any performance penalty for doing
-     * this *)
-    Gc.minor ();
     (*
+    Gc.minor ();
     *)
-
+    Gc.minor ();
   done;
 
   let t2 = Unix.gettimeofday () in
@@ -80,26 +74,18 @@ let test_rw reader writer (format: Piqirun_ext.output_format) bytes n =
   printf "reading %s objects...\n%!" (string_of_format format);
   let i_rate = test_convert reader input_format input n in
 
-  Gc.print_stat stdout;
-  print_newline ();
-
   printf "writing %s objects...\n%!" (string_of_format format);
   let o_rate = test_convert writer format output n in
 
-  Gc.print_stat stdout;
-  print_newline ();
-
   printf "%s read/write rate: %d/%d\n\n%!" (string_of_format format) i_rate o_rate;
 
-  Gc.compact ();
-  Gc.print_stat stdout;
   print_newline ();
 
   ()
 
 
 let test_rw_all reader writer bytes n =
-  let formats = [`pb; `wire; `json; `json_pretty; `xml; `xml_pretty; `piq] in
+  let formats = [`pb; `json; `json_pretty; `xml; `xml_pretty; `piq; `wire;] in
   List.iter (fun format -> test_rw reader writer format bytes n) formats
 
 
@@ -114,37 +100,42 @@ let test_addressbook () =
   let reader = Addressbook_piqi_ext.parse_address_book in
   let writer = Addressbook_piqi_ext.gen_address_book in
 
-  let n = 60000 in
+  let n = 100000 in
 
-  test_rw reader writer `pb bytes n;
+  test_rw_all reader writer bytes n;
   (*
+  test_rw_all reader writer bytes n;
+
   test_rw reader writer `pb bytes n;
   test_rw reader writer `json bytes n;
   test_rw reader writer `json_pretty bytes n;
   test_rw reader writer `xml bytes n;
   test_rw reader writer `xml_pretty bytes n;
+  test_rw reader writer `wire bytes n;
   test_rw reader writer `piq bytes n;
-
-  test_rw_all reader writer bytes n
   *)
   ()
 
 
+let set_gc_options () =
+  (* Don't set custom options if the OCAMLRUNPARAM environment variable is
+   * defined *)
+  try ignore (Sys.getenv "OCAMLRUNPARAM")
+  with Not_found ->
+    let opt = Gc.get () in
+    opt.Gc.minor_heap_size <- 4 * 1024 * 1024; (* Minor heap size: 4m *)
+    opt.Gc.space_overhead <- 200; (* run major GC less frequently, but waste more RAM *)
+    Gc.set opt
+
+
 let _ =
+  (*
   Gc.compact ();
   Gc.print_stat stdout;
   print_newline ();
-  (*
-  let control = Gc.get () in
-  control.Gc.verbose <- 0x3;
-  Gc.set control;
   *)
+  set_gc_options ();
 
   test_addressbook ();
-
-  Gc.compact ();
-  Gc.print_stat stdout;
-  print_newline ();
-
   ()
 

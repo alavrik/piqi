@@ -39,6 +39,8 @@ let _ =
 let add_piqi (piqi_bin: string) =
   let buf = Piqirun.init_from_string piqi_bin in
   let _piqi = Piq.piqi_of_wire buf ~cache:true in
+  (* reset location db to allow GC to collect previously read objects *)
+  Piqloc.reset ();
   ()
 
 
@@ -69,6 +71,10 @@ let convert (piqtype :piqtype)
         | `xml_pretty -> `xml, true
         | (#input_format as x) -> x, false
     in
-    Piqi_convert.convert_piqtype
+    let res = Piqi_convert.convert_piqtype
       piqtype input_format output_format data ~pretty_print
+    in
+    (* reset location db to allow GC to collect previously read objects *)
+    Piqloc.reset ();
+    res
 
