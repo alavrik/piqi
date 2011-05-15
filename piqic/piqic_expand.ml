@@ -84,11 +84,16 @@ let expand_file filename =
 let usage = "Usage: piqic expand [options] <.piqi file> [output file]\nOptions:"
 
 
-let speclist = Main.common_speclist @
+(* This getopt spec must be a superset of Erlang spec, because otherwise,
+ * piqic-erlang-ext and piqic-erlang-rpc will break, when called with options
+ * unrecognized by "piqic expand".
+ *
+ * Recognized but unsupported options such as gen_defaults will be simply
+ * ignored.
+ *)
+let speclist = Piqic_erlang.speclist @
   [
     arg_o;
-    arg_C;
-    Piqic_common.arg__normalize;
 
     "-b", Arg.Set flag_binary_output,
       "Output expanded Piqi module encoded as a Protobuf-encoded binary";
