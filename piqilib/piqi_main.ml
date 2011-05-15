@@ -280,6 +280,9 @@ let run_subcommand cmd_name =
 
 
 let run () =
+  (* set .piqi search path to contain CWD and $PIQI_DIR *)
+  Config.init_paths ();
+
   if !Sys.interactive
   then () (* don't do anything in interactive (toplevel) mode *)
   else
