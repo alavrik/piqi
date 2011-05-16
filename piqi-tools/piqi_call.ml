@@ -105,7 +105,7 @@ let call_http_server url body =
 let init_piqi_common data =
   trace "piqi_call: init Piqi modules returned by the server\n";
   let buf = Piqirun.init_from_string data in
-  let bin_piqi_list = Piqirun.parse_list Piqirun.parse_string buf in
+  let bin_piqi_list = Piqirun.parse_list Piqirun.parse_string_field buf in
   (* decode and load Piqi modules *)
   let piqi_list =
       List.map (fun x ->

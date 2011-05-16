@@ -142,7 +142,7 @@ let execute_request req =
     | "", None ->
         (* return the Piqi module and all the dependencies encoded as a list of
          * Piqi each encoded using Protobuf binary format *)
-        let output = Piqirun.gen_list Piqirun.gen_string (-1) I.piqi in
+        let output = Piqirun.gen_list Piqirun.gen_string_field (-1) I.piqi in
         return_ok output
     | "", Some _ ->
         return_rpc_error

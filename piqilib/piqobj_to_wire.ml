@@ -76,8 +76,8 @@ let gen_float ?wire_type code x =
   gen_f code x
 
 
-let gen_bool = Piqirun.gen_bool
-let gen_string = Piqirun.gen_string
+let gen_bool = Piqirun.gen_bool_field
+let gen_string = Piqirun.gen_string_field
 
 
 let gen_int ?wire_type code x =
@@ -176,7 +176,7 @@ and gen_field x =
     | None ->
         (* using true for encoding flags -- the same encoding as for options
          * (see below) *)
-        Piqirun.gen_bool code true
+        Piqirun.gen_bool_field code true
     | Some obj -> gen_obj code obj
 
 
@@ -193,7 +193,7 @@ and gen_option x =
     | None ->
         (* using true for encoding options w/o value *)
         refer x;
-        Piqirun.gen_bool code true
+        Piqirun.gen_bool_field code true
     | Some obj ->
         gen_obj code obj
 
@@ -206,9 +206,6 @@ and gen_enum code x =
 and gen_enum_option code x =
   let open O in
   let value = some_of x.piqtype.T.Option#code in
-  (*
-  Piqirun.gen_varint code value
-  *)
   Piqirun.int32_to_varint code value
 
 

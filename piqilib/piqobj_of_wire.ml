@@ -79,11 +79,11 @@ let rec parse_obj0 (t:T.piqtype) x :Piqobj.obj =
     (* built-in types *)
     | `int -> parse_int x
     | `float -> `float (parse_float x)
-    | `bool -> `bool (r0 Piqirun.parse_bool x)
-    | `string -> `string (r0 Piqirun.parse_string x)
-    | `binary -> `binary (r0 Piqirun.parse_binary x)
-    | `word -> `word (r0 Piqirun.parse_string x)
-    | `text -> `text (r0 Piqirun.parse_string x)
+    | `bool -> `bool (r0 Piqirun.parse_bool_field x)
+    | `string -> `string (r0 Piqirun.parse_string_field x)
+    | `binary -> `binary (r0 Piqirun.parse_binary_field x)
+    | `word -> `word (r0 Piqirun.parse_string_field x)
+    | `text -> `text (r0 Piqirun.parse_string_field x)
     | `any -> `any (parse_any x)
     (* custom types *)
     | `record t -> `record (r parse_record t x)
@@ -179,11 +179,11 @@ and do_parse_field t l =
 
 
 and parse_required_field code field_type l =
-  Piqirun.parse_req_field code (parse_obj field_type) l
+  Piqirun.parse_required_field code (parse_obj field_type) l
 
 
 and parse_optional_field code field_type default l =
-  let res = Piqirun.parse_opt_field code (parse_obj field_type) l in
+  let res = Piqirun.parse_optional_field code (parse_obj field_type) l in
   match res with
     | Some _, _ -> res
     | None, rem -> parse_default field_type default, rem
@@ -200,7 +200,7 @@ and parse_default piqtype default =
 
 
 and parse_repeated_field code field_type l =
-  Piqirun.parse_rep_field code (parse_obj field_type) l
+  Piqirun.parse_repeated_field code (parse_obj field_type) l
 
 
 and parse_variant t x =
@@ -221,7 +221,7 @@ and parse_option t x =
   let open T.Option in
   match t.typeref with
     | None ->
-        if Piqirun.parse_bool x = true
+        if Piqirun.parse_bool_field x = true
         then
           let res = O#{ piqtype = t; obj = None } in
           (* skip boolean used to encode empty option value *)

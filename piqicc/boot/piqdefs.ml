@@ -35,6 +35,8 @@ let f = F#{
   alt_name = None;
   ocaml_name = None;
   code = None;
+
+  wire_packed = false;
 }
 
 
@@ -149,6 +151,7 @@ let piqdef_list =
         ocaml_name = None;
         typeref = `name "piqdef";
         parent = None;
+        wire_packed = false;
       };
     `variant
       V#{
@@ -254,6 +257,11 @@ let piqdef_list =
             F#{f with
               name = Some "code";
               typeref = Some (`name "int32");
+              mode = `optional;
+            };
+            F#{f with
+              name = Some "wire-packed";
+              typeref = None;
               mode = `optional;
             };
             F#{f with
@@ -413,6 +421,11 @@ let piqdef_list =
               name = None;
               typeref = Some (`name "type");
               mode = `required;
+            };
+            F#{f with
+              name = Some "wire-packed";
+              typeref = None;
+              mode = `optional;
             };
             F#{f with
               name = Some "ocaml-name";

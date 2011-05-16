@@ -30,7 +30,8 @@ open Piqic_ocaml_types
 open Piqic_ocaml_out
 
 
-let rec gen_parse_type ocaml_type wire_type x =
+let rec gen_parse_type ocaml_type wire_type wire_packed x =
+  let packed = ios (if wire_packed then "packed_" else "") in
   match x with
     | `any ->
         if !Piqic_common.is_self_spec
@@ -38,19 +39,23 @@ let rec gen_parse_type ocaml_type wire_type x =
         else ios "Piqtype.parse_any"
     | (#T.piqdef as x) ->
         let modname = gen_parent x in
-        modname ^^ ios "parse_" ^^ ios (piqdef_mlname x)
+        iol [
+          modname;
+          packed; ios "parse_";
+          ios (piqdef_mlname x)
+        ]
     | _ -> (* gen parsers for built-in types *)
         iol [
           gen_cc "(fun x -> let count = next_count() in refer count (";
             ios "Piqirun.";
             ios (gen_ocaml_type_name x ocaml_type);
-            ios "_of_";
+            ios "_of_"; packed;
             ios (W.get_wire_type_name x wire_type);
           gen_cc " x))";
         ]
 
-and gen_parse_typeref ?ocaml_type ?wire_type (t:T.typeref) =
-  gen_parse_type ocaml_type wire_type (piqtype t)
+and gen_parse_typeref ?ocaml_type ?wire_type ?(wire_packed=false) (t:T.typeref) =
+  gen_parse_type ocaml_type wire_type wire_packed (piqtype t)
 
 
 (* TODO: parse defaults once at boot time rather than each time when we need to
@@ -87,10 +92,10 @@ let gen_field_parser f =
         (* field constructor *)
         iod " "
           [
-            (* "parse_(req|opt|rep)_field" function invocation *)
+            (* "parse_(required|optional|repeated)_field" function invocation *)
             ios "Piqirun.parse_" ^^ ios mode ^^ ios "_field";
               gen_code f.code;
-              gen_parse_typeref typeref; ios " x";
+              gen_parse_typeref typeref ~wire_packed:f.wire_packed; ios " x";
               gen_default f.default;
           ]
     | None ->
@@ -196,31 +201,52 @@ let gen_variant v =
 
 let gen_alias a =
   let open Alias in
-  iod " "
-    [
-      ios "parse_" ^^ ios (some_of a.ocaml_name); ios "x =";
+  iol [
+      ios "parse_"; ios (some_of a.ocaml_name); ios " x = ";
       gen_parse_typeref
-        a.typeref ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type; ios " x";
+        a.typeref ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+        ios " x";
     ]
 
 
-let gen_parse_list t =
+let gen_packed_alias a =
+  let open Alias in
   iol [
-    ios "(";
-      gen_cc "let count = next_count() in refer count (";
-        ios "Piqirun.parse_list (" ^^ gen_parse_typeref t ^^ ios ")";
-      gen_cc ")";
-    ios ")";
-  ]
+      ios "packed_parse_"; ios (some_of a.ocaml_name); ios " x = ";
+      gen_parse_typeref
+        a.typeref
+          ?ocaml_type:a.ocaml_type
+          ?wire_type:a.wire_type
+          ~wire_packed:true;
+        ios " x";
+    ]
+
+
+let gen_alias a =
+  let open Alias in
+  if is_primitive_numeric_piqtype (piqtype a.typeref)
+  then
+    (* generate another function for packed encoding *)
+    iod " and " [
+      gen_alias a;
+      gen_packed_alias a;
+    ]
+  else gen_alias a
 
 
 let gen_list l =
   let open L in
-  iod " "
-    [
-      ios "parse_" ^^ ios (some_of l.ocaml_name); ios "x =";
-      gen_parse_list l.typeref; ios " x";
-    ]
+  let packed = ios (if l.wire_packed then "packed_" else "") in
+  iol [
+    ios "parse_"; ios (some_of l.ocaml_name); ios " x = ";
+    ios "(";
+      gen_cc "let count = next_count() in refer count (";
+        ios "Piqirun.parse_"; packed; ios "list (";
+          gen_parse_typeref l.typeref ~wire_packed:l.wire_packed;
+        ios ")";
+      gen_cc ")";
+    ios ") x";
+  ]
 
 
 let gen_def = function

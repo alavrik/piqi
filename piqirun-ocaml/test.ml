@@ -36,13 +36,13 @@ let test_int x =
   assert (x = (int_of_varint ** test_parse_varint ** gen_varint_value) x)
 
 let test_int32 x =
-  assert (x = (int32_of_varint ** test_parse_varint ** gen_varint_value32) x)
+  assert (x = (int32_of_varint ** test_parse_varint ** gen_varint32_value) x)
 
 let test_int64 x =
   (*
   assert_eq x ((int64_of_varint ** test_parse_varint ** gen_varint_value64) x)
   *)
-  assert (x = (int64_of_varint ** test_parse_varint ** gen_varint_value64) x)
+  assert (x = (int64_of_varint ** test_parse_varint ** gen_varint64_value) x)
 
 let test_key x =
   assert (x = ((fun x -> let _, code = parse_field_header x in code) ** test_parse ** gen_key 0) x)

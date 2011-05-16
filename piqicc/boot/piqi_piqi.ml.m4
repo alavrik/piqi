@@ -123,6 +123,7 @@ and DEFRECORD(Field,
     mutable alt_name : string option;
     mutable ocaml_name : string option;
     mutable code : int32 option; (* wire code *)
+    mutable wire_packed : bool;
   >>)
 and DEFRECORD(Variant,
   <<
@@ -161,6 +162,8 @@ and DEFRECORD(Piqlist,
 
     mutable ocaml_name : string option;
     mutable parent : Piqtype.namespace option;
+
+    mutable wire_packed : bool;
   >>)
 and DEFRECORD(Includ,
   <<
