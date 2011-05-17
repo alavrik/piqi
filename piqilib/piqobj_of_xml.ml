@@ -60,6 +60,16 @@ let parse_scalar xml_elem err_string =
     | _ -> error xml_elem err_string
 
 
+let parse_string_scalar xml_elem err_string =
+  let _name, l = xml_elem in
+  match l with
+    | [] -> (* empty element content means empty string *)
+        let res = "" in
+        Piqloc.addrefret xml_elem res
+    | [`Data s] -> s
+    | _ -> error xml_elem err_string
+
+
 let parse_int xml_elem = 
   let s = parse_scalar xml_elem "int constant expected" in
   let i =
@@ -99,11 +109,11 @@ let parse_bool xml_elem =
 
 
 let parse_string xml_elem =
-  parse_scalar xml_elem "string constant expected"
+  parse_string_scalar xml_elem "string constant expected"
 
 
 let parse_binary xml_elem =
-  let s = parse_scalar xml_elem "binary constant expected" in
+  let s = parse_string_scalar xml_elem "binary constant expected" in
   try Piqi_base64.decode s
   with Invalid_argument _ ->
     error xml_elem "invalid base64-encoded string"
@@ -222,8 +232,6 @@ and parse_required_field loc name field_type l =
 and find_fields (name:string) (l:xml_elem list) :(xml_elem list * xml_elem list) =
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
-    | (n, [])::t when n = name ->
-        error n ("value can not be empty for field " ^ quote n)
     | ((n, _) as h)::t when n = name -> aux (h::accu) rem t
     | h::t -> aux accu (h::rem) t
   in
