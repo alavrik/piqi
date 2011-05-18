@@ -30,7 +30,7 @@ SOURCES = \
 
 
 # make sure piqi gets rebuilt when we change the library
-RESULTDEPS = ../piqilib/piqilib.cmxa ../piqilib/piqilib.cma
+RESULTDEPS = ../piqilib/piqilib.cmxa $(wildcard ../piqilib/piqilib.cma)
 
 
 PIQI_MODULES = descriptor.piqi piqi-tools.piqi piqi-rpc.piqi

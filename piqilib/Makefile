@@ -5,10 +5,16 @@ include $(PIQI_ROOT)/piqilib/Makefile.piqi_extended
 RESULT = piqilib
 PIQI_LIB_NAME = lib
 LIBINSTALL_FILES = \
-	$(RESULT).cma $(RESULT).cmxa \
+	$(RESULT).cmxa \
 	$(RESULT).$(EXT_LIB) $(RES_CLIB) \
 	$(shell ls *.cmi) \
 	piqirun_ext.mli
+
+# we're not building byte-code library by default, only when requested
+# explicitly, e.g. from top-level Makefile
+ifneq ($(findstring bcl,$(MAKECMDGOALS)),)
+LIBINSTALL_FILES += $(RESULT).cma
+endif
 
 
 PACKS += xmlm
@@ -49,7 +55,7 @@ PIQICC = ../piqicc/piqicc
 PIQICC_FLAGS = -I $(PIQI_ROOT)
 
 
-all: bcl ncl
+all: ncl
 
 
 debug: dcl install

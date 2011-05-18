@@ -40,7 +40,8 @@ install:
 
 ocaml-install: ocaml-uninstall
 	test -d $(PIQI_OCAML_PREFIX) || mkdir -p $(PIQI_OCAML_PREFIX)
-	ocamlfind install $(OCAMLFIND_INSTFLAGS) piqi $(wildcard $(PIQI_BUILD)/lib/ocaml/piqi/*)
+	$(MAKE) -C piqilib bcl install
+	ocamlfind install $(OCAMLFIND_INSTFLAGS) piqi `ls $(PIQI_BUILD)/lib/ocaml/piqi/*`
 
 
 ocaml-uninstall:
