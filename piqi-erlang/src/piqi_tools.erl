@@ -59,7 +59,7 @@
 
 
 % Options for "piqi server" port command
--ifndef(DEBUG).
+-ifdef(DEBUG).
 -define(PIQI_FLAGS, "").
 -else.
 -define(PIQI_FLAGS, " --no-warnings"). % XXX: --trace
