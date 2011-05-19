@@ -827,8 +827,9 @@ let get_imported_defs imports =
   let aux x = 
     let piqi = some_of x.Import#piqi in
     (* in order to avoid conflict between local defs and also defs imported
-     * several times, creating a copy of defs *)
-    let imported_defs = copy_defs piqi.P#resolved_piqdef in
+     * several times, creating a shallow copy of imported defs just to be able
+     * to safely mutate the "parent" field *)
+    let imported_defs = List.map copy_obj piqi.P#resolved_piqdef in
     (* set parent namespace for imported definitions *)
     List.iter (fun def -> set_parent def (`import x)) imported_defs;
     imported_defs
