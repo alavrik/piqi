@@ -108,6 +108,7 @@ let gen_field rname f =
       | None ->
           (* flag generation code *)
           iod " " [
+            gen_cc "reference_if_true ";
             ios "Piqirun.gen_flag"; gen_code f.code; ffname;
           ]
   in (fname, fgen)
@@ -288,6 +289,10 @@ let gen_defs (defs:T.piqdef list) =
         then Piqloc.addref obj count";
       gen_cc "let reference f code x = refer x; f code x";
       gen_cc "let reference1 f x = refer x; f x";
+      gen_cc "let reference_if_true f code x =
+        if x
+        then reference f code x
+        else f code x";
       ios "let rec"; iod " and " defs_2;
       ios "\n\n";
       iol defs_1;

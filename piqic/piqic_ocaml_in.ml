@@ -101,7 +101,9 @@ let gen_field_parser f =
     | None ->
         (* flag constructor *)
         iod " " [ 
-          ios "Piqirun.parse_flag"; gen_code f.code; ios " x";
+          gen_cc "incr_count_if_true (";
+            ios "Piqirun.parse_flag"; gen_code f.code; ios " x";
+          gen_cc ")";
         ]
   in
   (* field parsing code *)
@@ -272,6 +274,9 @@ let gen_defs (defs:T.piqdef list) =
         if not (Obj.is_int (Obj.repr obj))
         then Piqloc.addrefret ref obj
         else obj";
+      gen_cc "let incr_count_if_true ((obj, _) as res) =
+        if obj then ignore(next_count());
+        res";
       ios "let rec"; iod " and " defs;
       ios "\n";
       (*
