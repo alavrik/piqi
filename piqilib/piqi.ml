@@ -401,24 +401,32 @@ let copy_obj_list l = List.map copy_obj l
 let copy_obj_list l = reference copy_obj_list l
 
 
-let copy_variant x = V#{ x with option = copy_obj_list x.option }
-let copy_record x = R#{ x with field = copy_obj_list x.field }
-let copy_variant = reference copy_variant
-let copy_record = reference copy_record
+let copy_variant ?(copy_parts=true) x =
+  if copy_parts
+  then Piqloc.addrefret x V#{ x with option = copy_obj_list x.option }
+  else copy_obj x
 
 
-let copy_def (x:T.piqdef) =
-  match x with
-    | `record x -> `record (reference copy_record x)
-    | `variant x -> `variant (reference copy_variant x)
-    | `enum x -> `enum (reference copy_variant x)
-    | `alias x -> `alias (copy_obj x)
-    | `list x -> `list (copy_obj x)
-
-let copy_def = reference copy_def (* preserve location information *)
+let copy_record ?(copy_parts=true) x =
+  if copy_parts
+  then Piqloc.addrefret x R#{ x with field = copy_obj_list x.field }
+  else copy_obj x
 
 
-let copy_defs defs = List.map copy_def defs
+let copy_def ~copy_parts (x:T.piqdef) =
+  let res =
+    match x with
+      | `record x -> `record (copy_record ~copy_parts x)
+      | `variant x -> `variant (copy_variant ~copy_parts x)
+      | `enum x -> `enum (copy_variant ~copy_parts x)
+      | `alias x -> `alias (copy_obj x)
+      | `list x -> `list (copy_obj x)
+  in
+  (* preserve location information *)
+  Piqloc.addrefret x res
+
+
+let copy_defs ?(copy_parts=true) defs = List.map (copy_def ~copy_parts) defs
 
 
 let copy_imports l = List.map copy_obj l
@@ -829,7 +837,7 @@ let get_imported_defs imports =
     (* in order to avoid conflict between local defs and also defs imported
      * several times, creating a shallow copy of imported defs just to be able
      * to safely mutate the "parent" field *)
-    let imported_defs = List.map copy_obj piqi.P#resolved_piqdef in
+    let imported_defs = copy_defs piqi.P#resolved_piqdef ~copy_parts:false in
     (* set parent namespace for imported definitions *)
     List.iter (fun def -> set_parent def (`import x)) imported_defs;
     imported_defs
