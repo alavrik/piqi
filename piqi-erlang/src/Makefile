@@ -54,6 +54,7 @@ $(ERL_APP_FILE): $(ERL_APP_FILE).src
 
 
 $(PIQI_ERL_FILES) $(PIQI_HRL_FILES): $(PIQI_FILES)
+	set -e; \
 	for i in $^; do \
 		$(PIQIC) erlang $(PIQIC_FLAGS) $$i; \
 	done
