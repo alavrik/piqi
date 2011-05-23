@@ -55,7 +55,7 @@
 
 
 % gen_server:call timeout
--define(CALL_TIMEOUT, 1000).
+-define(CALL_TIMEOUT, 5000).
 
 
 % Options for "piqi server" port command
