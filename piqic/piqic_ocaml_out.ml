@@ -147,7 +147,6 @@ let gen_const c =
   let open Option in
   iod " " [
     ios "|"; gen_pvar_name (some_of c.ocaml_name); ios "->";
-      ios "Piqirun.gen_varint32_field code";
       gen_code c.code ^^ ios "l"; (* ocaml int32 literal *)
   ]
 
@@ -155,14 +154,32 @@ let gen_const c =
 let gen_enum e =
   let open Enum in
   let consts = List.map gen_const e.option in
-  iod " "
-    [
-      ios "gen__" ^^ ios (some_of e.ocaml_name);
-      ios "code x =";
-        gen_cc "refer x;";
-        ios "match x with";
-        iol consts;
-    ]
+  iol [
+    ios "gen__"; ios (some_of e.ocaml_name); ios " code x = ";
+      gen_cc "refer x;";
+      ios "Piqirun.int32_to_varint code ";
+        ios "(match x with "; iol consts; ios ")";
+  ]
+
+
+let gen_packed_enum e =
+  let open Enum in
+  let consts = List.map gen_const e.option in
+  iol [
+    ios "packed_gen__"; ios (some_of e.ocaml_name); ios " x = ";
+      gen_cc "refer x;";
+      ios "Piqirun.int32_to_packed_varint ";
+        ios "(match x with "; iol consts; ios ")";
+  ]
+
+
+let gen_enum e =
+  (* generate two functions: one for generating normal value; another one -- for
+   * packed value *)
+  iod " and " [
+    gen_enum e;
+    gen_packed_enum e;
+  ]
 
 
 let rec gen_option o =
@@ -200,13 +217,6 @@ let gen_variant v =
     ]
 
 
-let is_primitive_numeric_piqtype t =
-  (* XXX: what about enum? can it be packed? *)
-  match unalias t with
-    | `int | `float | `bool -> true
-    | _ -> false
-
-
 let gen_alias a =
   let open Alias in
   iol [
@@ -232,7 +242,7 @@ let gen_packed_alias a =
 
 let gen_alias a =
   let open Alias in
-  if is_primitive_numeric_piqtype (piqtype a.typeref)
+  if Piqi_wire.can_be_packed (piqtype a.typeref)
   then
     (* generate another function for packed encoding *)
     iod " and " [

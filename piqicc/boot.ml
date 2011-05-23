@@ -51,7 +51,7 @@ let boot2 () =
    *)
   Piqi_wire.add_hashcodes piqi.P#resolved_piqdef;
   (* check for hash conflicts and pre-order fields by hash codes *)
-  Piqi_wire.add_codes piqi.P#resolved_piqdef;
+  Piqi_wire.process_defs piqi.P#resolved_piqdef;
 
   (* call piq interface compiler for ocaml *)
   Piqic_ocaml_types.cc_mode := true;

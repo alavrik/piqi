@@ -213,12 +213,17 @@ let gen_default x =
 
 let gen_field f = 
   let open F in
+  let packed =
+    if f.wire_packed
+    then " [packed = true]"
+    else ""
+  in
   let fdef = iod " " (* field definition *)
     [
       ios (string_of_mode f.mode);
       gen_typeref' f.typeref;
       protoname_of_field f; ios "=";
-        gen_code f.code ^^ gen_default f ^^ ios ";";
+        gen_code f.code ^^ gen_default f ^^ ios packed ^^ ios ";";
     ]
   in
   fdef
@@ -284,11 +289,16 @@ let gen_variant ?name v =
 let gen_list ?name l =
   let open L in
   let name = match name with Some x -> x | _ -> some_of l.proto_name in
+  let packed =
+    if l.wire_packed
+    then " [packed = true]"
+    else ""
+  in
   let ldef = iol
     [
       ios "message "; ios name;
       ios " {"; indent;
-      ios "repeated "; gen_typeref l.typeref; ios " elem = 1;";
+      ios "repeated "; gen_typeref l.typeref; ios " elem = 1"; ios packed; ios ";";
       unindent; eol;
       ios "}"; eol;
     ]

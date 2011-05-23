@@ -451,8 +451,9 @@ let resolve_defs ?piqi idtable (defs:T.piqdef list) =
    * types in aliases *)
   List.iter check_resolved_def defs;
 
-  (* assign wire codes; if they are unassigned *)
-  Piqi_wire.add_codes defs;
+  (* assign wire codes, if they are unassigned; check otherwise; check
+   * correctness of .wire-packed usage *)
+  Piqi_wire.process_defs defs;
 
   (* resolve defaults ANY to OBJ using field types and codes *)
   List.iter resolve_defaults defs;

@@ -57,6 +57,7 @@ debug: dc top
 
 
 $(PIQI_ML_SOURCES): $(PIQI_MODULES)
+	set -e; \
 	for i in $^; \
 	do \
 		$(PIQIC) ocaml $(PIQIC_FLAGS) --pp $$i; \
