@@ -151,25 +151,26 @@ let gen_const c =
   ]
 
 
+let gen_enum_consts l =
+  let consts = List.map gen_const l in
+  iol [ ios "(match x with "; iol consts; ios ")" ]
+
+
 let gen_enum e =
   let open Enum in
-  let consts = List.map gen_const e.option in
   iol [
     ios "gen__"; ios (some_of e.ocaml_name); ios " code x = ";
       gen_cc "refer x;";
-      ios "Piqirun.int32_to_varint code ";
-        ios "(match x with "; iol consts; ios ")";
+      ios "Piqirun.int32_to_signed_varint code "; gen_enum_consts e.option;
   ]
 
 
 let gen_packed_enum e =
   let open Enum in
-  let consts = List.map gen_const e.option in
   iol [
     ios "packed_gen__"; ios (some_of e.ocaml_name); ios " x = ";
       gen_cc "refer x;";
-      ios "Piqirun.int32_to_packed_varint ";
-        ios "(match x with "; iol consts; ios ")";
+      ios "Piqirun.int32_to_packed_signed_varint "; gen_enum_consts e.option;
   ]
 
 

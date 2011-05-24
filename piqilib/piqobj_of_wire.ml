@@ -237,7 +237,7 @@ and parse_option t x =
 
 
 and parse_enum t x =
-  let code32 = Piqirun.int32_of_varint x in
+  let code32 = Piqirun.int32_of_signed_varint x in
   let options = t.T.Variant#option in
   let option =
     try

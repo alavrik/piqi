@@ -150,7 +150,7 @@ let gen_enum e ~wire_packed =
   iol [
     packed; ios "parse_"; ios (some_of e.ocaml_name); ios " x = ";
     gen_cc "let count = next_count() in refer count (";
-      ios "match Piqirun.int32_of_"; packed; ios "varint x with ";
+      ios "match Piqirun.int32_of_"; packed; ios "signed_varint x with ";
       iol consts;
       ios "| x -> Piqirun.error_enum_const x";
     gen_cc ")";

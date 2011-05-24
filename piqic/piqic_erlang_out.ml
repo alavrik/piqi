@@ -48,7 +48,8 @@ let gen_parent x =
     | _ -> iol []
 
 
-let rec gen_gen_type erlang_type wire_type x =
+let rec gen_gen_type erlang_type wire_type wire_packed x =
+  let packed = ios (if wire_packed then "packed_" else "") in
   match x with
     | `any ->
         if !Piqic_common.is_self_spec
@@ -56,24 +57,30 @@ let rec gen_gen_type erlang_type wire_type x =
         else ios "piqtype_piqi:gen_any"
     | (#T.piqdef as x) ->
         let modname = gen_parent x in
-        modname ^^ ios "gen_" ^^ ios (piqdef_erlname x)
+        iol [
+          modname; packed; ios "gen_"; ios (piqdef_erlname x)
+        ]
     | _ -> (* gen generators for built-in types *)
         iol [
           ios "piqirun:";
           ios (gen_erlang_type_name x erlang_type);
-          ios "_to_";
+          ios "_to_"; packed;
           ios (W.get_wire_type_name x wire_type);
         ]
 
-and gen_gen_typeref ?erlang_type ?wire_type t =
-  gen_gen_type erlang_type wire_type (piqtype t)
+and gen_gen_typeref ?erlang_type ?wire_type ?(wire_packed=false) t =
+  gen_gen_type erlang_type wire_type wire_packed (piqtype t)
 
 
 let gen_mode f =
-  match f.F#mode with
-    | `required -> "req"
-    | `optional -> "opt"
-    | `repeated -> "rep"
+  let open F in
+  match f.mode with
+    | `required -> "required"
+    | `optional -> "optional"
+    | `repeated ->
+        if f.wire_packed
+        then "packed_repeated"
+        else "repeated"
 
 
 let gen_field rname f =
@@ -87,14 +94,17 @@ let gen_field rname f =
     match f.typeref with
       | Some typeref ->
           (* field generation code *)
-          iol
-            [
-              ios "piqirun:gen_" ^^ ios mode ^^ ios "_field(";
-                gen_code f.code; ios ", ";
-                ios "fun "; gen_gen_typeref typeref; ios "/2, ";
-                ffname;
-              ios ")"
-            ]
+          iol [
+            ios "piqirun:gen_" ^^ ios mode ^^ ios "_field(";
+              gen_code f.code; ios ", ";
+              ios "fun ";
+                gen_gen_typeref typeref ~wire_packed:f.wire_packed;
+                if f.wire_packed (* arity *)
+                then ios "/1, "
+                else ios "/2, ";
+              ffname;
+            ios ")"
+          ]
       | None ->
           (* flag generation code *)
           iod " " [
@@ -127,24 +137,51 @@ let gen_record r =
 let gen_const c =
   let open Option in
   iol [
-    ios (some_of c.erlang_name); ios " -> ";
-      ios "piqirun:encode_varint_field(Code, "; gen_code c.code; ios ")"
+    ios (some_of c.erlang_name); ios " -> "; gen_code c.code;
+  ]
+
+
+let gen_enum_consts l =
+  let consts = List.map gen_const l in
+  iol [
+    ios "case X of"; indent;
+    iod ";\n        " consts;
+    unindent; eol;
+    ios "end";
   ]
 
 
 let gen_enum e =
   let open Enum in
-  let consts = List.map gen_const e.option in
-  iol
-    [
-      ios "gen_" ^^ ios (some_of e.erlang_name);
-      ios "(Code, X) ->"; indent;
-        ios "case X of"; indent;
-        iod ";\n        " consts;
+  iol [
+    ios "gen_"; ios (some_of e.erlang_name); ios "(Code, X) ->"; indent;
+      ios "piqirun:integer_to_signed_varint(Code,"; indent;
+        gen_enum_consts e.option;
         unindent; eol;
-        ios "end.";
+      ios ").";
       unindent; eol;
-    ]
+  ]
+
+
+let gen_packed_enum e =
+  let open Enum in
+  iol [
+    ios "packed_gen_"; ios (some_of e.erlang_name); ios "(X) ->"; indent;
+        ios "piqirun:integer_to_packed_signed_varint("; indent;
+          gen_enum_consts e.option;
+        unindent; eol;
+      ios ").";
+      unindent; eol;
+  ]
+
+
+let gen_enum e =
+  (* generate two functions: one for generating normal value; another one -- for
+   * packed value *)
+  iod "\n\n" [
+    gen_enum e;
+    gen_packed_enum e;
+  ]
 
 
 let gen_inner_option pattern outer_option =
@@ -169,7 +206,7 @@ let rec gen_option outer_option o =
           let res =
             iol [
               ios ename; ios " -> ";
-                ios "piqirun:gen_bool("; gen_code o.code; ios ", true)";
+                ios "piqirun:gen_bool_field("; gen_code o.code; ios ", true)";
             ]
           in [res]
     | None, Some (`variant v) | None, Some (`enum v) ->
@@ -211,7 +248,7 @@ let gen_variant v =
 let gen_alias a =
   let open Alias in
   iol [
-    ios "gen_" ^^ ios (some_of a.erlang_name);
+    ios "gen_"; ios (some_of a.erlang_name);
     ios "(Code, X) ->"; indent;
       gen_gen_typeref a.typeref ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
       ios "(Code, X).";
@@ -219,13 +256,44 @@ let gen_alias a =
   ]
 
 
+let gen_packed_alias a =
+  let open Alias in
+  iol [
+    ios "packed_gen_"; ios (some_of a.erlang_name);
+    ios "(X) ->"; indent;
+      gen_gen_typeref a.typeref
+        ?erlang_type:a.erlang_type
+        ?wire_type:a.wire_type
+        ~wire_packed:true;
+      ios "(X).";
+    unindent; eol;
+  ]
+
+
+let gen_alias a =
+  let open Alias in
+  if Piqi_wire.can_be_packed (piqtype a.typeref)
+  then
+    (* generate another function for packed encoding *)
+    iod "\n\n" [
+      gen_alias a;
+      gen_packed_alias a;
+    ]
+  else gen_alias a
+
+
 let gen_list l =
   let open L in
+  let packed = ios (if l.wire_packed then "packed_" else "") in
   iol [
     ios "gen_" ^^ ios (some_of l.erlang_name);
     ios "(Code, X) ->"; indent;
-      ios "piqirun:gen_list(Code, ";
-        ios "fun "; gen_gen_typeref l.typeref; ios "/2, X).";
+      ios "piqirun:gen_"; packed; ios "list(Code, ";
+        ios "fun ";
+          gen_gen_typeref l.typeref ~wire_packed:l.wire_packed;
+          if l.wire_packed (* arity *)
+          then ios "/1, X)."
+          else ios "/2, X).";
     unindent; eol;
   ]
 

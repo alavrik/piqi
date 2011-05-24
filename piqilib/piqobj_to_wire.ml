@@ -207,7 +207,7 @@ and gen_enum code x =
 and gen_enum_option code x =
   let open O in
   let value = some_of x.piqtype.T.Option#code in
-  Piqirun.int32_to_varint code value
+  Piqirun.int32_to_signed_varint code value
 
 
 and gen_list code x = 
