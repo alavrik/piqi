@@ -444,11 +444,19 @@ let int64_of_signed_varint = int64_of_varint
 let int64_of_zigzag_varint x =
   int64_of_varint (zigzag_varint_of_varint x)
 
-let int64_of_fixed32 x = Int64.of_int32 (expect_int32 x)
+
+let int64_of_uint32 x =
+  (* prevent turning it into a negative value *)
+  Int64.logand (Int64.of_int32 x) 0x0000_0000_ffff_ffffL
+
+
+let int64_of_fixed32 x =
+  let x = expect_int32 x in
+  int64_of_uint32 x
 
 let int64_of_fixed64 = expect_int64
 
-let int64_of_signed_fixed32 = int64_of_fixed32
+let int64_of_signed_fixed32 x = Int64.of_int32 (expect_int32 x)
 
 let int64_of_signed_fixed64 = int64_of_fixed64
 
@@ -549,11 +557,13 @@ let int64_of_packed_fixed64 buf =
   try_parse_fixed64 buf
 
 let int64_of_packed_fixed32 buf =
-  Int64.of_int32 (try_parse_fixed32 buf)
+  let x = try_parse_fixed32 buf in
+  int64_of_uint32 x
 
 let int64_of_packed_signed_fixed64 = int64_of_packed_fixed64
 
-let int64_of_packed_signed_fixed32 = int64_of_packed_fixed32
+let int64_of_packed_signed_fixed32 buf =
+  Int64.of_int32 (try_parse_fixed32 buf)
 
 
 let int32_of_packed_varint buf =
@@ -1036,12 +1046,7 @@ let int32_to_zigzag_varint code x =
 let int32_to_fixed32 code x =
   gen_fixed32_field code x
 
-let int32_to_fixed64 code x =
-  gen_fixed64_field code (Int64.of_int32 x)
-
 let int32_to_signed_fixed32 = int32_to_fixed32
-
-let int32_to_signed_fixed64 = int32_to_fixed64
 
 
 let int32_of_float x =
@@ -1133,12 +1138,7 @@ let int32_to_packed_zigzag_varint x =
 let int32_to_packed_fixed32 x =
   gen_fixed32_value x
 
-let int32_to_packed_fixed64 x =
-  gen_fixed64_value (Int64.of_int32 x)
-
 let int32_to_packed_signed_fixed32 = int32_to_packed_fixed32
-
-let int32_to_packed_signed_fixed64 = int32_to_packed_fixed64
 
 
 let float_to_packed_fixed32 x =
