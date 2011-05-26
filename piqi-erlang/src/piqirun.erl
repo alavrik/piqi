@@ -787,10 +787,12 @@ integer_of_signed_fixed64({'fixed64', <<X:64/little-signed-integer>>}) -> X; ?to
 integer_of_signed_fixed64).
 
 
-float_of_fixed64({'fixed64', <<X:64/little-float>>}) -> X; ?top_block_parser(
+float_of_fixed64({'fixed64', <<X:64/little-float>>}) -> X;
+float_of_fixed64({'fixed64', X}) -> parse_ieee754_64(X); ?top_block_parser(
 float_of_fixed64).
 
-float_of_fixed32({'fixed32', <<X:32/little-float>>}) -> X; ?top_block_parser(
+float_of_fixed32({'fixed32', <<X:32/little-float>>}) -> X;
+float_of_fixed32({'fixed32', X}) -> parse_ieee754_32(X); ?top_block_parser(
 float_of_fixed32).
 
 
@@ -865,10 +867,32 @@ integer_of_packed_signed_fixed64(<<X:64/little-signed-integer, Rest/binary>>) ->
 integer_of_packed_signed_fixed64(_) -> throw_error('not_enough_data').
 
 
-float_of_packed_fixed64(<<X:64/little-float, Rest/binary>>) -> {X, Rest};
-float_of_packed_fixed64(_) -> throw_error('not_enough_data').
+float_of_packed_fixed64(<<X:64/little-float, Rest/binary>>) ->
+    {X, Rest};
+float_of_packed_fixed64(<<X:8/binary, Rest/binary>>) ->
+    {parse_ieee754_64(X), Rest};
+float_of_packed_fixed64(_) ->
+    throw_error('not_enough_data').
 
 
-float_of_packed_fixed32(<<X:32/little-float, Rest/binary>>) -> {X, Rest};
-float_of_packed_fixed32(_) -> throw_error('not_enough_data').
+float_of_packed_fixed32(<<X:32/little-float, Rest/binary>>) ->
+    {X, Rest};
+float_of_packed_fixed32(<<X:4/binary, Rest/binary>>) ->
+    {parse_ieee754_32(X), Rest};
+float_of_packed_fixed32(_) ->
+    throw_error('not_enough_data').
+
+
+% parse special IEEE 754 values: infinities and NaN
+%
+% TODO: first, need to modify types and extend returned and accepted floating
+% point type to be:
+%
+%       -type piqi_float() :: float() | '-infinity' | 'infinity' | 'nan'.
+%
+-spec parse_ieee754_64/1 :: (<<_:8>>) -> no_return().
+-spec parse_ieee754_32/1 :: (<<_:4>>) -> no_return().
+
+parse_ieee754_64(_) -> throw_error('ieee754_infinities_NaN_not_supported_yet').
+parse_ieee754_32(_) -> throw_error('ieee754_infinities_NaN_not_supported_yet').
 
