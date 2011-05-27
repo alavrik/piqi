@@ -407,24 +407,53 @@ let rec zigzag_varint_of_varint = function
  * Parsing primitive types
  *)
 
+
+let max_uint =
+  match Sys.word_size with
+    | 32 -> 0x0000_0000_7fff_ffffL (* on 32-bit, int is 31-bit wide *)
+    | 64 -> 0x7fff_ffff_ffff_ffffL (* on 64-bit, int is 63-bit wide *)
+    | _ -> assert false
+
+
+let int64_of_uint x =
+  (* prevent turning into a negative value *)
+  Int64.logand (Int64.of_int x) max_uint
+
+let int64_of_uint32 x =
+  (* prevent turning into a negative value *)
+  Int64.logand (Int64.of_int32 x) 0x0000_0000_ffff_ffffL
+
+
+(* this encoding is only for unsigned integers *)
 let rec int_of_varint obj =
   match obj with
     | Varint x -> x
     | Varint64 x ->
-        (* NOTE: all negative integers are returned as Varint64 *)
-        let (>=) x y = Int64.compare x (Int64.of_int y) >= 0 in
-        let (<=) x y = Int64.compare x (Int64.of_int y) <= 0 in
-        if x >= min_int && x <= max_int
-        then Int64.to_int x
-        else error obj "int overflow in 'int_of_varint'"
+        let res = Int64.to_int x in
+        if int64_of_uint res <> x
+        then error obj "int overflow in 'int_of_varint'";
+        res
     | Top_block buf -> int_of_varint (parse_toplevel_header buf)
     | _ ->
         error obj "varint expected"
 
-let int_of_signed_varint = int_of_varint
 
+let rec int_of_signed_varint obj =
+  match obj with
+    | Varint x -> x
+    | Varint64 x ->
+        let res = Int64.to_int x in
+        if Int64.of_int res <> x
+        then error obj "int overflow in 'int_of_signed_varint'";
+        res
+    | Top_block buf -> int_of_signed_varint (parse_toplevel_header buf)
+    | _ ->
+        error obj "varint expected"
+
+
+(* this encoding is only for signed integers *)
 let int_of_zigzag_varint x =
-  int_of_varint (zigzag_varint_of_varint x)
+  int_of_signed_varint (zigzag_varint_of_varint x)
 
 let int_of_fixed32 x =
   Int32.to_int (expect_int32 x)
@@ -433,21 +462,24 @@ let int_of_fixed64 x =
   Int64.to_int (expect_int64 x)
 
 
+(* this encoding is only for unsigned integers *)
 let rec int64_of_varint = function
-  | Varint x -> Int64.of_int x
+  | Varint x -> int64_of_uint x
   | Varint64 x -> x
   | Top_block buf -> int64_of_varint (parse_toplevel_header buf)
   | obj -> error obj "varint expected"
 
-let int64_of_signed_varint = int64_of_varint
 
+let rec int64_of_signed_varint = function
+  | Varint x -> Int64.of_int x
+  | Varint64 x -> x
+  | Top_block buf -> int64_of_signed_varint (parse_toplevel_header buf)
+  | obj -> error obj "varint expected"
+
+
+(* this encoding is only for signed integers *)
 let int64_of_zigzag_varint x =
-  int64_of_varint (zigzag_varint_of_varint x)
-
-
-let int64_of_uint32 x =
-  (* prevent turning it into a negative value *)
-  Int64.logand (Int64.of_int32 x) 0x0000_0000_ffff_ffffL
+  int64_of_signed_varint (zigzag_varint_of_varint x)
 
 
 let int64_of_fixed32 x =
@@ -461,23 +493,42 @@ let int64_of_signed_fixed32 x = Int64.of_int32 (expect_int32 x)
 let int64_of_signed_fixed64 = int64_of_fixed64
 
 
+(* this encoding is only for unsigned integers *)
 let rec int32_of_varint obj =
   match obj with
-    | Varint x -> Int32.of_int x
+    | Varint x ->
+        (* don't bother handling separate cases for now: which type is wider --
+         * int32 or int *)
+        int32_of_varint (Varint64 (int64_of_uint x))
     | Varint64 x ->
-          let (>=) x y = Int64.compare x (Int64.of_int32 y) >= 0 in
-          let (<=) x y = Int64.compare x (Int64.of_int32 y) <= 0 in
-          if x >= Int32.min_int && x <= Int32.max_int
-          then Int64.to_int32 x
-          else error obj "int32 overflow in 'int32_of_varint'"
+        let res = Int64.to_int32 x in
+        if int64_of_uint32 res <> x
+        then error obj "int32 overflow in 'int32_of_varint'";
+        res
     | Top_block buf -> int32_of_varint (parse_toplevel_header buf)
     | obj ->
         error obj "varint expected"
 
-let int32_of_signed_varint = int32_of_varint
 
+let rec int32_of_signed_varint obj =
+  match obj with
+    | Varint x ->
+        (* don't bother handling separate cases for now: which type is wider --
+         * int32 or int *)
+        int32_of_signed_varint (Varint64 (Int64.of_int x))
+    | Varint64 x ->
+        let res = Int64.to_int32 x in
+        if Int64.of_int32 res <> x
+        then error obj "int32 overflow in 'int32_of_signed_varint'";
+        res
+    | Top_block buf -> int32_of_signed_varint (parse_toplevel_header buf)
+    | obj ->
+        error obj "varint expected"
+
+
+(* this encoding is only for signed integers *)
 let int32_of_zigzag_varint x =
-  int32_of_varint (zigzag_varint_of_varint x)
+  int32_of_signed_varint (zigzag_varint_of_varint x)
 
 let int32_of_fixed32 = expect_int32
 
@@ -578,12 +629,7 @@ let int32_of_packed_zigzag_varint buf =
 let int32_of_packed_fixed32 buf =
   try_parse_fixed32 buf
 
-let int32_of_packed_fixed64 buf =
-  Int64.to_int32 (try_parse_fixed64 buf)
-
 let int32_of_packed_signed_fixed32 = int32_of_packed_fixed32
-
-let int32_of_packed_signed_fixed64 = int32_of_packed_fixed64
 
 
 let float_of_packed_fixed32 buf =
@@ -840,7 +886,7 @@ let gen_unsigned_varint_value x =
   in iol (aux x)
 
 
-let gen_varint_value x =
+let gen_signed_varint_value x =
   (* negative varints are encoded as bit-complement 64-bit varints, always
    * producing 10-bytes long value *)
   if x < 0
@@ -863,10 +909,10 @@ let gen_unsigned_varint32_value x =
   in iol (aux x)
 
 
-let gen_varint32_value x =
+let gen_signed_varint32_value x =
   (* negative varints are encoded as bit-complement 64-bit varints, always
    * producing 10-bytes long value *)
-  if Int32.logand x 0x8000_0000l <> 0l (* x < 0? *)
+  if Int32.compare x 0l < 0 (* x < 0? *)
   then gen_varint64_value (Int64.of_int32 x)
   else gen_unsigned_varint32_value x
 
@@ -900,25 +946,25 @@ let gen_primitive_key ktype code =
   gen_key ktype (abs code)
 
 
-let gen_varint_field code x =
+let gen_signed_varint_field code x =
   iol [
     gen_primitive_key 0 code;
-    gen_varint_value x;
+    gen_signed_varint_value x;
   ]
 
-let gen_unsigned_varint_field code x =
+let gen_varint_field code x =
   iol [
     gen_primitive_key 0 code;
     gen_unsigned_varint_value x;
   ]
 
-let gen_varint32_field code x =
+let gen_signed_varint32_field code x =
   iol [
     gen_primitive_key 0 code;
-    gen_varint32_value x;
+    gen_signed_varint32_value x;
   ]
 
-let gen_unsigned_varint32_field code x =
+let gen_varint32_field code x =
   iol [
     gen_primitive_key 0 code;
     gen_unsigned_varint32_value x;
@@ -1004,16 +1050,11 @@ let zigzag_of_int64 x =
 let int_to_varint code x =
   gen_varint_field code x
 
-let int_to_signed_varint = int_to_varint
+let int_to_signed_varint code x =
+  gen_signed_varint_field code x
 
 let int_to_zigzag_varint code x =
-  gen_unsigned_varint_field code (zigzag_of_int x)
-
-let int_to_fixed32 code x =
-  gen_fixed32_field code (Int32.of_int x)
-
-let int_to_fixed64 code x =
-  gen_fixed64_field code (Int64.of_int x)
+  gen_varint_field code (zigzag_of_int x)
 
 
 let int64_to_varint code x =
@@ -1038,10 +1079,11 @@ let int64_to_signed_fixed32 = int64_to_fixed32
 let int32_to_varint code x =
   gen_varint32_field code x
 
-let int32_to_signed_varint = int32_to_varint
+let int32_to_signed_varint code x =
+  gen_signed_varint32_field code x
 
 let int32_to_zigzag_varint code x =
-  gen_unsigned_varint32_field code (zigzag_of_int32 x)
+  gen_varint32_field code (zigzag_of_int32 x)
 
 let int32_to_fixed32 code x =
   gen_fixed32_field code x
@@ -1068,7 +1110,7 @@ let int_of_bool = function
   | false -> 0
 
 let bool_to_varint code x =
-  gen_unsigned_varint_field code (int_of_bool x)
+  gen_varint_field code (int_of_bool x)
 
 let gen_bool_field = bool_to_varint
 
@@ -1094,27 +1136,23 @@ let text_to_block = gen_string_field (* text is encoded as string *)
 
 
 let int_to_packed_varint x =
-  gen_varint_value x
+  gen_unsigned_varint_value x
 
-let int_to_packed_signed_varint = int_to_packed_varint
+let int_to_packed_signed_varint x =
+  gen_signed_varint_value x
 
 let int_to_packed_zigzag_varint x =
   gen_unsigned_varint_value (zigzag_of_int x)
-
-let int_to_packed_fixed32 x =
-  gen_fixed32_value (Int32.of_int x)
-
-let int_to_packed_fixed64 x =
-  gen_fixed64_value (Int64.of_int x)
 
 
 let int64_to_packed_varint x =
   gen_varint64_value x
 
-let int64_to_packed_signed_varint = int64_to_packed_varint
+let int64_to_packed_signed_varint x =
+  gen_varint64_value x
 
 let int64_to_packed_zigzag_varint x =
-  int64_to_packed_varint (zigzag_of_int64 x)
+  gen_varint64_value (zigzag_of_int64 x)
 
 let int64_to_packed_fixed64 x =
   gen_fixed64_value x
@@ -1128,9 +1166,10 @@ let int64_to_packed_signed_fixed32 = int64_to_packed_fixed32
 
 
 let int32_to_packed_varint x =
-  gen_varint32_value x
+  gen_unsigned_varint32_value x
 
-let int32_to_packed_signed_varint = int32_to_packed_varint
+let int32_to_packed_signed_varint x =
+  gen_signed_varint32_value x
 
 let int32_to_packed_zigzag_varint x =
   gen_unsigned_varint32_value (zigzag_of_int32 x)
