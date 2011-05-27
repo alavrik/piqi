@@ -72,6 +72,15 @@ let get_wire_type_name t wt =
   wire_type_name wt
 
 
+(* get wire type width in bits, if it is known to be fixed *)
+let get_wire_type_width t wt =
+  let wt = get_wire_type t wt in
+  match wt with
+    | `fixed32 | `signed_fixed32 -> Some 32
+    | `fixed64 | `signed_fixed64 -> Some 64
+    | _ -> None
+
+
 (*
  * add wire codes if not specified by user
  *) 

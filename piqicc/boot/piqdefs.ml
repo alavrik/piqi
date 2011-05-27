@@ -37,6 +37,7 @@ let f = F#{
   code = None;
 
   wire_packed = false;
+  ocaml_array = false;
 }
 
 
@@ -152,6 +153,7 @@ let piqdef_list =
         typeref = `name "piqdef";
         parent = None;
         wire_packed = false;
+        ocaml_array = false;
       };
     `variant
       V#{
@@ -252,6 +254,11 @@ let piqdef_list =
             F#{f with
               name = Some "ocaml-name";
               typeref = Some `string;
+              mode = `optional;
+            };
+            F#{f with
+              name = Some "ocaml-array";
+              typeref = None;
               mode = `optional;
             };
             F#{f with
@@ -430,6 +437,11 @@ let piqdef_list =
             F#{f with
               name = Some "ocaml-name";
               typeref = Some `string;
+              mode = `optional;
+            };
+            F#{f with
+              name = Some "ocaml-array";
+              typeref = None;
               mode = `optional;
             };
             F#{f with

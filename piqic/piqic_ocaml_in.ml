@@ -238,12 +238,13 @@ let gen_alias a =
 
 let gen_list l =
   let open L in
-  let packed = ios (if l.wire_packed then "packed_" else "") in
+  let repr = gen_list_repr l in
   iol [
     ios "parse_"; ios (some_of l.ocaml_name); ios " x = ";
     ios "(";
       gen_cc "let count = next_count() in refer count (";
-        ios "Piqirun.parse_"; packed; ios "list (";
+        (* Piqirun.parse_(packed_)?(list|array|array32|array64) *)
+        ios "Piqirun.parse_"; repr; ios " (";
           gen_parse_typeref l.typeref ~wire_packed:l.wire_packed;
         ios ")";
       gen_cc ")";

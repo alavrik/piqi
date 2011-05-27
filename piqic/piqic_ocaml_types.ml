@@ -113,16 +113,21 @@ and gen_typeref ?ocaml_type (t:T.typeref) =
 let ios_gen_typeref ?ocaml_type t = ios (gen_typeref ?ocaml_type t)
 
 
-let gen_field_type fl ft fd =
-  match ft with
+let gen_field_type f =
+  let open F in
+  match f.typeref with
     | None -> ios "bool"; (* flags are represented as booleans *)
-    | Some ft ->
-      let deftype = ios_gen_typeref ft in
-      match fl with
+    | Some t ->
+      let deftype = ios_gen_typeref t in
+      match f.mode with
         | `required -> deftype
-        | `optional when fd <> None -> deftype (* optional + default *)
+        | `optional when f.default <> None -> deftype (* optional + default *)
         | `optional -> deftype ^^ ios " option"
-        | `repeated -> deftype ^^ ios " list"
+        | `repeated ->
+            deftype ^^
+            if f.ocaml_array
+            then ios " array"
+            else ios " list"
 
 
 let mlname_of name typeref =
@@ -149,7 +154,7 @@ let gen_field f =
       ios "mutable"; (* defining all fields as mutable at the moment *)
       ios (mlname_of_field f);
       ios ":";
-      gen_field_type f.mode f.typeref f.default;
+      gen_field_type f;
       ios ";";
     ]
   in fdef
@@ -211,7 +216,13 @@ let gen_alias a =
 
 let gen_list l =
   let open L in
-  iol [ ios (some_of l.ocaml_name); ios " = "; ios_gen_typeref l.typeref; ios " list" ]
+  iol [
+    ios (some_of l.ocaml_name); ios " = ";
+      ios_gen_typeref l.typeref;
+      if l.ocaml_array
+      then ios " array"
+      else ios " list";
+  ]
 
 
 let gen_variant v =

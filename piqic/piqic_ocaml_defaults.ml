@@ -77,7 +77,10 @@ let gen_field_cons rname f =
           ]
 
       | `optional -> ios "None"
-      | `repeated -> ios "[]"
+      | `repeated ->
+          if f.ocaml_array
+          then ios "[||]"
+          else ios "[]"
   in
   (* field construction code *)
   iod " " [ ffname; ios "="; value; ios ";" ] 
@@ -150,7 +153,10 @@ let gen_list l =
   let open L in
   iod " "
     [
-      ios "default_" ^^ ios (some_of l.ocaml_name); ios "() = []";
+      ios "default_" ^^ ios (some_of l.ocaml_name); ios "() = ";
+      if l.ocaml_array
+      then ios "[||]"
+      else ios "[]";
     ]
 
 

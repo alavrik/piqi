@@ -64,8 +64,12 @@ let mlname' n =
 
 
 let mlname_field x =
-  let open Field in
-  if x.ocaml_name = None then x.ocaml_name <- mlname' x.name
+  let open Field in (
+    if x.ocaml_array && x.mode <> `repeated
+    then C.error x ".ocaml-array flag can be used only with repeated fields";
+
+    if x.ocaml_name = None then x.ocaml_name <- mlname' x.name
+  )
 
 
 let mlname_record x =

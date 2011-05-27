@@ -75,6 +75,25 @@ and gen_gen_typeref ?ocaml_type ?wire_type ?(wire_packed=false) t =
   gen_gen_type ocaml_type wire_type wire_packed (piqtype t)
 
 
+(* calculates and generates the width of a packed wire element in bits:
+ * generated value can be 32, 64 or empty *)
+let gen_wire_elem_width typeref wire_packed =
+  let rec aux ?wire_type = function
+    | `alias x ->
+        (* NOTE: overriding upper-level wire type even if this one is undefined
+         *)
+        aux (piqtype x.A#typeref) ?wire_type:x.A#wire_type
+    | t ->
+        Piqi_wire.get_wire_type_width t wire_type
+  in
+  if not wire_packed
+  then ""
+  else
+    match aux (piqtype typeref) with
+      | Some x -> string_of_int x
+      | None -> ""
+
+
 let gen_mode f =
   let open F in
   match f.mode with
@@ -82,9 +101,16 @@ let gen_mode f =
     | `optional when f.default <> None -> "required" (* optional + default *)
     | `optional -> "optional"
     | `repeated ->
-        if f.wire_packed
-        then "packed_repeated"
-        else "repeated"
+        let mode =
+          if f.wire_packed
+          then "packed_repeated"
+          else "repeated"
+        in
+        if f.ocaml_array
+        then
+          let width = gen_wire_elem_width (some_of f.typeref) f.wire_packed in
+          mode ^ "_array" ^ width
+        else mode
 
 
 let gen_field rname f =
@@ -253,13 +279,26 @@ let gen_alias a =
   else gen_alias a
 
 
-let gen_list l =
+(* generate: (packed_)?(list|array|array32|array64) *)
+let gen_list_repr l =
   let open L in
   let packed = ios (if l.wire_packed then "packed_" else "") in
+  let repr =
+    if l.ocaml_array
+    then ios "array" ^^ ios (gen_wire_elem_width l.typeref l.wire_packed)
+    else ios "list"
+  in
+  packed ^^ repr
+
+
+let gen_list l =
+  let open L in
+  let repr = gen_list_repr l in
   iol [
     ios "gen__"; ios (some_of l.ocaml_name); ios " code x = ";
       gen_cc "reference ";
-        ios "(Piqirun.gen_"; packed; ios "list (";
+        (* Piqirun.gen_(packed_)?(list|array|array32|array64) *)
+        ios "(Piqirun.gen_"; repr; ios " (";
           gen_gen_typeref l.typeref ~wire_packed:l.wire_packed;
         ios ")) code x";
   ]

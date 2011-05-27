@@ -35,3 +35,14 @@
     ]
 ]
 
+
+% flag for representing repeated fields and lists as OCaml arrays
+.extend [
+    (.name field list)
+
+    .field [
+        .name ocaml-array
+        .optional
+    ]
+]
+

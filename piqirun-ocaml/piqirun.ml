@@ -726,6 +726,12 @@ let parse_repeated_field code parse_value l =
   List.map (parse_value) res, rem
 
 
+let parse_repeated_array_field code parse_value l =
+  (* TODO: optimize to avoid extra list allocations and manipulation *)
+  let res, rem = parse_repeated_field code parse_value l in
+  Array.of_list res, rem
+
+
 let parse_packed_field parse_value obj =
   let buf =
     match obj with
@@ -750,6 +756,18 @@ let parse_packed_repeated_field code parse_value l =
   List.concat res_l, rem
 
 
+(* TODO: optimize to avoid extra list allocations and manipulation *)
+let parse_packed_repeated_array_field code parse_value l =
+  let res, rem = parse_packed_repeated_field code parse_value l in
+  Array.of_list res, rem
+
+let parse_packed_repeated_array32_field code parse_value l =
+  parse_packed_repeated_array_field code parse_value l
+
+let parse_packed_repeated_array64_field code parse_value l =
+  parse_packed_repeated_array_field code parse_value l
+
+
 let parse_flag code l =
   let res, rem = find_fields code l in
   match res with
@@ -772,6 +790,12 @@ let parse_list parse_value obj =
   List.map parse_elem l
 
 
+let parse_array parse_value obj =
+  (* TODO: optimize to avoid extra list allocations and manipulation *)
+  let res = parse_list parse_value obj in
+  Array.of_list res
+
+
 let parse_packed_list parse_value obj =
   let parse_elem (code, x) =
     (* NOTE: expecting "1" as list element code *)
@@ -783,6 +807,18 @@ let parse_packed_list parse_value obj =
   (* TODO: optimize map + concat *)
   let res_l = List.map parse_elem fields in
   List.concat res_l
+
+
+(* TODO: optimize to avoid extra list allocations and manipulation *)
+let parse_packed_array parse_value obj =
+  let res = parse_packed_list parse_value obj in
+  Array.of_list res
+
+let parse_packed_array32 parse_value obj =
+  parse_packed_array parse_value obj
+
+let parse_packed_array64 parse_value obj =
+  parse_packed_array parse_value obj
 
 
 (*
@@ -1207,6 +1243,11 @@ let gen_repeated_field code f l =
   iol (List.map (fun x -> f code x) l)
 
 
+let gen_repeated_array_field code f l =
+  (* TODO: optimize to avoid extra list allocations and manipulation *)
+  gen_repeated_field code f (Array.to_list l)
+
+
 let gen_packed_repeated_field code f l =
   (* TODO: optimize by avoiding overhead of calling OBuf.size on fixed32 or
    * fixed64 packed fields *)
@@ -1216,6 +1257,17 @@ let gen_packed_repeated_field code f l =
     gen_unsigned_varint_value (OBuf.size contents);
     contents;
   ]
+
+
+(* TODO: optimize to avoid extra list allocations and manipulation *)
+let gen_packed_repeated_array_field code f l =
+  gen_packed_repeated_field code f (Array.to_list l)
+
+let gen_packed_repeated_array32_field code f l =
+  gen_packed_repeated_array_field code f l
+
+let gen_packed_repeated_array64_field code f l =
+  gen_packed_repeated_array_field code f l
 
 
 let gen_flag code x =
@@ -1245,10 +1297,26 @@ let gen_list f code l =
   gen_record code contents
 
 
+let gen_array f code l =
+  (* TODO: optimize to avoid extra list allocations and manipulation *)
+  gen_list f code (Array.to_list l)
+
+
 let gen_packed_list f code l =
   (* NOTE: using "1" as list element code *)
   let field = gen_packed_repeated_field 1 f l in
   gen_record code [field]
+
+
+(* TODO: optimize to avoid extra list allocations and manipulation *)
+let gen_packed_array f code l =
+  gen_packed_list f code (Array.to_list l)
+
+let gen_packed_array32 f code l =
+  gen_packed_array f code l
+
+let gen_packed_array64 f code l =
+  gen_packed_array f code l
 
 
 let gen_binobj gen_obj x =
