@@ -1,0 +1,26 @@
+#!/bin/sh
+
+set -ex
+
+piqi check packed.piqi
+piqi check packed-nocompat.piqi
+
+for i in *.piq
+do
+        piqi check $i
+        piqi convert -t wire $i
+        piqi convert $i.wire
+done
+
+
+piqi to-proto packed.piqi
+protoc -o/dev/null packed.piqi.proto
+
+piqi of-proto packed.piqi.proto
+piqi check packed.piqi.proto.piqi
+
+
+piqi convert -t pb test-all.piq
+cat test-all.piq.pb |  protoc --decode=r_all packed.piqi.proto
+
+

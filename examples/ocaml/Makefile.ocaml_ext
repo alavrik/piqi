@@ -27,6 +27,7 @@ all: native-code #byte-code debug-code
 
 
 $(PIQI_ML_FILES): $(PIQI_FILES)
+	set -e; \
 	for i in $^; do \
 		$(PIQIC) ocaml-ext $(PIQIC_FLAGS) $$i ; \
 	done
