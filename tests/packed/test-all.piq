@@ -45,6 +45,6 @@
     (.b true false true true false false true)
 
     (.i -100_000_000 -1 0 2 100_000_000 1 2 3 4 5 -1000
-         -1 0 1 100 0x7fff_ffff -0x8000_0000
+         -1 0 1 100 0x3fff_ffff -0x4000_0000
     )
 ]
