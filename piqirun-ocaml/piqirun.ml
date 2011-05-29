@@ -100,6 +100,14 @@ module IBuf =
         | Channel x -> pos_in x
 
 
+    let size buf =
+      match buf with
+        | String x -> x.len - x.pos
+        | Channel x ->
+            (* this function should is not called for channels *)
+            assert false
+
+
     let error buf s =
       let loc = pos buf in
       buf_error loc s
@@ -563,7 +571,7 @@ let rec parse_binary_field obj =
     | Top_block buf -> parse_binary_field (parse_toplevel_header buf)
     | obj -> error obj "block expected"
 
-let validate_string s = s (* TODO: validate utf8-encoded string *)
+let validate_string s = s (* XXX: validate utf8-encoded string *)
 
 let parse_string_field obj =
   validate_string (parse_binary_field obj)
@@ -723,13 +731,26 @@ let parse_optional_field code parse_value l =
 
 let parse_repeated_field code parse_value l =
   let res, rem = find_fields code l in
-  List.map (parse_value) res, rem
+  List.map parse_value res, rem
+
+
+(* similar to List.map but store results in a newly created output array *)
+let map_l2a f l =
+  let len = List.length l in
+  (* create and initialize the results array *)
+  let a = Array.make len (Obj.magic 1) in
+  let rec aux i = function
+    | [] -> ()
+    | h::t ->
+        a.(i) <- f h;
+        aux (i+1) t
+  in
+  aux 0 l; a
 
 
 let parse_repeated_array_field code parse_value l =
-  (* TODO: optimize to avoid extra list allocations and manipulation *)
-  let res, rem = parse_repeated_field code parse_value l in
-  Array.of_list res, rem
+  let res, rem = find_fields code l in
+  map_l2a parse_value res, rem
 
 
 let parse_packed_field parse_value obj =
@@ -740,32 +761,77 @@ let parse_packed_field parse_value obj =
   in
   let rec aux accu =
     try
-      (* try parsing another packed elements *)
+      (* try parsing another packed element *)
       let value = parse_value buf in
       aux (value :: accu)
     with IBuf.End_of_buffer -> (* no more packed elements *)
-      List.rev accu
+      (* NOTE: accu is returned in reversed order and will reversed to a normal
+       * order at a later stage in rev_flatmap *)
+      accu
   in
   aux []
 
 
+let parse_packed_array_field elem_size parse_value obj =
+  let buf =
+    match obj with
+      | Block buf -> buf
+      | obj -> error obj "block expected for a repeated packed field"
+  in
+  let size = IBuf.size buf in
+  let elem_count = size / elem_size in
+
+  (* make sure the array contains whole elements w/o any trailing fractions *)
+  if size mod elem_size <> 0
+  then error obj "invalid packed fixed-width field";
+
+  (* create a new array for results *)
+  let a = Array.make elem_count (Obj.magic 1) in
+  (* parse packed elements and store resuts in the array *)
+  for i = 0 to elem_count - 1
+  do
+    a.(i) <- parse_value buf
+  done;
+  (* return the resulting array *)
+  a
+
+
+(* the same as List.flatten (List.map (fun x -> List.rev (f x)) l), but more
+ * efficient and tail recursive *)
+let rev_flatmap f l =
+  let l = List.rev_map f l in
+  List.fold_left (fun accu x -> List.rev_append x accu) [] l
+
+
 let parse_packed_repeated_field code parse_value l =
   let fields, rem = find_fields code l in
-  (* TODO: optimize map + concat *)
-  let res_l = List.map (parse_packed_field parse_value) fields in
-  List.concat res_l, rem
+  let res = rev_flatmap (parse_packed_field parse_value) fields in
+  res, rem
 
 
-(* TODO: optimize to avoid extra list allocations and manipulation *)
 let parse_packed_repeated_array_field code parse_value l =
   let res, rem = parse_packed_repeated_field code parse_value l in
   Array.of_list res, rem
 
+
+let parse_packed_repeated_array_fixed_field elem_size code parse_value l =
+  let fields, rem = find_fields code l in
+  match fields with
+    | [field] ->
+        let res = parse_packed_array_field elem_size parse_value field in
+        res, rem
+    | _ ->
+        (* this is the case when there are several repeated entries with the
+         * same code each containing packed repeated values -- need to handle
+         * this case, but not optimizing for it *)
+        parse_packed_repeated_array_field code parse_value l
+
+
 let parse_packed_repeated_array32_field code parse_value l =
-  parse_packed_repeated_array_field code parse_value l
+  parse_packed_repeated_array_fixed_field 4 code parse_value l
 
 let parse_packed_repeated_array64_field code parse_value l =
-  parse_packed_repeated_array_field code parse_value l
+  parse_packed_repeated_array_fixed_field 8 code parse_value l
 
 
 let parse_flag code l =
@@ -779,46 +845,50 @@ let parse_flag code l =
           | false -> error x "invalid encoding for a flag")
 
 
+let parse_list_elem parse_value (code, x) =
+  (* NOTE: expecting "1" as list element code *)
+  if code = 1
+  then parse_value x
+  else error x "invalid list element code"
+
+
 let parse_list parse_value obj =
-  let parse_elem (code, x) =
-    (* NOTE: expecting "1" as list element code *)
-    if code = 1
-    then parse_value x
-    else error x "invalid list element code"
-  in
   let l = parse_record obj in
-  List.map parse_elem l
+  List.map (parse_list_elem parse_value) l
 
 
 let parse_array parse_value obj =
-  (* TODO: optimize to avoid extra list allocations and manipulation *)
-  let res = parse_list parse_value obj in
-  Array.of_list res
+  let l = parse_record obj in
+  map_l2a (parse_list_elem parse_value) l
 
 
 let parse_packed_list parse_value obj =
-  let parse_elem (code, x) =
-    (* NOTE: expecting "1" as list element code *)
-    if code = 1
-    then parse_packed_field parse_value x
-    else error x "invalid list element code"
-  in
   let fields = parse_record obj in
-  (* TODO: optimize map + concat *)
-  let res_l = List.map parse_elem fields in
-  List.concat res_l
+  rev_flatmap (parse_list_elem (parse_packed_field parse_value)) fields
 
 
-(* TODO: optimize to avoid extra list allocations and manipulation *)
 let parse_packed_array parse_value obj =
   let res = parse_packed_list parse_value obj in
   Array.of_list res
 
+
+let parse_packed_array_fixed elem_size parse_value obj =
+  let l = parse_record obj in
+  match l with
+    | [x] ->
+        parse_list_elem (parse_packed_array_field elem_size parse_value) x
+    | _ ->
+        (* this is the case when there are several list entries each containing
+         * packed repeated values -- need to handle this case, but not
+         * optimizing for it *)
+        parse_packed_array parse_value obj
+
+
 let parse_packed_array32 parse_value obj =
-  parse_packed_array parse_value obj
+  parse_packed_array_fixed 4 parse_value obj
 
 let parse_packed_array64 parse_value obj =
-  parse_packed_array parse_value obj
+  parse_packed_array_fixed 8 parse_value obj
 
 
 (*
@@ -831,6 +901,7 @@ module OBuf =
     type t =
         Ios of string
       | Iol of t list
+      | Iol_size of int * (t list) (* iolist with known size *)
       | Iob of char
 
 
@@ -843,18 +914,26 @@ module OBuf =
     let to_buffer0 buf l =
       let rec aux = function
         | Ios s -> Buffer.add_string buf s
-        | Iol l -> List.iter aux l
+        | Iol l | Iol_size (_, l) -> List.iter aux l
         | Iob b -> Buffer.add_char buf b
       in aux l
 
 
     (* iolist output size *)
-    let size l =
-      let rec aux = function
-        | Ios s -> String.length s
-        | Iol l -> List.fold_left (fun accu x -> accu + (aux x)) 0 l
-        | Iob _ -> 1
-      in aux l
+    let rec size = function
+      | Ios s -> String.length s
+      | Iol l -> List.fold_left (fun accu x -> accu + (size x)) 0 l
+      | Iol_size (size, _) -> size
+      | Iob _ -> 1
+
+
+    let iol_size l =
+      let n = size (Iol l) in
+      Iol_size (n, l)
+
+
+    let iol_known_size n l =
+      Iol_size (n, l)
 
 
     let to_string l =
@@ -1236,22 +1315,30 @@ let gen_required_field code f x = f code x
 
 let gen_optional_field code f = function
   | Some x -> f code x
-  | None -> Iol []
+  | None -> iol []
 
 
 let gen_repeated_field code f l =
-  iol (List.map (fun x -> f code x) l)
+  iol (List.map (f code) l)
+
+
+(* similar to Array.map but produces list instead of array *)
+let map_a2l f a =
+  let rec aux i accu =
+    if i < 0
+    then accu
+    else
+      let res = f a.(i) in
+      aux (i-1) (res::accu)
+  in
+  aux ((Array.length a) - 1) []
 
 
 let gen_repeated_array_field code f l =
-  (* TODO: optimize to avoid extra list allocations and manipulation *)
-  gen_repeated_field code f (Array.to_list l)
+  iol (map_a2l (f code) l)
 
 
-let gen_packed_repeated_field code f l =
-  (* TODO: optimize by avoiding overhead of calling OBuf.size on fixed32 or
-   * fixed64 packed fields *)
-  let contents = iol (List.map (fun x -> f x) l) in
+let gen_packed_repeated_field_common code contents =
   iol [
     gen_key 2 code;
     gen_unsigned_varint_value (OBuf.size contents);
@@ -1259,15 +1346,26 @@ let gen_packed_repeated_field code f l =
   ]
 
 
-(* TODO: optimize to avoid extra list allocations and manipulation *)
+let gen_packed_repeated_field code f l =
+  let contents = iol_size (List.map f l) in
+  gen_packed_repeated_field_common code contents
+
+
 let gen_packed_repeated_array_field code f l =
-  gen_packed_repeated_field code f (Array.to_list l)
+  let contents = iol_size (map_a2l f l) in
+  gen_packed_repeated_field_common code contents
+
 
 let gen_packed_repeated_array32_field code f l =
-  gen_packed_repeated_array_field code f l
+  let size = 4 * Array.length l in
+  let contents = iol_known_size size (map_a2l f l) in
+  gen_packed_repeated_field_common code contents
+
 
 let gen_packed_repeated_array64_field code f l =
-  gen_packed_repeated_array_field code f l
+  let size = 8 * Array.length l in
+  let contents = iol_known_size size (map_a2l f l) in
+  gen_packed_repeated_field_common code contents
 
 
 let gen_flag code x =
@@ -1277,7 +1375,7 @@ let gen_flag code x =
 
 
 let gen_record code contents =
-  let contents = iol contents in
+  let contents = iol_size contents in
   (* special code meaning that key and length sould not be generated *)
   if code = -1
   then contents
@@ -1298,8 +1396,9 @@ let gen_list f code l =
 
 
 let gen_array f code l =
-  (* TODO: optimize to avoid extra list allocations and manipulation *)
-  gen_list f code (Array.to_list l)
+  (* NOTE: using "1" as list element code *)
+  let contents = map_a2l (f 1) l in
+  gen_record code contents
 
 
 let gen_packed_list f code l =
@@ -1308,15 +1407,17 @@ let gen_packed_list f code l =
   gen_record code [field]
 
 
-(* TODO: optimize to avoid extra list allocations and manipulation *)
 let gen_packed_array f code l =
-  gen_packed_list f code (Array.to_list l)
+  let field = gen_packed_repeated_array_field 1 f l in
+  gen_record code [field]
 
 let gen_packed_array32 f code l =
-  gen_packed_array f code l
+  let field = gen_packed_repeated_array32_field 1 f l in
+  gen_record code [field]
 
 let gen_packed_array64 f code l =
-  gen_packed_array f code l
+  let field = gen_packed_repeated_array64_field 1 f l in
+  gen_record code [field]
 
 
 let gen_binobj gen_obj x =
