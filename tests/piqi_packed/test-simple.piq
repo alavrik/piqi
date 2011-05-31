@@ -16,7 +16,7 @@
 :packed/bool-list [ true false true true false false true ]
 
 % list of packed enum values
-:packed/enum-list [ .a .b .c .d .d .c .b .a .d .d .c .c .b .b .a .a ]
+:packed/e-list [ .a .b .c .d .d .c .b .a .d .d .c .c .b .b .a .a ]
 
 
 % lists of aliases (same as the above lists)

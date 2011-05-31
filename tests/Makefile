@@ -7,7 +7,7 @@ ifneq ($(shell which protoc), )
 DIRS_DEPENDING_ON_PROTO = \
        piqi_proto \
        piqi_proto1 \
-       packed \
+       piqi_packed \
        boot_proto2piqi \
        cpp
 endif
@@ -21,6 +21,7 @@ DIRS = \
        ocaml_piqi \
        ocaml_perf \
        ocaml_packed \
+       ocaml_array \
        $(DIRS_DEPENDING_ON_PROTO)
 
 

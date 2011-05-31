@@ -146,6 +146,11 @@
         .repeated
         .wire-packed
     ]
+
+    .field [
+        .name lists
+        .type r-all-lists
+    ]
 ]
 
 .alias [
@@ -171,7 +176,7 @@
 ]
 
 .list [
-    .name enum-list
+    .name e-list
     .type e
     .wire-packed
 ]
@@ -188,3 +193,136 @@
     .wire-packed
 ]
 
+
+.list [
+    .name u32-list
+    .type uint32
+    .wire-packed
+]
+.list [
+    .name u64-list
+    .type uint64
+    .wire-packed
+]
+.list [
+    .name s32-list
+    .type int32
+    .wire-packed
+]
+.list [
+    .name s64-list
+    .type int64
+    .wire-packed
+]
+.list [
+    .name i32-list
+    .type proto-int32
+    .wire-packed
+]
+.list [
+    .name i64-list
+    .type proto-int64
+    .wire-packed
+]
+
+.list [
+    .name uf32-list
+    .type uint32-fixed
+    .wire-packed
+]
+.list [
+    .name uf64-list
+    .type uint64-fixed
+    .wire-packed
+]
+.list [
+    .name if32-list
+    .type int32-fixed
+    .wire-packed
+]
+.list [
+    .name if64-list
+    .type int64-fixed
+    .wire-packed
+]
+.list [
+    .name f32-list
+    .type float32
+    .wire-packed
+]
+.list [
+    .name f64-list
+    .type float64
+    .wire-packed
+]
+
+
+.record [
+    .name r-all-lists
+    .field [
+        .name bool
+        .type bool-list
+    ]
+    .field [
+        .name u32
+        .type u32-list
+    ]
+    .field [
+        .name u64
+        .type u64-list
+    ]
+    .field [
+        .name s32
+        .type s32-list
+    ]
+    .field [
+        .name s64
+        .type s64-list
+    ]
+    .field [
+        .name i32
+        .type i32-list
+    ]
+    .field [
+        .name i64
+        .type i64-list
+    ]
+    .field [
+        .name uf32
+        .type uf32-list
+    ]
+    .field [
+        .name uf64
+        .type uf64-list
+    ]
+    .field [
+        .name if32
+        .type if32-list
+    ]
+    .field [
+        .name if64
+        .type if64-list
+    ]
+    .field [
+        .name f32
+        .type f32-list
+    ]
+    .field [
+        .name f64
+        .type f64-list
+    ]
+
+
+    .field [
+        .name e
+        .type e-list
+    ]
+    .field [
+        .name b
+        .type b-list
+    ]
+    .field [
+        .name i
+        .type i-list
+    ]
+]

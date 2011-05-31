@@ -3,15 +3,13 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 RESULT = test
 
 
-SOURCES = $(PIQI_ML_FILES) test_packed.ml test_packed_array.ml
+SOURCES = $(PIQI_ML_FILES) test.ml
 
 
-PIQI_FILES = packed-nocompat.piqi packed.piqi packed-array.piqi
+PIQI_FILES = packed.piqi
 
 PIQI_ML_FILES = \
-	packed_nocompat_piqi.ml \
 	packed_piqi.ml \
-	packed_array_piqi.ml \
 
 
 PRE_TARGETS = $(PIQI_ML_FILES)
