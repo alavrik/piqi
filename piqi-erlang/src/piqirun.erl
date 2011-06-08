@@ -537,8 +537,9 @@ parse_field_part(Bytes) ->
     ParseValue :: decode_fun(),
     piqirun_buffer() ) -> [ any() ].
 
--spec parse_packed_list/2 :: (
-    ParseValue :: packed_decode_fun(),
+-spec parse_packed_list/3 :: (
+    ParsePackedValue :: packed_decode_fun(),
+    ParseValue :: decode_fun(),
     piqirun_buffer() ) -> [ any() ].
 
 
@@ -573,15 +574,15 @@ parse_list_elem(ParseValue, {1, X}) ->
     ParseValue(X).
 
 
-parse_packed_list(ParseValue, X) ->
+parse_packed_list(ParsePackedValue, ParseValue, X) ->
     Fields = parse_record(X),
-    L = [ parse_packed_list_elem(ParseValue, F) || F <- Fields ],
+    L = [ parse_packed_list_elem(ParsePackedValue, ParseValue, F) || F <- Fields ],
     lists:append(L).
 
 
 % NOTE: expecting "1" as list element's code
-parse_packed_list_elem(ParseValue, {1, X}) ->
-    parse_packed_field(ParseValue, X).
+parse_packed_list_elem(ParsePackedValue, ParseValue, {1, X}) ->
+    parse_packed_field(ParsePackedValue, ParseValue, X).
 
 
 -spec find_fields/2 :: (
@@ -633,9 +634,10 @@ throw_error(X) ->
     ParseValue :: decode_fun(),
     L :: [parsed_field()] ) -> { Res :: [any()], Rest :: [parsed_field()] }.
 
--spec parse_packed_repeated_field/3 :: (
+-spec parse_packed_repeated_field/4 :: (
     Code :: pos_integer(),
-    ParseValue :: packed_decode_fun(),
+    ParsePackedValue :: packed_decode_fun(),
+    ParseValue :: decode_fun(),
     L :: [parsed_field()] ) -> { Res :: [any()], Rest :: [parsed_field()] }.
 
 -spec parse_flag/2 :: (
@@ -687,14 +689,18 @@ parse_repeated_field(Code, ParseValue, L) ->
     {Res, Rest}.
 
 
-parse_packed_repeated_field(Code, ParseValue, L) ->
+parse_packed_repeated_field(Code, ParsePackedValue, ParseValue, L) ->
     {Fields, Rest} = find_fields(Code, L),
-    Res = [ parse_packed_field(ParseValue, X) || X <- Fields ],
+    Res = [ parse_packed_field(ParsePackedValue, ParseValue, X) || X <- Fields ],
     {lists:append(Res), Rest}.
 
 
-parse_packed_field(ParseValue, {'block', Bytes}) ->
-    parse_packed_values(ParseValue, Bytes, _Accu = []).
+parse_packed_field(ParsePackedValue, _ParseValue, {'block', Bytes}) ->
+    parse_packed_values(ParsePackedValue, Bytes, _Accu = []);
+% sometimes packed repeated feilds come in as unpacked; we need to support this
+% mode -- Google's Protobuf implementation behaves this way
+parse_packed_field(_ParsePackedValue, ParseValue, X) ->
+    [ParseValue(X)].
 
 
 parse_packed_values(_ParseValue, <<>>, Accu) ->

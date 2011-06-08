@@ -104,6 +104,17 @@ let gen_field_parser i f =
               ios "fun ";
                 gen_parse_typeref typeref ~wire_packed:f.wire_packed;
                 ios "/1, ";
+
+              (* when parsing packed repeated fields, we should also accept
+               * fields in unpacked representation; therefore, specifying an
+               * unpacked field parser as another parameter *)
+              if f.wire_packed
+              then iol [
+              ios "fun ";
+                gen_parse_typeref typeref;
+                ios "/1, ";
+              ] else iol [];
+
               rest i;
               gen_default f.default;
             ios ")";
@@ -272,7 +283,19 @@ let gen_list l =
       ios "piqirun:parse_"; packed; ios "list(";
         ios "fun ";
           gen_parse_typeref l.typeref ~wire_packed:l.wire_packed;
-          ios "/1, X).";
+          ios "/1, ";
+
+        (* when parsing packed repeated fields, we should also accept
+         * fields in unpacked representation; therefore, specifying an
+         * unpacked field parser as another parameter *)
+        if l.wire_packed
+        then iol [
+        ios "fun ";
+          gen_parse_typeref l.typeref;
+          ios "/1, ";
+        ] else iol [];
+
+        ios " X).";
     unindent; eol;
   ]
 
