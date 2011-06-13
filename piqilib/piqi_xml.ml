@@ -175,8 +175,13 @@ let read_xml_obj (xml_parser :xml_parser) :xml option =
   let is_eoi =
     try Xmlm.eoi xml_parser.input
     with
-      (* raised on a completely empty input *)
-      Xmlm.Error (_pos, `Unexpected_eoi) -> true
+      | Xmlm.Error (_pos, `Unexpected_eoi) ->
+          (* raised on a completely empty input *)
+          true
+      | Xmlm.Error ((line, col), err) ->
+          let loc = xml_parser.fname, line, col in
+          let errstr = Xmlm.error_message err in
+          error_at loc errstr
   in
   if is_eoi
   then None
