@@ -95,7 +95,12 @@ let gen_field_parser f =
             (* "parse_(required|optional|repeated)_field" function invocation *)
             ios "Piqirun.parse_" ^^ ios mode ^^ ios "_field";
               gen_code f.code;
-              gen_parse_typeref typeref ~wire_packed:f.wire_packed; ios " x";
+              gen_parse_typeref typeref ~wire_packed:f.wire_packed;
+              (* when parsing packed repeated fields, we should also accept
+               * fields in unpacked representation; therefore, specifying an
+               * unpacked field parser as another parameter *)
+              if f.wire_packed then gen_parse_typeref typeref else iol [];
+              ios " x";
               gen_default f.default;
           ]
     | None ->
@@ -241,14 +246,22 @@ let gen_list l =
   let repr = gen_list_repr l in
   iol [
     ios "parse_"; ios (some_of l.ocaml_name); ios " x = ";
-    ios "(";
       gen_cc "let count = next_count() in refer count (";
         (* Piqirun.parse_(packed_)?(list|array|array32|array64) *)
-        ios "Piqirun.parse_"; repr; ios " (";
-          gen_parse_typeref l.typeref ~wire_packed:l.wire_packed;
-        ios ")";
+        ios "Piqirun.parse_"; repr;
+          ios " ("; gen_parse_typeref l.typeref ~wire_packed:l.wire_packed; ios ")";
+
+          (* when parsing packed repeated fields, we should also accept
+           * fields in unpacked representation; therefore, specifying an
+           * unpacked field parser as another parameter *)
+          if l.wire_packed
+          then iol [
+          ios " ("; gen_parse_typeref l.typeref; ios ")";
+          ]
+          else iol [];
+
+          ios " x";
       gen_cc ")";
-    ios ") x";
   ]
 
 

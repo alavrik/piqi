@@ -13,32 +13,56 @@ DIRS_DEPENDING_ON_PROTO = \
 endif
 
 
-DIRS = \
-       examples \
-       piqi.org \
-       piqi_server \
+DIRS_ERLANG = \
+	erlang_addressbook \
+	erlang_piqi \
+	erlang_perf \
+	erlang_packed \
+
+
+DIRS_OCAML = \
        ocaml_addressbook \
        ocaml_piqi \
        ocaml_perf \
        ocaml_packed \
        ocaml_array \
+
+
+DIRS = \
+       examples \
+       piqi.org \
+       piqi_server \
+       $(DIRS_OCAML) \
        $(DIRS_DEPENDING_ON_PROTO)
 
 
-.PHONY: erlang erlang-clean
+.PHONY: ocaml ocaml-clean erlang erlang-clean
+
+
+ocaml:
+	set -e; \
+	for i in $(DIRS_OCAML); do \
+		$(MAKE) -C $$i; \
+	done
+
+
+ocaml-clean:
+	for i in $(DIRS_OCAML); do \
+		$(MAKE) -C $$i clean; \
+	done
+
 
 erlang:
-	$(MAKE) -C erlang_addressbook
-	$(MAKE) -C erlang_piqi
-	$(MAKE) -C erlang_perf
-	$(MAKE) -C erlang_packed
+	set -e; \
+	for i in $(DIRS_ERLANG); do \
+		$(MAKE) -C $$i; \
+	done
 
 
 erlang-clean:
-	$(MAKE) -C erlang_addressbook clean
-	$(MAKE) -C erlang_piqi clean
-	$(MAKE) -C erlang_perf clean
-	$(MAKE) -C erlang_packed clean
+	for i in $(DIRS_ERLANG); do \
+		$(MAKE) -C $$i clean; \
+	done
 
 
 clean:: erlang-clean

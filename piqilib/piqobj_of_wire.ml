@@ -239,7 +239,8 @@ and parse_repeated_field code field_type l =
 
 
 and parse_packed_repeated_field code field_type l =
-  Piqirun.parse_packed_repeated_field code (parse_packed_obj field_type) l
+  Piqirun.parse_packed_repeated_field code
+    (parse_packed_obj field_type) (parse_obj field_type) l
 
 
 and parse_variant t x =
@@ -308,7 +309,8 @@ and parse_list t x =
   let contents =
     if not t.T.Piqlist.wire_packed
     then Piqirun.parse_list (parse_obj obj_type) x
-    else Piqirun.parse_packed_list (parse_packed_obj obj_type) x
+    else Piqirun.parse_packed_list
+      (parse_packed_obj obj_type) (parse_obj obj_type) x
   in
   L#{ piqtype = t; obj = contents }
 

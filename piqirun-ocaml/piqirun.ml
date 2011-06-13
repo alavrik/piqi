@@ -753,16 +753,11 @@ let parse_repeated_array_field code parse_value l =
   map_l2a parse_value res, rem
 
 
-let parse_packed_field parse_value obj =
-  let buf =
-    match obj with
-      | Block buf -> buf
-      | obj -> error obj "block expected for a repeated packed field"
-  in
+let parse_packed_fields parse_packed_value buf =
   let rec aux accu =
     try
       (* try parsing another packed element *)
-      let value = parse_value buf in
+      let value = parse_packed_value buf in
       aux (value :: accu)
     with IBuf.End_of_buffer -> (* no more packed elements *)
       (* NOTE: accu is returned in reversed order and will reversed to a normal
@@ -772,25 +767,28 @@ let parse_packed_field parse_value obj =
   aux []
 
 
-let parse_packed_array_field elem_size parse_value obj =
-  let buf =
-    match obj with
-      | Block buf -> buf
-      | obj -> error obj "block expected for a repeated packed field"
-  in
+let parse_packed_field parse_packed_value parse_value obj =
+  match obj with
+    | Block buf ->
+        parse_packed_fields parse_packed_value buf
+    | _ ->
+        [parse_value obj]
+
+
+let parse_packed_array_field elem_size parse_packed_value buf =
   let size = IBuf.size buf in
   let elem_count = size / elem_size in
 
   (* make sure the array contains whole elements w/o any trailing fractions *)
   if size mod elem_size <> 0
-  then error obj "invalid packed fixed-width field";
+  then IBuf.error buf "invalid packed fixed-width field";
 
   (* create a new array for results *)
   let a = Array.make elem_count (Obj.magic 1) in
   (* parse packed elements and store resuts in the array *)
   for i = 0 to elem_count - 1
   do
-    a.(i) <- parse_value buf
+    a.(i) <- parse_packed_value buf
   done;
   (* return the resulting array *)
   a
@@ -803,35 +801,35 @@ let rev_flatmap f l =
   List.fold_left (fun accu x -> List.rev_append x accu) [] l
 
 
-let parse_packed_repeated_field code parse_value l =
+let parse_packed_repeated_field code parse_packed_value parse_value l =
   let fields, rem = find_fields code l in
-  let res = rev_flatmap (parse_packed_field parse_value) fields in
+  let res = rev_flatmap (parse_packed_field parse_packed_value parse_value) fields in
   res, rem
 
 
-let parse_packed_repeated_array_field code parse_value l =
-  let res, rem = parse_packed_repeated_field code parse_value l in
+let parse_packed_repeated_array_field code parse_packed_value parse_value l =
+  let res, rem = parse_packed_repeated_field code parse_packed_value parse_value l in
   Array.of_list res, rem
 
 
-let parse_packed_repeated_array_fixed_field elem_size code parse_value l =
+let parse_packed_repeated_array_fixed_field elem_size code parse_packed_value parse_value l =
   let fields, rem = find_fields code l in
   match fields with
-    | [field] ->
-        let res = parse_packed_array_field elem_size parse_value field in
+    | [Block buf] ->
+        let res = parse_packed_array_field elem_size parse_packed_value buf in
         res, rem
     | _ ->
         (* this is the case when there are several repeated entries with the
          * same code each containing packed repeated values -- need to handle
          * this case, but not optimizing for it *)
-        parse_packed_repeated_array_field code parse_value l
+        parse_packed_repeated_array_field code parse_packed_value parse_value l
 
 
-let parse_packed_repeated_array32_field code parse_value l =
-  parse_packed_repeated_array_fixed_field 4 code parse_value l
+let parse_packed_repeated_array32_field code parse_packed_value parse_value l =
+  parse_packed_repeated_array_fixed_field 4 code parse_packed_value parse_value l
 
-let parse_packed_repeated_array64_field code parse_value l =
-  parse_packed_repeated_array_fixed_field 8 code parse_value l
+let parse_packed_repeated_array64_field code parse_packed_value parse_value l =
+  parse_packed_repeated_array_fixed_field 8 code parse_packed_value parse_value l
 
 
 let parse_flag code l =
@@ -862,33 +860,38 @@ let parse_array parse_value obj =
   map_l2a (parse_list_elem parse_value) l
 
 
-let parse_packed_list parse_value obj =
+let parse_packed_list_1 parse_packed_value parse_value fields =
+  rev_flatmap (parse_list_elem (parse_packed_field parse_packed_value parse_value)) fields
+
+
+let parse_packed_list parse_packed_value parse_value obj =
   let fields = parse_record obj in
-  rev_flatmap (parse_list_elem (parse_packed_field parse_value)) fields
+  parse_packed_list_1 parse_packed_value parse_value fields
 
 
-let parse_packed_array parse_value obj =
-  let res = parse_packed_list parse_value obj in
+let parse_packed_array parse_packed_value parse_value obj =
+  let res = parse_packed_list parse_packed_value parse_value obj in
   Array.of_list res
 
 
-let parse_packed_array_fixed elem_size parse_value obj =
+let parse_packed_array_fixed elem_size parse_packed_value parse_value obj =
   let l = parse_record obj in
   match l with
-    | [x] ->
-        parse_list_elem (parse_packed_array_field elem_size parse_value) x
+    | [1, Block buf] ->
+        parse_packed_array_field elem_size parse_packed_value buf
     | _ ->
         (* this is the case when there are several list entries each containing
          * packed repeated values -- need to handle this case, but not
          * optimizing for it *)
-        parse_packed_array parse_value obj
+        let res = parse_packed_list_1 parse_packed_value parse_value l in
+        Array.of_list res
 
 
-let parse_packed_array32 parse_value obj =
-  parse_packed_array_fixed 4 parse_value obj
+let parse_packed_array32 parse_packed_value parse_value obj =
+  parse_packed_array_fixed 4 parse_packed_value parse_value obj
 
-let parse_packed_array64 parse_value obj =
-  parse_packed_array_fixed 8 parse_value obj
+let parse_packed_array64 parse_packed_value parse_value obj =
+  parse_packed_array_fixed 8 parse_packed_value parse_value obj
 
 
 (*
