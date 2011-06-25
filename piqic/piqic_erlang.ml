@@ -265,6 +265,7 @@ let piqic (piqi: T.piqi) =
   let modname = some_of piqi.P#erlang_module in
   Piqic_erlang_types.top_modname := some_of piqi.P#erlang_module;
   Piqic_erlang_types.type_prefix := some_of piqi.P#erlang_type_prefix;
+  Piqic_erlang_types.string_type := piqi.P#erlang_string_type;
 
   (* set Erlang name for the type "any" *)
   if !Piqic_common.is_self_spec

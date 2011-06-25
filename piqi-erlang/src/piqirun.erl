@@ -405,7 +405,11 @@ binary_to_block(Code, X) when is_binary(X) ->
 
 
 string_to_block(Code, X) when is_list(X); is_binary(X) ->
-    Utf8_bytes = unicode:characters_to_binary(X),
+    Utf8_bytes =
+        case unicode:characters_to_binary(X) of
+            Res when is_binary(Res) -> Res;
+            Error -> throw_error({'error_encoding_utf8_string', Error})
+        end,
     binary_to_block(Code, Utf8_bytes).
 
 
@@ -739,7 +743,8 @@ error_option(_X, Code) -> throw_error({'unknown_option', Code}).
 -spec float_of_fixed64/1 :: (piqirun_buffer()) -> float().
 -spec float_of_fixed32/1 :: (piqirun_buffer()) -> float().
 -spec binary_of_block/1 :: (piqirun_buffer()) -> binary().
--spec string_of_block/1 :: (piqirun_buffer()) -> binary().
+-spec binary_string_of_block/1 :: (piqirun_buffer()) -> binary().
+-spec list_string_of_block/1 :: (piqirun_buffer()) -> string().
 
 
 parse_toplevel_header(Bytes) ->
@@ -806,7 +811,25 @@ binary_of_block({'block', X}) -> X; ?top_block_parser(
 binary_of_block).
 
 
+% NOTE: this function is left for backward compatibility and will be removed in
+% future versions
+-spec string_of_block/1 :: (piqirun_buffer()) -> binary().
 string_of_block(X) -> binary_of_block(X).
+
+
+% utf8 string represented as Erlang binary
+binary_string_of_block(X) ->
+    % NOTE, XXX: not validating utf8 on input
+    binary_of_block(X).
+
+
+% list containing utf8 string
+list_string_of_block(X) ->
+    Bin = binary_of_block(X),
+    case unicode:characters_to_list(Bin) of
+        Res when is_list(Res) -> Res;
+        Error -> throw_error({'error_decoding_utf8_string', Error})
+    end.
 
 
 %

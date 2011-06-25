@@ -30,6 +30,16 @@ open Piqic_erlang_types
 open Piqic_erlang_out
 
 
+let gen_erlang_type_name t ot =
+  match gen_piqtype t ot with
+    | "string" ->
+        (match !string_type with
+          | `binary -> "binary_string"
+          | `list -> "list_string"
+        )
+    | x -> x
+
+
 let rec gen_parse_type erlang_type wire_type wire_packed x =
   let packed = ios (if wire_packed then "packed_" else "") in
   match x with

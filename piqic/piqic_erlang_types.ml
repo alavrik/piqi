@@ -30,6 +30,7 @@ open Iolist
 let top_modname = ref ""
 let type_prefix = ref ""
 let any_erlname = ref ""
+let string_type :T.erlang_string_type ref = ref `binary
 
 
 let scoped_name name = !type_prefix ^ name
@@ -102,7 +103,12 @@ let ios_gen_in_typeref t =
   let n = gen_typeref (unalias t) in
   (* recognized the fact that strings are actually parsed as binaries *)
   let n =
-    if n = "string" then "binary" else n
+    if n <> "string"
+    then n
+    else
+      match !string_type with
+        | `binary -> "binary"
+        | `list -> "string"
   in
   ios n ^^ ios "()"
 

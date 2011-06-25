@@ -41,3 +41,23 @@
     ]
 ]
 
+
+% specifies whether strings are parsed as binaries or lists
+.extend [
+    .name piqi
+
+    .field [
+        .type erlang-string-type
+        .optional
+        .default.binary
+    ]
+]
+
+
+.enum [
+    .name erlang-string-type
+
+    .option [ binary ]
+    .option [ list ]
+]
+
