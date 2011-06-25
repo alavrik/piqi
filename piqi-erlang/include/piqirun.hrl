@@ -47,7 +47,7 @@
 
 % binary() is the only allowed value type for top-level values and is not used
 % in any other contexts
--type piqirun_buffer() :: piqirun_buffer() | binary().
+-type piqirun_buffer() :: piqirun_return_buffer() | binary().
 
 
 % Wire field code which is used for identifying individual fields in binary
