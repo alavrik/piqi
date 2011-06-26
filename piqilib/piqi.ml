@@ -500,7 +500,7 @@ let read_piqi_string fname content :T.ast =
 
 
 let open_piqi fname =
-  try Pervasives.open_in fname
+  try Pervasives.open_in_bin fname
   with Sys_error s ->
     piqi_error ("error opening piqi file: " ^ s)
 

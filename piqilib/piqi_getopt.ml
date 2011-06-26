@@ -234,7 +234,7 @@ let parse_name_arg s =
 
 
 let read_file filename =
-  let ch = open_in filename in
+  let ch = open_in_bin filename in
   let len = in_channel_length ch in
   let buf = Buffer.create len in
   Buffer.add_channel buf ch len;

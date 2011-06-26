@@ -59,7 +59,9 @@ FILES
 
   README                this file
   INSTALL               installation instructions
+  INSTALL.windows       instructions for building Piqi on Windows
   setenv.sh             installation configuration file
+  setenv-mingw.sh       build configuration file for Windows/MinGW
   LICENSE               license
   NOTICE                copyright notice
   AUTHORS               Piqi authors

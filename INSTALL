@@ -1,6 +1,10 @@
 SUPPORTED PLATFORMS
 ===================
 
+Piqi has been tested on Linux (Debian Lenny and Squeeze, i386 and amd64
+architectures) and on Mac OS X 10.6.4. It is also known to work on Windows and
+Solaris.
+
 Piqi is written in OCaml language so in theory it should work on platforms and
 hardware architectures supported by OCaml. See the page below for the list of
 supported platforms:
@@ -8,11 +12,8 @@ supported platforms:
         http://caml.inria.fr/ocaml/portability.en.html
 
 
-So far, Piqi has been tested on Debian Linux (Lenny and Squeeze, i386 and amd64
-architectures) and on Mac OS X 10.6.4.
-
-Current build procedure is likely not going to work on Windows out of the box,
-but it shouldn't be hard to adapt it.
+The rest of this file describes the process of building Piqi on Unix platforms.
+Instructions for building Piqi on Windows are provided in INSTALL.windows file.
 
 
 PREREQUISITES

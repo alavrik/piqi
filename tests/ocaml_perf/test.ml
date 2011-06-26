@@ -1,6 +1,6 @@
 
 let read_file filename =
-  let ch = open_in filename in
+  let ch = open_in_bin filename in
   let size = in_channel_length ch in
   let res = String.create size in
   really_input ch res 0 size;

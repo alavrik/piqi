@@ -27,7 +27,7 @@ open Iolist
 
 
 let read_file fname =
-  let ch = Pervasives.open_in fname in
+  let ch = Pervasives.open_in_bin fname in
   let len = Pervasives.in_channel_length ch in
   let res = String.create len in
   Pervasives.really_input ch res 0 len;

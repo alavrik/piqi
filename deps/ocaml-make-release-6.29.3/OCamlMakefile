@@ -1042,6 +1042,8 @@ endif
 				-c $(THREAD_FLAG) $(ANNOT_FLAG) \
 				$(OCAMLFLAGS) $(INCFLAGS) $<; \
 			else \
+			    pp=`eval echo $$pp`; \
+			    pp=`echo $$pp | sed -e 's!:\\/!:\\\\!'`; \
 			    $(ECHO) $(REAL_OCAMLFIND) $(INTF_OCAMLC) $(OCAML_FIND_PACKAGES) \
 				-c -pp \"$$pp $(PPFLAGS)\" $(THREAD_FLAG) $(ANNOT_FLAG) \
 				$(OCAMLFLAGS) $(INCFLAGS) $<; \
@@ -1058,6 +1060,8 @@ endif
 			  $(REAL_OCAMLFIND) $(REAL_OCAMLC) $(OCAML_FIND_PACKAGES) \
 				-c $(ALL_OCAMLCFLAGS) $<; \
 			else \
+			  pp=`eval echo $$pp`; \
+			  pp=`echo $$pp | sed -e 's!:\\/!:\\\\!'`; \
 			  $(ECHO) $(REAL_OCAMLFIND) $(REAL_OCAMLC) $(OCAML_FIND_PACKAGES) \
 				-c -pp \"$$pp $(PPFLAGS)\" $(ALL_OCAMLCFLAGS) $<; \
 			  $(REAL_OCAMLFIND) $(REAL_OCAMLC) $(OCAML_FIND_PACKAGES) \
@@ -1130,6 +1134,8 @@ $(MLDEPDIR)/%.d:	%.ml
 			  $(REAL_OCAMLFIND) $(OCAMLDEP) $(OCAML_DEP_PACKAGES) \
 				$(DINCFLAGS) $< > $@; \
 			else \
+			  pp=`eval echo $$pp`; \
+			  pp=`echo $$pp | sed -e 's!:\\/!:\\\\!'`; \
 			  $(ECHO) $(REAL_OCAMLFIND) $(OCAMLDEP) $(OCAML_DEP_PACKAGES) \
 				-pp \"$$pp $(PPFLAGS)\" $(DINCFLAGS) $< \> $@; \
 			  $(REAL_OCAMLFIND) $(OCAMLDEP) $(OCAML_DEP_PACKAGES) \

@@ -17,7 +17,7 @@ test "$2"
 BASE=`$OCAMLFIND printconf destdir`
 
 # create a pointing from the piqi library to the initial library
-rm -f "$BASE/$2"
+rm -rf "$BASE/$2"
 ln -s "$BASE/$1" "$BASE/$2"
 
 

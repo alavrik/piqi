@@ -65,8 +65,9 @@ let _ =
   if !Sys.interactive
   then ()
   else
-    match Sys.argv.(0) with
-      | "./piqi_boot" -> boot ()
-      | "./piqi_boot2" -> boot2 ()
+    let name = Filename.basename (Piqi_file.chop_extension Sys.argv.(0)) in
+    match name with
+      | "piqi_boot" -> boot ()
+      | "piqi_boot2" -> boot2 ()
       | _ -> assert false
 

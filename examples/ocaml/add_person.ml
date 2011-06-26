@@ -79,7 +79,7 @@ let _ =
   let address_book =
     try
       (* Read the existing address book. *)
-      let ch = open_in Sys.argv.(1) in
+      let ch = open_in_bin Sys.argv.(1) in
       let buf = Piqirun.init_from_channel ch in
       let res = A.parse_address_book buf in
       close_in ch;
@@ -97,7 +97,7 @@ let _ =
   let address_book = prompt_for_address address_book in
 
   (* Write the new address book back to disk. *)
-  let och = open_out Sys.argv.(1) in
+  let och = open_out_bin Sys.argv.(1) in
   (* NOTE: specifying -1 as the field code has a special meaning: it tells
    * generator not to generate the header (code/tag/len) -- just generate the
    * contents *)
