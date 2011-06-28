@@ -403,6 +403,8 @@ let token1 buf =
     | Ulexing.Error -> error buf "lexing internal error"
     | Ulexing.InvalidCodepoint i -> 
         error buf ("invalid unicode code point " ^ string_of_int i)
+    | Utf8.MalFormed ->
+        error buf "malformed utf-8"
 
 
 let rollback buf tok =
