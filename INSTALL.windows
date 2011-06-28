@@ -2,7 +2,16 @@
 This file contains instructions for building Piqi on Windows platform.
 
 Windows build described in this documented relies on MinGW/Msys. Building Piqi
-using other methods (Cygwin/Gcc or Microsoft toolchain) has not been tested.
+using Microsoft toolchain has not been tested.
+
+
+(Piqi also successfully builds and runs on Windows under Cygwin. For building
+Piqi under Cygwin, follow general instructions for Unix platforms provided in
+INSTALL file.
+
+Note that under Cygwin, there could be problems with broken/outdated OCaml and
+Flexdll versions. These problems can be usually solved by downloading the latest
+versions of Flexdll and OCaml and building them from sources.)
 
 
 INSTALLATION INSTRUCTIONS
@@ -92,6 +101,8 @@ INSTALLATION INSTRUCTIONS
 2.3. Unpack Piqi sources
 
         tar -xzf piqi-*
+
+        Ignore all warnings and errors printed by tar.
 
 
 2.4. Configure Windows-specific build parameters
