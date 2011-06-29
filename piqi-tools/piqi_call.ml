@@ -498,11 +498,11 @@ let gen_def name t =
 
 let gen_input def =
   match def with
-    | `record x -> gen_record "input" x
     | `alias x ->
         let t = piqtype x.A#typeref in
         let name = piqi_typename t in
         gen_def name (unalias t)
+    | _ -> gen_def "input" def
 
 
 let gen_func_help f =

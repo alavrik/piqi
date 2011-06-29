@@ -29,21 +29,6 @@ let make_param_name func param_name =
   Piqloc.addrefret func_name type_name
 
 
-let make_param_record name x =
-  let res =
-    R#{
-      (* TODO: provide a better solution for creating new records with some
-       * optional/repeated extension fields set to None/[] by default *)
-      T.default_record () with
-
-      name = name;
-      field = x.T.Anonymous_record.field;
-    }
-  in
-  Piqloc.addref x res;
-  `record (Piqi.copy_record res) (* preserve the original fields *)
-
-
 let make_param_alias name x =
   let res =
     A#{
@@ -54,14 +39,56 @@ let make_param_alias name x =
       is_func_param = true; (* mark the new alias as function parameter *)
     }
   in
-  Piqloc.addref x res;
-  `alias res
+  Piqloc.addrefret x res
+
+
+let make_param_record name x =
+  let res =
+    R#{
+      T.default_record () with
+
+      name = name;
+      field = x.T.Anonymous_record.field;
+    }
+  in
+  let res = Piqi.copy_record res in (* preserve the original fields *)
+  Piqloc.addrefret x res
+
+
+let make_param_variant name x =
+  let res =
+    V#{
+      T.default_variant () with
+
+      name = name;
+      option = x.T.Anonymous_variant.option;
+    }
+  in
+  let res = Piqi.copy_variant res in (* preserve the original options *)
+  Piqloc.addrefret x res
+
+
+let make_param_list name x =
+  let res =
+    L#{
+      T.default_piqlist () with
+
+      name = name;
+      typeref = x.T.Anonymous_list.typeref;
+      (* XXX: what about wire-packed property? -- it is not defined for
+       * anonymous list:
+       * wire_packed = x.T.Anonymous_list.wire_packed;
+       *)
+    }
+  in
+  Piqloc.addrefret x res
 
 
 (* convert function parameter to a type:
  *  - if the function parameter is a name, convert it to correspondent alias
  *  - if the function parameter is an anonymous record, convert it to
  *    correspondent record
+ *  - do the same for anonymous variants, enums and lists
  *)
 let resolve_param piqi idtable func param_name param =
   let type_name = make_param_name func param_name in
@@ -69,10 +96,15 @@ let resolve_param piqi idtable func param_name param =
     match param with
       | `name x ->
           (* make an alias from name reference *)
-          make_param_alias type_name x
+          `alias (make_param_alias type_name x)
       | `record x ->
-          (* make a normal record with name = type_name from anonymous record *)
-          make_param_record type_name x
+          `record (make_param_record type_name x)
+      | `variant x ->
+          `variant (make_param_variant type_name x)
+      | `enum x ->
+          `enum (make_param_variant type_name x)
+      | `list x ->
+          `list (make_param_list type_name x)
   in
   Piqloc.addref param def;
 

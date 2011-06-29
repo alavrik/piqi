@@ -113,7 +113,7 @@ let simplify_piqi_ast (ast:T.ast) =
   and rm_param_extra path =
     tr path (
       function
-        | `named {T.Named.name = "anonymous-record"; T.Named.value = v} -> [v]
+        | `named {T.Named.name = "record"; T.Named.value = v} -> [v]
         | `named {T.Named.name = "name"; T.Named.value = v} -> [v]
         | x -> [x]
     )
@@ -122,8 +122,11 @@ let simplify_piqi_ast (ast:T.ast) =
   let simplify_function_param param ast =
     ast
     |> rm_param_extra ["function"; param]
-    |> tr_type_name_common ["function"; param; "field"]
     |> tr_field_mode ["function"; param; "field"]
+    |> tr_type_name_common ["function"; param; "field"]
+    |> tr_type_name_common ["function"; param; "variant"; "option"]
+    |> tr_type_name_common ["function"; param; "enum"; "option"]
+    |> tr_type_name_common ["function"; param; "list"]
   in
   ast
   |> rm_piqdef

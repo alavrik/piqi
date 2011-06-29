@@ -61,28 +61,21 @@
 
     .field [
         .name resolved-input
-        .type resolved-function-param
+        .type piqdef
         .optional
     ]
 
     .field [
         .name resolved-output
-        .type resolved-function-param
+        .type piqdef
         .optional
     ]
 
     .field [
         .name resolved-error
-        .type resolved-function-param
+        .type piqdef
         .optional
     ]
-]
-
-
-.variant [
-    .name resolved-function-param
-    .option [ .type record ]
-    .option [ .type alias ]
 ]
 
 

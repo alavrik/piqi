@@ -3,10 +3,9 @@
 
 
 .function [
-
     .name list-processes
 
-    .output pid-list
+    .output.list [ .type pid ]
 ]
 
 
@@ -27,12 +26,11 @@
 
 
 .function [
-
     .name list-process-info
 
-    .input process-property-list
+    .input.list [ .type process-property ]
 
-    .output process-info-list
+    .output.list [ .type process-info ]
 ]
 
 
@@ -262,29 +260,11 @@
 ]
 
 
-.list [
-    .name process-info-list
-    .type process-info
-]
-
-
-.list [
-    .name process-property-list
-    .type process-property
-]
-
-
 .alias [
     .name pid
     .erlang-name "epid"
 
     .type string
-]
-
-
-.list [
-    .name pid-list
-    .type pid
 ]
 
 

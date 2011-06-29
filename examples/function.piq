@@ -7,3 +7,13 @@
 
 :function/baz-input []
 
+
+:function/v-output.i 0
+:function/v-output.f 100.0
+
+
+:function/e-error.a
+:function/e-error.b
+
+
+:function/l-input [1 2 3]

@@ -110,10 +110,14 @@ let erlname_func_param func_name param_name param =
   in
   match param with
    | None -> ()
-   | Some (`record x) ->
-       x.R#erlang_name <- make_name ()
    | Some (`alias x) ->
        x.A#erlang_name <- make_name ()
+   | Some (`record x) ->
+       x.R#erlang_name <- make_name ()
+   | Some (`variant x) | Some (`enum x) ->
+       x.V#erlang_name <- make_name ()
+   | Some (`list x) ->
+       x.L#erlang_name <- make_name ()
 
 
 let erlname_func x =

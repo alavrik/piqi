@@ -35,10 +35,14 @@ let mlname_func_param func_name param_name param =
   in
   match param with
    | None -> ()
-   | Some (`record x) ->
-       x.R#ocaml_name <- make_name ()
    | Some (`alias x) ->
        x.A#ocaml_name <- make_name ()
+   | Some (`record x) ->
+       x.R#ocaml_name <- make_name ()
+   | Some (`variant x) | Some (`enum x) ->
+       x.V#ocaml_name <- make_name ()
+   | Some (`list x) ->
+       x.L#ocaml_name <- make_name ()
 
 
 let mlname_func x =
