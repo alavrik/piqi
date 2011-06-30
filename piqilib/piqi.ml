@@ -206,10 +206,12 @@ let check_field f =
 
 
 let check_record r =
-  let name = r.R#name in
   let fields = r.R#field in
-  if List.length fields = 0
-  then warning r ("record " ^ quote name ^ " doesn't specify any fields");
+  (* XXX: Protobuf doesn't print any warnings on records with no fields *)
+  (*
+  if fields = []
+  then warning r ("record " ^ quote r.R#name ^ " doesn't specify any fields");
+  *)
   List.iter check_field fields
 
 

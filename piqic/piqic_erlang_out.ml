@@ -122,10 +122,16 @@ let gen_record r =
   let fields = r.R#wire_field in
   let fgens = (* field generators list *)
     List.map (gen_field rname) fields
+  in
+  let arg_variable = (* prevent Erlang warning on unused variable *)
+    if fields <> []
+    then ios "X"
+    else iol [ ios "#"; ios rname; ios "{}" ]
   in (* gen_<record-name> function delcaration *)
   iol
     [
-      ios "gen_" ^^ ios (some_of r.R#erlang_name); ios "(Code, X) ->"; indent;
+      ios "gen_"; ios (some_of r.R#erlang_name);
+        ios "(Code, "; arg_variable; ios ") ->"; indent;
         ios "piqirun:gen_record(Code, ["; indent;
           iod ",\n        " fgens;
           unindent; eol;

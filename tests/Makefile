@@ -18,6 +18,7 @@ DIRS_ERLANG = \
 	erlang_piqi \
 	erlang_perf \
 	erlang_packed \
+	erlang_misc \
 
 
 DIRS_OCAML = \
@@ -26,6 +27,7 @@ DIRS_OCAML = \
        ocaml_perf \
        ocaml_packed \
        ocaml_array \
+       ocaml_misc \
 
 
 DIRS = \

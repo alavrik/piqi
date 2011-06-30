@@ -91,7 +91,9 @@ let gen_record r =
   let rname = capitalize (some_of r.R#ocaml_name) in
   let fields = r.R#wire_field in
   let fconsl = (* field constructor list *)
-    List.map (gen_field_cons rname) fields
+    if fields <> []
+    then List.map (gen_field_cons rname) fields
+    else [ios rname; ios "."; ios "_dummy = ()"]
   in (* fake_<record-name> function delcaration *)
   iod " "
     [

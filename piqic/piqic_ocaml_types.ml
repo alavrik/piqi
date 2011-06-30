@@ -163,8 +163,11 @@ let gen_field f =
 (* generate record type in record module; see also gen_record' *)
 let gen_record_mod r =
   let modname = capitalize (some_of r.R#ocaml_name) in
+  let fields = r.Record#field in
   let fdefs = (* field definition list *)
-    iol (List.map gen_field r.Record#field)
+    if fields <> []
+    then iol (List.map gen_field fields)
+    else ios "_dummy: unit"
   in
   let rcons = (* record def constructor *)
     iol [ios "type t = "; ios "{"; fdefs; ios "}"]

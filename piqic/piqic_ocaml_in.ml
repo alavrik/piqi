@@ -112,7 +112,7 @@ let gen_field_parser f =
         ]
   in
   (* field parsing code *)
-  iod " " [ esc fname; ios ", x ="; fcons; ]
+  iol [ ios "let "; esc fname; ios ", x = "; fcons; ios " in " ]
 
 
 let gen_record r =
@@ -121,15 +121,17 @@ let gen_record r =
   (* NOTE: fields are already ordered by their codes when Piqi is loaded *)
   let fields = r.R#wire_field in
   let fconsl = (* field constructor list *)
-    List.map (gen_field_cons rname) fields
+    if fields <> []
+    then List.map (gen_field_cons rname) fields
+    else [ios rname; ios "."; ios "_dummy = ()"]
   in
   let fparserl = (* field parsers list *)
     List.map gen_field_parser fields
   in
   let rcons = (* record constructor *)
     iol [
-      ios "let "; iod " in let " fparserl;
-      ios " in Piqirun.check_unparsed_fields x; {"; iol fconsl; ios "}";
+      iol fparserl;
+      ios "Piqirun.check_unparsed_fields x; {"; iol fconsl; ios "}";
     ]
   in (* parse_<record-name> function delcaration *)
   iod " "

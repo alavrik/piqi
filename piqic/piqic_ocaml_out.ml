@@ -155,15 +155,14 @@ let gen_record r =
 
   (* field generator code *)
   let fgens_code = List.map
-    (fun (name, gen) -> iol [ ios "let "; esc name; ios " = "; gen ])
+    (fun (name, gen) -> iol [ ios "let "; esc name; ios " = "; gen; ios " in "])
     fgens
   in (* gen_<record-name> function delcaration *)
   iod " "
     [
       ios "gen__" ^^ ios (some_of r.R#ocaml_name); ios "code x =";
         gen_cc "refer x;";
-        iod " in " fgens_code;
-        ios "in";
+        iol fgens_code;
         ios "Piqirun.gen_record code"; 
         ios "["; iod ";" (List.map esc fnames); ios "]";
     ]
