@@ -9,13 +9,17 @@ SOURCES = $(PIQI_ML_FILES)
 PIQI_FILES = \
 	empty-record.piqi \
 	\
-	Ad.piqi P.piqi Protocol.piqi
+	Ad.piqi P.piqi Protocol.piqi \
+	\
+	variant-1.piqi variant-2.piqi
 
 
 PIQI_ML_FILES = \
 	empty_record_piqi.ml \
 	\
-	ad.ml p.ml protocol.ml
+	ad.ml p.ml protocol.ml \
+	\
+	variant_1_piqi.ml variant_2_piqi.ml
 
 
 PRE_TARGETS = $(PIQI_ML_FILES)

@@ -218,8 +218,16 @@ let rec gen_option o =
             ios "Piqirun.gen_bool_field"; gen_code o.code; ios "true";
         ]
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
+        let ocaml_name = piqdef_mlname t in
+        let scoped_name =
+          match get_parent t with
+            | `import x -> (* imported name *)
+                let ocaml_modname = some_of x.Import#ocaml_name in
+                (ocaml_modname ^ "." ^ ocaml_name)
+            | _ -> ocaml_name (* local name *)
+        in
         iod " " [
-          ios "| (#" ^^ ios (piqdef_mlname t); ios " as x) ->";
+          ios "| (#" ^^ ios scoped_name; ios " as x) ->";
             gen_gen_typeref t; gen_code o.code; ios "x";
         ]
     | _, Some t ->

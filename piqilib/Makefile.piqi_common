@@ -16,6 +16,7 @@ PIQI_SOURCES_TAIL = \
 	\
 	piqi_config.ml \
 	piqi_iolist.ml \
+	piqi_graph.ml \
 	piqi_common.ml \
 	piqi_file.ml \
 	piqi_main.ml \

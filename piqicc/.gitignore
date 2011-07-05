@@ -9,6 +9,7 @@ piqi_c_impl.c
 piqi_main.ml
 piqi.ml
 piq_parser.ml
+piqi_graph.ml
 piqi_common.ml
 piqobj_to_piq.ml
 piqi_c.mli

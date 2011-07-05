@@ -194,15 +194,22 @@ let gen_pvar_name name =
   ios "`" ^^ ios name
 
 
+let is_local_def def =
+  match get_parent def with
+    | `piqi _ -> true
+    | `import _ -> false
+
+
 let gen_option o =
   let open Option in
   match o.ocaml_name, o.typeref with
-    | None, Some ((`variant _v) as _x) | None, Some ((`enum _v) as _x) ->
-        (* FIXME, TODO: for some reason ocaml complains about fully
-         * qualified polymorphic variants in recursive modules:
-          ios_gen_typeref _x
-         *)
-        ios (some_of _v.V#ocaml_name)
+    | None, Some ((`variant v) as def) | None, Some ((`enum v) as def) ->
+        (* NOTE: for some reason, ocaml complains about fully qualified
+         * polymorphic variants in recursive modules, so we need to use
+         * non-qualified names in this case *)
+        if is_local_def def
+        then ios (some_of v.V#ocaml_name)
+        else ios_gen_typeref def
     | _, Some t ->
         let n = gen_pvar_name (mlname_of_option o) in
         n ^^ ios " of " ^^ ios_gen_typeref t
@@ -281,10 +288,6 @@ let gen_defs (defs:T.piqdef list) =
       then iol []
       else iol [
         ios "type ";
-        (* XXX: seems that OCaml has a bug disallowing to mix mutually
-         * recursive types and polymorphic variant reuse => replacing
-         * "and" for "type" for now *)
-        (* iod " and " odefs; *)
         iod " type " odefs;
       ]
     in
@@ -333,9 +336,48 @@ let gen_imports l =
   iol l
 
 
+(* NOTE: for some reason, ocaml complains about fully qualified polymorphic
+ * variants in recursive modules, so instead of relying on OCaml, we need to
+ * preorder variants ourselves without relying on OCaml to figure out the order
+ * automatically *)
+let order_defs defs =
+  (* we apply this specific ordering only to variants, to be more specific --
+   * only to those variants that include other variants by not specifying tags
+   * for the options *)
+  let variants, rest =
+    List.partition (function
+      | `variant x | `enum x -> true
+      | _ -> false)
+    defs
+  in
+  (* topologically sort local variant defintions *)
+  let cycle_visit def =
+    Piqi_common.error def
+      ("cyclic OCaml variant definition: " ^ piqdef_name def)
+  in
+  let get_adjacent_vertixes = function
+    | `variant v ->
+        (* get the list of included variants *)
+        flatmap (fun o ->
+          let open O in
+          match o.ocaml_name, o.typeref with
+            | None, Some ((`variant _) as def)
+            | None, Some ((`enum _) as def) ->
+                if is_local_def def (* omit any imported definitions *)
+                then [def]
+                else []
+            | _ -> []
+        ) v.V#option
+    | _ -> []
+  in
+  let variants = Piqi_graph.tsort variants get_adjacent_vertixes ~cycle_visit in
+  (* return the updated list of definitions with sorted variants *)
+  variants @ rest
+
+
 let gen_piqi (piqi:T.piqi) =
   iol [
     gen_imports piqi.P#resolved_import;
-    gen_defs piqi.P#resolved_piqdef;
+    gen_defs (order_defs piqi.P#resolved_piqdef);
   ]
 
