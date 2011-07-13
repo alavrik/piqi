@@ -155,6 +155,11 @@ let protoname_of_option o =
   let open O in protoname_of o.proto_name o.typeref
 
 
+let gen_proto_custom proto_custom =
+  let l = List.map (fun x -> iol [eol; ios x]) proto_custom in
+  iol l
+
+
 let string_of_mode = function
     | `required -> "required"
     | `optional -> "optional"
@@ -238,7 +243,9 @@ let gen_record ?name r =
     [
       ios "message "; ios name;
       ios " {"; indent;
-      iod "\n" fdefs; unindent; eol;
+        iod "\n" fdefs;
+        gen_proto_custom r.proto_custom;
+        unindent; eol;
       ios "}"; eol;
     ]
   in rdef
@@ -258,7 +265,9 @@ let gen_enum ?name e =
   iol
     [
       ios "enum "; ios name; ios " {"; indent;
-        iod "\n" const_defs; unindent; eol;
+        iod "\n" const_defs;
+        gen_proto_custom e.proto_custom;
+        unindent; eol;
       ios "}"; eol;
     ]
 
@@ -280,7 +289,9 @@ let gen_variant ?name v =
     [
       ios "message "; ios name;
       ios " {"; indent;
-      iod "\n" vdefs; unindent; eol;
+        iod "\n" vdefs;
+        gen_proto_custom v.proto_custom;
+        unindent; eol;
       ios "}"; eol;
     ]
   in vdef
@@ -298,8 +309,9 @@ let gen_list ?name l =
     [
       ios "message "; ios name;
       ios " {"; indent;
-      ios "repeated "; gen_typeref l.typeref; ios " elem = 1"; ios packed; ios ";";
-      unindent; eol;
+        ios "repeated "; gen_typeref l.typeref; ios " elem = 1"; ios packed; ios ";";
+        gen_proto_custom l.proto_custom;
+        unindent; eol;
       ios "}"; eol;
     ]
   in ldef
@@ -416,8 +428,12 @@ let gen_piqi (piqi:T.piqi) =
       ]
     else iol []
   in
+  let proto_custom =
+    List.map (fun x -> iol [ios x; eol; eol]) piqi.P#proto_custom
+  in
   iol [
     package;
+    iol proto_custom;
     piqi_import;
     gen_imports ((List.rev !new_imports) @ piqi.P#resolved_import);
     eol;

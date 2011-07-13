@@ -24,12 +24,33 @@
 
 
 .extend [
+    (.name record variant list)
+
+    % arbitrary string that will be included in .proto message and enum
+    % definitions as a result of .piqi -> .proto conversion
+    .field [
+        .name proto-custom
+        .type string
+        .repeated
+    ]
+]
+
+
+.extend [
     .name piqi
 
     .field [
         .name proto-package
         .type string
         .optional
+    ]
+
+    % arbitrary string that will be included in .proto as a result of .piqi ->
+    % .proto conversion
+    .field [
+        .name proto-custom
+        .type string
+        .repeated
     ]
 ]
 
