@@ -217,17 +217,25 @@ let gen_variant v =
     ]
 
 
+let gen_convert_of typeref ocaml_type value =
+  gen_convert_value typeref ocaml_type "_of_" value
+
+
 let gen_alias a ~wire_packed =
   let open Alias in
   let packed = ios (if wire_packed then "packed_" else "") in
   iol [
     packed; ios "parse_"; ios (some_of a.ocaml_name); ios " x = ";
-    gen_parse_typeref
-      a.typeref
-        ?ocaml_type:a.ocaml_type
-        ?wire_type:a.wire_type
-        ~wire_packed;
-      ios " x";
+    gen_convert_of a.typeref a.ocaml_type (
+      iol [
+        gen_parse_typeref
+          a.typeref
+            ?ocaml_type:a.ocaml_type
+            ?wire_type:a.wire_type
+            ~wire_packed;
+          ios " x";
+      ]
+    )
   ]
 
 

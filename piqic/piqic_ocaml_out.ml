@@ -251,13 +251,32 @@ let gen_variant v =
     ]
 
 
+let gen_convert_value typeref ocaml_type direction value =
+  match piqtype typeref with
+    | (#T.piqdef as piqdef) when ocaml_type <> None -> (* custom OCaml type *)
+        iol [
+          ios "(";
+            ios (some_of ocaml_type);
+            ios direction;
+            ios (piqdef_mlname piqdef);
+            ios "("; value; ios ")";
+          ios ")"
+        ]
+    | _ ->
+        value
+
+
+let gen_convert_to typeref ocaml_type value =
+  gen_convert_value typeref ocaml_type "_to_" value
+
+
 let gen_alias a =
   let open Alias in
   iol [
     ios "gen__"; ios (some_of a.ocaml_name);
     ios " code x = ";
       gen_gen_typeref a.typeref ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
-      ios " code x";
+      ios " code"; gen_convert_to a.typeref a.ocaml_type (ios " x");
   ]
 
 
@@ -270,7 +289,7 @@ let gen_packed_alias a =
         ?ocaml_type:a.ocaml_type
         ?wire_type:a.wire_type
         ~wire_packed:true;
-      ios " x";
+      gen_convert_to a.typeref a.ocaml_type (ios " x");
   ]
 
 

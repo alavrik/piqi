@@ -28,6 +28,7 @@ DIRS_OCAML = \
        ocaml_packed \
        ocaml_array \
        ocaml_misc \
+       ocaml_custom_types \
 
 
 DIRS = \

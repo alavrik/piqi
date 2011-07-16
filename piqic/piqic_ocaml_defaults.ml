@@ -146,8 +146,10 @@ let gen_alias a =
   iod " "
     [
       ios "default_" ^^ ios (some_of a.ocaml_name); ios "() =";
-      gen_default_typeref
-        a.typeref ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+      Piqic_ocaml_in.gen_convert_of a.typeref a.ocaml_type (
+        gen_default_typeref
+          a.typeref ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+      );
     ]
 
 
