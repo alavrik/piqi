@@ -259,16 +259,25 @@ let gen_variant v =
   ]
 
 
+let gen_convert_of typeref erlang_type value =
+  gen_convert_value typeref erlang_type "_of_" value
+
+
 let gen_alias a ~wire_packed =
   let open Alias in
   let packed = ios (if wire_packed then "packed_" else "") in
   iol [
     packed; ios "parse_"; ios (some_of a.erlang_name); ios "(X) ->"; indent;
-      gen_parse_typeref a.typeref
-        ?erlang_type:a.erlang_type
-        ?wire_type:a.wire_type
-        ~wire_packed;
-      ios "(X).";
+      gen_convert_of a.typeref a.erlang_type (
+        iol [
+          gen_parse_typeref a.typeref
+            ?erlang_type:a.erlang_type
+            ?wire_type:a.wire_type
+            ~wire_packed;
+          ios "(X)";
+        ]
+      );
+      ios ".";
     unindent; eol;
   ]
 

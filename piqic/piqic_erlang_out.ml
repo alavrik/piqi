@@ -251,13 +251,30 @@ let gen_variant v =
     ]
 
 
+let gen_convert_value typeref erlang_type direction value =
+  match piqtype typeref with
+    | (#T.piqdef as piqdef) when erlang_type <> None -> (* custom Erlang type *)
+        iol [
+          ios (some_of erlang_type);
+          ios direction;
+          ios (piqdef_erlname piqdef);
+          ios "("; value; ios ")";
+        ]
+    | _ ->
+        value
+
+
+let gen_convert_to typeref erlang_type value =
+  gen_convert_value typeref erlang_type "_to_" value
+
+
 let gen_alias a =
   let open Alias in
   iol [
     ios "gen_"; ios (some_of a.erlang_name);
     ios "(Code, X) ->"; indent;
       gen_gen_typeref a.typeref ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
-      ios "(Code, X).";
+      ios "(Code, "; gen_convert_to a.typeref a.erlang_type (ios "X"); ios ").";
     unindent; eol;
   ]
 
@@ -271,7 +288,7 @@ let gen_packed_alias a =
         ?erlang_type:a.erlang_type
         ?wire_type:a.wire_type
         ~wire_packed:true;
-      ios "(X).";
+      ios "("; gen_convert_to a.typeref a.erlang_type (ios "X"); ios ").";
     unindent; eol;
   ]
 

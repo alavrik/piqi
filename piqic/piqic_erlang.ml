@@ -122,7 +122,7 @@ let erlname_func_param func_name param_name param =
 
 let erlname_func x =
   let open T.Func in (
-    if x.ocaml_name = None then x.erlang_name <- erlname x.name;
+    if x.erlang_name = None then x.erlang_name <- erlname x.name;
     let func_name = some_of x.erlang_name in
     erlname_func_param func_name "input" x.resolved_input;
     erlname_func_param func_name "output" x.resolved_output;
