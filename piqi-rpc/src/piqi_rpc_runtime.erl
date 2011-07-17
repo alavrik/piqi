@@ -156,14 +156,35 @@ handle_invalid_result(Name, Result) ->
     throw_rpc_error({'internal_error', iolist_to_binary(Error)}).
 
 
-% already got the error formatted properly by one of the above handlers
-handle_runtime_exception(throw, {'rpc_error', _} = X) -> X;
 handle_runtime_exception(Class, Reason) ->
+    Res = {'rpc_error', Error} = do_handle_runtime_exception(Class, Reason),
+    log_error(Error),
+    Res.
+
+
+do_handle_runtime_exception(throw, {'rpc_error', _} = X) ->
+    % already got the error formatted properly by one of the above handlers
+    X;
+do_handle_runtime_exception(Class, Reason) ->
     Error = io_lib:format(
         "exception: ~w:~P,~n"
         "stacktrace: ~P",
         [Class, Reason, 30, erlang:get_stacktrace(), 30]),
     {'rpc_error', {'internal_error', iolist_to_binary(Error)}}.
+
+
+% log internal errors via error_logger
+log_error({'internal_error', Error}) -> do_log_error(Error);
+log_error({'invalid_output', Error}) -> do_log_error(Error);
+log_error(_) -> ok.
+
+
+do_log_error(Error) ->
+    error_logger:error_msg("piqi-rpc internal error: ~s", [to_list(Error)]).
+
+
+to_list(X) when is_list(X) -> X;
+to_list(X) when is_binary(X) -> binary_to_list(X).
 
 
 % Convert Erlang term to a human-readable string
