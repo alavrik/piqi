@@ -91,11 +91,15 @@ encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output) ->
         try Encoder(Output)
         catch
             Class:Reason ->
+                OutputStr = lists:flatten(format_term(Output)),
                 Error = io_lib:format(
-                    "~p,~nexception ~w:~p, stacktrace: ~p",
-                    [Output, Class, Reason, erlang:get_stacktrace()]),
+                    "error encoding output:~n"
+                    "~s,~n"
+                    "exception: ~w:~P,~n"
+                    "stacktrace: ~P",
+                    [OutputStr, Class, Reason, 30, erlang:get_stacktrace(), 30]),
                 throw_rpc_error(
-                    {'invalid_output', "error encoding output: " ++ Error})
+                    {'invalid_output', iolist_to_binary(Error)})
         end,
     BinOutput = iolist_to_binary(IolistOutput),
     case OutputFormat of
@@ -147,17 +151,47 @@ handle_unknown_function() ->
     Result :: any()) -> no_return().
 
 handle_invalid_result(Name, Result) ->
-    % XXX: limit the size of the returned Reason string by using "~P"?
-    ResultStr = io_lib:format("~p", [Result]),
-    Error = ["function ", Name, " returned invalid result: ", ResultStr],
+    ResultIolist = format_term(Result),
+    Error = ["function ", Name, " returned invalid result:\n", ResultIolist],
     throw_rpc_error({'internal_error', iolist_to_binary(Error)}).
 
 
 % already got the error formatted properly by one of the above handlers
 handle_runtime_exception(throw, {'rpc_error', _} = X) -> X;
 handle_runtime_exception(Class, Reason) ->
-    % XXX: limit the size of the returned Reason string by using "~P"?
-    Error = io_lib:format("exception ~w:~p,~nstacktrace: ~p",
-        [Class, Reason, erlang:get_stacktrace()]),
+    Error = io_lib:format(
+        "exception: ~w:~P,~n"
+        "stacktrace: ~P",
+        [Class, Reason, 30, erlang:get_stacktrace(), 30]),
     {'rpc_error', {'internal_error', iolist_to_binary(Error)}}.
+
+
+% Convert Erlang term to a human-readable string
+format_term(Term) ->
+    % hardcoding the maximum length of the output string
+    format_term(Term, _MaxLen = 8192).
+
+
+-spec format_term/2 :: (
+    Term :: term(),
+    MaxLen :: pos_integer()) -> iolist().
+
+% Convert Erlang term to a human-readable string. If `trunc_io` module is
+% present in the system and loaded, the string is truncated according to the
+% `MaxLen` argument.
+format_term(Term, MaxLen) ->
+    case erlang:function_exported(trunc_io, print, 2) and
+        % NOTE: flat_size returns the size of a term in words, but we don't care
+        % here and just compare it with the maximum string length
+        (erts_debug:flat_size(Term) > MaxLen) of
+
+        true ->
+            {Res, _} = trunc_io:print(Term, MaxLen),
+            Res;
+
+        false ->
+            % fall back to stdlib if the term is small or if "trunc_io" module
+            % is missing
+            io_lib:format("~p", [Term])
+    end.
 
