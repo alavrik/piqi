@@ -115,39 +115,89 @@ encode_varint_field(Code, Integer) ->
 -spec encode_varint_value/1 :: (
     I :: non_neg_integer()) -> binary().
 
-encode_varint_value(I) ->
-    encode_varint(I, []).
-
+encode_varint_value(I) when I >= 0, I =< 16#7f -> <<I:8>>;
+encode_varint_value(I) when I > 16#7f, I =< 16#3fff ->
+    I1 = (((I band 16#7f) bor 16#80) bsl 8) bor ((I bsr 7) band 16#7f),
+    <<I1:16>>;
+encode_varint_value(I) when I > 16#3fff, I =< 16#1fffff ->
+    I1 = ((I bsr 14) band 16#7f) bor
+        ((((I bsr 7) band 16#7f) bor 16#80) bsl 8) bor
+        (((I band 16#7f) bor 16#80) bsl 16),
+    <<I1:24>>;
+encode_varint_value(I) when I > 16#1fffff, I =< 16#fffffff ->
+    I1 = ((I bsr 21) band 16#7f) bor
+        ((((I bsr 14) band 16#7f) bor 16#80) bsl 8) bor
+        ((((I bsr 7) band 16#7f) bor 16#80) bsl 16) bor
+        (((I band 16#7f) bor 16#80) bsl 24),
+    <<I1:32>>;
+encode_varint_value(I) when I >= 0 -> encode_varint_value(I, <<>>).
 
 %% @hidden
-encode_varint(I, Acc) when I =< 16#7f ->
-    iolist_to_binary(lists:reverse([I | Acc]));
-encode_varint(I, Acc) ->
-    Last_Seven_Bits = (I - ((I bsr 7) bsl 7)),
-    First_X_Bits = (I bsr 7),
-    With_Leading_Bit = Last_Seven_Bits bor 16#80,
-    encode_varint(First_X_Bits, [With_Leading_Bit|Acc]).
-
+-spec encode_varint_value(non_neg_integer(), binary()) -> binary().
+encode_varint_value(I, Acc) when I =< 16#7f ->
+    <<Acc/binary, I:8>>;
+encode_varint_value(I, Acc) ->
+    I1 = (I bsr 7),
+    Val = (I - (I1 bsl 7)) bor 16#80,
+    encode_varint_value(I1, <<Acc/binary, Val:8>>).
 
 %% @hidden
+-spec decode_varint(binary()) ->
+    {I :: non_neg_integer(), Remainder :: binary()}.
 decode_varint(Bytes) ->
-    decode_varint(Bytes, []).
-decode_varint(<<0:1, I:7, Rest/binary>>, Acc) ->
-    Acc1 = [I|Acc],
-    Result = 
-        lists:foldl(
-            fun(X, Acc0) ->
-                (Acc0 bsl 7 bor X)
-            end, 0, Acc1),
-    {Result, Rest};
-decode_varint(<<1:1, I:7, Rest/binary>>, Acc) ->
-    decode_varint(Rest, [I | Acc]);
-decode_varint(Bytes, _Acc) when is_binary(Bytes) ->
-    % Return the same error as returned by my_split_binary/2 when parsing
-    % fields (see below). This way, when there's not enough data for parsing a
-    % field, the returned error is the same regardless of where it occured.
-    throw_error('not_enough_data').
+    case decode_varint_1(Bytes) of
+        {cont, _, _, _} ->
+            % Return the same error as returned by
+            % my_split_binary/2 when parsing fields (see
+            % below). This way, when there's not enough data for
+            % parsing a field, the returned error is the same
+            % regardless of where it occured.
+            throw_error('not_enough_data');
+        I when is_integer(I) -> {I, <<>>};
+        Value -> Value
+    end.
 
+-type decode_varint_1_cont() :: {cont,
+                        non_neg_integer(),
+                        non_neg_integer(),
+                        non_neg_integer()}.
+-type decode_varint_1_ret() :: non_neg_integer()
+                      | {non_neg_integer(), binary()}
+                      | decode_varint_1_cont().
+-spec decode_varint_1(binary()) -> decode_varint_1_ret().
+decode_varint_1(<<0:1, A:7>>) -> A;
+decode_varint_1(<<0:1, A:7, Rest/binary>>) -> {A, Rest};
+decode_varint_1(<<1:1, A:7, 0:1, B:7>>) -> B bsl 7 bor A;
+decode_varint_1(<<1:1, A:7, 0:1, B:7, Rest/binary>>) ->
+    {B bsl 7 bor A, Rest};
+decode_varint_1(<<1:1, A:7, 1:1, B:7, 0:1, C:7>>) ->
+    (C bsl 14) bor (B bsl 7) bor A;
+decode_varint_1(<<1:1, A:7, 1:1, B:7, 0:1, C:7, Rest/binary>>) ->
+    {(C bsl 14) bor (B bsl 7) bor A, Rest};
+decode_varint_1(<<1:1, A:7, 1:1, B:7, 1:1, C:7, 0:1, D:7>>) ->
+    (D bsl 21) bor (C bsl 14) bor (B bsl 7) bor A;
+decode_varint_1(<<1:1, A:7, 1:1, B:7, 1:1, C:7, 0:1, D:7, Rest/binary>>) ->
+    {(D bsl 21) bor (C bsl 14) bor (B bsl 7) bor A, Rest};
+decode_varint_1(<<1:1, A:7, 1:1, B:7, 1:1, C:7, 1:1, D:7, _/binary>> = Bin) ->
+    Acc = (D bsl 21) bor (C bsl 14) bor (B bsl 7) bor A,
+    decode_varint_1(Bin, {cont, Acc, 4, 4});
+decode_varint_1(Bin) ->
+    decode_varint_1(Bin, {cont, 0, 0, 0}).
+
+-spec decode_varint_1(binary(), decode_varint_1_cont()) -> decode_varint_1_ret().
+decode_varint_1(Bin, {cont, Acc, X, Offset}) ->
+    case Bin of
+        <<_:Offset/bytes, 0:1, I:7>> ->
+            Acc bor (I bsl (X * 7));
+        <<_:Offset/bytes, 0:1, I:7, Rest/binary>> ->
+            Result = Acc bor (I bsl (X * 7)),
+            {Result, Rest};
+        <<_:Offset/bytes, 1:1, I:7>> ->
+            {cont, Acc bor (I bsl (X * 7)), X + 1, 0};
+        <<_:Offset/bytes, 1:1, I:7, _/binary>> ->
+            Acc1 = Acc bor (I bsl (X * 7)),
+            decode_varint_1(Bin, {cont, Acc1, X + 1, Offset + 1})
+    end.
 
 -spec gen_block/1 :: (Data :: iodata()) -> iolist().
 
