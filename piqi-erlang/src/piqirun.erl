@@ -115,31 +115,23 @@ encode_varint_field(Code, Integer) ->
 -spec encode_varint_value/1 :: (
     I :: non_neg_integer()) -> binary().
 
-encode_varint_value(I) when I >= 0, I =< 16#7f -> <<I:8>>;
-encode_varint_value(I) when I > 16#7f, I =< 16#3fff ->
-    I1 = (((I band 16#7f) bor 16#80) bsl 8) bor ((I bsr 7) band 16#7f),
-    <<I1:16>>;
-encode_varint_value(I) when I > 16#3fff, I =< 16#1fffff ->
-    I1 = ((I bsr 14) band 16#7f) bor
-        ((((I bsr 7) band 16#7f) bor 16#80) bsl 8) bor
-        (((I band 16#7f) bor 16#80) bsl 16),
-    <<I1:24>>;
-encode_varint_value(I) when I > 16#1fffff, I =< 16#fffffff ->
-    I1 = ((I bsr 21) band 16#7f) bor
-        ((((I bsr 14) band 16#7f) bor 16#80) bsl 8) bor
-        ((((I bsr 7) band 16#7f) bor 16#80) bsl 16) bor
-        (((I band 16#7f) bor 16#80) bsl 24),
-    <<I1:32>>;
-encode_varint_value(I) when I >= 0 -> encode_varint_value(I, <<>>).
+encode_varint_value(I) when I >= 0 ->
+    encode_varint_1(I, 0, 1).
 
 %% @hidden
 -spec encode_varint_value(non_neg_integer(), binary()) -> binary().
-encode_varint_value(I, Acc) when I =< 16#7f ->
-    <<Acc/binary, I:8>>;
 encode_varint_value(I, Acc) ->
-    I1 = (I bsr 7),
-    Val = (I - (I1 bsl 7)) bor 16#80,
-    encode_varint_value(I1, <<Acc/binary, Val:8>>).
+    <<Acc/binary, (encode_varint_1(I, 0, 1))/binary>>.
+
+-spec encode_varint_1(
+        non_neg_integer(),
+        non_neg_integer(),
+        pos_integer()) -> binary().
+encode_varint_1(I, Acc, Pos) when I > 16#7f ->
+    Val = I band 16#7f bor 16#80,
+    encode_varint_1(I bsr 7, Acc bsl 8 bor Val, Pos + 1);
+encode_varint_1(I, Acc, Pos) ->
+    <<(Acc bsl 8 bor I):(Pos * 8)>>.
 
 %% @hidden
 -spec decode_varint(binary()) ->
