@@ -10,7 +10,7 @@ EBIN_DIR = .
 
 
 PIQIC = piqic erlang
-PIQIC_FLAGS =
+PIQIC_FLAGS = --gen-defaults
 
 
 PIQI_FILES = packed-nocompat.piqi packed.piqi
