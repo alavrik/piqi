@@ -114,6 +114,13 @@
         .repeated
         .wire-packed
     ]
+
+    .field [
+        .name f
+        .type float
+        .repeated
+        .wire-packed
+    ]
     .field [
         .name f32
         .type float32

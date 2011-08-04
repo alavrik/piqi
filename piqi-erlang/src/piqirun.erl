@@ -301,6 +301,9 @@ gen_repeated_field(Code, GenValue, L) ->
     [GenValue(Code, X) || X <- L].
 
 
+gen_packed_repeated_field(_Code, _GenValue, []) ->
+    % don't generate anything for empty repeated packed field
+    [];
 gen_packed_repeated_field(Code, GenValue, L) ->
     Contents = [GenValue(X) || X <- L],
     gen_record(Code, Contents).

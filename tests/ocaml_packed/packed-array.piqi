@@ -128,6 +128,14 @@
         .wire-packed
         .ocaml-array
     ]
+
+    .field [
+        .name f
+        .type float
+        .repeated
+        .wire-packed
+        .ocaml-array
+    ]
     .field [
         .name f32
         .type float32

@@ -1342,11 +1342,15 @@ let gen_repeated_array_field code f l =
 
 
 let gen_packed_repeated_field_common code contents =
-  iol [
-    gen_key 2 code;
-    gen_unsigned_varint_value (OBuf.size contents);
-    contents;
-  ]
+  let size = OBuf.size contents in
+  if size = 0
+  then contents (* don't generate anything for empty repeated packed field *)
+  else
+    iol [
+      gen_key 2 code;
+      gen_unsigned_varint_value size;
+      contents;
+    ]
 
 
 let gen_packed_repeated_field code f l =
