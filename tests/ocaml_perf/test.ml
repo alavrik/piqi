@@ -117,6 +117,34 @@ let test_addressbook () =
   ()
 
 
+let test_piqi () =
+  printf "*** testing OCaml serialization of big objects ***\n\n";
+
+  let filename = "piqi.piq.pb" in
+
+  (* Read the Piqi self-specification encoded in Protobuf format *)
+  let bytes = read_file filename in
+
+  let reader = Piqi_obj_piqi_ext.parse_piqi in
+  let writer = Piqi_obj_piqi_ext.gen_piqi in
+
+  let n = 20000 in
+
+  test_rw_all reader writer bytes n;
+  (*
+  test_rw_all reader writer bytes n;
+
+  test_rw reader writer `pb bytes n;
+  test_rw reader writer `json bytes n;
+  test_rw reader writer `json_pretty bytes n;
+  test_rw reader writer `xml bytes n;
+  test_rw reader writer `xml_pretty bytes n;
+  test_rw reader writer `wire bytes n;
+  test_rw reader writer `piq bytes n;
+  *)
+  ()
+
+
 let set_gc_options () =
   (* Don't set custom options if the OCAMLRUNPARAM environment variable is
    * defined *)
@@ -137,5 +165,6 @@ let _ =
   set_gc_options ();
 
   test_addressbook ();
+  test_piqi ();
   ()
 
