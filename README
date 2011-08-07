@@ -43,7 +43,7 @@ model similar to those of high-level programming languages.
 FURTHER INFORMATION
 ===================
 
-Full description and documentation can be found at
+Full description and documentation can be found at:
 
        http://piqi.org
 
@@ -51,14 +51,41 @@ Full description and documentation can be found at
 INSTALLATION
 ============
 
-See INSTALL file for installation instructions.
+See the INSTALL file for installation instructions.
+
+
+BUG TRACKER
+===========
+
+If you found a bug or have any suggestions, please report them to the issue
+tracker:
+
+        http://github.com/alavrik/piqi/issues
+
+
+CONTRIBUTING
+============
+
+Participation and patches are very welcome! The best way to submit a
+contribution is to open a pull request on GitHub against "dev" branch.
+
+
+MAILING LIST
+============
+
+For discussions about the usage, development, and future of Piqi, please post on
+the Piqi Google Group:
+
+        http://groups.google.com/group/piqi
 
 
 FILES
 =====
 
   README                this file
-  INSTALL               installation instructions
+  INSTALL               general installation instructions
+  INSTALL.erlang        instructions for building Piqi for Erlang
+  INSTALL.ocaml         instructions for building Piqi for OCaml
   INSTALL.windows       instructions for building Piqi on Windows
   setenv.sh             installation configuration file
   setenv-mingw.sh       build configuration file for Windows/MinGW

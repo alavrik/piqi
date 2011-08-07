@@ -1,3 +1,75 @@
+Piqi 0.5.6 (August 7, 2011)
+===========================
+
+Highlights:
+
+  - Support for Protocol Buffer's "packed" encoding for primitive numeric fields
+  - Windows support using MinGW
+
+  Specific to OCaml:
+
+    - Multi-format Protobuf/JSON/XML/Piq serialization
+    - Serialization of custom types, e.g chars, bigints
+    - Option for representing repeated fields and lists as OCaml arrays
+
+  Specific to Erlang:
+
+    - Rebar packages for Piqi and Piqi-RPC
+    - Multi-core scalability and improved performance for JSON and XML
+      serialization
+    - 30% faster Erlang binary de-serialization and other optimizations of
+      piqirun.erl (thanks to Hunter Morris)
+    - Serialization of custom types, e.g. bigints, arbitrary Erlang terms
+
+OCaml:
+
+  - Multi-format Protobuf/JSON/XML/Piq serialization
+  - Serialization of custom OCaml types
+  - Support for Protocol Buffer's "packed" encoding for primitive numeric fields
+  - Support for empty records
+  - Option for representing repeated fields and lists as OCaml arrays
+  - Automatic topological sorting of sub-variant definitions
+  - Fix: reading uint32-fixed values > 0x7fffffff from Protobuf encoding
+
+Erlang:
+
+  - Rebar package
+  - Multi-core scalability and improved performance for JSON and XML
+    serialization
+  - Optimizations of serialization runtime library (thanks to Hunter Morris)
+  - Support for protocol Buffer's "packed" encoding for primitive numeric fields
+  - Serialization of custom Erlang types
+  - New top-level ".erlang-string-type" option for decoding strings as lists (by
+    default strings are decoded as binaries)
+  - The ability to turn off pretty-printing for JSON and XML output
+  - Clear erlc & dialyzer warnings on R14B02
+
+Piqi-RPC:
+
+  - Rebar package
+  - Make HTTP request data accessible to the application callbacks
+  - Report internal errors using standard Erlang Error Logger interface
+  - Limit the size and depth of error messages
+  - Less strict validation of HTTP request for easier request construction by
+    clients
+
+Piqi language:
+
+  - Allow to nest any type definition as a function parameter
+  - New ".proto-custom" property for better Protocol Buffers interoperation;
+    example usage:
+            .proto-custom # option java_package = "com.example.foo";
+
+Piqi tools:
+
+  - Fix: add missing exception handling when parsing XML
+  - Fix: handle malformed UTF-8 exception
+  - Fix: incorrect Protobuf to X conversion in case of imported definitions
+  - Fix: parsing empty strings represented in XML
+  - Fix #7: (piqi to-proto) invalid .proto generated in case of imported aliases
+  - Better warnings on unknown fields when parsing .piqi/.piq
+
+
 Piqi 0.5.5 (April 12, 2011)
 ===========================
 

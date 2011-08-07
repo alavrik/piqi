@@ -7,7 +7,7 @@ DIRS = \
 	piqicc piqic piqilib piqi-tools \
 
 
-.PHONY: deps install ocaml-install ocaml-uninstall erlang erlang-clean distclean
+.PHONY: deps install ocaml ocaml-install ocaml-uninstall erlang erlang-clean distclean
 
 
 # export installation and search path for OCaml dependencies
@@ -38,9 +38,12 @@ install:
 	install piqic/piqic $(PIQI_PREFIX)/bin
 
 
+ocaml:
+	$(MAKE) -C piqilib bcl install
+
+
 ocaml-install: ocaml-uninstall
 	test -d $(PIQI_OCAML_PREFIX) || mkdir -p $(PIQI_OCAML_PREFIX)
-	$(MAKE) -C piqilib bcl install
 	ocamlfind install $(OCAMLFIND_INSTFLAGS) piqi `ls $(PIQI_BUILD)/lib/ocaml/piqi/*`
 
 
