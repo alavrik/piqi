@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -30,7 +30,18 @@ open Piqic_erlang_types
 open Piqic_erlang_out
 
 
-let rec gen_parse_type erlang_type wire_type x =
+let gen_erlang_type_name t ot =
+  match gen_piqtype t ot with
+    | "string" ->
+        (match !string_type with
+          | `binary -> "binary_string"
+          | `list -> "list_string"
+        )
+    | x -> x
+
+
+let rec gen_parse_type erlang_type wire_type wire_packed x =
+  let packed = ios (if wire_packed then "packed_" else "") in
   match x with
     | `any ->
         if !Piqic_common.is_self_spec
@@ -38,17 +49,19 @@ let rec gen_parse_type erlang_type wire_type x =
         else ios "piqtype_piqi:parse_any"
     | (#T.piqdef as x) ->
         let modname = gen_parent x in
-        modname ^^ ios "parse_" ^^ ios (piqdef_erlname x)
+        iol [
+          modname; packed; ios "parse_"; ios (piqdef_erlname x)
+        ]
     | _ -> (* gen parsers for built-in types *)
         iol [
             ios "piqirun:";
             ios (gen_erlang_type_name x erlang_type);
-            ios "_of_";
+            ios "_of_"; packed;
             ios (W.get_wire_type_name x wire_type);
         ]
 
-and gen_parse_typeref ?erlang_type ?wire_type (t:T.typeref) =
-  gen_parse_type erlang_type wire_type (piqtype t)
+and gen_parse_typeref ?erlang_type ?wire_type ?(wire_packed=false) (t:T.typeref) =
+  gen_parse_type erlang_type wire_type wire_packed (piqtype t)
 
 
 let gen_erlang_binary x =
@@ -98,7 +111,20 @@ let gen_field_parser i f =
             (* "parse_(req|opt|rep)_field" function invocation *)
             ios "piqirun:parse_" ^^ ios mode ^^ ios "_field(";
               gen_code f.code; ios ", ";
-              ios "fun "; gen_parse_typeref typeref; ios "/1, ";
+              ios "fun ";
+                gen_parse_typeref typeref ~wire_packed:f.wire_packed;
+                ios "/1, ";
+
+              (* when parsing packed repeated fields, we should also accept
+               * fields in unpacked representation; therefore, specifying an
+               * unpacked field parser as another parameter *)
+              if f.wire_packed
+              then iol [
+              ios "fun ";
+                gen_parse_typeref typeref;
+                ios "/1, ";
+              ] else iol [];
+
               rest i;
               gen_default f.default;
             ios ")";
@@ -159,12 +185,36 @@ let gen_enum e =
   let consts = List.map gen_const e.option in
   let cases = consts @ [ ios "Y -> piqirun:error_enum_const(Y)" ] in
   iol [
-    ios "parse_" ^^ ios (some_of e.erlang_name); ios "(X) ->"; indent;
-    ios "case piqirun:non_neg_integer_of_varint(X) of"; indent;
+    ios "parse_"; ios (some_of e.erlang_name); ios "(X) ->"; indent;
+    ios "case piqirun:integer_of_signed_varint(X) of"; indent;
       iod ";\n        " cases;
       unindent; eol;
       ios "end.";
     unindent; eol;
+  ]
+
+
+let gen_packed_enum e =
+  let open Enum in
+  let consts = List.map gen_const e.option in
+  let cases = consts @ [ ios "Y -> piqirun:error_enum_const(Y)" ] in
+  iol [
+    ios "packed_parse_"; ios (some_of e.erlang_name); ios "(X) ->"; indent;
+    ios "{Code, Rest} = piqirun:integer_of_packed_signed_varint(X),"; eol;
+    ios "{case Code of"; indent;
+      iod ";\n        " cases;
+      unindent; eol;
+      ios "end, Rest}.";
+    unindent; eol;
+  ]
+
+
+let gen_enum e =
+  (* generate two functions: one for parsing normal value; another one -- for
+   * packed value *)
+  iod "\n\n" [
+    gen_enum e;
+    gen_packed_enum e;
   ]
 
 
@@ -209,22 +259,62 @@ let gen_variant v =
   ]
 
 
-let gen_alias a =
+let gen_convert_of typeref erlang_type value =
+  gen_convert_value typeref erlang_type "_of_" value
+
+
+let gen_alias a ~wire_packed =
   let open Alias in
+  let packed = ios (if wire_packed then "packed_" else "") in
   iol [
-    ios "parse_" ^^ ios (some_of a.erlang_name); ios "(X) ->"; indent;
-      gen_parse_typeref
-              a.typeref ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
-      ios "(X).";
+    packed; ios "parse_"; ios (some_of a.erlang_name); ios "(X) ->"; indent;
+      gen_convert_of a.typeref a.erlang_type (
+        iol [
+          gen_parse_typeref a.typeref
+            ?erlang_type:a.erlang_type
+            ?wire_type:a.wire_type
+            ~wire_packed;
+          ios "(X)";
+        ]
+      );
+      ios ".";
     unindent; eol;
   ]
 
 
+let gen_alias a =
+  let open Alias in
+  if Piqi_wire.can_be_packed (piqtype a.typeref)
+  then
+    (* generate another function for packed encoding *)
+    iod "\n\n" [
+      gen_alias a ~wire_packed:false;
+      gen_alias a ~wire_packed:true;
+    ]
+  else gen_alias a ~wire_packed:false
+
+
 let gen_list l =
   let open L in
+  let packed = ios (if l.wire_packed then "packed_" else "") in
   iol [
     ios "parse_" ^^ ios (some_of l.erlang_name); ios "(X) ->"; indent;
-      ios "piqirun:parse_list(fun "; gen_parse_typeref l.typeref; ios "/1, X).";
+      ios "piqirun:parse_"; packed; ios "list(";
+        ios "fun ";
+          gen_parse_typeref l.typeref ~wire_packed:l.wire_packed;
+          ios "/1, ";
+
+        (* when parsing packed repeated fields, we should also accept
+         * fields in unpacked representation; therefore, specifying an
+         * unpacked field parser as another parameter *)
+        if l.wire_packed
+        then iol [
+        ios "fun ";
+          gen_parse_typeref l.typeref;
+          ios "/1, ";
+        ] else iol [];
+
+        ios " X).";
     unindent; eol;
   ]
 

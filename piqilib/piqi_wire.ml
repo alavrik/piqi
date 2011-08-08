@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -72,11 +72,18 @@ let get_wire_type_name t wt =
   wire_type_name wt
 
 
+(* get wire type width in bits, if it is known to be fixed *)
+let get_wire_type_width t wt =
+  let wt = get_wire_type t wt in
+  match wt with
+    | `fixed32 | `signed_fixed32 -> Some 32
+    | `fixed64 | `signed_fixed64 -> Some 64
+    | _ -> None
+
+
 (*
  * add wire codes if not specified by user
  *) 
-
-let do_resolve = ref true
 
 
 let invalid_max_code = Int32.shift_left 1l 29 (* 2 ^ 29 *)
@@ -152,88 +159,106 @@ let addcodes_record r =
   let open T.Record in
   let fields = r.field in
   if List.exists (fun x -> x.T.Field#code <> None) fields
-  then
-    begin
-      if List.exists (fun x -> x.T.Field#code = None) fields
-      then error r "codes must be defined for either all or none fields"
-      else
-        (* all field codes are assigned *)
-        let codes = List.map (fun x -> some_of x.T.Field#code) fields in
-        check_codes codes;
+  then (
+    if List.exists (fun x -> x.T.Field#code = None) fields
+    then error r "codes must be defined for either all or none fields"
+    else
+      (* all field codes are assigned *)
+      let codes = List.map (fun x -> some_of x.T.Field#code) fields in
+      check_codes codes;
 
-        (* pre-order fields by their codes to speed-up further processing *)
-        if !do_resolve
-        then r.wire_field <- order_fields fields
-    end
-  else 
-    if !do_resolve
-    then
-      let code = ref 1l in (* assign codes *)
-      List.iter (addcodes_field code) fields;
-      if !do_resolve
-      then r.wire_field <- fields (* the order of fields remains the same *)
-    else ()
+      (* pre-order fields by their codes to speed-up further processing *)
+      r.wire_field <- order_fields fields
+  )
+  else (
+    let code = ref 1l in (* assign codes *)
+    List.iter (addcodes_field code) fields;
+    r.wire_field <- fields (* the order of fields remains the same *)
+  )
 
 
 let addcodes_variant v =
   let open T.Variant in
   let options = v.option in
   if List.exists (fun x -> x.T.Option#code <> None) options
-  then
-    begin
-      if List.exists (fun x -> x.T.Option#code = None) options
-      then error v "codes must be defined for either all or none variant options"
-      else
-        (* all option codes are assigned *)
-        let codes = List.map (fun x -> some_of x.T.Option#code) options in
-        check_codes codes
-    end
-  else 
-    if !do_resolve
-    then
-      let code = ref 1l in (* assign codes *)
-      List.iter (addcodes_option code) options
-    else ()
+  then (
+    if List.exists (fun x -> x.T.Option#code = None) options
+    then error v "codes must be defined for either all or none variant options"
+    else
+      (* all option codes are assigned *)
+      let codes = List.map (fun x -> some_of x.T.Option#code) options in
+      check_codes codes
+  )
+  else (
+    let code = ref 1l in (* assign codes *)
+    List.iter (addcodes_option code) options
+  )
 
 
 let addcodes_enum v =
   let open T.Variant in
   let options = v.option in
   if List.exists (fun x -> x.T.Option#code <> None) options
+  then (
+    if List.exists (fun x -> x.T.Option#code = None) options
+    then error v "codes must be defined for either all or none enum options"
+    else
+      (* all option codes are assigned *)
+      let codes = List.map (fun x -> some_of x.T.Option#code) options in
+      check_enum_codes codes
+  )
+  else (
+    (* XXX: assign enum constant values starting from 0? *)
+    let code = ref 1l in (* assign codes *)
+    List.iter (addcodes_enum_option code) options
+  )
+
+
+(* only primitive numeric types can be packed
+ *
+ * NOTE: enum is also counted as primitive numeric type *)
+let can_be_packed t =
+  match unalias t with
+    | `int | `float | `bool -> true
+    | `enum _ -> true
+    | _ -> false
+
+
+let check_packed_type obj t =
+  if not (can_be_packed (piqtype t))
   then
-    begin
-      if List.exists (fun x -> x.T.Option#code = None) options
-      then error v "codes must be defined for either all or none enum options"
-      else
-        (* all option codes are assigned *)
-        let codes = List.map (fun x -> some_of x.T.Option#code) options in
-        check_enum_codes codes
-    end
-  else 
-    if !do_resolve
-    then
-      (* XXX: assign enum constant values starting from 0? *)
-      let code = ref 1l in (* assign codes *)
-      List.iter (addcodes_enum_option code) options
-    else ()
+    error obj "packed representation can be used only for numeric, bool and enum types"
 
 
-let addcodes_def = function
-  | `record x -> addcodes_record x
+let check_packed_field x =
+  let open F in
+  if x.wire_packed
+  then (
+    if x.mode <> `repeated
+    then error x "packed representation can be used only for repeated fields";
+
+    check_packed_type x (some_of x.typeref)
+  )
+
+
+let check_packed_list x =
+  let open L in
+  if x.wire_packed
+  then check_packed_type x x.typeref
+
+
+let process_def = function
+  | `record x ->
+      List.iter check_packed_field x.R#field;
+      addcodes_record x
   | `variant x -> addcodes_variant x
   | `enum x -> addcodes_enum x
+  | `list x -> check_packed_list x
   | _ -> ()
 
 
-let add_codes (defs: T.piqdef list) =
-  List.iter addcodes_def defs
-
-
-let check_codes defs =
-  do_resolve := false;
-  add_codes defs;
-  do_resolve := true;
-  ()
+let process_defs (defs: T.piqdef list) =
+  List.iter process_def defs
 
 
 (*

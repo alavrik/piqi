@@ -23,7 +23,7 @@ piqi_piqi.ml: piqi_reboot $(wildcard *.piqi)
 	./piqi_reboot $(PIQICC_FLAGS) -o piqi_piqi.tmp.ml \
 		--boot piqicc-boot.piqi --piqi piqicc.piqi --impl piqicc-impl.piqi
 	rm -f *.cmo *.cmi
-	$(CAMLP4)o -o piqi_piqi.3.ml piqi_piqi.tmp.ml
+	$(CAMLP4_O) -o piqi_piqi.3.ml piqi_piqi.tmp.ml
 	ln -sf piqi_piqi.3.ml $@
 
 

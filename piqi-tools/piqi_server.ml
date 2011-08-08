@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -28,43 +28,6 @@ open C
 module I = Piqi_tools_piqi
 
 
-(* serialize and send one length-delimited packet to the output channle *)
-let send_packet ch data =
-  (* generate a length delimited block *)
-  let data = Piqirun.gen_block data in
-  Piqirun.to_channel ch data;
-  flush ch
-
-
-(* receive one length-delimited packet from the input channle *)
-let receive_packet ch =
-  (* read a length delimited block *)
-  let buf = Piqirun.IBuf.of_channel ch in
-  Piqirun.parse_block buf
-
-
-(* encode and write request/response structure to the output channel *)
-let send_request ch request =
-  let request = Piqi_rpc_piqi.gen_request request in
-  send_packet ch request
-
-
-let send_response ch response =
-  let response = Piqi_rpc_piqi.gen_response response in
-  send_packet ch response
-
-
-(* read and decode one request/response structure from the input channel *)
-let receive_request ch =
-  let buf = receive_packet ch in
-  Piqi_rpc_piqi.parse_request buf
-
-
-let receive_response ch =
-  let buf = receive_packet ch in
-  Piqi_rpc_piqi.parse_response buf
-
-
 (* utility functions for constructing Piqi_rpc responses *)
 let return_ok_empty () =
   `ok_empty
@@ -81,123 +44,12 @@ let return_rpc_error err =
   `rpc_error err
 
 
-let fname = "input" (* XXX *)
-
-
-let parse_piq_common get_next ~is_piqi_input =
-  let rec aux () =
-    let obj = get_next () in
-    match obj with
-      | Piq.Piqtype _ -> aux () (* skip default type *)
-      | Piq.Piqi _ when not is_piqi_input -> aux () (* skip embedded piqi *)
-      | Piq.Piqobj obj -> Piq.Typed_piqobj obj
-      | _ -> obj (* Typed_piqobj or Piqi *)
-  in aux ()
-
-
-(* NOTE: parsers always return either Piqi or Typed_piqobj *)
-
-
-let parse_piq s ~is_piqi_input =
-  let piq_parser = Piq_parser.init_from_string fname s in
-  let get_next () = Piq.load_piq_obj piq_parser in
-  let obj = parse_piq_common get_next ~is_piqi_input in
-  (* XXX: check eof? *)
-  obj
-
-
-let gen_piq obj =
-  let ast = Piq.gen_piq obj in
-  Piq_gen.to_string ast
-
-
-let parse_wire s ~is_piqi_input =
-  let buf = Piqirun.IBuf.of_string s in
-  let get_next () = Piq.load_wire_obj buf in
-  let obj = parse_piq_common get_next ~is_piqi_input in
-  (* XXX: check eof? *)
-  obj
-
-
-let gen_wire obj =
-  let buf = Piq.gen_wire obj in
-  Piqirun.to_string buf
-
-
-let parse_json piqtype s =
-  let json_parser = Piqi_json_parser.init_from_string ~fname s in
-  let obj = Piq.load_json_obj piqtype json_parser in
-  (* XXX: check eof? *)
-  obj
-
-
-let gen_json ?(pp=true) obj =
-  let json = Piq.gen_json obj in
-  if pp
-  then
-    Piqi_json_gen.pretty_to_string json
-  else
-    Piqi_json_gen.to_string json
-
-
-let parse_pb piqtype s =
-  let buf = Piqirun.init_from_string s in
-  let obj = Piq.load_pb piqtype buf in
-  (* XXX: check eof? *)
-  obj
-
-
-let gen_pb obj =
-  let buf = Piq.gen_pb obj in
-  Piqirun.to_string buf
-
-
-let parse_xml piqtype s =
-  let xml_parser = Piqi_xml.init_from_string ~fname s in
-  let obj = Piq.load_xml_obj piqtype xml_parser in
-  (* XXX: check eof? *)
-  obj
-
-
-let gen_xml obj =
-  let xml = Piq.gen_xml obj in
-  (* XXX: make pretty-printing optional? *)
-  Piqi_xml.xml_to_string xml
-
-
-let parse_obj typename input_format data =
-  let piqtype = Piqi_convert.get_piqtype typename in
-  let is_piqi_input = (typename = "piqi") in
-  let piqobj =
-    match input_format with
-      | `piq  -> parse_piq data ~is_piqi_input
-      | `json -> parse_json piqtype data
-      | `pb -> parse_pb piqtype data
-      | `xml -> parse_xml piqtype data
-      (*
-      | `wire -> parse_wire data ~is_piqi_input
-      *)
-  in piqobj
-
-
 (* "convert" call handler *)
 let convert args =
   let open I.Convert_input in
-  let piqobj =
-    (* XXX: We need to resolve all defaults before converting to JSON or XML *)
-    C.with_resolve_defaults
-      (args.output_format = `json || args.output_format = `xml)
-      (parse_obj args.type_name args.input_format) args.data
-  in
-  let output =
-    match args.output_format with
-      | `piq  -> gen_piq piqobj
-      | `json -> gen_json piqobj ~pp:args.pretty_print
-      | `pb -> gen_pb piqobj
-      | `xml -> gen_xml piqobj
-      (*
-      | `wire -> gen_wire piqobj
-      *)
+  let output = Piqi_convert.convert
+      args.type_name args.input_format args.output_format args.data
+      ~pretty_print:args.pretty_print
   in
   `ok I.Convert_output#{ data = output }
 
@@ -215,7 +67,8 @@ let convert args =
 
 
 let add_one_piqi input_format data =
-  match parse_obj "piqi" input_format data with
+  let piqtype = Piqi_convert.find_piqtype "piqi" in
+  match Piqi_convert.parse_obj piqtype input_format data with
     | Piq.Piqi piqi ->
         (match input_format with
           | `pb | `json | `xml ->
@@ -289,7 +142,7 @@ let execute_request req =
     | "", None ->
         (* return the Piqi module and all the dependencies encoded as a list of
          * Piqi each encoded using Protobuf binary format *)
-        let output = Piqirun.gen_list Piqirun.gen_string (-1) I.piqi in
+        let output = Piqirun.gen_list Piqirun.gen_string_field (-1) I.piqi in
         return_ok output
     | "", Some _ ->
         return_rpc_error
@@ -298,35 +151,43 @@ let execute_request req =
         return_rpc_error `unknown_function
 
 
+let do_work () =
+  let request, caller_ref =
+    try
+      Piqi_rpc.receive_request stdin
+    with exn -> (
+      let response = return_rpc_error
+        (`protocol_error
+          ("error while reading command: " ^ Printexc.to_string exn))
+      in
+      Piqi_rpc.send_response stdout response;
+      exit 1
+    )
+  in
+  let response =
+    try execute_request request
+    with Break x -> x
+  in
+  Piqi_rpc.send_response stdout response ~caller_ref
+
+
 (* read one request from stdin, execute the request, and write the response to
  * stdout *)
 let main_loop () =
   while true
   do
-    let request =
-      try
-        receive_request stdin
-      with exn -> (
-        let response = return_rpc_error
-          (`protocol_error
-            ("error while reading command: " ^ Printexc.to_string exn))
-        in
-        send_response stdout response;
-        exit 1
-      )
-    in
-    let response =
-      try execute_request request
-      with Break x -> x
-    in
-    send_response stdout response;
+    do_work ();
 
     (* reset location db to allow GC to collect previously read objects *)
     Piqloc.reset ();
-    (* XXX: run garbage collection on the minor heap to free all memory used for
-     * the request -- testing has not reveal any performance penalty for doing
-     * this *)
-    Gc.minor ();
+
+    (* Run a garbage collection cycle, as we don't need any created memory
+     * objects any more. A short garbage collection cycle helps to improve
+     * overall througput and latency.
+     *
+     * NOTE: Use of Gc.major_slice instead of Gc.minor showed better results.
+     *)
+    ignore (Gc.major_slice 0);
   done
 
 
@@ -342,6 +203,17 @@ let start_server () =
     exit 0
   ));
   main_loop ()
+
+
+let set_gc_options () =
+  (* Don't set custom options if the OCAMLRUNPARAM environment variable is
+   * defined *)
+  try ignore (Sys.getenv "OCAMLRUNPARAM")
+  with Not_found ->
+    let opt = Gc.get () in
+    opt.Gc.minor_heap_size <- 4 * 1024 * 1024; (* Minor heap size: 4m *)
+    opt.Gc.space_overhead <- 20;
+    Gc.set opt
 
 
 module Main = Piqi_main
@@ -364,6 +236,9 @@ let run () =
    * from the filesystem; now, they can only be loaded using "add_piqi" RPC call
    *)
   Config.reset_paths ();
+
+  (* Configure OCaml Garbage collector *)
+  set_gc_options ();
 
   start_server ()
 

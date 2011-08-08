@@ -43,7 +43,7 @@ model similar to those of high-level programming languages.
 FURTHER INFORMATION
 ===================
 
-Full description and documentation can be found at
+Full description and documentation can be found at:
 
        http://piqi.org
 
@@ -51,24 +51,53 @@ Full description and documentation can be found at
 INSTALLATION
 ============
 
-See INSTALL file for installation instructions.
+See the INSTALL file for installation instructions.
+
+
+BUG TRACKER
+===========
+
+If you found a bug or have any suggestions, please report them to the issue
+tracker:
+
+        http://github.com/alavrik/piqi/issues
+
+
+CONTRIBUTING
+============
+
+Participation and patches are very welcome! The best way to submit a
+contribution is to open a pull request on GitHub against "dev" branch.
+
+
+MAILING LIST
+============
+
+For discussions about the usage, development, and future of Piqi, please post on
+the Piqi Google Group:
+
+        http://groups.google.com/group/piqi
 
 
 FILES
 =====
 
   README                this file
-  INSTALL               installation instructions
+  INSTALL               general installation instructions
+  INSTALL.erlang        instructions for building Piqi for Erlang
+  INSTALL.ocaml         instructions for building Piqi for OCaml
+  INSTALL.windows       instructions for building Piqi on Windows
   setenv.sh             installation configuration file
+  setenv-mingw.sh       build configuration file for Windows/MinGW
   LICENSE               license
   NOTICE                copyright notice
   AUTHORS               Piqi authors
   CHANGES               release history
   VERSION               current version
   Makefile              main Makefile
-  make/                 make files for building the project
+  make/                 makefiles and build scripts
   deps/                 third-party components (see NOTICE for details)
-  camlp4/               camlp4 extensions
+  piqi-camlp4/          Piqi syntax extensions for OCaml
   piqicc/               Piqi compiler compiler
   piqic/                Piq interface compiler for OCaml and Erlang
   piqi-tools/           "piqi" command-line utility (piqi tools)
@@ -80,4 +109,5 @@ FILES
   examples/             examples
   tests/                tests for various piqi functionality; see tests/README
   editors/              text editor plugins for .piq and .piqi files
+  src/                  makes rebar happy (rebar is a build tool for Erlang)
 

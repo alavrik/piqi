@@ -11,9 +11,9 @@ piqi_piqi.ml: boot/piqdefs.ml
 	./piqi_boot2 >piqi_piqi.tmp.ml
 	./piqi_boot | sed -e 's/Piqtype.any/any/g' >>piqi_piqi.tmp.ml
 	rm -f *.cmo *.cmi
-	$(CAMLP4)o -o piqi_piqi.2.ml piqi_piqi.tmp.ml
+	$(CAMLP4_O) -o piqi_piqi.2.ml piqi_piqi.tmp.ml
 	#ln -sf piqi_piqi.1.ml $@
-	echo "(*pp camlp4o -I $$PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)" >$@
+	echo '(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)' >$@
 	cat piqi_piqi.2.ml >>$@
 	cat boot/piqdefs.ml >>$@
 

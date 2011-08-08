@@ -15,6 +15,7 @@ SOURCES += \
 	piqic_ocaml_defaults.ml \
 	piqic_ocaml_base.ml \
 	piqic_ocaml.ml \
+	piqic_ocaml_ext.ml \
 	\
 	piqic_erlang_types.ml \
 	piqic_erlang_out.ml \
@@ -43,7 +44,7 @@ debug: dc top
 piqi_piqi.ml: $(wildcard *.piqi)
 	$(PIQICC) $(PIQICC_FLAGS) -o $@.tmp.ml \
 		--boot piqic-boot.piqi --piqi piqic.piqi --impl piqic-impl.piqi
-	$(CAMLP4)o -o $@ $@.tmp.ml
+	$(CAMLP4_O) -o $@ $@.tmp.ml
 
 
 clean::

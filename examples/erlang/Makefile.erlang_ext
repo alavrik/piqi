@@ -11,7 +11,7 @@ EBIN_DIR = .
 
 
 PIQIC = piqic-erlang-ext
-PIQIC_FLAGS =
+PIQIC_FLAGS = --gen-defaults
 
 
 PIQI_FILES = addressbook.proto.piqi
@@ -27,6 +27,7 @@ all: ebin
 
 
 $(PIQI_ERL_FILES) $(PIQI_HRL_FILES): $(PIQI_FILES)
+	set -e; \
 	for i in $^; do \
 		$(PIQIC) $(PIQIC_FLAGS) $$i; \
 	done

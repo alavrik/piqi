@@ -1,0 +1,28 @@
+This file contains instructions for building Piqi to be used as a data
+serialization system for OCaml.
+
+
+INSTALLATION INSTRUCTIONS
+=========================
+
+1. Follow general build and installation instructions from the INSTALL file.
+
+        If you want Piqi libraries to be installed to a custom filesystem
+        location, configure the "PIQI_OCAML_PREFIX" variable in the setenv.sh
+        file.
+
+
+2. Build Piqi runtime libraries for OCaml:
+
+        make ocaml
+
+
+3. Install Piqi runtime libraries for OCaml:
+
+        make ocaml-install
+
+
+To uninstall previously installed Piqi libraries:
+
+        make ocaml-uninstall
+

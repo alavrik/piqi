@@ -3,6 +3,7 @@ PIQIC_PLUGIN = piqic-erlang-rpc
 
 
 PIQIC_PLUGIN_BEAMS = \
+    $(PIQI_ROOT)/piqi-erlang/ebin/piqi.beam \
     $(PIQI_ROOT)/piqi-erlang/ebin/piqirun.beam \
     $(PIQI_ROOT)/piqi-erlang/ebin/piqi_piqi.beam \
     $(PIQI_ROOT)/piqi-erlang/ebin/piqic_erlang_ext.beam \

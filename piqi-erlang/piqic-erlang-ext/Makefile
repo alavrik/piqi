@@ -3,6 +3,7 @@ PIQIC_PLUGIN = piqic-erlang-ext
 
 
 PIQIC_PLUGIN_BEAMS = \
+    ../ebin/piqi.beam \
     ../ebin/piqirun.beam \
     ../ebin/piqi_piqi.beam \
     ../ebin/piqic_erlang_ext.beam

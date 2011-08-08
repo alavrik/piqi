@@ -148,6 +148,7 @@ known_content_type(ReqData, Context) ->
             "application/x-protobuf" -> true;
             % allow content-type to be undefined when the body is empty
             'undefined' when Body == <<>> -> true;
+            "" when Body == <<>> -> true;
             _ -> false
         end,
 
@@ -156,7 +157,10 @@ known_content_type(ReqData, Context) ->
     % empty record is sent as the input parameter
     RealBody =
         case Body of
-            <<>> when ContentType == 'undefined' -> 'undefined'; % no body
+            <<>> when ContentType =:= 'undefined';
+                      ContentType =:= "";
+                      ContentType =/= "application/x-protobuf" ->
+                'undefined'; % no body
             _ -> Body
         end,
     NewContext = Context#context{ request_body = RealBody },
@@ -285,6 +289,11 @@ rpc(ReqData, Context, InputFormat) ->
 
     % this field is initialized above by the known_content_type/2 function
     InputData = Context#context.request_body,
+
+    % make the "ReqData" handle available to the server implementation in case
+    % it needs to analyze HTTP headers or some other parts of the original HTTP
+    % request
+    erlang:put(wrq, ReqData), % I guess "wrq" stands for "Webmachine request"
 
     % make the actual call
     RpcResponse = RpcMod:rpc(ImplMod, FuncName, InputData, InputFormat, OutputFormat),

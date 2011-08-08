@@ -36,8 +36,8 @@ test: beams
 	done
 
 
-$(ERL_APP_FILE): $(ERL_APP_FILE).templ
-	sed -e 's;%VSN%;$(VSN);' $< > $@
+$(ERL_APP_FILE): $(ERL_APP_FILE).src
+	sed -e 's/git/"$(VSN)"/' $< > $@
 
 
 clean::

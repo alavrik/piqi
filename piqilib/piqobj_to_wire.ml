@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -65,6 +65,22 @@ let gen_int ?wire_type code x =
   gen_f code x
 
 
+let gen_packed_int ?wire_type x =
+  let wire_type = W.get_wire_type `int wire_type in
+  let gen_f =
+    match wire_type with
+      | `varint -> Piqirun.int64_to_packed_varint
+      | `zigzag_varint -> Piqirun.int64_to_packed_zigzag_varint
+      | `fixed32 -> Piqirun.int64_to_packed_fixed32
+      | `fixed64 -> Piqirun.int64_to_packed_fixed64
+      | `signed_varint -> Piqirun.int64_to_packed_signed_varint
+      | `signed_fixed32 -> Piqirun.int64_to_packed_signed_fixed32
+      | `signed_fixed64 -> Piqirun.int64_to_packed_signed_fixed64
+      | `block -> assert false (* XXX *)
+  in
+  gen_f x
+
+
 let gen_float ?wire_type code x =
   let wire_type = W.get_wire_type `float wire_type in
   let gen_f =
@@ -76,8 +92,22 @@ let gen_float ?wire_type code x =
   gen_f code x
 
 
-let gen_bool = Piqirun.gen_bool
-let gen_string = Piqirun.gen_string
+let gen_packed_float ?wire_type x =
+  let wire_type = W.get_wire_type `float wire_type in
+  let gen_f =
+    match wire_type with
+      | `fixed32 -> Piqirun.float_to_packed_fixed32
+      | `fixed64 -> Piqirun.float_to_packed_fixed64
+      | _ -> assert false (* XXX *)
+  in
+  gen_f x
+
+
+let gen_bool = Piqirun.gen_bool_field
+
+let gen_packed_bool = Piqirun.bool_to_packed_varint
+
+let gen_string = Piqirun.gen_string_field
 
 
 let gen_int ?wire_type code x =
@@ -134,6 +164,18 @@ let rec gen_obj code (x:Piqobj.obj) =
     | `alias x -> gen_alias code x
 
 
+and gen_packed_obj (x:Piqobj.obj) =
+  match x with
+    (* built-in types *)
+    | `int x | `uint x -> gen_packed_int x
+    | `float x -> gen_packed_float x
+    | `bool x -> gen_packed_bool x
+    | `enum x -> gen_packed_enum x
+    | `alias x -> gen_packed_alias x
+    | _ ->
+        assert false (* other objects can't be packed *)
+
+
 (* generate obj without leading code/tag element *)
 and gen_binobj x =
   Piqirun.gen_binobj gen_obj x
@@ -166,7 +208,62 @@ and gen_record code x =
   let open R in
   (* TODO, XXX: doing ordering at every generation step is inefficient *)
   let fields = order_fields x.field in
-  Piqirun.gen_record code (List.map gen_field fields)
+  Piqirun.gen_record code (gen_fields fields)
+
+
+and gen_fields fields =
+  (* check if there's at least one packed field
+   * TODO: optimize by keeping track of it statically at the record level *)
+  if List.exists is_packed_field fields
+  then group_gen_fields fields
+  else List.map gen_field fields
+
+
+and is_packed_field x = x.F#piqtype.T.Field#wire_packed
+
+
+(* generate fields but first group packed repeated fields together because they
+ * are represented differently on the wire *)
+and group_gen_fields fields =
+  let rec aux accu l =
+    match l with
+      | [] -> List.rev accu
+      | h::t ->
+          let res, t =
+            if is_packed_field h
+            then gen_packed_fields h t
+            else gen_field h, t
+          in
+          aux (res::accu) t
+  in
+  aux [] fields
+
+
+(* group repeated packed fields that have the same type as the first one,
+ * generate their wire representation and return when we encounter some other
+ * field that doesn't belong to this repeated group *)
+and gen_packed_fields first tail =
+  let open F in
+  let return accu rest =
+    let code = Int32.to_int (some_of first.piqtype.T.Field#code) in
+    let res = Piqirun.gen_record code (List.rev accu) in
+    res, rest
+  in
+  let rec aux accu l =
+    match l with
+      | [] -> return accu l
+      | h::_ when h.piqtype != first.piqtype -> return accu l
+      | h::t ->
+          aux ((gen_packed_field h)::accu) t
+  in
+  (* putting `first` as a first element in our accumulator *)
+  aux [gen_packed_field first] tail
+
+
+and gen_packed_field x =
+  let open F in
+  (* NOTE: object for a repeated packed field can't be None *)
+  gen_packed_obj (some_of x.obj)
 
 
 and gen_field x =
@@ -176,7 +273,8 @@ and gen_field x =
     | None ->
         (* using true for encoding flags -- the same encoding as for options
          * (see below) *)
-        Piqirun.gen_bool code true
+        refer x;
+        Piqirun.gen_bool_field code true
     | Some obj -> gen_obj code obj
 
 
@@ -193,7 +291,7 @@ and gen_option x =
     | None ->
         (* using true for encoding options w/o value *)
         refer x;
-        Piqirun.gen_bool code true
+        Piqirun.gen_bool_field code true
     | Some obj ->
         gen_obj code obj
 
@@ -206,35 +304,54 @@ and gen_enum code x =
 and gen_enum_option code x =
   let open O in
   let value = some_of x.piqtype.T.Option#code in
-  (*
-  Piqirun.gen_varint code value
-  *)
-  Piqirun.int32_to_varint code value
+  Piqirun.int32_to_signed_varint code value
 
 
-and gen_list code x = 
+and gen_packed_enum x =
+  let open E in
+  gen_packed_enum_option x.option
+
+
+and gen_packed_enum_option x =
+  let open O in
+  let value = some_of x.piqtype.T.Option#code in
+  Piqirun.int32_to_packed_signed_varint value
+
+
+and gen_list code x =
   let open L in
-  Piqirun.gen_list gen_obj code x.obj
+  if not x.piqtype.T.Piqlist.wire_packed
+  then Piqirun.gen_list gen_obj code x.obj
+  else Piqirun.gen_packed_list gen_packed_obj code x.obj
 
 
 and gen_alias ?wire_type code x =
+  let open A in
+  let wire_type = resolve_wire_type ?wire_type x in
+  match x.obj with
+    | `int x | `uint x -> gen_int code x ?wire_type
+    | `float x -> gen_float code x ?wire_type
+    | `alias x -> gen_alias code x ?wire_type
+    | obj -> gen_obj code obj
+
+
+and gen_packed_alias ?wire_type x =
+  let open A in
+  let wire_type = resolve_wire_type ?wire_type x in
+  match x.obj with
+    | `int x | `uint x -> gen_packed_int x ?wire_type
+    | `float x -> gen_packed_float x ?wire_type
+    | `alias x -> gen_packed_alias x ?wire_type
+    | obj -> gen_packed_obj obj
+
+
+and resolve_wire_type ?wire_type x =
   let open A in
   let this_wire_type = x.piqtype.T.Alias#wire_type in
   (* wire-type defined in this alias trumps wire-type passed by the upper
    * definition *)
   (* XXX: report a wire-type conflict rather than silently use the default? *)
-  let wire_type =
-    match wire_type, this_wire_type with
-      | _, Some _ -> this_wire_type
-      | _ -> wire_type
-  in
-  gen_alias_obj code x.obj ?wire_type 
-
-
-and gen_alias_obj ?wire_type code (x:Piqobj.obj) =
-  match x with
-    | `int x | `uint x -> gen_int code x ?wire_type
-    | `float x -> gen_float code x ?wire_type
-    | `alias x -> gen_alias code x ?wire_type
-    | _ -> gen_obj code x
+  match wire_type, this_wire_type with
+    | _, Some _ -> this_wire_type
+    | _ -> wire_type
 

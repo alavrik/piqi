@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -129,8 +129,10 @@ let gen_alias a =
   let open Alias in
   iol [
     ios "default_"; ios (some_of a.erlang_name); ios "() -> ";
-    gen_default_typeref
-      a.typeref ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
+    Piqic_erlang_in.gen_convert_of a.typeref a.erlang_type (
+      gen_default_typeref
+        a.typeref ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
+    );
     ios ".";
   ]
 

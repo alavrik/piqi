@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -77,7 +77,10 @@ let gen_field_cons rname f =
           ]
 
       | `optional -> ios "None"
-      | `repeated -> ios "[]"
+      | `repeated ->
+          if f.ocaml_array
+          then ios "[||]"
+          else ios "[]"
   in
   (* field construction code *)
   iod " " [ ffname; ios "="; value; ios ";" ] 
@@ -88,7 +91,9 @@ let gen_record r =
   let rname = capitalize (some_of r.R#ocaml_name) in
   let fields = r.R#wire_field in
   let fconsl = (* field constructor list *)
-    List.map (gen_field_cons rname) fields
+    if fields <> []
+    then List.map (gen_field_cons rname) fields
+    else [ios rname; ios "."; ios "_dummy = ()"]
   in (* fake_<record-name> function delcaration *)
   iod " "
     [
@@ -141,8 +146,10 @@ let gen_alias a =
   iod " "
     [
       ios "default_" ^^ ios (some_of a.ocaml_name); ios "() =";
-      gen_default_typeref
-        a.typeref ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+      Piqic_ocaml_in.gen_convert_of a.typeref a.ocaml_type (
+        gen_default_typeref
+          a.typeref ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+      );
     ]
 
 
@@ -150,7 +157,10 @@ let gen_list l =
   let open L in
   iod " "
     [
-      ios "default_" ^^ ios (some_of l.ocaml_name); ios "() = []";
+      ios "default_" ^^ ios (some_of l.ocaml_name); ios "() = ";
+      if l.ocaml_array
+      then ios "[||]"
+      else ios "[]";
     ]
 
 

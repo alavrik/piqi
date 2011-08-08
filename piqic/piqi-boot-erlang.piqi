@@ -22,10 +22,3 @@
     .erlang-type "non_neg_integer"
 ]
 
-
-.extend [
-    (.name float float32 float64)
-
-    .erlang-type "float"
-]
-

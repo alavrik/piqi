@@ -41,7 +41,7 @@ let _ =
       exit (-1)
     );
   (* Read the existing address book. *)
-  let ch = open_in Sys.argv.(1) in
+  let ch = open_in_bin Sys.argv.(1) in
   let buf = Piqirun.init_from_channel ch in
   let address_book = parse_address_book buf in
   close_in ch;

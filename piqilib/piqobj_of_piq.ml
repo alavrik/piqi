@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -200,13 +200,30 @@ let check_duplicate name tail =
           warning obj ("duplicate field " ^ quote name)) l
 
 
-let warn_unknown_field x =
-  if !Config.flag_trace
-  then
-    let s = Piq_gen.to_string x in
-    warning x ("unknown field: " ^ s)
+(* truncate the string till the first newline or to max_len *)
+let truncate_string s max_len =
+  let max_len =
+    try String.index s '\n'
+    with Not_found -> max_len
+  in
+  if String.length s <= max_len
+  then s
   else
-    warning x "unknown field"
+    let s = String.sub s 0 max_len in
+    s ^ " ..."
+
+
+let string_of_piqast x =
+  match x with
+    | `name s -> s
+    | `named {T.Named.name = n} -> n
+    | _ ->
+        let s = Piq_gen.to_string x in
+        truncate_string s 50
+
+
+let warn_unknown_field x =
+  warning x ("unknown field: " ^ string_of_piqast x)
 
 
 let handle_unknown_field (x:T.ast) =
@@ -221,12 +238,7 @@ let handle_unknown_field (x:T.ast) =
 
 
 let handle_unknown_variant (x:T.ast) =
-  if !Config.flag_trace
-  then
-    let s = Piq_gen.to_string x in
-    error x ("unknown variant: " ^ s)
-  else
-    error x "unknown variant"
+  error x ("unknown variant: " ^ string_of_piqast x)
 
 
 let find_piqtype name =

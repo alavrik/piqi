@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -66,29 +66,6 @@ let speclist = Main.common_speclist @
   ]
 
 
-let find_piqtype typename =
-  if not (Piqi_name.is_valid_typename typename)
-  then
-    piqi_error ("invalid type name: " ^ typename);
-
-  try Piqi_db.find_piqtype typename
-  with Not_found ->
-    piqi_error ("unknown type: " ^ typename)
-
-
-let get_piqtype typename =
-  if typename = "piqi" (* special case *)
-  then !Piqi.piqi_def (* return Piqi type from embedded self-definition *)
-  else find_piqtype typename
-
-
-let do_load_piqi fname =
-  let ast = Piqi.read_piqi fname in
-  let piqtype = !Piqi.piqi_def in
-  let obj = Piqobj_of_piq.parse_obj piqtype ast in
-  obj
-
-
 let first_load = ref true
 
 let load_piqi fname :Piq.obj =
@@ -152,13 +129,13 @@ let make_reader input_encoding =
     | "pb" when !typename = "" ->
         piqi_error "--piqtype parameter must be specified for \"pb\" input encoding"
     | "pb" ->
-        let piqtype = get_piqtype !typename in
+        let piqtype = Piqi_convert.find_piqtype !typename in
         let wireobj = Piq.open_pb !ifile in
         make_reader (load_pb piqtype) wireobj
     | "json" | "piq-json" ->
         let piqtype =
           if !typename <> ""
-          then Some (get_piqtype !typename)
+          then Some (Piqi_convert.find_piqtype !typename)
           else None
         in
         let json_parser = Piqi_json.open_json !ifile in
@@ -166,7 +143,7 @@ let make_reader input_encoding =
     | "xml" when !typename = "" ->
         piqi_error "--piqtype parameter must be specified for \"xml\" input encoding"
     | "xml" ->
-        let piqtype = get_piqtype !typename in
+        let piqtype = Piqi_convert.find_piqtype !typename in
         let xml_parser = Piqi_xml.open_xml !ifile in
         make_reader (Piq.load_xml_obj piqtype) xml_parser
     | _ when !typename <> "" ->
@@ -291,14 +268,8 @@ let validate_options input_encoding =
   )
 
 
-let init () =
-  (* XXX: this is necessary when we convert to/from json, but now calling it
-   * regardless of whether we actually need it *)
-  Piqi_json.init ()
-
-
 let convert_file () =
-  init ();
+  Piqi_convert.init ();
   let input_encoding =
     if !input_encoding <> ""
     then !input_encoding

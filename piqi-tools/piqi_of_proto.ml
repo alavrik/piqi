@@ -1,4 +1,4 @@
-(*pp camlp4o -I `ocamlfind query ulex` -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo pa_ulex.cma *)
+(*pp camlp4o -I `ocamlfind query piqi.ulex` -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo pa_ulex.cma *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -366,23 +366,21 @@ let gen_field_internals idtable ?(path=[]) x =
   let path = (some_of x.name) :: path in
   let name = make_piqi_name path in
 
-  (match x.options with
-    | None -> ()
-    | Some x ->
-        if x.D.Field_options#packed = Some true
-        then
-          (piqi_warning
-            ("proto field " ^ quote name ^
-             " specifies \"packed\" encoding which is not supported by Piqi yet")
-          );
-  );
-
+  let packed =
+    match x.options with
+      | None -> ""
+      | Some x ->
+          if x.D.Field_options#packed = Some true
+          then ".wire-packed"
+          else ""
+  in
   iod "\n" [
       ios ".name " ^^ ios name;
       ios ".type " ^^ ios type_name;
       label;
       default;
       ios ".code " ^^ ios (Int32.to_string (some_of x.number));
+      ios packed;
   ]
 
 

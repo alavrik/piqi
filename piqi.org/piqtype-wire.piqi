@@ -47,3 +47,14 @@
 ]
 
 
+.extend [
+    (.name field list)
+
+    % indication that Protobuf "packed" format is used for repeated fields or
+    % list elements
+    .field [
+        .name wire-packed
+        .optional
+    ]
+]
+

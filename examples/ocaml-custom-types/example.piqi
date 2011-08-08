@@ -1,0 +1,45 @@
+%
+% defining custom OCaml types to be serialized as some Piqi types
+%
+
+.alias [
+    .name char
+    .type int
+    .ocaml-type "Piqirun_custom.char"
+]
+
+
+.alias [
+    .name ocaml-nativeint
+    .type int
+    .ocaml-type "Piqirun_custom.nativeint"
+]
+
+
+.alias [
+    .name ocaml-bigint
+    .type string
+    .ocaml-type "Piqirun_custom.bigint"
+]
+
+
+% a record that uses the above definitions
+.record [
+    .name r
+
+    .field [
+        .name c
+        .type char
+    ]
+
+    .field [
+        .name ni
+        .type ocaml-nativeint
+    ]
+
+    .field [
+        .name bi
+        .type ocaml-bigint
+    ]
+]
+

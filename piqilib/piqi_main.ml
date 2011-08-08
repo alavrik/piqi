@@ -35,7 +35,7 @@ let open_input = function
   | "-" | "" -> stdin
   | f ->
       try
-        let c = open_in f in
+        let c = open_in_bin f in
         ifile := f;
         ich := c; c
       with Sys_error s ->
@@ -46,7 +46,7 @@ let open_output = function
   | "-" | "" -> stdout
   | f ->
       try 
-        let c = open_out f in
+        let c = open_out_bin f in
         ofile := f;
         och := c; c
       with Sys_error s ->
@@ -280,6 +280,9 @@ let run_subcommand cmd_name =
 
 
 let run () =
+  (* set .piqi search path to contain CWD and $PIQI_DIR *)
+  Config.init_paths ();
+
   if !Sys.interactive
   then () (* don't do anything in interactive (toplevel) mode *)
   else

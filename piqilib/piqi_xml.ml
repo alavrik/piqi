@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -175,8 +175,13 @@ let read_xml_obj (xml_parser :xml_parser) :xml option =
   let is_eoi =
     try Xmlm.eoi xml_parser.input
     with
-      (* raised on a completely empty input *)
-      Xmlm.Error (_pos, `Unexpected_eoi) -> true
+      | Xmlm.Error (_pos, `Unexpected_eoi) ->
+          (* raised on a completely empty input *)
+          true
+      | Xmlm.Error ((line, col), err) ->
+          let loc = xml_parser.fname, line, col in
+          let errstr = Xmlm.error_message err in
+          error_at loc errstr
   in
   if is_eoi
   then None
@@ -187,40 +192,45 @@ let read_xml_obj (xml_parser :xml_parser) :xml option =
 
 (* XML output *)
 
-let make_output dest =
+let make_output ?(pretty_print=true) dest =
   (* Use 2-space indentation and output a newline character after the root
    * element.
    *
    * NOTE: we use a modified version of Xmlm library that doesn't insert
    * indentation around text nodes, because indentation leads to extra
    * whitespace and this is not what we want *)
-  Xmlm.make_output dest ~indent:(Some 2) ~nl:true
+  let indent =
+    if pretty_print
+    then Some 2
+    else None
+  in
+  Xmlm.make_output dest ~indent ~nl:true
 
 
-let gen_xml dest (xml :xml) =
+let gen_xml ?pretty_print dest (xml :xml) =
   let frag = function (* xml to Xmlm.frag converter *)
     | `Data x -> `Data x
     | `Elem (name, contents) ->
         let tag = ("", name), [] in (* no namespace, no attributes *)
         `El (tag, contents)
   in
-  let output = make_output dest in
+  let output = make_output ?pretty_print dest in
   let dtd = None in
   Xmlm.output_doc_tree frag output (dtd, xml)
 
 
-let xml_to_buffer buf xml =
+let xml_to_buffer ?pretty_print buf xml =
   let dest = `Buffer buf in
-  gen_xml dest xml
+  gen_xml ?pretty_print dest xml
 
 
-let xml_to_channel ch xml =
+let xml_to_channel ?pretty_print ch xml =
   let dest = `Channel ch in
-  gen_xml dest xml
+  gen_xml ?pretty_print dest xml
 
 
-let xml_to_string xml =
+let xml_to_string ?pretty_print xml =
   let buf = Buffer.create 256 in
-  xml_to_buffer buf xml;
+  xml_to_buffer ?pretty_print buf xml;
   Buffer.contents buf
 

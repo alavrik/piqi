@@ -12,14 +12,15 @@ ERL_SOURCES = \
 	\
 	piqic_erlang_ext.erl \
 	\
-	piqirun_tests.erl
+	piqirun_tests.erl \
+	piqirun_props.erl
 
 
 ERL_TESTS = piqirun
 
 
 ERL_APP_PATH = $(PIQI_ROOT)/piqi-erlang
-ERLC_FLAGS = -I ../include
+ERLC_FLAGS += -I ../include
 #EBIN_DIR = .
 
 
@@ -49,14 +50,21 @@ test: beams
 	done
 
 
-$(ERL_APP_FILE): $(ERL_APP_FILE).templ
-	sed -e 's;%VSN%;$(VSN);' $< > $@
+$(ERL_APP_FILE): $(ERL_APP_FILE).src
+	sed -e 's/git/"$(VSN)"/' $< > $@
 
 
 $(PIQI_ERL_FILES) $(PIQI_HRL_FILES): $(PIQI_FILES)
+	set -e; \
 	for i in $^; do \
 		$(PIQIC) erlang $(PIQIC_FLAGS) $$i; \
 	done
+
+
+proper:
+	touch piqirun_props.erl
+	$(MAKE) ERLC_FLAGS='-D PROPER'
+	$(ERL) -pa $(EBIN_DIR) -noshell -eval 'proper:module(piqirun_props, 10000)' -s init stop
 
 
 clean::

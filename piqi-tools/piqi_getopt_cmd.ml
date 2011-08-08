@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -27,8 +27,8 @@ open C
 
 
 (* command-line arguments *)
-let output_encoding = Piqi_convert.output_encoding
-let typename = Piqi_convert.typename
+let output_encoding = Piqi_convert_cmd.output_encoding
+let typename = Piqi_convert_cmd.typename
 
 
 module Main = Piqi_main
@@ -61,12 +61,12 @@ let getopt_command () =
         in
         Piqi_pp.prettyprint_ast och ast
     | _ ->
-        let writer = Piqi_convert.make_writer !output_encoding in
+        let writer = Piqi_convert_cmd.make_writer !output_encoding in
         let piqtype = Piqi_convert.find_piqtype !typename in
 
         (* parse the Piq AST according to "--piqtype" and convert to the output
          * format according to "-t" *)
-        C.resolve_defaults := !Piqi_convert.flag_add_defaults;
+        C.resolve_defaults := !Piqi_convert_cmd.flag_add_defaults;
 
         let piqobj = Piqi_getopt.parse_args piqtype piq_ast_list in
 
@@ -81,9 +81,9 @@ let speclist = Main.common_speclist @
   [
     arg_o;
 
-    Piqi_convert.arg__t;
-    Piqi_convert.arg__piqtype;
-    Piqi_convert.arg__add_defaults;
+    Piqi_convert_cmd.arg__t;
+    Piqi_convert_cmd.arg__piqtype;
+    Piqi_convert_cmd.arg__add_defaults;
 
     Piqi_getopt.arg__rest;
   ]

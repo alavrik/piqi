@@ -83,7 +83,7 @@ parse_args([_|T], Odir) ->
 
 piqic_erlang(Args, CustomArgs) ->
     PiqicErlang = lists:concat([
-            "piqic erlang ", CustomArgs, join_args(Args)
+            piqi:get_command("piqic"), " erlang ", CustomArgs, join_args(Args)
         ]),
     command(PiqicErlang).
 
@@ -121,7 +121,8 @@ piqic_erlang_ext(Mod, Args) ->
     ExpandedPiqi = Filename ++ ".expanded.pb",
     try
         PiqicExpand = lists:concat([
-            "piqic expand --erlang -b -o ", ExpandedPiqi, " ", join_args(Args)
+            piqi:get_command("piqic"),
+            " expand --erlang -b -o ", ExpandedPiqi, " ", join_args(Args)
         ]),
         command(PiqicExpand),
 
@@ -164,6 +165,7 @@ gen_piqi(Piqi) ->
     Mod = Piqi#piqi.module,
     ErlMod = Piqi#piqi.erlang_module,
     Defs = Piqi#piqi.piqdef,
+    Functions = Piqi#piqi.func,
 
     Filename = binary_to_list(ErlMod) ++ "_ext.erl",
 
@@ -173,8 +175,10 @@ gen_piqi(Piqi) ->
             "-compile(export_all).\n"
         ],
         gen_embedded_piqi(ErlMod),
-        [ gen_parse(Mod, ErlMod, X) || X <- Defs ],
-        [ gen_gen(Mod, ErlMod, X) || X <- Defs ]
+        [ gen_parse_def(Mod, ErlMod, X) || X <- Defs ],
+        [ gen_gen_def(Mod, ErlMod, X) || X <- Defs ],
+        [ gen_parse_func(Mod, ErlMod, X) || X <- Functions ],
+        [ gen_gen_func(Mod, ErlMod, X) || X <- Functions ]
     ]),
     ok = file:write_file(Filename, Code).
 
@@ -200,9 +204,7 @@ piqdef_erlname({alias, X}) -> X#alias.erlang_name;
 piqdef_erlname({piq_list, X}) -> X#piq_list.erlang_name.
 
 
-gen_parse(Mod, ErlMod, Def) ->
-    Name = piqdef_name(Def),
-    ErlName = piqdef_erlname(Def),
+gen_parse(Mod, ErlMod, Name, ErlName) ->
     [
         "parse_", ErlName, "(X, Format) ->\n",
         "    ", ErlMod, ":parse_", ErlName, "(\n",
@@ -210,9 +212,7 @@ gen_parse(Mod, ErlMod, Def) ->
     ].
 
 
-gen_gen(Mod, ErlMod, Def) ->
-    Name = piqdef_name(Def),
-    ErlName = piqdef_erlname(Def),
+gen_gen(Mod, ErlMod, Name, ErlName) ->
     [
         "gen_", ErlName, "(X, Format) ->\n",
         "    Iolist = ", ErlMod, ":gen_", ErlName, "(X),\n",
@@ -229,6 +229,41 @@ gen_convert(Mod, Name, InputFormat, OutputFormat, Data) ->
         ]),
         ")"
     ].
+
+
+gen_parse_def(Mod, ErlMod, Def) ->
+    Name = piqdef_name(Def),
+    ErlName = piqdef_erlname(Def),
+    gen_parse(Mod, ErlMod, Name, ErlName).
+
+
+gen_gen_def(Mod, ErlMod, Def) ->
+    Name = piqdef_name(Def),
+    ErlName = piqdef_erlname(Def),
+    gen_gen(Mod, ErlMod, Name, ErlName).
+
+
+gen_parse_func(Mod, ErlMod, Func) ->
+    [ gen_parse(Mod, ErlMod, Name, ErlName) || {Name, ErlName} <- make_params(Func) ].
+
+
+gen_gen_func(Mod, ErlMod, Func) ->
+    [ gen_gen(Mod, ErlMod, Name, ErlName) || {Name, ErlName} <- make_params(Func) ].
+
+
+make_params(Func) ->
+    Name = Func#func.name,
+    ErlName = Func#func.erlang_name,
+    [
+        make_param_names(Name, ErlName, Func#func.input, "input"),
+        make_param_names(Name, ErlName, Func#func.output, "output"),
+        make_param_names(Name, ErlName, Func#func.error, "error")
+    ].
+
+
+make_param_names(_Name, _ErlName, 'undefined', _ParamType) -> 'undefined';
+make_param_names(Name, ErlName, _Param, ParamType) ->
+    {[Name, "-", ParamType], [ErlName, "_", ParamType]}.
 
 
 iod(_Delim, []) -> [];

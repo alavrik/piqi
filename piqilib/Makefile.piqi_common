@@ -16,6 +16,7 @@ PIQI_SOURCES_TAIL = \
 	\
 	piqi_config.ml \
 	piqi_iolist.ml \
+	piqi_graph.ml \
 	piqi_common.ml \
 	piqi_file.ml \
 	piqi_main.ml \
@@ -50,16 +51,13 @@ SOURCES = \
 PRE_TARGETS = piqi_version.ml piqi_piqi.ml piqobj.ml
 
 
-PACKS = ulex easy-format
-LIBS = piqirun
-LIBDIRS = ../piqirun-ocaml
-INCDIRS = ../piqirun-ocaml
+PACKS = ulex easy-format piqirun
 
 
-#RESULTDEPS = ../piqirun-ocaml/piqirun.cma
-
-
-# PACKS +=
+# LIBS = piqirun
+# LIBDIRS = ../piqirun-ocaml
+# INCDIRS = ../piqirun-ocaml
+# RESULTDEPS = ../piqirun-ocaml/piqirun.cma
 # ANNOTATE = yes
 # INCDIRS += +camlp4
 # USE_CAMLP4 = yes

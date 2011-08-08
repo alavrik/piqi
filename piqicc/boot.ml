@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -51,7 +51,7 @@ let boot2 () =
    *)
   Piqi_wire.add_hashcodes piqi.P#resolved_piqdef;
   (* check for hash conflicts and pre-order fields by hash codes *)
-  Piqi_wire.add_codes piqi.P#resolved_piqdef;
+  Piqi_wire.process_defs piqi.P#resolved_piqdef;
 
   (* call piq interface compiler for ocaml *)
   Piqic_ocaml_types.cc_mode := true;
@@ -65,8 +65,9 @@ let _ =
   if !Sys.interactive
   then ()
   else
-    match Sys.argv.(0) with
-      | "./piqi_boot" -> boot ()
-      | "./piqi_boot2" -> boot2 ()
+    let name = Filename.basename (Piqi_file.chop_extension Sys.argv.(0)) in
+    match name with
+      | "piqi_boot" -> boot ()
+      | "piqi_boot2" -> boot2 ()
       | _ -> assert false
 

@@ -24,12 +24,50 @@
 .function [
     .name baz
 
-    .input [
+    .input.record [
         .field [
             .type int
             .optional
             .default 10
         ]
+    ]
+]
+
+
+% function with a variant input parameter
+.function [
+    .name v
+
+    .output.variant [
+        .option [
+            .name i
+            .type int
+        ]
+        .option [
+            .name f
+            .type float
+        ]
+    ]
+]
+
+
+% function with an enum error parameter
+.function [
+    .name e
+
+    .error.enum [
+        .option [ .name a ]
+        .option [ .name b ]
+    ]
+]
+
+
+% function with a list input parameter
+.function [
+    .name l
+
+    .input.list [
+        .type int
     ]
 ]
 

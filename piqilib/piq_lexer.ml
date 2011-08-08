@@ -1,4 +1,4 @@
-(*pp camlp4o -I `ocamlfind query ulex` pa_ulex.cma *)
+(*pp camlp4o -I `ocamlfind query piqi.ulex` pa_ulex.cma *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -403,6 +403,8 @@ let token1 buf =
     | Ulexing.Error -> error buf "lexing internal error"
     | Ulexing.InvalidCodepoint i -> 
         error buf ("invalid unicode code point " ^ string_of_int i)
+    | Utf8.MalFormed ->
+        error buf "malformed utf-8"
 
 
 let rollback buf tok =

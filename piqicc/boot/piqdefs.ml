@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -35,6 +35,9 @@ let f = F#{
   alt_name = None;
   ocaml_name = None;
   code = None;
+
+  wire_packed = false;
+  ocaml_array = false;
 }
 
 
@@ -149,6 +152,8 @@ let piqdef_list =
         ocaml_name = None;
         typeref = `name "piqdef";
         parent = None;
+        wire_packed = false;
+        ocaml_array = false;
       };
     `variant
       V#{
@@ -252,8 +257,18 @@ let piqdef_list =
               mode = `optional;
             };
             F#{f with
+              name = Some "ocaml-array";
+              typeref = None;
+              mode = `optional;
+            };
+            F#{f with
               name = Some "code";
               typeref = Some (`name "int32");
+              mode = `optional;
+            };
+            F#{f with
+              name = Some "wire-packed";
+              typeref = None;
               mode = `optional;
             };
             F#{f with
@@ -415,8 +430,18 @@ let piqdef_list =
               mode = `required;
             };
             F#{f with
+              name = Some "wire-packed";
+              typeref = None;
+              mode = `optional;
+            };
+            F#{f with
               name = Some "ocaml-name";
               typeref = Some `string;
+              mode = `optional;
+            };
+            F#{f with
+              name = Some "ocaml-array";
+              typeref = None;
               mode = `optional;
             };
             F#{f with

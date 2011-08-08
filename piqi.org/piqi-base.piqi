@@ -114,7 +114,24 @@
 .variant [
     .name function-param
     .option [ .type name ]
-    .option [ .type anonymous-record ]
+    .option [
+        .name record
+        .type anonymous-record
+    ]
+    .option [
+        .name variant
+        .type anonymous-variant
+    ]
+    .option [
+        .name enum
+        .type anonymous-enum
+    ]
+    .option [
+        .name list
+        .type anonymous-list
+    ]
+    % NOTE: obviously, there's no anonymous alias. At the same time, the "name"
+    % option will turn into <function-name>-input|output|error alias
 ]
 
 
@@ -126,5 +143,25 @@
         .type field
         .repeated
     ]
+]
+
+.record [
+    .name anonymous-variant
+
+    .field [
+        .type option
+        .repeated
+    ]
+]
+
+.alias [
+    .name anonymous-enum
+    .type anonymous-variant
+]
+
+.record [
+    .name anonymous-list
+
+    .field [ .type type ]
 ]
 

@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -25,16 +25,24 @@ open C
 open Iolist
 
 
+(* command-line flags *)
+let flag_pp = ref false
+
+
 let mlname_func_param func_name param_name param =
   let make_name () =
     Some (func_name ^ "_" ^ param_name)
   in
   match param with
    | None -> ()
-   | Some (`record x) ->
-       x.R#ocaml_name <- make_name ()
    | Some (`alias x) ->
        x.A#ocaml_name <- make_name ()
+   | Some (`record x) ->
+       x.R#ocaml_name <- make_name ()
+   | Some (`variant x) | Some (`enum x) ->
+       x.V#ocaml_name <- make_name ()
+   | Some (`list x) ->
+       x.L#ocaml_name <- make_name ()
 
 
 let mlname_func x =
@@ -74,38 +82,7 @@ let gen_embedded_piqi piqi =
   ]
 
 
-(* command-line flags *)
-let flag_pp = ref false
-
-
-let piqic_file ifile =
-  Piqic_common.init ();
-
-  (* load input .piqi file *)
-  let piqi = Piqi.load_piqi ifile in
-
-  (* naming function parameters first, because otherwise they will be overriden
-   * in Piqic_ocaml_base.mlname_defs *)
-  mlname_functions piqi.P#resolved_func;
-
-  let code = Piqic_ocaml_base.piqic piqi in
-  let code =
-    if !Piqic_common.flag_embed_piqi
-    then iol [ code; gen_embedded_piqi piqi ]
-    else code
-  in
-
-  (* chdir to the output directory *)
-  Main.chdir_output !odir;
-
-  let ofile =
-    match !ofile with
-      | "" ->
-          let modname = some_of piqi.P#ocaml_module in
-          String.uncapitalize modname ^ ".ml"
-      | x -> x
-  in
-  (* call piq interface compiler for ocaml *)
+let gen_output_file ofile code =
   if not !flag_pp
   then
     let ch = Main.open_output ofile in
@@ -124,6 +101,39 @@ let piqic_file ifile =
       ocaml_pretty_print tmp_file ofile;
       Main.add_tmp_file tmp_file;
     end
+
+
+let piqic piqi =
+  (* naming function parameters first, because otherwise they will be overriden
+   * in Piqic_ocaml_base.mlname_defs *)
+  mlname_functions piqi.P#resolved_func;
+
+  (* call piq interface compiler for ocaml *)
+  let code = Piqic_ocaml_base.piqic piqi in
+  let code =
+    if !Piqic_common.flag_embed_piqi
+    then iol [ code; gen_embedded_piqi piqi ]
+    else code
+  in
+
+  (* chdir to the output directory *)
+  Main.chdir_output !odir;
+
+  let ofile =
+    match !ofile with
+      | "" ->
+          let modname = some_of piqi.P#ocaml_module in
+          String.uncapitalize modname ^ ".ml"
+      | x -> x
+  in
+  gen_output_file ofile code
+
+
+let piqic_file ifile =
+  Piqic_common.init ();
+  (* load input .piqi file *)
+  let piqi = Piqi.load_piqi ifile in
+  piqic piqi
 
 
 let usage = "Usage: piqic ocaml [options] <.piqi file>\nOptions:"

@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -96,6 +96,9 @@ TODO:   @-    // string or binary value will be loaded from stdin
 
 module C = Piqi_common
 open C
+
+
+let _ = Piqilib.init ()
 
 
 (*
@@ -231,7 +234,7 @@ let parse_name_arg s =
 
 
 let read_file filename =
-  let ch = open_in filename in
+  let ch = open_in_bin filename in
   let len = in_channel_length ch in
   let buf = Buffer.create len in
   Buffer.add_channel buf ch len;

@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -63,12 +63,33 @@ let parse_int ?wire_type x =
     | `block -> assert false (* XXX *)
 
 
+let parse_packed_int ?wire_type x =
+  let wire_type = W.get_wire_type `int wire_type in
+  match wire_type with
+    | `varint -> `uint (Piqirun.int64_of_packed_varint x)
+    | `zigzag_varint -> `int (Piqirun.int64_of_packed_zigzag_varint x)
+    | `fixed32 -> `uint (Piqirun.int64_of_packed_fixed32 x)
+    | `fixed64 -> `uint (Piqirun.int64_of_packed_fixed64 x)
+    | `signed_varint -> `int (Piqirun.int64_of_packed_signed_varint x)
+    | `signed_fixed32 -> `int (Piqirun.int64_of_packed_signed_fixed32 x)
+    | `signed_fixed64 -> `int (Piqirun.int64_of_packed_signed_fixed64 x)
+    | `block -> assert false (* XXX *)
+
+
 let parse_float ?wire_type x =
   let r0 = reference0 in
   let wire_type = W.get_wire_type `float wire_type in
   match wire_type with
     | `fixed32 -> r0 Piqirun.float_of_fixed32 x
     | `fixed64 -> r0 Piqirun.float_of_fixed64 x
+    | _ -> assert false (* XXX *)
+
+
+let parse_packed_float ?wire_type x =
+  let wire_type = W.get_wire_type `float wire_type in
+  match wire_type with
+    | `fixed32 -> Piqirun.float_of_packed_fixed32 x
+    | `fixed64 -> Piqirun.float_of_packed_fixed64 x
     | _ -> assert false (* XXX *)
 
 
@@ -79,11 +100,11 @@ let rec parse_obj0 (t:T.piqtype) x :Piqobj.obj =
     (* built-in types *)
     | `int -> parse_int x
     | `float -> `float (parse_float x)
-    | `bool -> `bool (r0 Piqirun.parse_bool x)
-    | `string -> `string (r0 Piqirun.parse_string x)
-    | `binary -> `binary (r0 Piqirun.parse_binary x)
-    | `word -> `word (r0 Piqirun.parse_string x)
-    | `text -> `text (r0 Piqirun.parse_string x)
+    | `bool -> `bool (r0 Piqirun.parse_bool_field x)
+    | `string -> `string (r0 Piqirun.parse_string_field x)
+    | `binary -> `binary (r0 Piqirun.parse_binary_field x)
+    | `word -> `word (r0 Piqirun.parse_string_field x)
+    | `text -> `text (r0 Piqirun.parse_string_field x)
     | `any -> `any (parse_any x)
     (* custom types *)
     | `record t -> `record (r parse_record t x)
@@ -91,6 +112,18 @@ let rec parse_obj0 (t:T.piqtype) x :Piqobj.obj =
     | `enum t -> `enum (r parse_enum t x)
     | `list t -> `list (r parse_list t x)
     | `alias t -> `alias (parse_alias0 t x)
+
+
+and parse_packed_obj (t:T.piqtype) x :Piqobj.obj =
+  match t with
+    (* built-in types *)
+    | `int -> parse_packed_int x
+    | `float -> `float (parse_packed_float x)
+    | `bool -> `bool (Piqirun.bool_of_packed_varint x)
+    | `enum t -> `enum (parse_packed_enum t x)
+    | `alias t -> `alias (parse_packed_alias t x)
+    | _ ->
+        assert false (* objects of other types can't be packed *)
 
 
 and parse_obj t x =
@@ -168,7 +201,9 @@ and do_parse_field t l =
           let res = (match x with Some x -> [x] | None -> []) in
           res, rem
       | `repeated ->
-          parse_repeated_field code field_type l
+          if not t.wire_packed
+          then parse_repeated_field code field_type l
+          else parse_packed_repeated_field code field_type l
   in
   let fields =
     List.map (fun x ->
@@ -179,11 +214,11 @@ and do_parse_field t l =
 
 
 and parse_required_field code field_type l =
-  Piqirun.parse_req_field code (parse_obj field_type) l
+  Piqirun.parse_required_field code (parse_obj field_type) l
 
 
 and parse_optional_field code field_type default l =
-  let res = Piqirun.parse_opt_field code (parse_obj field_type) l in
+  let res = Piqirun.parse_optional_field code (parse_obj field_type) l in
   match res with
     | Some _, _ -> res
     | None, rem -> parse_default field_type default, rem
@@ -200,7 +235,12 @@ and parse_default piqtype default =
 
 
 and parse_repeated_field code field_type l =
-  Piqirun.parse_rep_field code (parse_obj field_type) l
+  Piqirun.parse_repeated_field code (parse_obj field_type) l
+
+
+and parse_packed_repeated_field code field_type l =
+  Piqirun.parse_packed_repeated_field code
+    (parse_packed_obj field_type) (parse_obj field_type) l
 
 
 and parse_variant t x =
@@ -221,7 +261,7 @@ and parse_option t x =
   let open T.Option in
   match t.typeref with
     | None ->
-        if Piqirun.parse_bool x = true
+        if Piqirun.parse_bool_field x = true
         then
           let res = O#{ piqtype = t; obj = None } in
           (* skip boolean used to encode empty option value *)
@@ -237,23 +277,41 @@ and parse_option t x =
 
 
 and parse_enum t x =
-  let code32 = Piqirun.int32_of_varint x in
-  let options = t.T.Variant#option in
+  let code32 = Piqirun.int32_of_signed_varint x in
   let option =
-    try
-      let o = List.find (fun o -> some_of o.T.Option#code = code32) options in
-      let res = O#{ piqtype = o; obj = None } in
-      (* add location reference which is equal to the enum location *)
-      Piqloc.addrefret !Piqloc.icount res
+    try parse_enum_option t code32
+    with Not_found ->
+      Piqirun.error_enum_const x
+  in
+  (* add location reference which is equal to the enum location *)
+  Piqloc.addref !Piqloc.icount option;
+  V#{ piqtype = t; option = option }
+
+
+and parse_packed_enum t x =
+  let code32 = Piqirun.int32_of_packed_signed_varint x in
+  let option =
+    try parse_enum_option t code32
     with Not_found ->
       Piqirun.error_enum_const x
   in
   V#{ piqtype = t; option = option }
 
 
+and parse_enum_option t code32 =
+  let options = t.T.Variant#option in
+  let o = List.find (fun o -> some_of o.T.Option#code = code32) options in
+  O#{ piqtype = o; obj = None }
+
+
 and parse_list t x = 
   let obj_type = piqtype t.T.Piqlist#typeref in
-  let contents = Piqirun.parse_list (parse_obj obj_type) x in
+  let contents =
+    if not t.T.Piqlist.wire_packed
+    then Piqirun.parse_list (parse_obj obj_type) x
+    else Piqirun.parse_packed_list
+      (parse_packed_obj obj_type) (parse_obj obj_type) x
+  in
   L#{ piqtype = t; obj = contents }
 
 
@@ -264,26 +322,40 @@ and parse_alias0 t x =
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t ?wire_type x =
   let open T.Alias in
+  let wire_type = resolve_wire_type ?wire_type t in
+  let obj =
+    match piqtype t.typeref with
+      | `int -> parse_int x ?wire_type
+      | `float -> `float (parse_float x ?wire_type)
+      | `alias t -> `alias (parse_alias t x ?wire_type)
+      | t -> parse_obj t x
+  in
+  A#{ piqtype = t; obj = obj }
+
+
+and parse_packed_alias t ?wire_type x =
+  let open T.Alias in
+  let wire_type = resolve_wire_type ?wire_type t in
+  let obj =
+    match piqtype t.typeref with
+      | `int -> parse_packed_int x ?wire_type
+      | `float -> `float (parse_packed_float x ?wire_type)
+      | `alias t -> `alias (parse_packed_alias t x ?wire_type)
+      | t -> parse_packed_obj t x
+  in
+  A#{ piqtype = t; obj = obj }
+
+
+(* TODO: move to piqi_wire.ml *)
+and resolve_wire_type ?wire_type t =
+  let open T.Alias in
   let this_wire_type = t.wire_type in
   (* wire-type defined in this alias trumps wire-type passed by the upper
    * definition *)
   (* XXX: report a wire-type conflict rather than silently use the default? *)
-  let wire_type =
-    match wire_type, this_wire_type with
-      | _, Some _ -> this_wire_type
-      | _ -> wire_type
-  in
-  let obj_type = piqtype t.typeref in
-  let obj = parse_alias_obj obj_type ?wire_type x in
-  A#{ piqtype = t; obj = obj }
-
-
-and parse_alias_obj t ?wire_type x =
-  match t with
-    | `int -> parse_int x ?wire_type
-    | `float -> `float (parse_float x ?wire_type)
-    | `alias t -> `alias (parse_alias t x ?wire_type)
-    | _ -> parse_obj t x
+  match wire_type, this_wire_type with
+    | _, Some _ -> this_wire_type
+    | _ -> wire_type
 
 
 (* This function is used from piqobj_of_json & piqobj_of_xml *)

@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -110,15 +110,19 @@ let erlname_func_param func_name param_name param =
   in
   match param with
    | None -> ()
-   | Some (`record x) ->
-       x.R#erlang_name <- make_name ()
    | Some (`alias x) ->
        x.A#erlang_name <- make_name ()
+   | Some (`record x) ->
+       x.R#erlang_name <- make_name ()
+   | Some (`variant x) | Some (`enum x) ->
+       x.V#erlang_name <- make_name ()
+   | Some (`list x) ->
+       x.L#erlang_name <- make_name ()
 
 
 let erlname_func x =
   let open T.Func in (
-    if x.ocaml_name = None then x.erlang_name <- erlname x.name;
+    if x.erlang_name = None then x.erlang_name <- erlname x.name;
     let func_name = some_of x.erlang_name in
     erlname_func_param func_name "input" x.resolved_input;
     erlname_func_param func_name "output" x.resolved_output;
@@ -265,6 +269,7 @@ let piqic (piqi: T.piqi) =
   let modname = some_of piqi.P#erlang_module in
   Piqic_erlang_types.top_modname := some_of piqi.P#erlang_module;
   Piqic_erlang_types.type_prefix := some_of piqi.P#erlang_type_prefix;
+  Piqic_erlang_types.string_type := piqi.P#erlang_string_type;
 
   (* set Erlang name for the type "any" *)
   if !Piqic_common.is_self_spec

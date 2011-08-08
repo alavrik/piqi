@@ -26,12 +26,10 @@
 
 % TODO: tests, edoc
 
-% XXX: debug mode when piqi-server started with --trace and warnings enabled?
 
-
--export([start_link/0, start/0, stop/0]).
+-export([start_link/0]).
 % API
--export([add_piqi/1, convert/4, convert/5, ping/0]).
+-export([add_piqi/1, convert/5, convert/6, ping/0]).
 % gen_server callbacks
 -export([init/1,
          handle_call/3,
@@ -39,7 +37,8 @@
          handle_info/2,
          terminate/2,
          code_change/3]).
-%-compile(export_all).
+% entry point of the port receiver process
+-export([port_receiver/2]).
 
 
 -include("piqirun.hrl").
@@ -49,16 +48,43 @@
 -include("piqi_tools_piqi.hrl").
 
 
-% gen_server name
--define(SERVER, ?MODULE).
+%-define(DEBUG, 1).
+-ifdef(DEBUG).
+-include("debug.hrl").
+-endif.
+
+
+% gen_server:call timeout
+-define(CALL_TIMEOUT, 5000).
+
+
+% Options for "piqi server" port command
+-ifdef(DEBUG).
+-define(PIQI_FLAGS, "").
+-else.
+-define(PIQI_FLAGS, " --no-warnings"). % XXX: --trace
+-endif.
+
 
 -define(PIQI_TOOLS_ERROR, 'piqi_tools_error').
 
+-define(PORT_START_TIMEOUT, 2000). % 2 seconds
 
-% gen_server state
--record(state, {
+
+% state of the port sender process (piqi_tools gen_server)
+-record(sender_state, {
+    % Erlang port id
+    port :: port()
+}).
+
+
+% state of the port receiver process
+-record(receiver_state, {
+    % Erlang port id
     port :: port(),
-    prev_data :: binary()
+
+    % Pid of the parent process
+    parent :: pid()
 }).
 
 
@@ -67,92 +93,44 @@
 %
 
 start_link() ->
-    start_common(start_link).
-
-
-% independent start -- not as a part of OTP supervision tree
-start() ->
-    start_common(start).
-
-
-start_common(StartFun) ->
-    gen_server:StartFun({local, ?SERVER}, ?MODULE, [], []).
-
-
-% manual stop (when started by start/0 *)
-stop() ->
-    gen_server:cast(?SERVER, stop).
+    gen_server:start_link(?MODULE, [], []).
 
 
 %
 % gen_server callbacks
 %
 
-
 %% @private
 init([]) ->
-    erlang:process_flag(trap_exit, true),
-    Command = "piqi server --no-warnings",
+    Command = piqi:get_command("piqi") ++ " server" ++ ?PIQI_FLAGS,
     %Command = "tee ilog | piqi server --trace | tee olog",
 
-    % TODO: handle initialization error and report it as {error, Error} tuple
-    % TODO, XXX: on error, sleep for a while to prevent an immediate restart
-    % attempt
-    % XXX: use {spawn_executable, Command} instead to avoid shell's error
-    % messages printed on stderr?
-    Port = erlang:open_port({spawn, Command}, [stream, binary]), % exit_status?
-    State = #state{ port = Port, prev_data = <<>> }, % no previous data on start
+    Port = start_port_receiver(Command),
+    State = #sender_state{ port = Port },
     {ok, State}.
 
 
 %% @private
-handle_call({rpc, PiqiMod, Name, ArgsData}, From, State)
-        when PiqiMod =/= 'undefined' ->
-    % make sure that Piqi server is provided with the type information before
-    % calling the actual server function
-    NewState = add_piqi_local(PiqiMod, State),
-    % now call the actual handler
-    handle_call({rpc, 'undefined', Name, ArgsData}, From, NewState);
-
-handle_call({rpc, _PiqiMod, Name, ArgsData}, _From, State) ->
-    #state{port = Port, prev_data = PrevData} = State,
-    send_rpc_request(Port, Name, ArgsData),
-    {Response, Rest} = receive_rpc_response(Port, PrevData),
-    NewState = State#state{ prev_data = Rest },
-    {reply, Response, NewState}.
-
-
-%% @private user-initiated stop
-handle_cast(stop, State) ->
-    {stop, normal, State}; 
-
-handle_cast(_Msg, State) ->
-    % XXX
+handle_call({rpc, PiqiMod, Request}, From, State = #sender_state{port = Port}) ->
+    rpc_call(PiqiMod, Request, From, Port),
     {noreply, State}.
 
 
 %% @private
-handle_info({'EXIT', Port, Reason}, State = #state{port = Port}) ->
-    % Port command has exited
-    StopReason = {?PIQI_TOOLS_ERROR, {'port_command_exited', Reason}},
-    {stop, StopReason, State};
+handle_cast(Info, State) ->
+    StopReason = {?PIQI_TOOLS_ERROR, {'unexpected_cast', Info}},
+    {stop, StopReason, State}.
 
-% XXX: no process should link this gen_server except piqi_sup
-%handle_info({'EXIT', _Port, _Reason}, State) ->
-%    % EXIT from a linked process, just ignoring it
-%    {noreply, State};
 
 handle_info(Info, State) ->
-    % XXX: log a message
-    erlang:port_close(State#state.port),
-    StopReason = {?PIQI_TOOLS_ERROR, {'unexpected_message', Info}},
+    StopReason = {?PIQI_TOOLS_ERROR, {'unexpected_info', Info}},
     {stop, StopReason, State}.
 
 
 %% @private
-terminate(_Reason, State) ->
+terminate(_Reason, _State = #sender_state{port = Port}) ->
     % don't bother checking if the port is still valid, e.g. after EXIT
-    catch erlang:port_close(State#state.port),
+    catch erlang:port_close(Port),
     ok.
 
 
@@ -161,49 +139,152 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 
-%
-% Piqi-RPC wire packets 
-%
-
-send_rpc_packet(Port, Data) ->
-    Message = piqirun:gen_block(Data),
-    erlang:port_command(Port, Message).
-
-
-receive_rpc_packet(Port, PrevData) ->
+% start a new port receiver process
+start_port_receiver(Command) ->
+    _Pid = spawn_link(?MODULE, port_receiver, [self(), Command]),
     receive
-        % packet from the rpc server
-        {Port, {data, NewData}} ->
-            Data = <<PrevData/binary, NewData/binary>>,
-            try
-                piqirun:parse_block(Data)
-            catch
-                {'piqirun_error', 'not_enough_data'} ->
-                    % receive the next portion if there's not enough data in
-                    % this message
-                    receive_rpc_packet(Port, Data)
-            end;
-
-        {'EXIT', Port, Reason} ->
-            StopReason = {?PIQI_TOOLS_ERROR, {'port_command_exited', Reason}},
-            exit(StopReason)
+        {'started', Port} -> Port
+    after ?PORT_START_TIMEOUT ->
+        exit({?PIQI_TOOLS_ERROR, 'open_port_timeout'})
     end.
+
+
+% entry point of the process responsible for receiving RPC responses from the
+% erlang Port
+port_receiver(Parent, Command) ->
+    erlang:process_flag(trap_exit, true),
+
+    % TODO: handle initialization error and report it as {error, Error} tuple
+    % TODO, XXX: on error, sleep for a while to prevent an immediate restart
+    % attempt
+    % XXX: use {spawn_executable, Command} instead to avoid shell's error
+    % messages printed on stderr?
+
+    % XXX: what about closing the port?
+    %erlang:port_close(State#receiver_state.port),
+
+    Port = erlang:open_port({spawn, Command}, [{packet, 4}, binary]), % exit_status?
+    Parent ! {'started', Port},
+
+    State = #receiver_state{ port = Port, parent = Parent },
+    port_receive_loop(State).
+
+
+port_receive_loop(State = #receiver_state{port = Port, parent = Parent}) ->
+    receive
+        Message ->
+            case Message of
+                {Port, {data, Packet}} ->
+                    NewState = handle_rpc_response(Packet, State),
+                    port_receive_loop(NewState);
+                {'EXIT', Port, Reason} ->
+                    StopReason = {?PIQI_TOOLS_ERROR, {'port_command_exited', Reason}},
+                    exit(StopReason);
+                {'EXIT', Parent, _Reason} ->
+                    exit(normal);
+                _ ->
+                    StopReason = {?PIQI_TOOLS_ERROR, {'unexpected_message', Message}},
+                    exit(StopReason)
+            end
+    end.
+
+
+% do the actual rpc call
+rpc_call(PiqiMod, Request, From, Port) ->
+    % NOTE: using process dictionary as a fast SET container to check whether
+    % type information from this module has been added to the piqi server
+    % XXX: use 'sets' module's sets instead of process dictionary?
+    case PiqiMod =:= 'undefined' orelse get(PiqiMod) =:= 'add_piqi' of
+        false ->
+            % add type information to the Piqi server from the module before
+            % calling the actual server function
+
+            % XXX: check if the function is exported?
+            BinPiqiList = PiqiMod:piqi(),
+
+            % memorize that we've added type information for this module (well,
+            % we haven't but it is better than implementing some kind of
+            % blocking for subsequent rpc calls while this request is
+            % executing). If there's any problem with add_piqi, the gen_server
+            % will crash when it receives unsuccessful response form the Port.
+            erlang:put(PiqiMod, 'add_piqi'),
+
+            % add type information from the PiqiMod to the Piqi-tools server
+            send_add_piqi_request(Port, BinPiqiList);
+        true ->
+            % type information is either not required or has been added already
+            % => just make the rpc call
+            ok
+    end,
+    CallerRef = term_to_binary(From),
+    send_rpc_request(Port, CallerRef, Request).
+
+
+% send "add_piqi" request directry to the port
+send_add_piqi_request(Port, BinPiqiList) ->
+    BinInput = encode_add_piqi_input(BinPiqiList),
+
+    % the response will be handled by handle_rpc_response() -- see below
+    CallerRef0 = <<"add-piqi">>, % custom caller reference
+    Request0 = encode_rpc_request(<<"add-piqi">>, BinInput),
+    send_rpc_request(Port, CallerRef0, Request0).
+
+
+handle_rpc_response(Packet, State) ->
+    {Caller, Payload} = parse_rpc_packet(Packet),
+
+    % send response to the client or handle "add_piqi_local" response
+    % NOTE: "add_piqi_local" was called implicitly by the server itself
+    case Caller of
+        <<"add-piqi">> ->
+            Response = piqi_rpc_piqi:parse_response(Payload),
+            case decode_add_piqi_output(Response) of
+                ok -> ok;
+                X ->
+                    Reason = {?PIQI_TOOLS_ERROR, {'unexpected_add_piqi_response', X}},
+                    exit(Reason)
+            end;
+        <<>> ->
+            Response = piqi_rpc_piqi:parse_response(Payload),
+            Reason = {?PIQI_TOOLS_ERROR, {'no_caller_ref_in_response', Response}},
+            % XXX: continue instead of exiting?
+            exit(Reason);
+        _ ->
+            Client = binary_to_term(Caller),
+            gen_server:reply(Client, Payload)
+    end,
+    State.
 
 
 %
 % Piqi-RPC request/response
 %
 
-send_rpc_request(Port, Name, ArgsData) ->
-    Request = #piqi_rpc_request{ name = Name, data = ArgsData },
-    Data = piqi_rpc_piqi:gen_request(Request),
-    send_rpc_packet(Port, Data).
+% @hidden send a Piqi-RPC request
+% NOTE: responses will be handled by a separate port_receiver() process
+send_rpc_request(Port, CallerRef, Request) ->
+    send_rpc_packet(Port, CallerRef, Request).
 
 
-receive_rpc_response(Port, PrevData) ->
-    {Data, Rest} = receive_rpc_packet(Port, PrevData),
-    Response = piqi_rpc_piqi:parse_response(Data),
-    {Response, Rest}.
+% @hidden send a Piqi-RPC packet
+send_rpc_packet(Port, CallerRef, Payload) ->
+    CallerRefSize = size(CallerRef),
+    Command = [<<CallerRefSize:16>>, CallerRef, Payload],
+    % NOTE: this is a blocking call. If the port is busy, the process will be
+    % suspended until the port becomes available.
+    true = erlang:port_command(Port, Command).
+
+
+parse_rpc_packet(Packet) ->
+    try
+        <<CallerRefSize:16, Rest/binary>> = Packet,
+        % return a tuple of two binaries: {CallerRef, Payload}
+        split_binary(Rest, CallerRefSize)
+    catch
+        _:_ ->
+            Reason = {?PIQI_TOOLS_ERROR, {'received_invalid_rpc_packet', Packet}},
+            exit(Reason)
+    end.
 
 
 %
@@ -226,7 +307,17 @@ rpc(PiqiMod, Name, ArgsData) ->
             'undefined' -> 'undefined';
             _ -> iolist_to_binary(ArgsData)
         end,
-    call_server({rpc, PiqiMod, Name, BinData}).
+    Request = encode_rpc_request(Name, BinData),
+    ResponseBin = call_server({rpc, PiqiMod, Request}),
+    piqi_rpc_piqi:parse_response(ResponseBin).
+
+
+encode_rpc_request(FuncName, ArgsData) ->
+    Request = #piqi_rpc_request{ name = FuncName, data = ArgsData },
+    RequestIolist = piqi_rpc_piqi:gen_request(Request),
+    % make sure that we send binary to the server to avoid implicit term
+    % serialization/deserialization
+    iolist_to_binary(RequestIolist).
 
 
 -spec rpc/2 :: (
@@ -252,26 +343,15 @@ call_server(Args) ->
     % without failing the calls. This might be useful for "piqi server" upgrades
     % and in case of potential "piqi server" crashes.
     try
-        gen_server:call(?SERVER, Args)
+        Pid = piqi_sup:pick_piqi_server(),
+        gen_server:call(Pid, Args, ?CALL_TIMEOUT)
     catch
         % Piqi tools has exited, but hasn't been restarted by Piqi supervisor
         % yet
         exit:{noproc, _} ->
-            piqi_sup:restart_piqi_tools_child(),
-            gen_server:call(?SERVER, Args)
+            Pid1 = piqi_sup:force_pick_piqi_server(),
+            gen_server:call(Pid1, Args, ?CALL_TIMEOUT)
     end.
-
-
-% NOTE: this function is called only from init/1 during execution of
-% add_piqi_local/1
-call_local(Name, BinData, State) ->
-    % XXX: not expecting any other response from the call hander
-    {reply, Response, NewState} =
-        handle_call(
-            {rpc, _PiqiMod = 'undefined', Name, BinData},
-            _From = 'undefined',
-            State),
-    {Response, NewState}.
 
 
 -spec ping/0 :: () -> ok.
@@ -287,33 +367,9 @@ ping() ->
 % will be used later by "convert" and other functions.
 add_piqi(BinPiqiList) ->
     BinInput = encode_add_piqi_input(BinPiqiList),
+    % send request to the gen_server
     Output = rpc(<<"add-piqi">>, BinInput),
     decode_add_piqi_output(Output).
-
-
-add_piqi_local(PiqiMod, State) when is_atom(PiqiMod) ->
-    % add type information from the PiqiMod to the Piqi-tools server
-    % NOTE: using process dictionary as a fast SET container for PiqiMod
-    case erlang:get(PiqiMod) of
-        'undefined' ->
-            % XXX: check if the function is exported?
-            BinPiqiList = PiqiMod:piqi(),
-            NewState = add_piqi_local(BinPiqiList, State),
-            % memorize that we've added type information for this module
-            erlang:put(PiqiMod, 'add_piqi'),
-            NewState;
-        'add_piqi' ->
-            % type information from this module has been added already
-            State
-    end;
-
-add_piqi_local(BinPiqiList, State) ->
-    BinInput = encode_add_piqi_input(BinPiqiList),
-    {Output, NewState} = call_local(<<"add-piqi">>, BinInput, State),
-    % XXX: don't handle errors, assuming that this call is safea since we've
-    % added these Piqi modules before without a problem
-    ok = decode_add_piqi_output(Output),
-    NewState.
 
 
 encode_add_piqi_input(BinPiqiList) ->
@@ -337,20 +393,22 @@ decode_add_piqi_output(Output) ->
     end.
 
 
--spec convert/5 :: (
+-spec convert/6 :: (
     PiqiMod :: 'undefined' | atom(), % Erlang module generated by "piqic erlang"
     TypeName :: string() | binary(),
     InputFormat :: piqi_tools_format(),
     OutputFormat :: piqi_tools_format(),
-    Data :: binary() ) -> {ok, Data :: binary()} | {error, string()}.
+    Data :: binary(),
+    PrettyPrint :: boolean()) -> {ok, Data :: binary()} | {error, string()}.
 
 % convert `Data` of type `TypeName` from `InputFormat` to `OutputFormat`
-convert(PiqiMod, TypeName, InputFormat, OutputFormat, Data) ->
+convert(PiqiMod, TypeName, InputFormat, OutputFormat, Data, PrettyPrint) ->
     Input = #piqi_tools_convert_input{
         type_name = TypeName,
         input_format = InputFormat,
         output_format = OutputFormat,
-        data = Data
+        data = Data,
+        pretty_print = PrettyPrint
     },
     BinInput = piqi_tools_piqi:gen_convert_input(Input),
     case rpc(PiqiMod, <<"convert">>, BinInput) of
@@ -367,15 +425,16 @@ convert(PiqiMod, TypeName, InputFormat, OutputFormat, Data) ->
     end.
 
 
--spec convert/4 :: (
+-spec convert/5 :: (
+    PiqiMod :: 'undefined' | atom(), % Erlang module generated by "piqic erlang"
     TypeName :: string() | binary(),
     InputFormat :: piqi_tools_format(),
     OutputFormat :: piqi_tools_format(),
     Data :: binary() ) -> {ok, Data :: binary()} | {error, string()}.
 
 % convert `Data` of type `TypeName` from `InputFormat` to `OutputFormat`
-convert(TypeName, InputFormat, OutputFormat, Data) ->
-    convert('undefined', TypeName, InputFormat, OutputFormat, Data).
+convert(PiqiMod, TypeName, InputFormat, OutputFormat, Data) ->
+    convert(PiqiMod, TypeName, InputFormat, OutputFormat, Data, _PrettyPrint = true).
 
 
 handle_common_result({rpc_error, _} = X) ->

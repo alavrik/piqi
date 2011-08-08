@@ -6,12 +6,13 @@
 .module piqi.org/piqtype
 
 .proto-package "piqi_org.piqtype"
+.ocaml-module "Piqtype"
 
 
 .include [ .module piqi.org/piqast ]
 
 
-(.custom-field ocaml-name erlang-name proto-name)
+(.custom-field ocaml-module ocaml-name erlang-name proto-name)
 
 
 .variant [

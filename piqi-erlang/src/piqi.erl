@@ -18,6 +18,8 @@
 -module(piqi).
 
 -export([start/0, stop/0]).
+% utilities
+-export([get_command/1]).
 
 
 % @doc start Piqi application
@@ -28,4 +30,26 @@ start() ->
 % @doc stop Piqi application
 stop() ->
     application:stop(piqi).
+
+
+%
+% Utilities
+%
+
+
+-ifndef(PIQI_CROSS_PLATFORM).
+get_command(Name) -> Name.
+-else.
+get_command(Name) ->
+    PiqiDir =
+        case code:lib_dir(piqi) of
+            {error, Error} ->
+                erlang:error({"can't locate Piqi application: ", Error});
+            X -> X
+        end,
+    KernelName = os:cmd("uname -s") -- "\n",
+    Machine = os:cmd("uname -m") -- "\n",
+    BinDir = lists:concat(["bin-", KernelName, "-", Machine]),
+    filename:join([PiqiDir, "priv", BinDir, Name]).
+-endif.
 

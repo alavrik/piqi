@@ -8,6 +8,7 @@ piqi_main.ml
 piqi.ml
 piqi_pp.ml
 piq_parser.ml
+piqi_graph.ml
 piqi_common.ml
 piqobj_to_piq.ml
 piqi_c.mli
@@ -27,3 +28,4 @@ piqi_db.ml
 piqi_c.ml
 piqi_ext.ml
 piqi_func.ml
+piqilib.ml

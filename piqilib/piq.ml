@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -20,6 +20,9 @@
 
 module C = Piqi_common  
 open C
+
+
+let _ = Piqilib.init ()
 
 
 exception EOF
@@ -245,7 +248,7 @@ let rec load_wire_obj buf :obj =
         let piqi = piqi_of_wire field_obj ~cache:true in
         Piqi piqi
     | c when c mod 2 = 1 ->
-        let typename = Piqirun.parse_string field_obj in
+        let typename = Piqirun.parse_string_field field_obj in
         process_piqtype c typename;
         if c = 1
         then
@@ -275,7 +278,7 @@ let next_out_code = ref 2
 
 
 let gen_piqtype code typename =
-  Piqirun.gen_string code typename
+  Piqirun.gen_string_field code typename
 
 
 let find_add_piqtype_code name =

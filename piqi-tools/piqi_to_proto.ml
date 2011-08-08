@@ -1,4 +1,4 @@
-(*pp camlp4o -I $PIQI_ROOT/camlp4 pa_labelscope.cmo pa_openin.cmo *)
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011 Anton Lavrik
 
@@ -51,8 +51,19 @@ let gen_name parent name =
 (* indication if the module that is being processed is a Piqi self-spec *)
 let is_self_spec = ref false
 
+(* new implicit imports added when unrolling aliases *)
+let new_imports = ref []
 
-let rec typename (t:T.piqtype) =
+
+let rec typename ?parent (t:T.piqtype) =
+  let gen_name current_parent proto_name =
+    let parent =
+      match parent with
+        | Some x -> parent
+        | None -> current_parent
+    in
+    gen_name parent proto_name
+  in
   match t with
     | `int -> "sint32"
     | `float -> "double"
@@ -83,14 +94,29 @@ let rec typename (t:T.piqtype) =
           ".piqi_org.piqtype.any"
 
 
-and gen_alias_typename x =
+and gen_alias_typename ?parent x =
   let open Alias in
   match x.proto_type with
     | Some x -> x
     | None ->
+        let current_parent = x.parent in
+        let parent =
+          match current_parent with
+            | Some (`import _) -> current_parent
+            | _ -> parent (* previous import parent *)
+        in
         match piqtype x.typeref with
-          | `alias x -> gen_alias_typename x
-          | x -> typename x
+          | `alias x -> gen_alias_typename x ?parent
+          | x ->
+              (match parent with
+                | Some (`import x) ->
+                    trace
+                      "piqi_to_proto: adding implicit import \"%s\"\n"
+                      x.Import#modname;
+                    new_imports := x :: !new_imports
+                | _ -> ()
+              );
+              typename x ?parent
 
 
 let gen_typeref t =
@@ -127,6 +153,11 @@ let protoname_of_field f =
 
 let protoname_of_option o =
   let open O in protoname_of o.proto_name o.typeref
+
+
+let gen_proto_custom proto_custom =
+  let l = List.map (fun x -> iol [eol; ios x]) proto_custom in
+  iol l
 
 
 let string_of_mode = function
@@ -187,12 +218,17 @@ let gen_default x =
 
 let gen_field f = 
   let open F in
+  let packed =
+    if f.wire_packed
+    then " [packed = true]"
+    else ""
+  in
   let fdef = iod " " (* field definition *)
     [
       ios (string_of_mode f.mode);
       gen_typeref' f.typeref;
       protoname_of_field f; ios "=";
-        gen_code f.code ^^ gen_default f ^^ ios ";";
+        gen_code f.code ^^ gen_default f ^^ ios packed ^^ ios ";";
     ]
   in
   fdef
@@ -207,7 +243,9 @@ let gen_record ?name r =
     [
       ios "message "; ios name;
       ios " {"; indent;
-      iod "\n" fdefs; unindent; eol;
+        iod "\n" fdefs;
+        gen_proto_custom r.proto_custom;
+        unindent; eol;
       ios "}"; eol;
     ]
   in rdef
@@ -227,7 +265,9 @@ let gen_enum ?name e =
   iol
     [
       ios "enum "; ios name; ios " {"; indent;
-        iod "\n" const_defs; unindent; eol;
+        iod "\n" const_defs;
+        gen_proto_custom e.proto_custom;
+        unindent; eol;
       ios "}"; eol;
     ]
 
@@ -249,7 +289,9 @@ let gen_variant ?name v =
     [
       ios "message "; ios name;
       ios " {"; indent;
-      iod "\n" vdefs; unindent; eol;
+        iod "\n" vdefs;
+        gen_proto_custom v.proto_custom;
+        unindent; eol;
       ios "}"; eol;
     ]
   in vdef
@@ -258,12 +300,18 @@ let gen_variant ?name v =
 let gen_list ?name l =
   let open L in
   let name = match name with Some x -> x | _ -> some_of l.proto_name in
+  let packed =
+    if l.wire_packed
+    then " [packed = true]"
+    else ""
+  in
   let ldef = iol
     [
       ios "message "; ios name;
       ios " {"; indent;
-      ios "repeated "; gen_typeref l.typeref; ios " elem = 1;";
-      unindent; eol;
+        ios "repeated "; gen_typeref l.typeref; ios " elem = 1"; ios packed; ios ";";
+        gen_proto_custom l.proto_custom;
+        unindent; eol;
       ios "}"; eol;
     ]
   in ldef
@@ -278,27 +326,27 @@ let gen_def0 ?name t =
     | `alias _ -> assert false
 
 
-let rec gen_def ?name t =
-  match t with
-    | `alias t -> gen_alias t
+let rec gen_def ?name def =
+  match def with
+    | `alias t -> gen_alias t ?name
     | x ->
-        let res = gen_def0 ?name x
+        let res = gen_def0 x ?name
         in [res]
 
 
-and gen_alias a =
+and gen_alias ?name a =
   let open A in
-  let t = C.unalias (`alias a) in
-  match t with
+  let name =
+    match name with
+      | Some _ -> name
+      | None -> a.proto_name
+  in
+  match piqtype a.typeref with
     | #T.piqdef as def ->
-        (match get_parent def with
-          | `import _ ->
-              (* XXX: don't generate anything for aliases of imported types *)
-              []
-          | _ ->
-              (* generate the original definition with the new name *)
-              gen_def def ~name:(some_of a.proto_name)
-        )
+        (* generate the original definition with the new name *)
+        (* XXX: make such generation optional, just to be able to have less
+         * Protobuf-generated code in the end *)
+        gen_def def ?name
     | _ -> (* alias of a pritmitive type *)
         if a.is_func_param
         then
@@ -306,7 +354,7 @@ and gen_alias a =
            * one field of that type *)
           let res =
             iol [
-              ios "message "; ios (some_of a.proto_name);
+              ios "message "; ios (some_of name);
               ios " {"; indent;
               ios "required "; gen_typeref a.typeref; ios " elem = 1;";
               unindent; eol;
@@ -342,18 +390,20 @@ let gen_import_path modname =
   ioq fname
 
 
-let gen_import x =
-  let open Import in
+let gen_import modname =
   (* XXX: save filename in import record rather than resolving x.modname to
    * filename each time? *)
   iod " " [
-    ios "import"; gen_import_path x.modname; ios ";";
+    ios "import"; gen_import_path modname; ios ";";
     eol;
   ]
 
 
 let gen_imports l =
-  let l = List.map gen_import l in
+  let modnames = List.map (fun x -> x.Import#modname) l in
+  (* using C.uniq to prevent importing a module more than once, otherwise protoc
+   * will fail to compile *)
+  let l = List.map gen_import (C.uniq modnames) in
   iol l
 
 
@@ -378,10 +428,14 @@ let gen_piqi (piqi:T.piqi) =
       ]
     else iol []
   in
+  let proto_custom =
+    List.map (fun x -> iol [ios x; eol; eol]) piqi.P#proto_custom
+  in
   iol [
     package;
+    iol proto_custom;
     piqi_import;
-    gen_imports piqi.P#resolved_import;
+    gen_imports ((List.rev !new_imports) @ piqi.P#resolved_import);
     eol;
     defs;
     eol;

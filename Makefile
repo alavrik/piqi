@@ -2,12 +2,12 @@ include $(PIQI_ROOT)/make/Makefile.dirs
 
 
 DIRS = \
-	camlp4 \
+	piqi-camlp4 \
 	piqirun-ocaml \
-	piqicc piqic piqi-tools \
+	piqicc piqic piqilib piqi-tools \
 
 
-.PHONY: deps install ocaml-install ocaml-uninstall erlang erlang-clean distclean
+.PHONY: deps install ocaml ocaml-install ocaml-uninstall erlang erlang-clean distclean
 
 
 # export installation and search path for OCaml dependencies
@@ -21,8 +21,7 @@ endif
 # export installation path for Piqi OCaml libraries
 ifneq ($(findstring ocaml-,$(MAKECMDGOALS)),)
 ifneq ($(PIQI_OCAML_PREFIX),)
-OCAMLFIND_DESTDIR = $(PIQI_OCAML_PREFIX)
-export OCAMLFIND_DESTDIR
+OCAMLFIND_INSTFLAGS = -destdir $(PIQI_OCAML_PREFIX)
 endif
 endif
 
@@ -39,14 +38,17 @@ install:
 	install piqic/piqic $(PIQI_PREFIX)/bin
 
 
-ocaml-install:
-	$(MAKE) -C piqirun-ocaml libinstall
-	$(MAKE) -C camlp4 libinstall
+ocaml:
+	$(MAKE) -C piqilib bcl install
+
+
+ocaml-install: ocaml-uninstall
+	test -d $(PIQI_OCAML_PREFIX) || mkdir -p $(PIQI_OCAML_PREFIX)
+	ocamlfind install $(OCAMLFIND_INSTFLAGS) piqi `ls $(PIQI_BUILD)/lib/ocaml/piqi/*`
 
 
 ocaml-uninstall:
-	$(MAKE) -C piqirun-ocaml libuninstall
-	$(MAKE) -C camlp4 libuninstall
+	ocamlfind remove $(OCAMLFIND_INSTFLAGS) piqi
 
 
 erlang:

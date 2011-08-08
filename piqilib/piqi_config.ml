@@ -15,22 +15,27 @@
 *)
 
 
+(* .piqi search paths *)
+let paths = ref []
+
+
+let add_path x =
+  paths := !paths @ [x]
+
+
 let piqi_dir =
   try Some (Sys.getenv "PIQI_DIR")
   with Not_found -> None
 
 
-(* .piqi search path; contains CWD and $PIQI_DIR by default *)
-let paths =
+(* set .piqi search path to contain CWD and $PIQI_DIR *)
+let init_paths () =
   let l =
     match piqi_dir with
       | None -> ["."]
       | Some x -> ["."; x]
-  in ref l
-
-
-let add_path x =
-  paths := !paths @ [x]
+  in
+  paths := l
 
 
 let reset_paths () =
