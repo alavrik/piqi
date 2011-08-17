@@ -139,18 +139,23 @@ let piqic_file ifile =
 let usage = "Usage: piqic ocaml [options] <.piqi file>\nOptions:"
 
 
-let speclist = Main.common_speclist @
+let common_speclist =
   [
-    arg_o;
     arg_C;
 
     "--pp", Arg.Set flag_pp,
       "pretty-print output using CamlP4 (camlp4o)"; 
     Piqic_common.arg__gen_defaults;
     Piqic_common.arg__normalize;
-    Piqic_common.arg__embed_piqi;
     arg__leave_tmp_files;
   ]
+
+let speclist =
+  Main.common_speclist
+  @
+  [ arg_o; Piqic_common.arg__embed_piqi ]
+  @
+  common_speclist
 
 
 let run () =

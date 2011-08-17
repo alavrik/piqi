@@ -124,11 +124,8 @@ let piqic_ext piqi =
   let code = gen_code piqi in
 
   let ofile =
-    match !ofile with
-      | "" ->
-          let modname = some_of piqi.P#ocaml_module in
-          String.uncapitalize modname ^ "_ext.ml"
-      | x -> x
+    let modname = some_of piqi.P#ocaml_module in
+    String.uncapitalize modname ^ "_ext.ml"
   in
   Piqic_ocaml.gen_output_file ofile code
 
@@ -148,7 +145,7 @@ let piqic_file ifile =
 let usage = "Usage: piqic ocaml-ext [options] <.piqi file>\nOptions:"
 
 
-let speclist = Piqic_ocaml.speclist
+let speclist = Main.common_speclist @ Piqic_ocaml.common_speclist
 
 
 let run () =
