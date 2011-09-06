@@ -130,7 +130,7 @@ let arg__normalize =
 
 let arg__gen_defaults =
     "--gen-defaults", Arg.Set flag_gen_defaults,
-      "generate default values for all generated types"
+      "generate default value constructors for generated types"
 
 let arg__embed_piqi =
     "--embed-piqi", Arg.Set flag_embed_piqi,

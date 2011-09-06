@@ -52,6 +52,7 @@ usage() ->
   --noboot don't boot, i.e. don't use boot definitions while processing .piqi
   -C <output directory> specify output directory
   --normalize <true|false> normalize identifiers (default: true)
+  --gen-defaults generate default value constructors for generated types
   -help  Display this list of options
   --help  Display this list of options
 "
