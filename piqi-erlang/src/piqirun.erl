@@ -964,8 +964,8 @@ float_of_packed_fixed32(_) ->
 %
 %       -type piqi_float() :: float() | '-infinity' | 'infinity' | 'nan'.
 %
--spec parse_ieee754_64/1 :: (<<_:8>>) -> no_return().
--spec parse_ieee754_32/1 :: (<<_:4>>) -> no_return().
+-spec parse_ieee754_64/1 :: (<<_:64>>) -> no_return().
+-spec parse_ieee754_32/1 :: (<<_:32>>) -> no_return().
 
 parse_ieee754_64(_) -> throw_error('ieee754_infinities_NaN_not_supported_yet').
 parse_ieee754_32(_) -> throw_error('ieee754_infinities_NaN_not_supported_yet').
