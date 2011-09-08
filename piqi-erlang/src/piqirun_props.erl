@@ -21,7 +21,7 @@
 -include_lib("proper/include/proper.hrl").
 
 
-%% @hidden reference implementation for piqirun:encode_varint_value/1
+%% reference implementation for piqirun:encode_varint_value/1
 -spec encode_varint_value/1 :: (
     I :: non_neg_integer()) -> binary().
 
@@ -29,7 +29,6 @@ encode_varint_value(I) ->
     encode_varint_value(I, []).
 
 
-%% @hidden
 encode_varint_value(I, Acc) when I =< 16#7f ->
     iolist_to_binary(lists:reverse([I | Acc]));
 encode_varint_value(I, Acc) ->
@@ -39,7 +38,7 @@ encode_varint_value(I, Acc) ->
     encode_varint_value(First_X_Bits, [With_Leading_Bit|Acc]).
 
 
-%% @hidden reference implementation for piqirun:decode_varint/1
+%% reference implementation for piqirun:decode_varint/1
 decode_varint(Bytes) ->
     decode_varint(Bytes, []).
 decode_varint(<<0:1, I:7, Rest/binary>>, Acc) ->

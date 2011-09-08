@@ -12,7 +12,7 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
-%% @doc Extended Piqi compiler for Erlang
+%% Extended Piqi compiler for Erlang
 %%
 %% This module contains extended version of the Piqi compiler for Erlang. It
 %% calls the base compiler ("piqic erlang") as a first step, and then generates
