@@ -139,16 +139,11 @@ let rec parse_obj (t: T.piqtype) (x: xml_elem) :Piqobj.obj =
 
 
 and parse_any x =
-  (* parse json into piqobj of type ast *)
-  let piqtype = Piqobj_to_json.ast_def in
-  let piqobj = parse_obj piqtype x in
-  (* convert ast piqobj to binobj *)
-  let binobj = Piqobj_to_wire.gen_binobj piqobj in
-  (* parse binobj into ast OCaml representation *)
-  let ast = Piqirun.parse_binobj T.parse_ast binobj in
-
-  let piq_any = T.Any#{ast = Some ast; binobj = None} in
-  Any#{ any = piq_any; obj = Some piqobj }
+  (* store JSON parse tree in the object store; it will be retrieved later when
+   * needed by the referece *)
+  let ref = Piqi_objstore.put (`Elem x) in
+  let piq_any = T.Any#{T.default_any() with ref = Some ref} in
+  Any#{ any = piq_any; obj = None }
 
 
 and parse_record t xml_elem =

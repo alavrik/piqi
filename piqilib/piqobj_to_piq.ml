@@ -64,14 +64,6 @@ let gen_binary s =
     `binary s
 
 
-let gen_any x =
-  let open Any in
-  (* XXX: is it always defined? *)
-
-  (* TODO: handle typed *)
-  some_of x.any.T.Any.ast
-
-
 let make_named name value =
   let open T in
   `named Named#{name = name; value = value}
@@ -125,8 +117,33 @@ and gen_obj x = Piq_parser.piq_reference gen_obj0 x
 
 and gen_typed_obj x =
   let name = Piqobj_common.full_typename x in
-  let any = T.Any#{ast = Some (gen_obj x); binobj = None } in
+  let any = T.Any#{T.default_any() with ast = Some (gen_obj x)} in
   `typed T.Typed#{typename = name; value = any }
+
+
+and gen_any x =
+  let open Any in
+  match x.any.T.Any.ast with
+    | Some ast -> ast
+    | None ->
+        (match x.any.T.Any#binobj, x.any.T.Any#typename with
+          | Some x, Some n ->
+              (* generate the ast representation from the binary object if the
+               * type is known *)
+              (match Piqi_db.try_find_piqtype n with
+                | Some t ->
+                    Piqloc.pause ();
+                    let piqobj = Piqobj_of_wire.parse_binobj t x in
+                    let res = gen_obj piqobj in
+                    Piqloc.resume ();
+                    res
+                | None ->
+                    assert false
+              )
+          | _ ->
+              (* XXX: are they always defined? *)
+              assert false
+        )
 
 
 and gen_record x =

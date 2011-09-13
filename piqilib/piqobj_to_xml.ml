@@ -85,17 +85,10 @@ let rec gen_obj (x:Piqobj.obj) :xml list =
 
 and gen_any x =
   let open Any in
-  (* XXX: is ast always defined? *)
-
-  (* TODO: handle typed *)
-  let ast = some_of x.any.T.Any.ast in
-  (* convert ast to binary *)
-  let binobj = Piqirun.gen_binobj T.gen__ast ast in
-  (* convert binary ast to piqobj of type ast *)
-  let piqtype = Piqobj_to_json.ast_def in
-  let piqobj = Piqobj_of_wire.parse_binobj piqtype binobj in
-  (* generate xml from the piqobj *)
-  gen_obj piqobj
+  (* NOTE: converting only typed and fully resolved piq objects to xml *)
+  match x.obj with
+    | None -> [`Elem ("undefined", [])] (* XXX: will it be always present? *)
+    | Some obj -> gen_obj obj
 
 
 and gen_record x =

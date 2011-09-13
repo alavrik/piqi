@@ -234,3 +234,10 @@ let xml_to_string ?pretty_print xml =
   xml_to_buffer ?pretty_print buf xml;
   Buffer.contents buf
 
+
+let xml_of_string s :xml =
+  let xml_parser = init_from_string s in
+  match read_xml_obj xml_parser with
+    | Some ast -> ast
+    | None -> assert false
+

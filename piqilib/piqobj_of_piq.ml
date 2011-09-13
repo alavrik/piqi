@@ -317,7 +317,7 @@ and parse_any x =
   (* NOTE: the object is not fully resolved during this stage; at least
    * "obj" should be obtained by parsing "piqtype.ast" at later stages (see
    * Piqi.resolve_defaults for example *)
-  let piq_any = T.Any#{ ast = Some x; binobj = None } in
+  let piq_any = T.Any#{T.default_any () with ast = Some x} in
   Piqloc.addref x piq_any;
   Any#{ any = piq_any; obj = None }
 

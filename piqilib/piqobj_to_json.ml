@@ -35,11 +35,6 @@ module Any = Piqobj.Any
 module L = Piqobj.List
 
 
-(* boot code *)
-(* XXX: move ast def to Piqi module? *)
-let ast_def = Piqi.find_embedded_piqtype "ast"
-
-
 let make_named name value =
   name, value
 
@@ -79,17 +74,10 @@ and gen_typed_obj x =
 
 and gen_any x =
   let open Any in
-  (* XXX: is ast always defined? *)
-
-  (* TODO: handle typed *)
-  let ast = some_of x.any.T.Any.ast in
-  (* convert ast to binary *)
-  let binobj = Piqirun.gen_binobj T.gen__ast ast in
-  (* convert binary ast to piqobj of type ast *)
-  let piqtype = ast_def in
-  let piqobj = Piqobj_of_wire.parse_binobj piqtype binobj in
-  (* generate json from the piqobj *)
-  gen_obj piqobj
+  (* NOTE: converting only typed and fully resolved piq objects to json *)
+  match x.obj with
+    | None -> `Null () (* XXX: will it be always present? *)
+    | Some obj -> gen_obj obj
 
 
 and gen_record x =

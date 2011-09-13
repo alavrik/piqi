@@ -83,48 +83,55 @@ let find_local_piqdef piqi name =
 let piqi_loader :(?modname:string -> string -> T.piqi) option ref = ref None
 
 
-let find_load_piqi_module modname =
-  (* check if the module is already loaded, and return it right away *)
-  try find_piqi modname
-  with
-    Not_found ->
-      trace "piqi_db: loading module: %s\n" modname;
-      let fname = Piqi_file.find_piqi modname in (* can raise Not_found *)
-      (* XXX
-      (* reset Config.noboot option, we can't use this option for dependent types
-       * and modules *)
-      let saved_noboot = !Config.noboot in
-      Config.noboot := false;
-      *)
-      let load_piqi_file = some_of !piqi_loader in
-      let piqi = load_piqi_file ~modname fname in
-      (*
-      Config.noboot := saved_noboot;
-      *)
-      piqi
+let load_piqi_module modname =
+  trace "piqi_db: loading module: %s\n" modname;
+  trace_enter ();
+  let fname = Piqi_file.find_piqi modname in (* can raise Not_found *)
+  (* XXX
+  (* reset Config.noboot option, we can't use this option for
+   * dependent types and modules *)
+  let saved_noboot = !Config.noboot in
+  Config.noboot := false;
+  *)
+  let load_piqi_file = some_of !piqi_loader in
+  let piqi = load_piqi_file ~modname fname in
+  (*
+  Config.noboot := saved_noboot;
+  *)
+  trace_leave ();
+  piqi
 
 
-let find_piqdef name =
-  (* XXX: check global type name before loading? *)
-  let modname, typename = Piqi_name.split_name name in
-  let piqi = 
-    match modname with
-      | Some m ->
-          trace "looking for type: %s\n" name;
-          trace_enter ();
+let find_load_piqi_module ~auto_load_piqi modname =
+  match modname with
+    | None -> (* built-in or local type *)
+        (* NOTE: local types are not supported yet *)
+        some_of !boot_piqi
+    | Some modname ->
+        (* check if the module is already loaded, and return it right away *)
+        try find_piqi modname
+        with Not_found when auto_load_piqi ->
           (* XXX: handle load errors *)
-          let piqi = find_load_piqi_module m in
-          trace_leave ();
-          piqi
-      | None -> (* built-in or local type *)
-          (* NOTE: local types are not supported yet *)
-          some_of !boot_piqi
-  in
+          load_piqi_module modname
+
+
+let find_piqdef ?(auto_load_piqi=true) name =
+  (* XXX: check global type name before loading? *)
+  trace "looking for type: %s\n" name;
+  let modname, typename = Piqi_name.split_name name in
+  let piqi = find_load_piqi_module modname ~auto_load_piqi in
   find_local_piqdef piqi typename
 
 
-let find_piqtype name = 
+let find_piqtype name =
   let def = find_piqdef name in
   (def: T.piqdef :> T.piqtype)
 
+
+let try_find_piqtype name =
+  try
+    let def = find_piqdef name ~auto_load_piqi:false in
+    Some (def: T.piqdef :> T.piqtype)
+  with
+    Not_found -> None
 

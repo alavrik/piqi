@@ -90,7 +90,7 @@ let make_param_list name x =
  *    correspondent record
  *  - do the same for anonymous variants, enums and lists
  *)
-let resolve_param piqi idtable func param_name param =
+let resolve_param func param_name param =
   let type_name = make_param_name func param_name in
   let def =
     match param with
@@ -107,29 +107,25 @@ let resolve_param piqi idtable func param_name param =
           `list (make_param_list type_name x)
   in
   Piqloc.addref param def;
-
-  (* check and resolve a newly created alias or record *)
-  ignore (Piqi.resolve_defs ~piqi idtable [def]);
-
   def
 
 
 (* ughh. this is ugly *)
-let resolve_param piqi idtable func param_name param =
+let resolve_param func param_name param =
   match param with
     | None -> None
     | Some param ->
-        let res = resolve_param piqi idtable func param_name param in
+        let res = resolve_param func param_name param in
         Some res
 
 
-let process_func piqi idtable f =
+let process_func f =
   let open T.Func in
   begin
     Piqi.check_name f.name;
-    let i = resolve_param piqi idtable f "input" f.input
-    and o = resolve_param piqi idtable f "output" f.output
-    and e = resolve_param piqi idtable f "error" f.error
+    let i = resolve_param f "input" f.input
+    and o = resolve_param f "output" f.output
+    and e = resolve_param f "error" f.error
     in T.Func#{
       f with
       resolved_input = i;
@@ -139,25 +135,11 @@ let process_func piqi idtable f =
   end
 
 
-let check_dup_names idtable funs =
+let check_dup_names funs =
   let open P in
   let names = List.map (fun x -> x.T.Func#name) funs in
   Piqi.check_dup_names "function" names;
-  (* check that function names do not conflict with type names *)
   ()
-  (* XXX: This check turned out to be an annoying limitation. Commenting it out
-   * for now: *)
-  (*
-  List.iter
-    (fun name ->
-      try
-        let def = Piqi.Idtable.find idtable name in
-        error name
-          ("function name " ^ quote name ^ " conflicts with type name\n" ^
-           error_string def "defined here")
-      with Not_found -> ()
-    ) names
-  *)
 
 
 let get_func_defs f =
@@ -173,29 +155,26 @@ let get_func_defs f =
   ]
 
 
-let process_piqi idtable (piqi :T.piqi) =
-  let open P in (
-    (* get all functions from this module and included modules *)
-    let funs = Piqi_ext.get_functions piqi.included_piqi in
-    (* check for duplicate function names *)
-    check_dup_names idtable funs;
-    (* process functions and create a local copy of them *)
-    let resolved_funs = List.map (process_func piqi idtable) funs in
-    (* add function type definitions to Piqi resolved defs *)
-    piqi.resolved_func <- resolved_funs;
-    let fun_defs = flatmap get_func_defs resolved_funs in
-    if fun_defs <> []
-    then piqi.resolved_piqdef <- piqi.resolved_piqdef @ fun_defs
-  )
+let get_function_defs (piqi :T.piqi) =
+  let open P in
+  (* get all functions from this module and included modules *)
+  let funs = Piqi_ext.get_functions piqi.included_piqi in
+
+  (* check for duplicate function names *)
+  check_dup_names funs;
+
+  (* process functions and create a local copy of them *)
+  let resolved_funs = List.map process_func funs in
+
+  (* add function type definitions to Piqi resolved defs *)
+  piqi.resolved_func <- resolved_funs;
+
+  (* returned definitions derived from function parameters *)
+  let defs = flatmap get_func_defs resolved_funs in
+  defs
 
 
 (* boot code *)
-let _ =
-  (* register a hook for processing functions when a Piqi module is loaded *)
-  Piqi.register_processing_hook process_piqi
-
-
-(* we don't really need this call, but it is used in order to prevent exclusion
- * of this module during library linking *)
-let init () = ()
+let init () =
+  Piqi.get_function_defs := get_function_defs
 

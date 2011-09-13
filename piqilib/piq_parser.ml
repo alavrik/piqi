@@ -80,7 +80,7 @@ let tokenize_name first_c s =
 
 
 let make_any ast =
-  let res = T.Any#{ast = Some ast; binobj = None} in
+  let res = T.Any#{T.default_any () with ast = Some ast} in
   Piqloc.addrefret ast res
 
 

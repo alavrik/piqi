@@ -138,13 +138,20 @@ and parse_binobj piqtype binobj =
   Piqirun.parse_binobj (parse_obj piqtype) binobj
 
 
-and parse_any ?piqtype x =
+and parse_any x =
   let piq_any = T.parse_any x in
   let obj =
-    match piq_any.T.Any#binobj, piqtype with
-      | Some x, Some t ->
+    match piq_any.T.Any#binobj, piq_any.T.Any#typename with
+      | Some x, Some n ->
           (* parse binobj if the type is known *)
-          Some (parse_binobj t x)
+          (match Piqi_db.try_find_piqtype n with
+            | Some t ->
+                Piqloc.pause ();
+                let res = Some (parse_binobj t x) in
+                Piqloc.resume ();
+                res
+            | None -> None
+          )
       | _ -> None
   in
   Any#{ any = piq_any; obj = obj }

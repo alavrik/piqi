@@ -16,12 +16,18 @@ ifneq ($(findstring bcl,$(MAKECMDGOALS)),)
 LIBINSTALL_FILES += $(RESULT).cma
 endif
 
+ifneq ($(findstring debug,$(MAKECMDGOALS)),)
+LIBINSTALL_FILES += $(RESULT).cma
+endif
+
 
 PACKS += xmlm
 
 STATIC = 1 # force creation of static library (don't create dlls)
 
 PIQI_SOURCES_LIB = \
+	piqi_objstore.ml \
+	\
 	piqi_json_common.ml \
 	piqi_json_parser.mll \
 	piqi_json_gen.ml \

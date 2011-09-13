@@ -244,7 +244,7 @@ let piqdef_list =
               typeref = Some (`name "field-mode");
               mode = `optional;
               default =
-                 Some Any#{ ast = Some (`name "required"); binobj = None; };
+                 Some Any#{ default_any () with ast = Some (`name "required") };
             };
             F#{f with
               name = Some "default";

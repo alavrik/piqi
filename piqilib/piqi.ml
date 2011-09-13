@@ -355,37 +355,53 @@ let assert_loc () =
      (Printf.sprintf "internal_error: out count = %d, in count = %d\n" !Piqloc.ocount !Piqloc.icount)
 
 
+(* convert textobj, i.e. JSON or XML to piqobj -- this function will be set by
+ * either Piqi_json or Piqi_xml, depending on which format we are dealing with
+ * at the moment *)
+let piqobj_of_ref_init (piqtype: T.piqtype) (text: int) :Piqobj.obj =
+  assert false
+
+let piqobj_of_ref = ref piqobj_of_ref_init
+
+
+let resolve_default_value default piqtype piqobj =
+    assert_loc ();
+    debug_loc "resolve_default_value(0)";
+    let binobj = Piqobj_to_wire.gen_binobj piqobj in
+
+    (* NOTE: fixing (preserving) location counters which get skewed during
+     * parsing defaults *)
+    Piqloc.icount := !Piqloc.ocount;
+    debug_loc "resolve_default_value(1)";
+
+    default.T.Any.binobj <- Some binobj;
+    default.T.Any.typename <- Some (C.full_piqi_typename piqtype);
+    ()
+
+
 let resolve_field_default x =
+  (*
+  trace "resolve_field_default: %s\n" (C.name_of_field x);
+  *)
   let open F in
   match x.default, x.typeref with
     | None, _ -> () (* no default *)
-    | Some {T.Any.binobj = Some _ }, _ ->
+    | Some {T.Any.binobj = Some _}, _ ->
         (* nothing to do -- object is already resolved *)
         ()
-    | Some ({T.Any.ast = Some ast } as default), Some typeref ->
+    | Some ({T.Any.ast = Some ast} as default), Some typeref ->
         let piqtype = C.piqtype typeref in
         let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
+        resolve_default_value default piqtype piqobj
 
-        debug_loc "resolve_field_default(0)";
+    | Some ({T.Any.ref = Some ref} as default), Some typeref ->
+        let piqtype = C.piqtype typeref in
+        let piqobj = !piqobj_of_ref piqtype ref in
+        resolve_default_value default piqtype piqobj
 
-        (* NOTE: fixing (preserving) location counters which get skewed during
-         * parsing defaults *)
-        let ocount = !Piqloc.ocount in
-
-        (* XXX: pack default to contain only binary representation of
-         * the value, i.e. don't include object typename *)
-        let binobj = Piqobj_to_wire.gen_binobj piqobj in
-
-        (* XXX: or just rather do Piqloc.ocount := !Piqloc.icount? *)
-        Piqloc.icount := !Piqloc.icount + (!Piqloc.ocount - ocount);
-
-        debug_loc "resolve_field_default(1)";
-        assert_loc ();
-
-        default.T.Any.binobj <- Some binobj
     | _, None -> () (* there is no default for a flag *)
     | _ ->
-        assert false (* either binobj or ast have to be defined *)
+        assert false (* either binobj or ast or textobj must be defined *)
 
 
 let resolve_defaults = function
@@ -456,9 +472,6 @@ let resolve_defs ?piqi idtable (defs:T.piqdef list) =
   (* assign wire codes, if they are unassigned; check otherwise; check
    * correctness of .wire-packed usage *)
   Piqi_wire.process_defs defs;
-
-  (* resolve defaults ANY to OBJ using field types and codes *)
-  List.iter resolve_defaults defs;
 
   (* set up parent namespace to local piqi defs *)
   (match piqi with
@@ -566,6 +579,7 @@ let assign_import_name x =
 
 let mlobj_to_piqobj piqtype wire_generator mlobj =
   debug_loc "mlobj_to_piqobj(0)";
+  assert_loc ();
   let binobj = Piqirun.gen_binobj wire_generator mlobj in
   debug_loc "mlobj_to_piqobj(1.5)";
 
@@ -585,6 +599,7 @@ let mlobj_to_ast piqtype wire_generator mlobj =
   debug_loc "mlobj_to_ast(1.5)";
   let ast = Piqobj_to_piq.gen_obj piqobj in
   debug_loc "mlobj_to_ast(1)";
+  assert_loc ();
   ast
 
 
@@ -848,6 +863,11 @@ let get_imported_defs imports =
   flatmap aux imports
 
 
+let get_function_defs_init piqi = []
+
+let get_function_defs = ref get_function_defs_init
+
+
 (* do include & extension expansion for the loaded piqi using extensions from
  * all included piqi modules *)
 let rec process_piqi ?modname ?(cache=true) ?(fname="") (piqi: T.piqi) =
@@ -929,8 +949,11 @@ let rec process_piqi ?modname ?(cache=true) ?(fname="") (piqi: T.piqi) =
           let custom_fields = custom_fields @ (get_custom_fields modules) in
           expand_extensions defs extensions custom_fields
   in
-  (* preserve the original defintions *)
+  (* preserve the original defintions by making a copy *)
   let resolved_defs = copy_defs extended_defs in
+
+  (* get definitions derived from function parameters *)
+  let resolved_defs = resolved_defs @ !get_function_defs piqi in
 
   (* if the module includes (or is itself) piqi.org/piqtype, use hash-based
    * field and option codes instead of auto-enumerated ones *)
@@ -945,6 +968,11 @@ let rec process_piqi ?modname ?(cache=true) ?(fname="") (piqi: T.piqi) =
 
   (* run registered processing hooks *)
   List.iter (fun f -> f idtable piqi) !processing_hooks;
+
+  (* resolve defaults ANY to OBJ using field types and codes; we need to do it
+   * after executing hooks, because otherwise json names will be unresolved and
+   * default field resolution will fail *)
+  List.iter resolve_defaults resolved_defs;
   ()
  
 
@@ -1168,7 +1196,7 @@ let load_piqi fname :T.piqi =
   trace "loading piqi file: %s\n" fname;
   trace_enter ();
   let ast = read_piqi fname in
-  let piqi = load_piqi_ast fname ast ~cache:false in
+  let piqi = load_piqi_ast fname ast ~cache:true in
   trace_leave ();
   piqi
 

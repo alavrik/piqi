@@ -6,6 +6,8 @@
 % This is a copy of piqi.org/piqast.piqi with two extra implementation-specific
 % options added to the "ast" type: raw-word and "raw-binary". Normally, they are
 % defined in piqlib/piqi-impl.piqi
+%
+% Another two fields were added to the "any" record: "type" and "textobj".
 
 
 .custom-field ocaml-name
@@ -125,6 +127,17 @@
     .field [
         .name binobj
         .type binary
+        .optional
+    ]
+    .field [
+        .name type
+        .ocaml-name "typename"
+        .type word
+        .optional
+    ]
+    .field [
+        .name ref % reference to JSON or XML value/parse tree
+        .type int
         .optional
     ]
 ]

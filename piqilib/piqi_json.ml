@@ -174,3 +174,12 @@ let read_json_obj json_parser =
   let res = Piqi_json_parser.read_next json_parser in
   res
 
+
+(* for internal use only: read one parsed JSON value from its string
+ * representation *)
+let json_of_string s :Piqi_json_common.json =
+  let json_parser = Piqi_json_parser.init_from_string s in
+  match read_json_obj json_parser with
+    | Some ast -> ast
+    | None -> assert false
+

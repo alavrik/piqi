@@ -87,6 +87,8 @@ and DEFRECORD(Any,
        include both of them *)
     mutable binobj : string option; (* binary (wire) -encoded piq object *)
     mutable ast : Piqrepr.ast option;
+    mutable typename : string option;
+    mutable ref : int option;
   >>)
  
 
@@ -97,6 +99,11 @@ include Piqrepr
 let gen__any code x = assert false
 
 let parse_any x = assert false
+
+let default_any () =
+  {
+    Any.binobj = None; Any.ast = None; Any.typename = None; Any.ref = None;
+  }
 
 
 (*
