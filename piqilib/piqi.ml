@@ -952,9 +952,6 @@ let rec process_piqi ?modname ?(cache=true) ?(fname="") (piqi: T.piqi) =
   (* preserve the original defintions by making a copy *)
   let resolved_defs = copy_defs extended_defs in
 
-  (* get definitions derived from function parameters *)
-  let resolved_defs = resolved_defs @ !get_function_defs piqi in
-
   (* if the module includes (or is itself) piqi.org/piqtype, use hash-based
    * field and option codes instead of auto-enumerated ones *)
   if C.is_self_spec piqi then Piqi_wire.add_hashcodes resolved_defs;
@@ -962,6 +959,16 @@ let rec process_piqi ?modname ?(cache=true) ?(fname="") (piqi: T.piqi) =
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)
   let idtable = resolve_defs ~piqi idtable resolved_defs in
+
+  (* get definitions derived from function parameters *)
+  let func_defs = !get_function_defs piqi in
+
+  (* resolving them separately, because they should not be addressable from the
+   * normal definitions and from other function definitions as well *)
+  List.iter (fun x -> ignore (resolve_defs ~piqi idtable [x])) func_defs;
+
+  (* now, combine the two together *)
+  let resolved_defs = resolved_defs @ func_defs in
 
   piqi.P#extended_piqdef <- extended_defs;
   piqi.P#resolved_piqdef <- resolved_defs;
