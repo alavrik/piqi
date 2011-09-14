@@ -1,3 +1,5 @@
+.include [ .module piqi.org/piqi-lang ]
+
 % Piqi compiler currently supports Piqi dialect based on the following language
 % extensions:
 

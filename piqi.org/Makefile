@@ -2,11 +2,16 @@
 
 PIQI_FILES = \
 	piqast.piqi \
-	piqi-base.piqi \
-	piqi.piqi \
-	piqi-proto.piqi \
 	piqtype.piqi \
-	piqtype-wire.piqi \
+	\
+	piqi-base.piqi \
+	piqi-proto.piqi \
+	piqi-wire.piqi \
+	piqi-json.piqi \
+	piqi-getopt.piqi \
+	\
+	piqi.piqi \
+	piqi-lang.piqi \
 	\
 	piqobj.piqi
 

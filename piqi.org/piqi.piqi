@@ -15,6 +15,7 @@
 .include [ .module piqi.org/piqi-base ]
 
 % extensions:
+.include [ .module piqi.org/piqi-wire ]
 .include [ .module piqi.org/piqi-proto ]
 .include [ .module piqi.org/piqi-json ]
 .include [ .module piqi.org/piqi-getopt ]

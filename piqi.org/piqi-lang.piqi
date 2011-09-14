@@ -1,0 +1,61 @@
+% Piqi language specification
+%
+% This file contains specificaiton for the Piqi language which is an extension
+% of Piqi-spec (piqi.piqi).
+%
+% Basically, Piqi-lang = Piqi-spec + includes and extensions.
+% 
+% Copyright 2009, 2010, 2011 Anton Lavrik
+
+
+.module piqi.org/piqi-lang
+
+
+.include [ .module piqi.org/piqi ]
+
+
+.custom-field ocaml-name
+
+
+% The Piqi language, in addition to the Piqi-spec, has includes and extensions
+.extend [
+    .name piqi
+
+    .field [
+        .name custom-field
+        .type word
+        .repeated
+    ]
+
+    .field [ .type include .repeated ]
+    .field [ .type extend .repeated ]
+]
+
+
+.record [
+    .name include
+    .ocaml-name "includ"
+
+    .field [
+        .name module
+        .type word
+        .ocaml-name "modname"
+    ]
+]
+
+
+.record [
+    .name extend
+
+    .field [
+        .type name
+        .repeated % several typedefs can be specified as an extension
+    ]
+
+    .field [
+        .ocaml-name "quote"
+        .type piq-any % an actual extension object
+        .repeated
+    ]
+]
+
