@@ -89,7 +89,7 @@ let rec gen_piqtype t ocaml_type =
           | `any ->
               if !Piqic_common.is_self_spec
               then scoped_name "any"
-              else "Piqtype.any"
+              else "Piqi_piqi.any"
           | `record r -> gen_deftype r.R#parent r.R#ocaml_name
           | `variant v -> gen_deftype v.V#parent v.V#ocaml_name
           | `enum e -> gen_deftype e.E#parent e.E#ocaml_name

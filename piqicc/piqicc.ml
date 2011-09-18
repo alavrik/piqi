@@ -75,6 +75,16 @@ let embed_boot_modules ch boot_fname =
   List.iter (embed_module ch) (List.tl (List.rev modules))
 
 
+(* assign field/option/enum codes as a hash(name); by default serial wire codes
+ * would be used *)
+let add_hashcodes defs =
+  (* add hash-based field and option codes instead of auto-enumerated ones *)
+  Piqi_wire.add_hashcodes defs;
+  (* check for hash conflicts and pre-order fields by hash codes *)
+  Piqi_wire.process_defs defs;
+  ()
+
+
 (* piq interface compiler compile *)
 let piqicc ch boot_fname piqi_fname piqi_impl_fname =
   trace "piqicc(0)\n";
@@ -88,18 +98,27 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
   let piqi_impl = Piqi.load_piqi piqi_impl_fname in
 
   trace "piqicc: piqi compiling compiler\n";
-  (* TODO,XXX:
-    * report invalid module name?
-    * check & report piqi incompatibility
-  *)
+  (* TODO: check & report piqi incompatibility *)
+
+  (* find the Piqi module that corresponds to the Piqi language
+   * self-specification -- a basic input sanity check *)
+  let _ =
+    try Piqi_db.find_piqi "piqi.org/piqi-lang"
+    with Not_found ->
+      piqi_error "missing imported module piqi.org/piqi-lang"
+  in
+  (* find the Piqi module that corresponds to the Piqi self-specification *)
+  let piqi_spec =
+    try Piqi_db.find_piqi "piqi.org/piqi"
+    with Not_found ->
+      piqi_error "missing imported module piqi.org/piqi"
+  in
   let boot_piqi = some_of !C.boot_piqi in
 
-  (* prepare embedded Piqi spec *)
-  let piqi = P#{
+  (* prepare embedded Piqi language spec *)
+  let piqi_lang = P#{
     (some_of piqi.original_piqi) with
-      (* using piqi.org/piqtype instead of piqi.org/piqi to generate hashcodes
-       * otherwise, serial wire codes would be generated *)
-      modname = Some "piqi.org/piqtype";
+      modname = piqi.P#modname;
       ocaml_module = None; (* XXX *)
 
       (* unresolved, but expanded piqdef list *)
@@ -121,12 +140,25 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
       *)
   }
   in
-  (* prepare embedded Piqi spec *)
+  (* prepare embedded Piqi self-specification *)
+  let piqi_spec = P#{
+    (some_of piqi_spec.original_piqi) with
+      modname = piqi_spec.P#modname;
+      ocaml_module = None;
+
+      (* unresolved, but expanded piqdef list *)
+      piqdef = piqi_spec.P#extended_piqdef;
+      includ = [];
+      import = [];
+      extend = [];
+
+      custom_field = [];
+  }
+  in
+  (* prepare embedded Piqi boot spec *)
   let boot_piqi = P#{
     (some_of boot_piqi.original_piqi) with
-      (* using piqi.org/piqtype instead of piqi.org/piqi to generate hashcodes
-       * otherwise, serial wire codes would be generated *)
-      modname = Some "piqi.org/piqtype";
+      modname = boot_piqi.P#modname;
       ocaml_module = None; (* XXX *)
 
       (* unresolved, but expanded piqdef list *)
@@ -141,9 +173,12 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
       *)
   }
   in
-  let gen_piqi_binobj piqi = Piqirun.gen_binobj T.gen__piqi piqi in
-
-  let piqi_binobj = gen_piqi_binobj piqi in
+  let gen_piqi_binobj piqi =
+    add_hashcodes piqi.P#piqdef;
+    Piqirun.gen_binobj T.gen__piqi piqi
+  in
+  let piqi_binobj = gen_piqi_binobj piqi_lang in
+  let piqi_spec_binobj = gen_piqi_binobj piqi_spec in
   let piqi_boot_binobj = gen_piqi_binobj boot_piqi in
 
   let code = iod " " [
@@ -151,9 +186,14 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
       ios "Piqirun.parse_binobj parse_piqi x";
     eol;
 
-    ios "let piqi = ";
-      ios "let piqi_binobj = "; ioq (String.escaped piqi_binobj);
-      ios "in parse_piqi_binobj piqi_binobj";
+    ios "let piqi_lang = ";
+      ios "let piqi_lang_binobj = "; ioq (String.escaped piqi_binobj);
+      ios "in parse_piqi_binobj piqi_lang_binobj";
+    eol;
+
+    ios "let piqi_spec = ";
+      ios "let piqi_spec_binobj = "; ioq (String.escaped piqi_spec_binobj);
+      ios "in parse_piqi_binobj piqi_spec_binobj";
     eol;
 
     ios "let boot_piqi = ";

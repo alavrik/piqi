@@ -141,6 +141,8 @@ and parse_binobj piqtype binobj =
 and parse_any x =
   let piq_any = T.parse_any x in
   let obj =
+    (* XXX: instead of converting it here, do it lazily when the object is
+     * actually consumed *)
     match piq_any.T.Any#binobj, piq_any.T.Any#typename with
       | Some x, Some n ->
           (* parse binobj if the type is known *)

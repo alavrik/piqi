@@ -53,7 +53,7 @@ let rec gen_gen_type ocaml_type wire_type wire_packed x =
     | `any ->
         if !Piqic_common.is_self_spec
         then ios "(fun code x -> gen__any code x)"
-        else ios "(fun code x -> Piqtype.gen__any code x)"
+        else ios "(fun code x -> Piqi_piqi.gen__any code x)"
     | (#T.piqdef as x) ->
         let modname = gen_parent x in
         iol [

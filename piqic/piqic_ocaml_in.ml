@@ -36,7 +36,7 @@ let rec gen_parse_type ocaml_type wire_type wire_packed x =
     | `any ->
         if !Piqic_common.is_self_spec
         then ios "parse_any"
-        else ios "Piqtype.parse_any"
+        else ios "Piqi_piqi.parse_any"
     | (#T.piqdef as x) ->
         let modname = gen_parent x in
         iol [

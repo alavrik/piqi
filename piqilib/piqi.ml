@@ -27,9 +27,11 @@ type idtable = T.piqdef Idtable.t
 (* start in boot_mode by default, it will be switched off later (see below) *)
 let boot_mode = ref true
 
-(* resolved "piqi" type definition.
- * Will be appropriately initialized during boot stage (see below) *)
-let piqi_def :T.piqtype ref = ref `bool
+(* resolved type definition for the Piqi language;
+ * it will be appropriately initialized during boot stage (see below) *)
+let piqi_lang_def :T.piqtype ref = ref `bool
+(* resolved type definition for the Piqi specification *)
+let piqi_spec_def :T.piqtype ref = ref `bool
 
 (* resolved "piqdef" type definition
  * Will be appropriately initialized during boot stage (see below) *)
@@ -48,7 +50,9 @@ let register_processing_hook (f :idtable -> T.piqi -> unit) =
   (* run the hook on the embedded Piqi self-specification *)
   f idtable T.boot_piqi; (* XXX: some_of !boot_piqi *)
   debug "register_processing_hook(1.5)\n";
-  f idtable T.piqi;
+  f idtable T.piqi_lang;
+  debug "register_processing_hook(1.6)\n";
+  f idtable T.piqi_spec;
   debug "register_processing_hook(1)\n";
   (* add the hook to the list of registered hooks *)
   processing_hooks := !processing_hooks @ [f]
@@ -351,7 +355,7 @@ let debug_loc prefix =
 let assert_loc () =
   if (!Piqloc.ocount <> !Piqloc.icount)
   then
-    piqi_error
+    failwith
      (Printf.sprintf "internal_error: out count = %d, in count = %d\n" !Piqloc.ocount !Piqloc.icount)
 
 
@@ -644,7 +648,7 @@ let parse_piqi ast =
   (* XXX: handle errors *)
   debug "parse_piqi(0)\n";
   (* use prepared static "piqi" definition to parse the ast *)
-  let res = mlobj_of_ast !piqi_def T.parse_piqi ast in
+  let res = mlobj_of_ast !piqi_lang_def T.parse_piqi ast in
   debug "parse_piqi(1)\n";
   res
 
@@ -952,8 +956,16 @@ let rec process_piqi ?modname ?(cache=true) ?(fname="") (piqi: T.piqi) =
   (* preserve the original defintions by making a copy *)
   let resolved_defs = copy_defs extended_defs in
 
-  (* if the module includes (or is itself) piqi.org/piqtype, use hash-based
-   * field and option codes instead of auto-enumerated ones *)
+  (* if the module includes (or is itself) piqi.org/piqi, use hash-based field
+   * and option codes instead of auto-enumerated ones
+   *
+   * NOTE: code assignment is needed only for .piqi, Piqi specifications encoded
+   * in other formats must already include explicitly speficied (and correct!)
+   * wire codes.
+   *
+   * NOTE: this step must be performed before resolving defaults -- this is
+   * critical for potential piqi extensions such as those used in various piqic
+   *)
   if C.is_self_spec piqi then Piqi_wire.add_hashcodes resolved_defs;
 
   (* check defs, resolve defintion names to types, assign codes, resolve default
@@ -1071,7 +1083,7 @@ and load_include x =
 
 
 (* XXX: is it correct in case of piqicc and piqic? *)
-let embedded_modname = "embedded/piqi.org/piqi"
+let embedded_modname = "embedded/piqi.org/piqi-lang"
 
 
 let find_embedded_piqtype name =
@@ -1087,17 +1099,25 @@ let boot () =
   (* don't cache them as we are adding the spec to the DB explicitly below *)
   process_piqi T.boot_piqi ~cache:false;
   boot_piqi := Some T.boot_piqi;
-  process_piqi T.piqi ~cache:false;
+  process_piqi T.piqi_lang ~cache:false;
+  process_piqi T.piqi_spec ~cache:false;
 
-  (* add the spec to the DB under special name *)
-  T.boot_piqi.P#modname <- Some "embedded/piqi-boot";
+  (* add the boot spec to the DB under a special name *)
+  T.boot_piqi.P#modname <- Some "embedded/piqi.org/piqi-boot";
   Piqi_db.add_piqi T.boot_piqi;
 
-  T.piqi.P#modname <- Some embedded_modname;
-  Piqi_db.add_piqi T.piqi;
+  (* add the self-spec to the DB under a special name *)
+  T.piqi_spec.P#modname <- Some "embedded/piqi.org/piqi";
+  Piqi_db.add_piqi T.piqi_spec;
 
-  (* resolved "piqi" type definition *)
-  piqi_def := find_embedded_piqtype "piqi";
+  (* add the self-spec to the DB under a special name *)
+  T.piqi_lang.P#modname <- Some embedded_modname;
+  Piqi_db.add_piqi T.piqi_lang;
+
+  (* resolved type definition for the Piqi language *)
+  piqi_lang_def := find_embedded_piqtype "piqi";
+  (* resolved type definition for the Piqi specification *)
+  piqi_spec_def := Piqi_db.find_piqtype "embedded/piqi.org/piqi/piqi";
   (* resolved "piqdef" type definition *)
   piqdef_def := find_embedded_piqtype "piqdef";
 

@@ -71,7 +71,7 @@ let rec gen_piqtype t erlang_type =
           | `any ->
               if !Piqic_common.is_self_spec
               then scoped_name !any_erlname
-              else "piqtype_any"
+              else "piqi_any"
           | `record r -> gen_deftype r.R#parent r.R#erlang_name
           | `variant v -> gen_deftype v.V#parent v.V#erlang_name
           | `enum e -> gen_deftype e.E#parent e.E#erlang_name
@@ -281,7 +281,7 @@ let gen_imports l =
   let l = List.map gen_import l in
   let piqtype_incl = 
     if !Piqic_common.depends_on_piq_any && not !Piqic_common.is_self_spec
-    then ios "-include(\"piqtype_piqi.hrl\").\n\n"
+    then ios "-include(\"piqi_piqi.hrl\").\n\n"
     else iol []
   in
   iol [

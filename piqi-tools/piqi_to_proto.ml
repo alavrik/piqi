@@ -91,7 +91,7 @@ let rec typename ?parent (t:T.piqtype) =
            *
            * Thus, adding "_org" suffix to the top namespace for now.
            *)
-          ".piqi_org.piqtype.any"
+          ".piqi_org.piqi.any"
 
 
 and gen_alias_typename ?parent x =
@@ -423,7 +423,7 @@ let gen_piqi (piqi:T.piqi) =
     if C.depends_on_piq_any piqi && not !is_self_spec
     then
       iol [
-        ios "import \"piqi.org/piqtype.piqi.proto\";";
+        ios "import \"piqi.org/piqi.piqi.proto\";";
         eol;
       ]
     else iol []

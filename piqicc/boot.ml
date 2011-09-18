@@ -19,23 +19,39 @@
 open Piqi_common
 
 
-let boot () = 
-  (* rename the embedded module to be treated as self-specification *)
-  T.piqi.P#modname <- Some "piqi.org/piqtype";
+
+let add_hashcodes piqi =
+  (* add hash-based field and option codes instead of auto-enumerated ones *)
+  Piqi_wire.add_hashcodes piqi.P#resolved_piqdef;
+  (* check for hash conflicts and pre-order fields by hash codes *)
+  Piqi_wire.process_defs piqi.P#resolved_piqdef;
+  ()
+
+
+let piqicc piqi =
+  add_hashcodes piqi;
 
   (* call piq interface compiler for ocaml *)
   Piqic_ocaml_types.cc_mode := true;
   Piqic_common.flag_gen_defaults := true;
-  let code = Piqic_ocaml_base.piqic T.piqi in
+  Piqic_common.is_self_spec := true;
+
+  let code = Piqic_ocaml_base.piqic piqi in
+
   Iolist.to_channel stdout code;
   print_endline "let embedded_piqi :(string * string) list ref = ref []";
   ()
+
+
+let boot () =
+  piqicc T.piqi_lang
 
 
 let boot2 () = 
   (*
   Piqi_config.debug_level := 2;
   *)
+  add_hashcodes T.piqi_lang;
 
   (* set piqi boot module *)
   let boot_fname = "boot/piqi-boot.piqi" in
@@ -45,22 +61,11 @@ let boot2 () =
   let fname = "boot/piqast.piqi" in
   let piqi = Piqi.load_piqi fname in
 
-  (* add hash-based field and option codes instead of auto-enumerated ones
-   *
-   * NOTE: at later boot stages and in general, this is handled automatically
-   * in Piqi module
-   *)
-  Piqi_wire.add_hashcodes piqi.P#resolved_piqdef;
-  (* check for hash conflicts and pre-order fields by hash codes *)
-  Piqi_wire.process_defs piqi.P#resolved_piqdef;
+  piqicc piqi
 
-  (* call piq interface compiler for ocaml *)
-  Piqic_ocaml_types.cc_mode := true;
-  Piqic_common.flag_gen_defaults := true;
-  let code = Piqic_ocaml_base.piqic piqi in
-  Iolist.to_channel stdout code;
-  print_endline "let embedded_piqi :(string * string) list ref = ref []";
-  ()
+
+let reboot () =
+  add_hashcodes T.piqi_lang
 
 
 let _ =
@@ -71,5 +76,6 @@ let _ =
     match name with
       | "piqi_boot" -> boot ()
       | "piqi_boot2" -> boot2 ()
+      | "piqi_reboot" -> reboot ()
       | _ -> assert false
 

@@ -25,5 +25,5 @@ test: erlang
 
 clean:
 	$(MAKE) -f Makefile.erlang clean
-	rm -f addressbook.piq.pb piqi-expanded.piqi piqi.*
+	rm -f addressbook.piq.pb piqi.*
 

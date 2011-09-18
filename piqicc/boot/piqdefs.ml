@@ -555,11 +555,9 @@ let piqdef_list =
   ]
 
 
-let piqi =
+let piqi_lang =
   Piqi#{
-    (* using piqi.org/piqtype instead of piqi.org/piqi to generate hashcodes
-     * otherwise, serial wire codes would be generated *)
-    modname = Some "piqi.org/piqtype";
+    modname = Some "piqi.org/piqi";
     ocaml_module = Some "Piqtype";
 
     piqdef = piqdef_list;
@@ -578,11 +576,13 @@ let piqi =
   }
 
 
+let piqi_spec = piqi_lang
+
+
 (* create an empty boot Piqi module with no definitions at all, as the boot
  * piqdefs above to not require normal boot types definitions *)
 let boot_piqi =
   Piqi#{
-    piqi with
+    piqi_lang with
     piqdef = [];
   }
-

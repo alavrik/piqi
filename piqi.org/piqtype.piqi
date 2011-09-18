@@ -1,13 +1,11 @@
-% Piq type specification
+% Piqi-spec for Piqi type definitions
+%
+% This file is included from "piqi.piqi"
 %
 % Copyright 2009, 2010, 2011 Anton Lavrik
 
 
 .module piqi.org/piqtype
-
-.proto-package "piqi_org.piqtype"
-.ocaml-module "Piqtype"
-
 
 .include [ .module piqi.org/piqast ]
 

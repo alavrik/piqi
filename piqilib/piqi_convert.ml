@@ -38,7 +38,7 @@ let find_piqtype typename =
     piqi_error ("invalid type name: " ^ typename);
 
   if typename = "piqi" (* special case *)
-  then !Piqi.piqi_def (* return Piqi type from embedded self-definition *)
+  then !Piqi.piqi_lang_def (* return Piqi type from embedded self-definition *)
   else
     try Piqi_db.find_piqtype typename
     with Not_found ->
@@ -133,7 +133,7 @@ let gen_xml ?pretty_print obj =
 
 let parse_obj piqtype input_format data =
   (* XXX *)
-  let is_piqi_input = (piqtype == !Piqi.piqi_def) in
+  let is_piqi_input = (piqtype == !Piqi.piqi_lang_def) in
   let piqobj =
     match input_format with
       | `piq  -> parse_piq data ~is_piqi_input

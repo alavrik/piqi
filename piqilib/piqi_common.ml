@@ -298,11 +298,11 @@ let is_container_type t =
 
 
 (* check if the module is a Piqi self-specification, i.e. it is
- * "piqi.org/piqtype" or includes it *)
+ * "piqi.org/piqi" or includes it *)
 let is_self_spec (piqi: T.piqi) =
   (* XXX: cache this information to avoid computing it over and over again *)
   List.exists
-    (fun x -> x.P#modname = Some "piqi.org/piqtype")
+    (fun x -> x.P#modname = Some "piqi.org/piqi")
     piqi.P#included_piqi
 
 

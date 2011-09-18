@@ -103,8 +103,9 @@ let piqic_common piqi =
   depends_on_piq_any := Piqi_common.depends_on_piq_any piqi;
 
   (* indication whether the module that is being processed is a Piqi self-spec,
-   * i.e. it is "piqi.org/piqtype" or includes it *)
-  is_self_spec := Piqi_common.is_self_spec piqi;
+   * i.e. it is "piqi.org/piqi" or includes it *)
+  if not !is_self_spec
+  then is_self_spec := Piqi_common.is_self_spec piqi;
 
   (* implicitly add defintions from the boot module to the current module *)
   let boot_defs = get_boot_dependencies piqi in

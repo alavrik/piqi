@@ -121,26 +121,6 @@ let make_piqtype typename =
   }
 
 
-(* remove everything but "binobj" and "ast" in a field's default value *)
-let reset_field_defaults f =
-  let open F in
-  match f.default with
-    | None -> ()
-    | Some x ->
-        let any = Any#{T.default_any () with ast = x.ast; binobj = x.binobj} in
-        f.default <- Some any
-
-
-let reset_record_defaults = function
-  | `record x ->
-      List.iter reset_field_defaults x.R#field
-  | _ -> ()
-
-
-let reset_defaults piqi =
-  List.iter reset_record_defaults piqi.P#piqdef
-
-
 let original_piqi piqi =
   let orig_piqi = some_of piqi.P#original_piqi in
   (* make sure that the module's name is set *)
@@ -217,6 +197,46 @@ let find_piqtype_by_code code =
         ("invalid field code when reading .wire: " ^ string_of_int code)
 
 
+(* remove everything but "binobj" and "ast" in a field's default value *)
+let reset_field_defaults f =
+  let open F in
+  match f.default with
+    | None -> ()
+    | Some x ->
+        let any = Any#{T.default_any () with ast = x.ast; binobj = x.binobj} in
+        f.default <- Some any
+
+
+let reset_record_defaults = function
+  | `record x ->
+      List.iter reset_field_defaults x.R#field
+  | _ -> ()
+
+
+let reset_defaults defs =
+  List.iter reset_record_defaults defs
+
+
+let expand_piqi piqi =
+  let expanded_piqi = Piqi_ext.expand_piqi piqi in
+
+  (* make sure we include all automatically assigned hash-based wire code for
+   * fiels and options *)
+  if C.is_self_spec piqi
+  then Piqi_wire.add_hashcodes expanded_piqi.P#piqdef;
+
+  (* make sure that the module's name is set *)
+  P#{expanded_piqi with modname = piqi.P#modname}
+
+
+let piqi_to_piqobj piqi =
+  let piqi = expand_piqi piqi in
+
+  let piqtype = !Piqi.piqi_spec_def in
+  let wire_generator = T.gen__piqi in
+  Piqi.mlobj_to_piqobj piqtype wire_generator piqi
+
+
 (* using max code value as a wire code for Piqi
  *
  * XXX: alternatively, we could use an invalid value like 0, or lowest possible
@@ -224,21 +244,13 @@ let find_piqtype_by_code code =
 let piqi_spec_wire_code = (1 lsl 29) - 1
 
 
-let piqi_to_piqobj piqi =
-  let piqi = original_piqi piqi in
-
-  let piqtype = !Piqi.piqi_def in
-  let wire_generator = T.gen__piqi in
-
-  Piqi.mlobj_to_piqobj piqtype wire_generator piqi
-
-
 let piqi_to_pb_common piqi ~code =
   (* TODO: fix that ugliness by providing an "external mode" in Piqi_of/to_wire
    * that respects the external definition of the "any" record *)
-  reset_defaults (some_of piqi.P#original_piqi);
+  reset_defaults piqi.P#extended_piqdef;
 
   let piqobj = piqi_to_piqobj piqi in
+
   Piqloc.pause ();
   let pb = Piqobj_to_wire.gen_obj code piqobj in
   Piqloc.resume ();
@@ -256,6 +268,9 @@ let piqi_to_wire piqi =
 let piqi_of_wire bin ~cache =
   (* don't store location references as we're loading from the binary object *)
   Piqloc.pause ();
+
+  (* TODO: use a safer method using the Piqi.piqi_spec_def, i.e. Piqi
+   * self-specificaion rather that the language-impl *)
   let piqi = T.parse_piqi bin in
   Piqloc.resume ();
 
@@ -371,7 +386,7 @@ let open_pb fname =
 (* NOTE: this function will be called exactly once *)
 let load_pb (piqtype:T.piqtype) wireobj :obj =
   (* TODO: handle runtime wire read errors *)
-  if piqtype == !Piqi.piqi_def (* XXX *)
+  if piqtype == !Piqi.piqi_lang_def (* XXX *)
   then
     let piqi = piqi_of_wire wireobj ~cache:true in
     Piqi piqi
@@ -414,7 +429,7 @@ let piqobj_of_json_ref piqtype ref =
 
 
 let piqi_of_json json ~cache =
-  let piqtype = !Piqi.piqi_def in
+  let piqtype = !Piqi.piqi_spec_def in
   let wire_parser = T.parse_piqi in
 
   (* don't resolve defaults when reading Json *)
@@ -508,7 +523,7 @@ let load_json_common piqtype ast =
               "invalid toplevel value for primitive type: {\"_\": ...} expected"
     else ast
   in
-  if piqtype == !Piqi.piqi_def (* XXX *)
+  if piqtype == !Piqi.piqi_lang_def (* XXX *)
   then
     let piqi = piqi_of_json ast ~cache:true in
     Piqi piqi
@@ -575,7 +590,7 @@ let piqobj_of_xml_ref piqtype ref =
 
 
 let piqi_of_xml xml =
-  let piqtype = !Piqi.piqi_def in
+  let piqtype = !Piqi.piqi_spec_def in
   let wire_parser = T.parse_piqi in
 
   (* don't resolve defaults when reading xml *)
@@ -624,7 +639,7 @@ let read_xml_ast xml_parser :Piqi_xml.xml =
 
 let load_xml_obj (piqtype: T.piqtype) xml_parser :obj =
   let ast = read_xml_ast xml_parser in
-  if piqtype == !Piqi.piqi_def (* XXX *)
+  if piqtype == !Piqi.piqi_lang_def (* XXX *)
   then
     let piqi = piqi_of_xml ast in
     Piqi piqi

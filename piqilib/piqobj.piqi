@@ -3,7 +3,7 @@
 % Copyright 2009, 2010, 2011 Anton Lavrik
 
 
-.import [ .module piqi.org/piqtype ]
+.import [ .module piqi.org/piqi .name piqtype ]
 
 
 .variant [

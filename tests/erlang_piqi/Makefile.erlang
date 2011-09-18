@@ -1,5 +1,5 @@
 
-ERL_SOURCES = piqtype_piqi.erl piqi_piqi.erl piqobj_piqi.erl test.erl
+ERL_SOURCES = piqi_piqi.erl piqobj_piqi.erl test.erl
 
 
 ERL_APP_PATH = $(PIQI_ROOT)/piqi-erlang

@@ -193,17 +193,17 @@ let remove_update_seen l =
   List.filter check_update_unseen l
 
 
-let rec get_piqi_deps piqi =
+let rec get_piqi_deps piqi ~only_imports =
   if C.is_boot_piqi piqi
   then [] (* boot Piqi is not a dependency *)
   else
-    (* get all includes and includes from all included modules *)
-    let includes = piqi.P#included_piqi in
+    (* get all includes and includes from all included modules -- only *)
+    let includes = if only_imports then [piqi] else piqi.P#included_piqi in
     (* get all dependencies from imports *)
     let import_deps =
       flatmap (fun x ->
           let piqi = some_of x.T.Import#piqi in
-          flatmap get_piqi_deps piqi.P#included_piqi)
+          flatmap (get_piqi_deps ~only_imports) piqi.P#included_piqi)
         piqi.P#resolved_import
     in
     (* NOTE: imports go first in the list of dependencies *)
@@ -221,13 +221,13 @@ let get_parent_piqi (t: T.piqtype) =
   C.get_parent_piqi piqdef
 
 
-let get_dependencies (obj :Piq.obj) =
+let get_dependencies (obj :Piq.obj) ~only_imports =
   let deps =
     match obj with
       | Piq.Piqi piqi ->
           (* add piqi itself to the list of seen *)
           add_seen piqi;
-          let deps = get_piqi_deps piqi in
+          let deps = get_piqi_deps piqi ~only_imports in
           (* remove the Piqi itself from the list of deps *)
           List.filter (fun x -> x != piqi) deps
       | _ -> (
@@ -243,7 +243,7 @@ let get_dependencies (obj :Piq.obj) =
           (* get dependencies for yet unseen (and not yet embedded) piqi *)
           if is_seen piqi
           then []
-          else get_piqi_deps piqi
+          else get_piqi_deps piqi ~only_imports
       )
   in
   (* filter out already seen deps along with updating the list of seen deps *)
@@ -303,6 +303,11 @@ let convert_file () =
       | "json" | "piq-json" | "xml" -> true
       | _ -> false);
 
+  let is_piq_output =
+    match !output_encoding with
+      | "" | "piq" -> true
+      | _ -> false
+  in
   (* main convert cycle *)
   try 
     trace "piqi convert: main loop\n";
@@ -313,7 +318,7 @@ let convert_file () =
       then (
         trace "piqi convert: embedding Piqi\n";
         (* write yet unwirtten object's dependencies *)
-        let deps = get_dependencies obj in
+        let deps = get_dependencies obj ~only_imports:(not is_piq_output) in
         List.iter (fun x -> writer och (Piq.Piqi x)) deps
       );
       (* write the object itself *)
