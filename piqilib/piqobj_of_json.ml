@@ -194,7 +194,8 @@ and find_fields (name:string) (l:(string*json) list) :(json list * (string*json)
 and find_flags (name:string) (l:(string*json) list) :(string list * (string*json) list) =
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
-    | (n, `Null ())::t when n = name -> aux (n::accu) rem t
+    | (n, `Bool true)::t when n = name -> aux (n::accu) rem t
+    | (n, `Null ())::t when n = name -> aux accu rem t (* skipping *)
     | (n, _)::t when n = name ->
         error n ("value can not be specified for flag " ^ quote n)
     | h::t -> aux accu (h::rem) t
@@ -240,8 +241,12 @@ and parse_variant t x =
             error x ("unknown variant option: " ^ quote name)
         in
         V#{ piqtype = t; option = option }
-    | `Assoc _ ->
-        error x "exactly one option field expected"
+    | `Assoc l ->
+        let l = List.filter (fun (n, v) -> v <> `Null ()) l in
+        (match l with
+          | [_] -> parse_variant t (`Assoc l)
+          | _ -> error x "exactly one non-null option field expected"
+        )
     | _ ->
         error x "object expected"
 
@@ -249,12 +254,10 @@ and parse_variant t x =
 and parse_option t x =
   let open T.Option in
   match t.typeref, x with
-    | None, `Null () ->
+    | None, `Bool true ->
         O#{ piqtype = t; obj = None }
     | None, _ ->
-        error x "null value expected"
-    | Some _, `Null () ->
-        error x "non-null value expected"
+        error x "true value expected"
     | Some typeref, _ ->
         let option_type = piqtype typeref in
         let obj = parse_obj option_type x in

@@ -384,9 +384,7 @@ let resolve_default_value default piqtype piqobj =
 
 
 let resolve_field_default x =
-  (*
-  trace "resolve_field_default: %s\n" (C.name_of_field x);
-  *)
+  debug "resolve_field_default: %s\n" (C.name_of_field x);
   let open F in
   match x.default, x.typeref with
     | None, _ -> () (* no default *)
