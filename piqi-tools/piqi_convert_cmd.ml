@@ -45,7 +45,7 @@ let arg__piqtype =
 
 let arg__add_defaults =
     "--add-defaults", Arg.Set flag_add_defaults,
-    "add field default values while converting records"
+    "add default field values to converted records"
 
 
 let speclist = Main.common_speclist @
@@ -161,6 +161,14 @@ let make_reader input_encoding =
 
 
 let make_writer ?(is_piqi_input=false) output_encoding =
+  (* XXX: We need to resolve all defaults before converting to JSON or XML since
+   * they are dynamic encoding, and it would be too unreliable and inefficient
+   * to let a consumer decide what a default value for a field should be in case
+   * if the field is missing. *)
+  C.resolve_defaults := !flag_add_defaults ||
+    (match output_encoding with
+      | "json" | "piq-json" | "xml" -> true
+      | _ -> false);
   match output_encoding with
     | "" (* default output encoding is "piq" *)
     | "piq" -> Piq.write_piq
@@ -293,15 +301,6 @@ let convert_file () =
       | x -> x
   in
   let och = Main.open_output ofile in
-
-  (* XXX: We need to resolve all defaults before converting to JSON or XML since
-   * they are dynamic encoding, and it would be too unreliable and inefficient
-   * to let a consumer decide what a default value for a field should be in case
-   * if the field is missing. *)
-  C.resolve_defaults := !flag_add_defaults ||
-    (match !output_encoding with
-      | "json" | "piq-json" | "xml" -> true
-      | _ -> false);
 
   let is_piq_output =
     match !output_encoding with

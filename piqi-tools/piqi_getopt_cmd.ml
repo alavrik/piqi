@@ -63,11 +63,6 @@ let getopt_command () =
     | _ ->
         let writer = Piqi_convert_cmd.make_writer !output_encoding in
         let piqtype = Piqi_convert.find_piqtype !typename in
-
-        (* parse the Piq AST according to "--piqtype" and convert to the output
-         * format according to "-t" *)
-        C.resolve_defaults := !Piqi_convert_cmd.flag_add_defaults;
-
         let piqobj = Piqi_getopt.parse_args piqtype piq_ast_list in
 
         (* write the object *)
