@@ -44,12 +44,26 @@ let return_rpc_error err =
   `rpc_error err
 
 
+(* mutable placeholder for the current convert options; we use it to avoid
+ * allocation of a new structure on each call *)
+let convert_options = Piqi_convert.make_options ()
+
+
+let set_convert_options args =
+  let open I.Convert_input in (
+    convert_options.Piqi_convert.pretty_print <- args.pretty_print;
+    convert_options.Piqi_convert.json_omit_null_fields <- args.json_omit_null_fields;
+  )
+
+
 (* "convert" call handler *)
 let convert args =
   let open I.Convert_input in
-  let output = Piqi_convert.convert
-      args.type_name args.input_format args.output_format args.data
-      ~pretty_print:args.pretty_print
+  let piqtype = Piqi_convert.find_piqtype args.type_name in
+  set_convert_options args;
+  let output = Piqi_convert.convert_piqtype
+      piqtype args.input_format args.output_format args.data
+      ~opts:convert_options
   in
   `ok I.Convert_output#{ data = output }
 

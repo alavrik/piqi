@@ -73,12 +73,13 @@ let gen_parse ocaml_mod def =
 let gen_gen ocaml_mod def =
   let mlname = piqdef_mlname def in
   iod " " [
-    ios "let gen_" ^^ ios mlname; ios "x (format :Piqirun_ext.output_format) =";
+    ios "let gen_" ^^ ios mlname;
+        ios "?opts"; ios "x (format :Piqirun_ext.output_format) =";
       ios "let buf = "; ios ocaml_mod ^^ ios ".gen_" ^^ ios mlname; ios "x";
       ios "in";
       ios "let x_pb = Piqirun.to_string buf";
       ios "in";
-      gen_convert mlname "`pb" "format" "x_pb";
+      gen_convert mlname "`pb" "format" "x_pb"; ios "?opts";
       eol;
   ]
 

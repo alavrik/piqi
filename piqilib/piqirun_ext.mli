@@ -27,10 +27,19 @@ type output_format = [ input_format | `json_pretty | `xml_pretty ]
 
 type piqtype
 
+type options
+
 
 val init_piqi : string list -> unit
 
 val find_piqtype : string -> piqtype
 
-val convert : piqtype -> input_format -> output_format -> string -> string
+val make_options:
+        ?pretty_print:bool ->
+        ?json_omit_null_fields:bool ->
+        unit -> options
+
+val convert:
+  ?opts:options ->
+  piqtype -> input_format -> output_format -> string -> string
 

@@ -30,6 +30,7 @@ let output_encoding = ref ""
 let typename = ref ""
 let flag_add_defaults = ref false
 let flag_embed_piqi = ref false
+let flag_json_omit_null_fields = ref true
 
 
 let usage = "Usage: piqi convert [options] [input file] [output file]\nOptions:"
@@ -47,6 +48,10 @@ let arg__add_defaults =
     "--add-defaults", Arg.Set flag_add_defaults,
     "add default field values to converted records"
 
+let arg__json_omit_null_fields =
+    "--json-omit-null-fields", Arg.Bool (fun x -> flag_json_omit_null_fields := x),
+    "true|false omit null fields in JSON output (default=true)"
+
 
 let speclist = Main.common_speclist @
   [
@@ -58,11 +63,12 @@ let speclist = Main.common_speclist @
     arg__t;
     arg__piqtype;
     arg__add_defaults;
+    arg__json_omit_null_fields;
 
     "--embed-piqi", Arg.Set flag_embed_piqi,
     "embed Piqi dependencies, i.e. Piqi specs which the input depends on";
 
-     arg__;
+    arg__;
   ]
 
 
@@ -278,6 +284,10 @@ let validate_options input_encoding =
 
 let convert_file () =
   Piqi_convert.init ();
+  Piqi_convert.set_options
+    (Piqi_convert.make_options
+      ~json_omit_null_fields:!flag_json_omit_null_fields ()
+    );
   let input_encoding =
     if !input_encoding <> ""
     then !input_encoding

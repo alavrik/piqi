@@ -48,8 +48,19 @@
             .type format
         ]
 
+        % this option is relevant only for JSON or XML output formats; Piq is
+        % always pretty-printed
         .field [
-            .name pretty-print  %NOTE: affects only JSON output
+            .name pretty-print
+            .type bool
+            .optional
+            .default true
+        ]
+
+        % omit undefined fields in JSON output; if false, they will be present
+        % in the output with their values set to "null", e.g. {"foo":null}
+        .field [
+            .name json-omit-null-fields
             .type bool
             .optional
             .default true

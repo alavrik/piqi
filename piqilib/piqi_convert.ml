@@ -155,7 +155,34 @@ let gen_obj ~pretty_print output_format piqobj =
     | `wire -> gen_wire piqobj
 
 
-let convert_piqtype ?(pretty_print=true) piqtype input_format output_format data =
+type options =
+  {
+    mutable json_omit_null_fields : bool;
+    mutable pretty_print : bool;
+  }
+
+
+let make_options
+        ?(pretty_print=true)
+        ?(json_omit_null_fields=true)
+        () =
+  {
+    json_omit_null_fields = json_omit_null_fields;
+    pretty_print = pretty_print;
+  }
+
+
+let set_options opts =
+  Piqobj_to_json.omit_null_fields := opts.json_omit_null_fields;
+  ()
+
+
+let convert_piqtype ~opts piqtype input_format output_format data =
+
+  (* apply some of the settings *)
+  set_options opts;
+
+  (* perform the conversion *)
   let piqobj =
     (* XXX: We need to resolve all defaults before converting to JSON or XML *)
     C.with_resolve_defaults
@@ -163,10 +190,5 @@ let convert_piqtype ?(pretty_print=true) piqtype input_format output_format data
       (fun () -> parse_obj piqtype input_format data)
       ()
   in
-  gen_obj output_format piqobj ~pretty_print
-
-
-let convert ?(pretty_print=true) type_name input_format output_format data =
-  let piqtype = find_piqtype type_name in
-  convert_piqtype piqtype input_format output_format data ~pretty_print
+  gen_obj output_format piqobj ~pretty_print:opts.pretty_print
 

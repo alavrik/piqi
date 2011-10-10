@@ -215,9 +215,23 @@ gen_parse(Mod, ErlMod, Name, ErlName) ->
 
 gen_gen(Mod, ErlMod, Name, ErlName) ->
     [
+        gen_gen_2(Mod, ErlMod, Name, ErlName),
+        gen_gen_3(Mod, ErlMod, Name, ErlName)
+    ].
+
+
+gen_gen_2(Mod, ErlMod, Name, ErlName) ->
+    [
         "gen_", ErlName, "(X, Format) ->\n",
         "    Iolist = ", ErlMod, ":gen_", ErlName, "(X),\n",
         "    ", gen_convert(Mod, Name, "'pb'", "Format", "iolist_to_binary(Iolist)"), ".\n\n"
+    ].
+
+gen_gen_3(Mod, ErlMod, Name, ErlName) ->
+    [
+        "gen_", ErlName, "(X, Format, Options) ->\n",
+        "    Iolist = ", ErlMod, ":gen_", ErlName, "(X),\n",
+        "    ", gen_convert(Mod, Name, "'pb'", "Format", "iolist_to_binary(Iolist), Options"), ".\n\n"
     ].
 
 

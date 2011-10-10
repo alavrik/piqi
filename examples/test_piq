@@ -51,6 +51,8 @@ piqi convert -t json $f.piq.wire
 # convert .wire to .xml
 piqi convert -t xml $f.piq.wire
 
+# convert .wire to .json; generate "null" for missing optional fields
+piqi convert -t json --json-omit-null-fields false $f.piq.wire
 
 #
 # Similar to the above but this time, embedding Piqi type specs while

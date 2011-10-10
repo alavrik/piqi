@@ -32,6 +32,15 @@ let _ =
   let address_book' = Ab.parse_address_book json `json in
   assert (address_book' = address_book);
 
+  (* Serialize addressbook to pretty-printed JSON format and include "null" JSON
+   * fields for missing optional fields *)
+  let opts = Piqirun_ext.make_options ~json_omit_null_fields:false () in
+  let json = Ab.gen_address_book address_book `json ~opts in
+  Printf.printf "\n\nJSON with null fields: \n\n%s\n" json;
+  (* Read back from JSON *)
+  let address_book' = Ab.parse_address_book json `json in
+  assert (address_book' = address_book);
+
   (* Serialize addressbook to XML format *)
   let xml = Ab.gen_address_book address_book `xml in
   Printf.printf "\n\nXML: \n\n%s\n" xml;

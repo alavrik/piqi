@@ -35,6 +35,14 @@ module Any = Piqobj.Any
 module L = Piqobj.List
 
 
+(* configuration/command-line option:
+ *
+ * omit undefined fields in JSON output; if false, they will be present in the
+ * output with their values set to "null", e.g. {"foo":null}
+ *)
+let omit_null_fields = ref true
+
+
 let make_named name value =
   name, value
 
@@ -101,7 +109,11 @@ and gen_field fields t =
                | Some obj -> make_named name (gen_obj obj)
           in [res]
         with
-          Not_found -> [])
+          Not_found ->
+            if !omit_null_fields
+            then []
+            else [make_named name (`Null ())]
+        )
     | `repeated ->
         let fields = List.find_all pred fields in
         let json_fields = List.map (fun f -> gen_obj (some_of f.obj)) fields in
