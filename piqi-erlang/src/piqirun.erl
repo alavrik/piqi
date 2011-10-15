@@ -46,6 +46,11 @@
 %%
 %% @doc Piqi runtime library
 %%
+%% Encoding rules follow this specification:
+%%
+%%      http://code.google.com/apis/protocolbuffers/docs/encoding.html
+
+
 -module(piqirun).
 -compile(export_all).
 
@@ -639,17 +644,24 @@ parse_packed_list_elem(ParsePackedValue, ParseValue, {1, X}) ->
         L :: [ parsed_field() ] ) ->
     { Found ::[ piqirun_return_buffer() ], Rest :: [ parsed_field() ]}.
 
-% find record field by code
+% find record fields by code
 find_fields(Code, L) ->
-    find_fields(Code, L, [], []).
+    {RevRes, Rest} = find_fields_rev(Code, L),
+    {lists:reverse(RevRes), Rest}.
 
 
-find_fields(_Code, [], Accu, Rest) ->
-    {lists:reverse(Accu), lists:reverse(Rest)};
-find_fields(Code, [{Code, X} | T], Accu, Rest) ->
-    find_fields(Code, T, [X | Accu], Rest);
-find_fields(Code, [H | T], Accu, Rest) ->
-    find_fields(Code, T, Accu, [H | Rest]).
+% find record fields by code and return the list of found fields in reverse
+% order
+find_fields_rev(Code, L) ->
+    find_fields_rev(Code, L, [], []).
+
+
+find_fields_rev(_Code, [], Accu, Rest) ->
+    {Accu, lists:reverse(Rest)};
+find_fields_rev(Code, [{Code, X} | T], Accu, Rest) ->
+    find_fields_rev(Code, T, [X | Accu], Rest);
+find_fields_rev(Code, [H | T], Accu, Rest) ->
+    find_fields_rev(Code, T, Accu, [H | Rest]).
 
 
 -spec throw_error/1 :: (any()) -> no_return().
@@ -711,7 +723,10 @@ parse_optional_field(Code, ParseValue, L, Default) ->
 
 
 parse_optional_field(Code, ParseValue, L) ->
-    {Fields, Rest} = find_fields(Code, L),
+    % using find_fields_rev/2 instead of find_fields/2, because if there are
+    % several fields associated with this code we need to pick the last one as
+    % the field's value
+    {Fields, Rest} = find_fields_rev(Code, L),
     Res = 
         case Fields of
             [] -> 'undefined';

@@ -678,14 +678,21 @@ let parse_variant obj =
     | _ -> error obj "variant contains more than one option"
 
 
-(* find record field by code *)
-let find_fields code l =
+(* find record fields by code *)
+let find_fields_rev code l =
   let rec aux accu rem = function
-    | [] -> List.rev accu, List.rev rem
+    | [] -> accu, List.rev rem
     | (code', obj)::t when code = code' -> aux (obj::accu) rem t
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
+
+
+(* find record fields by code and return the list of found fields in reverse
+ * order *)
+let find_fields code l =
+  let rev_res, rem = find_fields_rev code l in
+  List.rev rev_res, rem
 
 
 let parse_binobj parse_fun binobj =
@@ -709,7 +716,10 @@ let check_duplicate code tail =
 
 (* XXX, NOTE: using default with requried or optional-default fields *)
 let parse_required_field code parse_value ?default l =
-  let res, rem = find_fields code l in
+  (* using find_fields_rev instead of find_fields, because if there are several
+   * fields associated with this code we need to pick the last one as the
+   * field's value *)
+  let res, rem = find_fields_rev code l in
   match res with
     | [] ->
         (match default with
@@ -721,7 +731,9 @@ let parse_required_field code parse_value ?default l =
 
 
 let parse_optional_field code parse_value l =
-  let res, rem = find_fields code l in
+  (* using find_fields_rev instead of find_fields -- see the comment in
+   * parse_required_field() *)
+  let res, rem = find_fields_rev code l in
   match res with
     | [] -> None, l
     | x::t ->
@@ -833,7 +845,9 @@ let parse_packed_repeated_array64_field code parse_packed_value parse_value l =
 
 
 let parse_flag code l =
-  let res, rem = find_fields code l in
+  (* using find_fields_rev instead of find_fields -- see the comment in
+   * parse_required_field() *)
+  let res, rem = find_fields_rev code l in
   match res with
     | [] -> false, l
     | x::t ->
