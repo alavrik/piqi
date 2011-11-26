@@ -73,13 +73,23 @@ let process_default_piqtype ?check typename =
   default_piqtype := Some piqtype
 
 
+(* default piqtype taken from the stream overrides the user-specified
+ * one *)
+let get_current_piqtype user_piqtype locref =
+  match !default_piqtype, user_piqtype with
+  | Some x, _ -> x
+  | None, Some x -> x
+  | None, None ->
+      error locref "type of object is unknown"
+
+
 let piqi_of_piq fname ast =
   let piqi = Piqi.parse_piqi ast in
   Piqi.process_piqi piqi ~fname; (* NOTE: caching the loaded module *)
   piqi
 
 
-let rec load_piq_obj piq_parser :obj =
+let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
   let ast = read_piq_ast piq_parser in
   let fname, _ = piq_parser in (* TODO: improve getting a filename from parser *)
   match ast with
@@ -103,12 +113,9 @@ let rec load_piq_obj piq_parser :obj =
         let obj = Piqobj_of_piq.parse_typed_obj ast in
         Typed_piqobj obj
     | _ ->
-        match !default_piqtype with
-          | Some piqtype ->
-              let obj = Piqobj_of_piq.parse_obj piqtype ast in
-              Piqobj obj
-          | None ->
-              error ast "type of object is unknown"
+        let piqtype = get_current_piqtype user_piqtype ast in
+        let obj = Piqobj_of_piq.parse_obj piqtype ast in
+        Piqobj obj
 
 
 let make_piqtype typename =
@@ -296,7 +303,7 @@ let process_piqtype code typename =
   add_piqtype code piqtype
 
 
-let rec load_wire_obj buf :obj =
+let rec load_wire_obj (user_piqtype :T.piqtype option) buf :obj =
   let field_code, field_obj = read_wire_field buf in
   match field_code with
     | c when c = piqi_spec_wire_code -> (* embedded Piqi spec *)
@@ -313,16 +320,16 @@ let rec load_wire_obj buf :obj =
         else
           (* we've just read type-code binding information;
              proceed to the next stream object *)
-          load_wire_obj buf
+          load_wire_obj user_piqtype buf
     | 2 ->
-        (match !default_piqtype with
-          | Some piqtype ->
-              let obj = piqobj_of_wire piqtype field_obj in
-              Piqobj obj
-          | None ->
-              (* TODO: add stream position info *)
-              piqi_error "default type for piq wire object is unknown"
-        )
+        let piqtype =
+          try get_current_piqtype user_piqtype `fake
+          with _ ->
+            (* TODO: add stream position info *)
+            piqi_error "default type for piq wire object is unknown"
+        in
+        let obj = piqobj_of_wire piqtype field_obj in
+        Piqobj obj
     | c -> (* the code is even which means typed piqobj *)
         let piqtype = find_piqtype_by_code (c/2) in
         let obj = piqobj_of_wire piqtype field_obj in
@@ -537,7 +544,7 @@ let load_json_common piqtype ast =
           Typed_piqobj obj
 
 
-let load_piq_json_obj (piqtype: T.piqtype option) json_parser :obj =
+let load_piq_json_obj (user_piqtype: T.piqtype option) json_parser :obj =
   let ast = read_json_ast json_parser in
   (* check typenames, as Json parser doesn't do it unlike the Piq parser *)
   let check = true in
@@ -563,15 +570,7 @@ let load_piq_json_obj (piqtype: T.piqtype option) json_parser :obj =
     | `Assoc (("_piqtype", _ )::_) ->
         error ast "invalid type object specification"
     | _ ->
-        let piqtype =
-          (* default piqtype taken from the stream overrides the user-specified
-           * one *)
-          match !default_piqtype, piqtype with
-            | Some x, _ -> x
-            | None, Some x -> x
-            | None, None ->
-                error ast "type of object is unknown"
-        in
+        let piqtype = get_current_piqtype user_piqtype ast in
         load_json_common piqtype ast
 
 

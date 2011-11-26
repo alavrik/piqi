@@ -65,9 +65,9 @@ let parse_piq_common get_next ~is_piqi_input =
 let fname = "input" (* XXX *)
 
 
-let parse_piq s ~is_piqi_input =
+let parse_piq piqtype s ~is_piqi_input =
   let piq_parser = Piq_parser.init_from_string fname s in
-  let get_next () = Piq.load_piq_obj piq_parser in
+  let get_next () = Piq.load_piq_obj (Some piqtype) piq_parser in
   let obj = parse_piq_common get_next ~is_piqi_input in
   (* XXX: check eof? *)
   obj
@@ -78,9 +78,9 @@ let gen_piq obj =
   Piq_gen.to_string ast
 
 
-let parse_wire s ~is_piqi_input =
+let parse_wire piqtype s ~is_piqi_input =
   let buf = Piqirun.IBuf.of_string s in
-  let get_next () = Piq.load_wire_obj buf in
+  let get_next () = Piq.load_wire_obj (Some piqtype) buf in
   let obj = parse_piq_common get_next ~is_piqi_input in
   (* XXX: check eof? *)
   obj
@@ -136,12 +136,12 @@ let parse_obj piqtype input_format data =
   let is_piqi_input = (piqtype == !Piqi.piqi_lang_def) in
   let piqobj =
     match input_format with
-      | `piq  -> parse_piq data ~is_piqi_input
+      | `piq  -> parse_piq piqtype data ~is_piqi_input
       | `json -> parse_json piqtype data
       | `pb -> parse_pb piqtype data
       | `xml -> parse_xml piqtype data
       (* XXX *)
-      | `wire -> parse_wire data ~is_piqi_input
+      | `wire -> parse_wire piqtype data ~is_piqi_input
   in piqobj
 
 

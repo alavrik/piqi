@@ -30,6 +30,7 @@ let usage = "Usage: piqi check [options] <.piqi|.piq file>\nOptions:"
 
 let speclist = Main.common_speclist @
   [
+    Piqi_convert_cmd.arg__piqtype;
   ]
 
 
@@ -44,7 +45,8 @@ let check_piq filename =
   try
     while true
     do
-      ignore (Piq.load_piq_obj piq_parser)
+      let piqtype = Piqi_convert_cmd.resolve_typename () in
+      ignore (Piq.load_piq_obj piqtype piq_parser)
     done
   with
     Piq.EOF -> ()

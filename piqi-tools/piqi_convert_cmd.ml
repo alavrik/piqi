@@ -88,6 +88,12 @@ let load_piqi fname :Piq.obj =
     raise Piq.EOF (* mimic the behaviour of Piq. loaders *)
 
 
+let resolve_typename () =
+  if !typename <> ""
+  then Some (Piqi_convert.find_piqtype !typename)
+  else None
+
+
 (* ensuring that Piq.load_pb is called exactly one time *)
 let load_pb piqtype wireobj :Piq.obj =
   if !first_load
@@ -135,35 +141,35 @@ let make_reader input_encoding =
     | "pb" when !typename = "" ->
         piqi_error "--piqtype parameter must be specified for \"pb\" input encoding"
     | "pb" ->
-        let piqtype = Piqi_convert.find_piqtype !typename in
+        let piqtype = some_of (resolve_typename ()) in
         let wireobj = Piq.open_pb !ifile in
         make_reader (load_pb piqtype) wireobj
+
     | "json" | "piq-json" ->
-        let piqtype =
-          if !typename <> ""
-          then Some (Piqi_convert.find_piqtype !typename)
-          else None
-        in
         let json_parser = Piqi_json.open_json !ifile in
-        make_reader (Piq.load_piq_json_obj piqtype) json_parser
+        make_reader (Piq.load_piq_json_obj (resolve_typename ())) json_parser
+
     | "xml" when !typename = "" ->
         piqi_error "--piqtype parameter must be specified for \"xml\" input encoding"
     | "xml" ->
-        let piqtype = Piqi_convert.find_piqtype !typename in
+        let piqtype = some_of (resolve_typename ()) in
         let xml_parser = Piqi_xml.open_xml !ifile in
         make_reader (Piq.load_xml_obj piqtype) xml_parser
-    | _ when !typename <> "" ->
-        piqi_error "--piqtype parameter is applicable only to \"pb\",\"json\" or \"xml\" input encodings"
+
     | "piq" ->
         let piq_parser = Piq.open_piq !ifile in
-        make_reader Piq.load_piq_obj piq_parser
+        make_reader (Piq.load_piq_obj (resolve_typename ())) piq_parser
+
+    | "piqi" when !typename <> "" ->
+        piqi_error "--piqtype parameter is not applicable to \"piqi\" input encoding"
     | "piqi" ->
         make_reader load_piqi !ifile
+
     | "wire" ->
         let buf = Piq.open_wire !ifile in
-        make_reader Piq.load_wire_obj buf
-    | _ ->
-        piqi_error "unknown input encoding"
+        make_reader (Piq.load_wire_obj (resolve_typename ())) buf
+    | x ->
+        piqi_error ("unknown input encoding: " ^ x)
 
 
 let make_writer ?(is_piqi_input=false) output_encoding =

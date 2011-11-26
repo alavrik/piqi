@@ -1,4 +1,4 @@
-:config/config [
+[
 
     % the shortest form
     [ "foo" .make ]
