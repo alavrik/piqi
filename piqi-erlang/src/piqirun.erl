@@ -604,13 +604,29 @@ parse_record(TopBlock) when is_binary(TopBlock) ->
 
 
 parse_record_buf(Bytes) ->
-    parse_record_buf(Bytes, []).
+    parse_record_buf_ordered(Bytes, []).
 
-parse_record_buf(<<>>, Accu) ->
+parse_record_buf_ordered(<<>>, Accu) ->
     lists:reverse(Accu);
-parse_record_buf(Bytes, Accu) ->
-    {Value, Rest} = parse_field(Bytes),
-    parse_record_buf(Rest, [Value | Accu]).
+parse_record_buf_ordered(Bytes, Accu) ->
+    {Field, Rest} = parse_field(Bytes),
+    {Code, _Value} = Field,
+    % check if the fields appear in order
+    case Accu of
+        [{PrevCode, _}|_] when PrevCode > Code ->
+            % the field is out of order
+            parse_record_buf_unordered(Rest, [Field | Accu]);
+        _ ->
+            parse_record_buf_ordered(Rest, [Field | Accu])
+    end.
+
+parse_record_buf_unordered(<<>>, Accu) ->
+    Res = lists:reverse(Accu),
+    % stable-sort the obtained fields by codes
+    lists:keysort(1, Res);
+parse_record_buf_unordered(Bytes, Accu) ->
+    {Field, Rest} = parse_field(Bytes),
+    parse_record_buf_unordered(Rest, [Field | Accu]).
 
 
 parse_variant(X) ->
@@ -644,24 +660,44 @@ parse_packed_list_elem(ParsePackedValue, ParseValue, {1, X}) ->
         L :: [ parsed_field() ] ) ->
     { Found ::[ piqirun_return_buffer() ], Rest :: [ parsed_field() ]}.
 
-% find record fields by code
+% find all fields with the given code in the list of fields sorted by codes
 find_fields(Code, L) ->
-    {RevRes, Rest} = find_fields_rev(Code, L),
-    {lists:reverse(RevRes), Rest}.
+    find_fields(Code, L, _Accu = []).
 
 
-% find record fields by code and return the list of found fields in reverse
-% order
-find_fields_rev(Code, L) ->
-    find_fields_rev(Code, L, [], []).
+find_fields(Code, [{Code, Value} | T], Accu) ->
+    find_fields(Code, T, [Value | Accu]);
+find_fields(Code, [{NextCode, _} | T], Accu) when NextCode < Code ->
+    % skipping the field which code is less than the requested one
+    find_fields(Code, T, Accu);
+find_fields(_Code, Rest, Accu) ->
+    {lists:reverse(Accu), Rest}.
 
 
-find_fields_rev(_Code, [], Accu, Rest) ->
-    {Accu, lists:reverse(Rest)};
-find_fields_rev(Code, [{Code, X} | T], Accu, Rest) ->
-    find_fields_rev(Code, T, [X | Accu], Rest);
-find_fields_rev(Code, [H | T], Accu, Rest) ->
-    find_fields_rev(Code, T, Accu, [H | Rest]).
+-spec find_field/2 :: (
+        Code :: pos_integer(),
+        L :: [ parsed_field() ] ) ->
+    { Found :: 'undefined' | piqirun_return_buffer(), Rest :: [ parsed_field() ]}.
+
+% find the last instance of a field given its code in the list of fields sorted
+% by codes
+find_field(Code, [{Code, Value} | T]) ->
+    % check if this is the last instance of it, if not, continue iterating
+    % through the list
+    try_find_next_field(Code, Value, T);
+find_field(Code, [{NextCode, _Value} | T]) when NextCode < Code ->
+    % skipping the field which code is less than the requested one
+    find_field(Code, T);
+find_field(_Code, Rest) -> % not found
+    {'undefined', Rest}.
+
+
+try_find_next_field(Code, _PrevValue, [{Code, Value} | T]) ->
+    % field is found again
+    try_find_next_field(Code, Value, T);
+try_find_next_field(_Code, PrevValue, Rest) ->
+    % previous field was the last one
+    {PrevValue, Rest}.
 
 
 -spec throw_error/1 :: (any()) -> no_return().
@@ -723,14 +759,11 @@ parse_optional_field(Code, ParseValue, L, Default) ->
 
 
 parse_optional_field(Code, ParseValue, L) ->
-    % using find_fields_rev/2 instead of find_fields/2, because if there are
-    % several fields associated with this code we need to pick the last one as
-    % the field's value
-    {Fields, Rest} = find_fields_rev(Code, L),
+    {Field, Rest} = find_field(Code, L),
     Res = 
-        case Fields of
-            [] -> 'undefined';
-            [X|_] ->
+        case Field of
+            'undefined' -> 'undefined';
+            X ->
                 % NOTE: handling field duplicates without failure
                 % XXX, TODO: produce a warning
                 ParseValue(X)
