@@ -1,3 +1,6 @@
+.erlang-type-prefix ""
+
+
 % definition of a record type
 .record [
     .name person      % record name

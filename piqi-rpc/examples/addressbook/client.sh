@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -x # -e
+set -x -e
 
 
 piqi call http://localhost:8888/addressbook -p
@@ -25,7 +25,7 @@ piqi call -t json http://localhost:8888/addressbook/add-person -- \
     --phone [ \
         --number "(222) 123 45 67" \
         --mobile \
-    ]
+    ] || true
 
 piqi call -t json http://localhost:8888/addressbook/get-person -- 10
 
@@ -37,4 +37,7 @@ curl -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' -
 
 piqi call -t json http://localhost:8888/addressbook/get-person -- 0
 curl -X POST -H 'Accept: application/json' -H 'Content-Type: application/json' --data-binary '{"id" : 0}' 'http://localhost:8888/addressbook/get-person'
+
+
+echo "ALL TESTS PASSED"
 
