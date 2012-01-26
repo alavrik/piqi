@@ -48,30 +48,38 @@ module Piqitable = Idtable
 let loaded_map = ref Piqitable.empty
 
 
+(* find already loaded module by name *)
+let find_piqi modname :T.piqi =
+  Piqitable.find !loaded_map modname
+
+
+let try_find_piqi modname =
+  try Some (find_piqi modname)
+  with Not_found -> None
+
+
 let add_piqi piqi =
   let modname = some_of piqi.P#modname in
   trace "piqi_db: caching piqi module \"%s\"\n" modname;
 
+  let do_add_piqi modname piqi =
+    loaded_map := Piqitable.add !loaded_map modname piqi
+  in
   (* check for name override/conflict *)
   (* XXX: prohibit override? *)
-  (
-    try
-      let prev_piqi = Piqitable.find !loaded_map modname in
-      warning piqi ("redefinition of module " ^ quote modname);
-      warning prev_piqi "previous definition is here";
-    with Not_found -> ()
-  );
-
-  loaded_map := Piqitable.add !loaded_map modname piqi
+  match try_find_piqi modname with
+    | Some prev_piqi when prev_piqi == piqi -> (* don't readd the same module *)
+        ()
+    | Some prev_piqi ->
+        warning piqi ("redefinition of module " ^ quote modname);
+        warning prev_piqi "previous definition is here";
+        do_add_piqi modname piqi
+    | None ->
+        do_add_piqi modname piqi
 
 
 let remove_piqi modname =
   loaded_map := Piqitable.remove !loaded_map modname
-
-
-(* find already loaded module by name *)
-let find_piqi modname :T.piqi =
-  Piqitable.find !loaded_map modname
 
 
 let find_local_piqdef piqi name =

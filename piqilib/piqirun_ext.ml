@@ -40,9 +40,8 @@ let _ =
 
 let add_piqi (piqi_bin: string) =
   let buf = Piqirun.init_from_string piqi_bin in
-  let _piqi = Piq.piqi_of_wire buf ~cache:true in
-  (* reset location db to allow GC to collect previously read objects *)
-  Piqloc.reset ();
+  let piqi = Piq.piqi_of_wire buf in
+  Piqi_db.add_piqi piqi;
   ()
 
 
@@ -93,10 +92,5 @@ let convert
         | None -> default_opts
         | Some x -> x
     in
-    let res = Piqi_convert.convert_piqtype
-      piqtype input_format output_format data ~opts
-    in
-    (* reset location db to allow GC to collect previously read objects *)
-    Piqloc.reset ();
-    res
+    Piqi_convert.convert_piqtype piqtype input_format output_format data ~opts
 

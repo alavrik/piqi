@@ -3,6 +3,9 @@
 set -x -e
 
 
+curl http://localhost:8888/addressbook
+
+
 piqi call http://localhost:8888/addressbook -p
 
 

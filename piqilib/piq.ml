@@ -85,7 +85,7 @@ let get_current_piqtype user_piqtype locref =
 
 let piqi_of_piq fname ast =
   let piqi = Piqi.parse_piqi ast in
-  Piqi.process_piqi piqi ~fname; (* NOTE: caching the loaded module *)
+  Piqi.process_piqi piqi ~fname ~cache:false;
   piqi
 
 
@@ -135,7 +135,25 @@ let original_piqi piqi =
 
 
 let piqi_to_piq piqi =
+  (* FIXME: this is pretty ugly: *)
+  (* we need to cache piqi, because otherwise Piqi_db.try_find_piqtype will fail
+   * in Piqobj_to_piq.gen_any *)
+  let modname = some_of piqi.P#modname in
+  let prev_piqi = Piqi_db.try_find_piqi modname in
+  (match prev_piqi with
+    | None -> ()
+    | Some piqi -> Piqi_db.remove_piqi modname
+  );
+  Piqi_db.add_piqi piqi;
+
   let piqi_ast = Piqi_pp.piqi_to_ast (original_piqi piqi) ~simplify:true in
+
+  Piqi_db.remove_piqi modname;
+  (match prev_piqi with
+    | None -> ()
+    | Some piqi -> Piqi_db.add_piqi piqi
+  );
+
   `typed {
     T.Typed.typename = "piqi";
     T.Typed.value = {
@@ -146,15 +164,20 @@ let piqi_to_piq piqi =
 
 
 let gen_piq (obj :obj) =
-  match obj with
-    | Piqtype typename ->
-        make_piqtype typename
-    | Piqi piqi ->
-        piqi_to_piq piqi
-    | Typed_piqobj obj ->
-        Piqobj_to_piq.gen_typed_obj obj
-    | Piqobj obj ->
-        Piqobj_to_piq.gen_obj obj
+  Piqloc.pause (); (* no need to preserve location information here *)
+  let res =
+    match obj with
+      | Piqtype typename ->
+          make_piqtype typename
+      | Piqi piqi ->
+          piqi_to_piq piqi
+      | Typed_piqobj obj ->
+          Piqobj_to_piq.gen_typed_obj obj
+      | Piqobj obj ->
+          Piqobj_to_piq.gen_obj obj
+  in
+  Piqloc.resume ();
+  res
 
 
 let write_piq ch (obj:obj) =
@@ -237,11 +260,31 @@ let expand_piqi piqi =
 
 
 let piqi_to_piqobj piqi =
+  Piqloc.pause ();
   let piqi = expand_piqi piqi in
 
   let piqtype = !Piqi.piqi_spec_def in
   let wire_generator = T.gen__piqi in
-  Piqi.mlobj_to_piqobj piqtype wire_generator piqi
+  let res = Piqi.mlobj_to_piqobj piqtype wire_generator piqi in
+  Piqloc.resume ();
+  res
+
+
+let piqobj_of_wire piqtype buf =
+  (* don't store location references as we're loading from the binary object *)
+  Piqloc.pause ();
+  let obj = Piqobj_of_wire.parse_obj piqtype buf in
+  Piqloc.resume ();
+  obj
+
+
+let piqobj_to_wire code piqobj =
+  (* don't produce location references as don't care about it in general when
+   * generating data *)
+  Piqloc.pause ();
+  let res = Piqobj_to_wire.gen_obj code piqobj in
+  Piqloc.resume ();
+  res
 
 
 (* using max code value as a wire code for Piqi
@@ -257,11 +300,7 @@ let piqi_to_pb_common piqi ~code =
   reset_defaults piqi.P#extended_piqdef;
 
   let piqobj = piqi_to_piqobj piqi in
-
-  Piqloc.pause ();
-  let pb = Piqobj_to_wire.gen_obj code piqobj in
-  Piqloc.resume ();
-  pb
+  piqobj_to_wire code piqobj
 
 
 let piqi_to_pb piqi =
@@ -272,25 +311,17 @@ let piqi_to_wire piqi =
   piqi_to_pb_common piqi ~code:piqi_spec_wire_code
 
 
-let piqi_of_wire bin ~cache =
+let piqi_of_wire bin =
   (* don't store location references as we're loading from the binary object *)
   Piqloc.pause ();
 
   (* TODO: use a safer method using the Piqi.piqi_spec_def, i.e. Piqi
    * self-specificaion rather that the language-impl *)
   let piqi = T.parse_piqi bin in
-  Piqloc.resume ();
 
-  Piqi.process_piqi piqi ~cache;
+  Piqi.process_piqi piqi ~cache:false;
+  Piqloc.resume ();
   piqi
-
-
-let piqobj_of_wire piqtype buf =
-  (* don't store location references as we're loading from the binary object *)
-  Piqloc.pause ();
-  let obj = Piqobj_of_wire.parse_obj piqtype buf in
-  Piqloc.resume ();
-  obj
 
 
 let process_piqtype code typename =
@@ -307,8 +338,7 @@ let rec load_wire_obj (user_piqtype :T.piqtype option) buf :obj =
   let field_code, field_obj = read_wire_field buf in
   match field_code with
     | c when c = piqi_spec_wire_code -> (* embedded Piqi spec *)
-        (* NOTE: caching the loaded module *)
-        let piqi = piqi_of_wire field_obj ~cache:true in
+        let piqi = piqi_of_wire field_obj in
         Piqi piqi
     | c when c mod 2 = 1 ->
         let typename = Piqirun.parse_string_field field_obj in
@@ -366,11 +396,11 @@ let gen_wire (obj :obj) =
     | Piqtype typename ->
         gen_piqtype 1 typename
     | Piqobj obj ->
-        Piqobj_to_wire.gen_obj 2 obj
+        piqobj_to_wire 2 obj
     | Typed_piqobj obj ->
         let typename = Piqobj_common.full_typename obj in
         let piqtype, code = find_add_piqtype_code typename in
-        let data = Piqobj_to_wire.gen_obj code obj in
+        let data = piqobj_to_wire code obj in
         match piqtype with
           | None -> data
           | Some x ->
@@ -390,12 +420,11 @@ let open_pb fname =
   buf
 
 
-(* NOTE: this function will be called exactly once *)
 let load_pb (piqtype:T.piqtype) wireobj :obj =
   (* TODO: handle runtime wire read errors *)
   if piqtype == !Piqi.piqi_lang_def (* XXX *)
   then
-    let piqi = piqi_of_wire wireobj ~cache:true in
+    let piqi = piqi_of_wire wireobj in
     Piqi piqi
   else
     let obj = piqobj_of_wire piqtype wireobj in
@@ -411,7 +440,7 @@ let gen_pb (obj :obj) =
          * not be generated. The resulting code is the same as generated by
          * Piqi_to_wire.gen_binobj, but this way it is returned as an output
          * buffer instead of a string in order to avoid extra memory copying *)
-        Piqobj_to_wire.gen_obj (-1) obj
+        piqobj_to_wire (-1) obj
     | Piqtype _ ->
         (* ignore default type names *)
         Piqirun.OBuf.iol [] (* == empty output *)
@@ -435,7 +464,7 @@ let piqobj_of_json_ref piqtype ref =
   piqobj_of_json piqtype json
 
 
-let piqi_of_json json ~cache =
+let piqi_of_json json =
   let piqtype = !Piqi.piqi_spec_def in
   let wire_parser = T.parse_piqi in
 
@@ -448,7 +477,7 @@ let piqi_of_json json ~cache =
   (* set the default field resolver to json *)
   Piqi.piqobj_of_ref := piqobj_of_json_ref;
 
-  Piqi.process_piqi piqi ~cache;
+  Piqi.process_piqi piqi ~cache:false;
   piqi
 
 
@@ -532,7 +561,7 @@ let load_json_common piqtype ast =
   in
   if piqtype == !Piqi.piqi_lang_def (* XXX *)
   then
-    let piqi = piqi_of_json ast ~cache:true in
+    let piqi = piqi_of_json ast in
     Piqi piqi
   else
     let obj = piqobj_of_json piqtype ast in
@@ -558,7 +587,7 @@ let load_piq_json_obj (user_piqtype: T.piqtype option) json_parser :obj =
     | `Assoc [ "_piqi", ((`Assoc _) as json_ast) ] ->
         (* :piqi <typename> *)
         (* NOTE: caching the loaded module *)
-        let piqi = piqi_of_json json_ast ~cache:true in
+        let piqi = piqi_of_json json_ast in
         Piqi piqi
     | `Assoc [ "_piqi", _ ] ->
         error ast "invalid piqi specification"
@@ -601,7 +630,7 @@ let piqi_of_xml xml =
   (* set the default field resolver to xml *)
   Piqi.piqobj_of_ref := piqobj_of_xml_ref;
 
-  Piqi.process_piqi piqi ~cache:true;
+  Piqi.process_piqi piqi ~cache:false;
   piqi
 
 

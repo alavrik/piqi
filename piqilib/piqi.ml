@@ -872,12 +872,14 @@ let get_function_defs = ref get_function_defs_init
 
 (* do include & extension expansion for the loaded piqi using extensions from
  * all included piqi modules *)
-let rec process_piqi ?modname ?(cache=true) ?(fname="") (piqi: T.piqi) =
+let rec process_piqi ?modname ?(fname="") ~cache (piqi: T.piqi) =
   (* save the original piqi *)
   piqi.P#original_piqi <- Some (copy_obj piqi); (* shallow copy *)
 
   check_assign_module_name ?modname fname piqi;
 
+  (* it is critical to cache loaded piqi module before we process any of its
+   * dependencies; by doing this, we check for circular imports *)
   if cache then Piqi_db.add_piqi piqi;
 
   (* get unparsed fields before we load dependencies *)
@@ -1022,7 +1024,7 @@ and load_piqi_string fname content =
   load_piqi_ast fname ast ~cache:false
 
 
-and load_piqi_ast ?modname ?(cache=true) fname (ast :T.ast) =
+and load_piqi_ast ?modname ~cache fname (ast :T.ast) =
   let piqi = parse_piqi ast in
   process_piqi ?modname ~cache ~fname piqi;
   piqi

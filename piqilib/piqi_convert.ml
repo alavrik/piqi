@@ -190,5 +190,8 @@ let convert_piqtype ~opts piqtype input_format output_format data =
       (fun () -> parse_obj piqtype input_format data)
       ()
   in
+  (* reset location db to allow GC to collect previously read objects *)
+  Piqloc.reset ();
+
   gen_obj output_format piqobj ~pretty_print:opts.pretty_print
 

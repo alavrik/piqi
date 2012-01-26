@@ -20,9 +20,14 @@ type loc = string * int * int (* file, line, column *)
 
 
 (* pause storing location references *)
-let is_paused = ref false
-let pause () = is_paused := true
-let resume () = is_paused := false
+let is_paused = ref 0
+let pause () = incr is_paused
+let resume () = decr is_paused
+
+
+(* input and output wire location counters *)
+let icount = ref 0
+let ocount = ref 0
 
 
 (* internal locator structure: location can be represented by either location
@@ -35,6 +40,7 @@ let db :(Obj.t * t) list ref = ref []
 (* append-only part of the DB that is filled by preserve() can't be discarded by
  * reset() *)
 let preserved_db :(Obj.t * t) list ref = ref []
+let preserved_count = ref 0
 
 
 let find_with_function find_fun x =
@@ -92,6 +98,8 @@ let addlocret loc x =
  * db *)
 let reset () =
   db := [];
+  icount := !preserved_count;
+  ocount := !preserved_count;
   ()
 
 (* Preserve location information by copying the contents of db to preserved_db
@@ -99,8 +107,8 @@ let reset () =
  *)
 let preserve () =
   preserved_db := !db @ !preserved_db;
-  db := [];
-  ()
+  preserved_count := max !icount !ocount;
+  reset ()
 
 
 let trace = ref false
@@ -141,7 +149,7 @@ let addref dst src =
   if !trace (* && not (Obj.is_int (Obj.repr dst)) *)
   then check_loc dst;
 
-  if Obj.repr src == Obj.repr dst || !is_paused
+  if Obj.repr src == Obj.repr dst || !is_paused > 0
   then () (* do nothing *)
   else
     db := (Obj.repr src, Ref (Obj.repr dst))::!db
@@ -157,17 +165,13 @@ let reference f x =
   addrefret x res
 
 
-(* input and output wire location counters *)
-let icount = ref 0
-let ocount = ref 0
-
 let next_icount () =
   let res = !icount in
-  if not !is_paused then incr icount;
+  if !is_paused = 0 then incr icount;
   res
 
 let next_ocount () =
   let res = !ocount in
-  if not !is_paused then incr ocount;
+  if !is_paused = 0 then incr ocount;
   res
 

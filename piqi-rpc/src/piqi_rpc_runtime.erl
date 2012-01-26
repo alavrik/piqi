@@ -58,6 +58,8 @@ get_piqi(BinPiqiList, _OutputFormat = 'pb') ->
     piqirun:gen_list('undefined', fun piqirun:binary_to_block/2, BinPiqiList);
 
 get_piqi(BinPiqiList, OutputFormat) -> % piq (i.e. text/plain), json, xml
+    % without adding them first, conversion on imported modules will fail
+    piqi_tools:add_piqi(BinPiqiList),
     L = [ convert_piqi(X, OutputFormat) || X <- BinPiqiList ],
     string:join(L, "\n\n").
 

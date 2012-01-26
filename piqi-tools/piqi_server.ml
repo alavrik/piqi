@@ -84,16 +84,10 @@ let add_one_piqi input_format data =
   let piqtype = Piqi_convert.find_piqtype "piqi" in
   match Piqi_convert.parse_obj piqtype input_format data with
     | Piq.Piqi piqi ->
-        (match input_format with
-          | `pb | `json | `xml ->
-              (* cache Piqi spec *)
-              Piqi_db.add_piqi piqi
-          | `piq (* | `wire *) ->
-              (* for Piq and Wire formats is enough to just read the Piqi spec
-               * in order to get it processed and cached in the Piqi database
-               * automatically *)
-              ()
-        )
+        (* cache Piqi spec and preserve its location info *)
+        Piqi_db.add_piqi piqi;
+        Piqloc.preserve ();
+        ()
     | _ -> assert false
 
 
@@ -127,11 +121,12 @@ let do_args f data =
     raise (Break response)
 
 
-let do_run f x =
+let do_run name f x =
+  trace "running function: %s\n" name;
   try f x
   with exn ->
     let response = return_rpc_error
-      (`internal_error ("error while running function: " ^ string_of_exn exn))
+      (`internal_error ("error while running function " ^ quote name ^ ": " ^ string_of_exn exn))
     in
     raise (Break response)
 
@@ -141,13 +136,13 @@ let execute_request req =
   match req.name, req.data with
     | "convert", data -> (
         let args = do_args I.parse_convert_input data in
-        match do_run convert args with
+        match do_run req.name convert args with
           | `ok res -> return_ok (I.gen_convert_output res)
           | `error err -> return_error (I.gen_convert_error err)
         )
     | "add-piqi", data -> (
         let args = do_args I.parse_add_piqi_input data in
-        match do_run add_piqi args with
+        match do_run req.name add_piqi args with
           | `ok_empty -> return_ok_empty ()
           | `error err -> return_error (I.gen_add_piqi_error err)
         )
@@ -178,10 +173,12 @@ let do_work () =
       exit 1
     )
   in
+  Piqi.debug_loc "do_work(0)";
   let response =
     try execute_request request
     with Break x -> x
   in
+  Piqi.debug_loc "do_work(1)";
   Piqi_rpc.send_response stdout response ~caller_ref
 
 
@@ -190,10 +187,9 @@ let do_work () =
 let main_loop () =
   while true
   do
+    Piqi.debug_loc "main_loop(0)";
     do_work ();
-
-    (* reset location db to allow GC to collect previously read objects *)
-    Piqloc.reset ();
+    Piqi.debug_loc "main_loop(1)";
 
     (* Run a garbage collection cycle, as we don't need any created memory
      * objects any more. A short garbage collection cycle helps to improve
