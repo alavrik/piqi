@@ -159,6 +159,10 @@ let arg__noboot =
    "--noboot", Arg.Set Config.noboot,
      "don't boot, i.e. don't use boot definitions while processing .piqi"
 
+let arg__strict =
+   "--strict", Arg.Set Config.flag_strict,
+     "treat unknown and duplicate fields as errors"
+
 
 let common_speclist =
   [

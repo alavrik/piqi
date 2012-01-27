@@ -196,8 +196,13 @@ let check_duplicate name tail =
   match tail with
     | [] -> ()
     | l ->
-        List.iter (fun obj ->
-          warning obj ("duplicate field " ^ quote name)) l
+        if !Config.flag_strict
+        then
+          let obj = List.hd l in
+          error obj ("duplicate field " ^ quote name)
+        else
+          List.iter (fun obj ->
+            warning obj ("duplicate field " ^ quote name)) l
 
 
 (* truncate the string till the first newline or to max_len *)
@@ -227,14 +232,13 @@ let warn_unknown_field x =
 
 
 let handle_unknown_field (x:T.ast) =
-  (*
-  if is_ignored_field x
-  then ()
+  if !Config.flag_strict
+  then
+    error x ("unknown field: " ^ string_of_piqast x)
   else
-  *)
-  if !delay_unknown_warnings
-  then add_unknown_field x
-  else warn_unknown_field x
+    if !delay_unknown_warnings
+    then add_unknown_field x
+    else warn_unknown_field x
 
 
 let handle_unknown_variant (x:T.ast) =

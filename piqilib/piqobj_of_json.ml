@@ -41,7 +41,12 @@ let error_duplicate obj name =
 
 
 let handle_unknown_field ((n, _) as x) =
-  warning x ("unknown field: " ^ quote n)
+  let f =
+    if !Config.flag_strict
+    then error
+    else warning
+  in
+  f x ("unknown field: " ^ quote n)
 
 
 let parse_int (obj:json) = match obj with

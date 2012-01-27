@@ -55,6 +55,7 @@ let arg__json_omit_null_fields =
 
 let speclist = Main.common_speclist @
   [
+    Piqi_main.arg__strict;
     arg_o;
 
     "-f", Arg.Set_string input_encoding,

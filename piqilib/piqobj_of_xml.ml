@@ -37,20 +37,9 @@ type xml = Piqi_xml.xml
 type xml_elem = Piqi_xml.xml_elem
 
 
-let error_duplicate obj name =
-  error obj ("duplicate field: " ^ quote name)
+let handle_unknown_field = Piqobj_of_json.handle_unknown_field
 
-
-let handle_unknown_field ((n, _) as x) =
-  warning x ("unknown field: " ^ quote n)
-
-
-let check_duplicate name tail =
-  match tail with
-    | [] -> ()
-    | l ->
-        List.iter (fun obj ->
-          warning obj ("duplicate field " ^ quote name)) l
+let check_duplicate = Piqobj_of_piq.check_duplicate
 
 
 let parse_scalar xml_elem err_string =
@@ -186,10 +175,10 @@ and do_parse_flag t l =
   let res, rem = find_flags name l in
   match res with
     | [] -> [], rem
-    | [x] ->
+    | x::tail ->
+        check_duplicate name tail;
         let res = F#{ piqtype = t; obj = None } in
         [res], rem
-    | _::o::_ -> error_duplicate o name
 
 
 and do_parse_field loc t l =
@@ -219,8 +208,9 @@ and parse_required_field loc name field_type l =
   let res, rem = find_fields name l in
   match res with
     | [] -> error loc ("missing field " ^ quote name)
-    | [x] -> parse_obj field_type x, rem
-    | _::o::_ -> error_duplicate o name
+    | x::tail ->
+        check_duplicate name tail;
+        parse_obj field_type x, rem
 
 
 (* find field by name, return found fields and remaining fields *)
@@ -249,8 +239,9 @@ and parse_optional_field name field_type default l =
   let res, rem = find_fields name l in
   match res with
     | [] -> Piqobj_of_wire.parse_default field_type default, rem
-    | [x] -> Some (parse_obj field_type x), rem
-    | _::o::_ -> error_duplicate o name
+    | x::tail ->
+        check_duplicate name tail;
+        Some (parse_obj field_type x), rem
 
 
 (* parse repeated variant field allowing variant names if field name is

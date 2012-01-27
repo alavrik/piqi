@@ -30,6 +30,7 @@ let usage = "Usage: piqi check [options] <.piqi|.piq file>\nOptions:"
 
 let speclist = Main.common_speclist @
   [
+    Piqi_main.arg__strict;
     Piqi_convert_cmd.arg__piqtype;
   ]
 

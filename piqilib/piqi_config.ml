@@ -52,6 +52,7 @@ let reset_paths () =
 let noboot = ref false
 
 
+let flag_strict = ref false
 let flag_no_warnings = ref false
 let debug_level = ref 0
 let flag_trace =
