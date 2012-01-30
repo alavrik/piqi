@@ -293,7 +293,9 @@ let convert_file () =
   Piqi_convert.init ();
   Piqi_convert.set_options
     (Piqi_convert.make_options
-      ~json_omit_null_fields:!flag_json_omit_null_fields ()
+      ~json_omit_null_fields:!flag_json_omit_null_fields
+      ~use_strict_parsing:!Piqi_config.flag_strict
+      ()
     );
   let input_encoding =
     if !input_encoding <> ""

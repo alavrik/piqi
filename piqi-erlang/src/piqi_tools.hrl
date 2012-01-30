@@ -27,7 +27,9 @@
        'pretty_print'
     | {'pretty_print', boolean()}
     |  'json_omit_null_fields'
-    | {'json_omit_null_fields', boolean()}.
+    | {'json_omit_null_fields', boolean()}
+    |  'use_strict_parsing'
+    | {'use_strict_parsing', boolean()}.
 
 % default options are presently set to ['pretty_print', 'json_omit_null_fields']
 -type piqi_convert_options() :: [ piqi_convert_option() ].

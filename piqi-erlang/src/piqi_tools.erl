@@ -409,7 +409,8 @@ convert(PiqiMod, TypeName, InputFormat, OutputFormat, Data, Options) ->
         output_format = OutputFormat,
         data = Data,
         pretty_print = proplists:get_value('pretty_print', Options),
-        json_omit_null_fields = proplists:get_value('json_omit_null_fields', Options)
+        json_omit_null_fields = proplists:get_value('json_omit_null_fields', Options),
+        use_strict_parsing = proplists:get_value('use_strict_parsing', Options)
     },
     BinInput = piqi_tools_piqi:gen_convert_input(Input),
     case rpc(PiqiMod, <<"convert">>, BinInput) of

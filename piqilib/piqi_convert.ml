@@ -159,21 +159,25 @@ type options =
   {
     mutable json_omit_null_fields : bool;
     mutable pretty_print : bool;
+    mutable use_strict_parsing : bool;
   }
 
 
 let make_options
         ?(pretty_print=true)
         ?(json_omit_null_fields=true)
+        ?(use_strict_parsing=false)
         () =
   {
     json_omit_null_fields = json_omit_null_fields;
     pretty_print = pretty_print;
+    use_strict_parsing = use_strict_parsing;
   }
 
 
 let set_options opts =
   Piqobj_to_json.omit_null_fields := opts.json_omit_null_fields;
+  Piqi_config.flag_strict := opts.use_strict_parsing;
   ()
 
 

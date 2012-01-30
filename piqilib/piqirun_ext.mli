@@ -37,6 +37,7 @@ val find_piqtype : string -> piqtype
 val make_options:
         ?pretty_print:bool ->
         ?json_omit_null_fields:bool ->
+        ?use_strict_parsing:bool ->
         unit -> options
 
 val convert:

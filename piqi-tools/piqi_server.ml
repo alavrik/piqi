@@ -53,6 +53,7 @@ let set_convert_options args =
   let open I.Convert_input in (
     convert_options.Piqi_convert.pretty_print <- args.pretty_print;
     convert_options.Piqi_convert.json_omit_null_fields <- args.json_omit_null_fields;
+    convert_options.Piqi_convert.use_strict_parsing <- args.use_strict_parsing;
   )
 
 
