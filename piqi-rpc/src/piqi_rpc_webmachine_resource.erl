@@ -312,8 +312,8 @@ rpc(ReqData, Context, InputFormat) ->
             {true, NewReqData, Context};
 
         {error, ErrorData} -> % application error
-			% If the HTTP header "X-Piqi-RPC-return-http-status-via-header" is 
-			% set to "true" then return 200 OK. Solves problems for CORS/JSONP.   
+            % If the HTTP header "X-Piqi-RPC-return-http-status-via-header" is 
+            % set to "true" then return 200 OK. Solves problems for CORS/JSONP.   
             % Otherwise return 500 "Internal Server Error" with the structured error
             % desciption formatted according to the desired output format
             %
@@ -322,14 +322,14 @@ rpc(ReqData, Context, InputFormat) ->
             % them is the "Content-Type" header which is set to "text/plain" in
             % the latter case.
             NewReqData = set_data_response(ErrorData, OutputFormat, ReqData),
-			
-			case wrq:get_req_header("X-Piqi-RPC-return-http-status-via-header", ReqData) of
-				"true" ->
-						NewReqDataWithHttpStatus = wrq:set_resp_header("X-Piqi-RPC-http-status", "500", NewReqData),
-						{true, NewReqDataWithHttpStatus, Context};
-					_ ->
-						{{halt, 500}, NewReqData, Context}
-			end;
+            
+            case wrq:get_req_header("X-Piqi-RPC-return-http-status-via-header", ReqData) of
+                "true" ->
+                    NewReqDataWithHttpStatus = wrq:set_resp_header("X-Piqi-RPC-http-status", "500", NewReqData),
+                    {true, NewReqDataWithHttpStatus, Context};
+                _ ->
+                    {{halt, 500}, NewReqData, Context}
+            end;
 
         % input-related errors:
         {'rpc_error', 'unknown_function'} ->
