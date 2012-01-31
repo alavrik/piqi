@@ -63,42 +63,58 @@ ensure_started(App) ->
     end.
 
 
--spec add_service/1 :: ( piqi_rpc_service() ) -> ok.
+-spec normalize_service_def/1 :: ( piqi_rpc_service_def() ) -> piqi_rpc_service().
 
-add_service(RpcService = {_ImplMod, _RpcMod, _UrlPath}) ->
+normalize_service_def(RpcService = {_ImplMod, _RpcMod, _UrlPath, _Options}) ->
+    RpcService;
+
+normalize_service_def(_RpcServiceDef = {ImplMod, RpcMod, UrlPath}) ->
+    _RpcService = {ImplMod, RpcMod, UrlPath, _Options = []}.
+
+
+-spec add_service/1 :: ( piqi_rpc_service_def() ) -> ok.
+
+add_service(RpcServiceDef) ->
+    RpcService = normalize_service_def(RpcServiceDef),
     % atomic service addition to both piqi_rpc_monitor and piqi_rpc_http
     try
         % adding Piqi-RPC service first, then adding HTTP resource binding
         ok = piqi_rpc_monitor:add_service(RpcService),
         ok = piqi_rpc_http:add_service(RpcService),
-        Services = get_services(),
-        ok = set_services([RpcService | Services])
+        ServiceDefs = get_service_defs(),
+        ok = set_service_defs([RpcService | ServiceDefs])
     catch
         Class:Reason ->
-            catch remove_service(RpcService),
+            catch remove_service(RpcServiceDef),
             erlang:raise(Class, Reason, erlang:get_stacktrace())
     end.
 
 
--spec remove_service/1 :: ( piqi_rpc_service() ) -> ok.
+-spec remove_service/1 :: ( piqi_rpc_service_def() ) -> ok.
 
-remove_service(RpcService = {_ImplMod, _RpcMod, _UrlPath}) ->
+remove_service(RpcServiceDef) ->
+    RpcService = normalize_service_def(RpcServiceDef),
     % removing HTTP resource binding first, then removing Piqi-RPC service
     ok = piqi_rpc_http:remove_service(RpcService),
     ok = piqi_rpc_monitor:remove_service(RpcService),
-    Services = get_services(),
-    ok = set_services(Services -- [RpcService]).
+    ServiceDefs = get_service_defs(),
+    ok = set_service_defs(ServiceDefs -- [RpcServiceDef]).
 
 
 -spec get_services/0 :: () -> [piqi_rpc_service()].
 get_services() ->
+    [normalize_service_def(X) || X <- get_service_defs()].
+
+
+-spec get_service_defs/0 :: () -> [piqi_rpc_service_def()].
+get_service_defs() ->
     get_env('rpc_services').
 
 
--spec set_services/1 :: ( [piqi_rpc_service()] ) -> ok.
+-spec set_service_defs/1 :: ( [piqi_rpc_service_def()] ) -> ok.
 % @hidden
-set_services(RpcServices) ->
-    set_env('rpc_services', RpcServices).
+set_service_defs(RpcServiceDefs) ->
+    set_env('rpc_services', RpcServiceDefs).
 
 
 % @hidden

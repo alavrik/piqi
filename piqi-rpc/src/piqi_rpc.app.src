@@ -24,7 +24,13 @@
         % The list of Piqi-RPC services definitions, where each entry has the
         % following format:
         %
-        %       {ImplMod, RpcMod, UrlPath}, where
+        %       {ImplMod, RpcMod, UrlPath}
+        %
+        %       or
+        %
+        %       {ImplMod, RpcMod, UrlPath, Options}
+        %
+        % , where
         %
         % `ImplMod` contains implementation of the RPC service defined in
         % `RpcMod`.
@@ -36,11 +42,42 @@
         % For example, if the URL path is set to "bar/foo", then the RPC service
         % will be available at "http://<server>:<port>/bar/foo"
         %
-        % Example:
+        % `Options` is a list of service options, see the
+        % `default_service_option` configuration entry below for details.
+        %
+        % Examples:
         %
         %       {foo_impl, foo_piqi_rpc, "bar/foo"}
         %
+        %       {foo_impl, foo_piqi_rpc, "bar/debug_foo", [
+        %           {pretty_print, true},
+        %           {use_strict_parsing, true}
+        %       ]}
+        %
+        %       {foo_impl, foo_piqi_rpc, "bar/production_foo", [
+        %           {pretty_print, false},
+        %           {omit_internal_error_details, true}
+        %       ]}
+        %
         {rpc_services, []},
+
+        % default options for Piqi-RPC servieces; they can be overridden by
+        % options defined for individual services
+        {default_service_option, [
+            % pretty-print JSON and XML output (default = true)
+            %{'pretty_print', true}
+            %
+            % omit fields with 'null' values from JSON output (default = true)
+            %{'json_omit_null_fields', true}
+            %
+            % treat unknown and duplicate fields as errors when parsing JSON or
+            % XML input (default = false)
+            %{'use_strict_parsing', false}
+            %
+            % do not include Erlang stracktraces in HTTP 500 responses when
+            % request handler crashes (default = true)
+            %{'omit_internal_error_details', true}
+        ]},
 
         % HTTP server configuration containing both Mochiweb and Webmachine
         % options. These options are passed to Webmachine by calling

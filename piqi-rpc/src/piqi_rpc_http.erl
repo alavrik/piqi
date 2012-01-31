@@ -69,14 +69,14 @@ cleanup() ->
 
 -spec add_service/1 :: ( piqi_rpc_service() ) -> ok.
 
-add_service(RpcService = {_ImplMod, _RpcMod, _UrlPath}) ->
+add_service(RpcService = {_ImplMod, _RpcMod, _UrlPath, _Options}) ->
     Route = rpc_service_to_webmachine_route(RpcService),
     ok = webmachine_router:add_route(Route).
 
 
 -spec remove_service/1 :: ( piqi_rpc_service() ) -> ok.
 
-remove_service(RpcService = {_ImplMod, _RpcMod, _UrlPath}) ->
+remove_service(RpcService = {_ImplMod, _RpcMod, _UrlPath, _Options}) ->
     Route = rpc_service_to_webmachine_route(RpcService),
     ok = webmachine_router:remove_route(Route).
 
@@ -89,9 +89,9 @@ remove_service(RpcService = {_ImplMod, _RpcMod, _UrlPath}) ->
 
 % @hidden
 % make a Webmachine route from a Piqi-RPC service definition
-rpc_service_to_webmachine_route(_RpcService = {ImplMod, RpcMod, UrlPath}) ->
+rpc_service_to_webmachine_route(_RpcService = {ImplMod, RpcMod, UrlPath, Options}) ->
     % { PathPattern, WebmachineResource, InitArguments}
     PathElements = string:tokens(UrlPath, "/"),
     PathSpec = PathElements ++ ['*'],
-    {PathSpec, piqi_rpc_webmachine_resource, [ImplMod, RpcMod]}.
+    {PathSpec, piqi_rpc_webmachine_resource, [ImplMod, RpcMod, Options]}.
 

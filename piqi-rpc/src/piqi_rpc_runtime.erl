@@ -52,35 +52,31 @@ check_function_exported(Mod, Name, Arity) ->
     end.
 
 
-get_piqi(BinPiqiList, _OutputFormat = 'pb') ->
+get_piqi(BinPiqiList, _OutputFormat = 'pb', _Options) ->
     % return the Piqi module and all the dependencies encoded as a list of Piqi
     % each encoded using Protobuf binary format
     piqirun:gen_list('undefined', fun piqirun:binary_to_block/2, BinPiqiList);
 
-get_piqi(BinPiqiList, OutputFormat) -> % piq (i.e. text/plain), json, xml
+get_piqi(BinPiqiList, OutputFormat, Options) -> % piq (i.e. text/plain), json, xml
     % without adding them first, conversion on imported modules will fail
     piqi_tools:add_piqi(BinPiqiList),
-    L = [ convert_piqi(X, OutputFormat) || X <- BinPiqiList ],
+    L = [ convert_piqi(X, OutputFormat, Options) || X <- BinPiqiList ],
     string:join(L, "\n\n").
 
 
-convert(RpcMod, TypeName, InputFormat, OutputFormat, Data) ->
-    piqi_tools:convert(RpcMod, TypeName, InputFormat, OutputFormat, Data).
-
-
-convert_piqi(BinPiqi, OutputFormat) ->
-    {ok, Bin} = convert(_RpcMod = 'undefined', <<"piqi">>, 'pb', OutputFormat, BinPiqi),
+convert_piqi(BinPiqi, OutputFormat, Options) ->
+    {ok, Bin} = piqi_tools:convert(_RpcMod = 'undefined', <<"piqi">>, 'pb', OutputFormat, BinPiqi, Options),
     binary_to_list(Bin).
 
 
-decode_input(_RpcMod, _Decoder, _TypeName, _InputFormat, 'undefined') ->
+decode_input(_RpcMod, _Decoder, _TypeName, _InputFormat, 'undefined', _Options) ->
     throw_rpc_error('missing_input');
 
-decode_input(RpcMod, Decoder, TypeName, InputFormat, InputData) ->
+decode_input(RpcMod, Decoder, TypeName, InputFormat, InputData, Options) ->
     BinInput =
         % NOTE: converting anyway even in the input is encoded using 'pb'
         % encoding to check the validity
-        case convert(RpcMod, TypeName, InputFormat, 'pb', InputData) of
+        case piqi_tools:convert(RpcMod, TypeName, InputFormat, 'pb', InputData, Options) of
             {ok, X} -> X;
             {error, Error} ->
                 throw_rpc_error({'invalid_input', Error})
@@ -88,7 +84,7 @@ decode_input(RpcMod, Decoder, TypeName, InputFormat, InputData) ->
     Decoder(BinInput).
 
 
-encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output) ->
+encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output, Options) ->
     IolistOutput =
         try Encoder(Output)
         catch
@@ -106,12 +102,12 @@ encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output) ->
     BinOutput = iolist_to_binary(IolistOutput),
     case OutputFormat of
         'pb' -> {ok, BinOutput}; % already in needed format
-        _ -> convert(RpcMod, TypeName, 'pb', OutputFormat, BinOutput)
+        _ -> piqi_tools:convert(RpcMod, TypeName, 'pb', OutputFormat, BinOutput, Options)
     end.
 
 
-encode_output(RpcMod, Encoder, TypeName, OutputFormat, Output) ->
-    case encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output) of
+encode_output(RpcMod, Encoder, TypeName, OutputFormat, Output, Options) ->
+    case encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output, Options) of
         {ok, OutputData} -> {ok, OutputData};
         {error, Error} ->
             throw_rpc_error(
@@ -119,8 +115,8 @@ encode_output(RpcMod, Encoder, TypeName, OutputFormat, Output) ->
     end.
 
 
-encode_error(RpcMod, Encoder, TypeName, OutputFormat, Output) ->
-    case encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output) of
+encode_error(RpcMod, Encoder, TypeName, OutputFormat, Output, Options) ->
+    case encode_common(RpcMod, Encoder, TypeName, OutputFormat, Output, Options) of
         {ok, ErrorData} -> {error, ErrorData};
         {error, Error} ->
             throw_rpc_error(
@@ -158,10 +154,15 @@ handle_invalid_result(Name, Result) ->
     throw_rpc_error({'internal_error', iolist_to_binary(Error)}).
 
 
-handle_runtime_exception(Class, Reason) ->
-    Res = {'rpc_error', Error} = do_handle_runtime_exception(Class, Reason),
-    log_error(Error),
-    Res.
+handle_runtime_exception(Class, Reason, Options) ->
+    {'rpc_error', RealError} = do_handle_runtime_exception(Class, Reason),
+    log_error(RealError),
+    Error =
+        case proplists:get_bool('omit_internal_error_details', Options) of
+            true -> {'internal_error', "Internal Error"};
+            false -> RealError
+        end,
+    {'rpc_error', Error}.
 
 
 do_handle_runtime_exception(throw, {'rpc_error', _} = X) ->

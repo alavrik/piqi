@@ -114,7 +114,7 @@ init(RpcServices) ->
     {ok, State}.
 
 
-make_service(RpcService = {ImplMod, RpcMod, _UrlPath}) ->
+make_service(RpcService = {ImplMod, RpcMod, _UrlPath, _Options}) ->
     % loading the implementation module, otherwise
     % erlang:function_exported() called from Piqi-RPC runtime would
     % return false

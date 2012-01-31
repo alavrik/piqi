@@ -18,9 +18,31 @@
 -ifndef(__PIQIRUN_HRL__).
 -define(__PIQI_RPC_HRL__, 1).
 
+-include_lib("piqi/include/piqi_tools.hrl").
 
-% Piqi-RPC service definition; see `piqi_rpc.app` file for details.
--type piqi_rpc_service() :: {ImplMod :: atom(), RpcMod :: atom(), UrlPath :: string()}.
+
+% Piqi-RPC service
+-type piqi_rpc_service() :: {
+    ImplMod :: atom(),
+    RpcMod :: atom(),
+    UrlPath :: string(),
+    Options :: piqi_rpc_options() }.
+
+
+% Piqi-RPC service definition; see `piqi_rpc.app.src` file for details.
+-type piqi_rpc_service_def() ::
+     {ImplMod :: atom(), RpcMod :: atom(), UrlPath :: string()}
+    | piqi_rpc_service().
+
+
+% Piqi-RPC options that can be applied at service-level as well as globally; see
+% `piqi_rpc.app.src` file for details.
+-type piqi_rpc_option() ::
+      piqi_convert_option()
+    | 'omit_internal_error_details' | {'omit_internal_error_details', boolean()}.
+
+
+-type piqi_rpc_options() :: [ piqi_rpc_option() ].
 
 
 -endif.
