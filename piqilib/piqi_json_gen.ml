@@ -145,21 +145,40 @@ let uint64_to_string x =
   Printf.sprintf "%Lu" x
 
 
+let use_indent = ref true
+let indent_level = ref 0
+
+
+let indent ob =
+  if !use_indent
+  then (
+    Buffer.add_char ob '\n';
+    for i = 1 to !indent_level
+    do Buffer.add_string ob "  "
+    done
+  )
+
+
 let rec iter2_aux f_elt f_sep x = function
     [] -> ()
   | y :: l ->
       f_sep x;
+      indent x;
       f_elt x y;
       iter2_aux f_elt f_sep x l
+
 
 let iter2 f_elt f_sep x = function
     [] -> ()
   | y :: l ->
+      indent x;
       f_elt x y;
       iter2_aux f_elt f_sep x l
 
+
 let f_sep ob =
   Buffer.add_char ob ','
+
 
 let rec write_json ob (x : json) =
   match x with
@@ -179,26 +198,31 @@ and write_assoc ob l =
   let f_elt ob (s, x) =
     write_string ob s;
     Buffer.add_char ob ':';
+    if !use_indent then Buffer.add_char ob ' ';
     write_json ob x
   in
   Buffer.add_char ob '{';
+  incr indent_level;
   iter2 f_elt f_sep ob l;
+  decr indent_level;
+  if l <> [] then indent ob;
   Buffer.add_char ob '}';
 
 and write_list ob l =
   Buffer.add_char ob '[';
+  incr indent_level;
   iter2 write_json f_sep ob l;
+  decr indent_level;
+  if l <> [] then indent ob;
   Buffer.add_char ob ']'
 
 
-let to_outbuf ob x =
+let to_buffer ?(indent=false) ob x =
+  use_indent := indent;
   write_json ob x
-  (* XXX:
-  Buffer.add_char ob '\n' (* make sure that text file ends with a newline *)
-  *)
 
 
-let to_string ?buf ?(len = 256) x =
+let to_string ?buf ?(len = 256) ?(indent=false) x =
   let ob =
     match buf with
 	None -> Buffer.create len
@@ -206,18 +230,19 @@ let to_string ?buf ?(len = 256) x =
 	  Buffer.clear ob;
 	  ob
   in
-  to_outbuf ob x;
+  to_buffer ob x ~indent;
   let s = Buffer.contents ob in
   Buffer.clear ob;
   s
 
-let to_channel ?buf ?len oc x =
+
+let to_channel ?buf ?len ?(indent=false) oc x =
   let ob =
     match buf with
 	None -> Buffer.create 100
       | Some ob -> ob
   in
-  to_outbuf ob x;
+  to_buffer ob x ~indent;
   Buffer.output_buffer oc ob 
   
 
@@ -260,18 +285,26 @@ and format_field (name, x) =
   Label ((Atom (s, atom), label), format x)
 
 
-let pretty_to_buffer buf x =
-  Easy_format.Pretty.to_buffer buf (format x);
+(*
+ * indent=true means faster pretty-printing by using simple indentation;
+ * indent=false produces nicer-looking results, but it is slower
+ *)
+let pretty_to_buffer ?(indent=false) buf x =
+  if indent
+  then to_buffer buf x ~indent
+  else Easy_format.Pretty.to_buffer buf (format x);
   Buffer.add_char buf '\n' (* make sure that text file ends with a newline *)
 
 
-let pretty_to_string x =
+let pretty_to_string ?(indent=false) x =
   let buf = Buffer.create 256 in
-  pretty_to_buffer buf x;
+  pretty_to_buffer buf x ~indent;
   Buffer.contents buf
 
 
-let pretty_to_channel oc x =
-  Easy_format.Pretty.to_channel oc (format x);
+let pretty_to_channel ?(indent=false) oc x =
+  if indent
+  then to_channel oc x ~indent
+  else Easy_format.Pretty.to_channel oc (format x);
   output_char oc '\n' (* make sure that text file ends with a newline *)
 
