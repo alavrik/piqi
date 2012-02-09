@@ -141,7 +141,8 @@ known_content_type(ReqData, Context) ->
     % NOTE: Webmachine returns <<>> as a body even if "Content-Length" header is
     % not present.
     Body = wrq:req_body(ReqData),
-    ContentType = wrq:get_req_header("content-type", ReqData),
+    ContentType = get_primary_header_value(
+        wrq:get_req_header("content-type", ReqData)),
 
     IsKnownType =
         case ContentType of
@@ -202,7 +203,8 @@ content_types_provided(ReqData, Context) ->
 
 % process POST requests
 process_post(ReqData, Context) ->
-    ContentType = wrq:get_req_header("content-type", ReqData),
+    ContentType = get_primary_header_value(
+        wrq:get_req_header("content-type", ReqData)),
     InputFormat = content_type_to_format(ContentType),
     rpc(ReqData, Context, InputFormat).
 
@@ -210,6 +212,13 @@ process_post(ReqData, Context) ->
 %
 % Utility functions
 %
+
+% return the first section of the header value delimited by ';' (or the whole
+% header if no semicolon is present)
+get_primary_header_value('undefined') -> 'undefined';
+get_primary_header_value(Header) ->
+    lists:takewhile(fun (C) -> C =/= $; end, Header).
+
 
 format_to_content_type('pb') -> "application/x-protobuf";
 format_to_content_type('json') -> "application/json";
@@ -385,3 +394,25 @@ make_service_options(#context{options = Options}) ->
         {ok, X} -> Options ++ X
     end.
 
+
+%
+% Tests
+%
+-ifndef(DIALYZER).
+
+-include_lib("eunit/include/eunit.hrl").
+
+get_primary_header_value_test_() ->
+    [
+        ?_assertEqual("application/json",
+            get_primary_header_value("application/json; charset=utf-8")),
+        ?_assertEqual("application/json",
+            get_primary_header_value("application/json")),
+        ?_assertEqual('undefined',
+            get_primary_header_value('undefined')),
+        ?_assertEqual("",
+            get_primary_header_value(""))
+    ].
+
+
+-endif.

@@ -14,7 +14,7 @@ ERL_SOURCES = \
 	piqic_erlang_rpc.erl
 
 
-#ERL_TESTS =
+ERL_TESTS = piqi_rpc_webmachine_resource
 
 
 ERL_APP_PATH = $(PIQI_ROOT)/piqi-erlang
