@@ -41,7 +41,7 @@ let speclist = Main.common_speclist @
 let expand_file filename =
   let ch = Main.open_output !ofile in
   let piqi = Piqi.load_piqi filename in
-  let res_piqi = Piqi_ext.expand_piqi piqi ~includes_only:!flag_includes_only in
+  let res_piqi = Piqi.expand_piqi piqi ~includes_only:!flag_includes_only in
   Piqi_pp.prettyprint_piqi ch res_piqi
 
 

@@ -98,9 +98,6 @@ module C = Piqi_common
 open C
 
 
-let _ = Piqilib.init ()
-
-
 (*
  * Set "alt-name" fields for Piqi options and fields based on "getopt-name"
  * fields provided by user in the Piqi spec.

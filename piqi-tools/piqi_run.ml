@@ -16,7 +16,6 @@
 
 
 let _ =
-  Piqilib.init ();
   Piqi_main.run ()
 
 

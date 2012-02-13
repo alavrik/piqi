@@ -209,7 +209,7 @@ let gen_hrl modname piqi =
 
 
 let gen_embedded_piqi piqi =
-  let l = Piqic_common_ext.build_piqi_deps piqi in
+  let l = Piqic_common.build_piqi_deps piqi in
   let l = List.map Piqic_erlang_in.gen_erlang_binary l in
   iol [
     ios "piqi() ->"; indent;

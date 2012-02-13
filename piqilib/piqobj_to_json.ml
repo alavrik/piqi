@@ -22,9 +22,6 @@ module C = Piqi_common
 open C
 
 
-let _ = Piqilib.init ()
-
-
 module R = Piqobj.Record
 module F = Piqobj.Field
 module V = Piqobj.Variant

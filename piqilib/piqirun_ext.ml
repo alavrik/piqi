@@ -34,7 +34,6 @@ type options = Piqi_convert.options
 
 
 let _ =
-  Piqilib.init ();
   Piqi_convert.init ()
 
 

@@ -19,8 +19,8 @@
 type loc = string * int * int (* file, line, column *)
 
 
-(* pause storing location references *)
-let is_paused = ref 0
+(* pause & resume storing location references *)
+let is_paused = ref 1 (* > 0 means paused; pause() calls can be nested *)
 let pause () = incr is_paused
 let resume () = decr is_paused
 

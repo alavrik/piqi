@@ -1,3 +1,4 @@
+# This Makefile is used by piqilib, piqic and piqicc
 
 all:
 
@@ -35,6 +36,8 @@ PIQI_SOURCES_TAIL = \
 	piqobj_to_piq.ml \
 	\
 	piqi.ml \
+	\
+	piqi_pp.ml \
 
 
 PIQI_SOURCES = $(PIQI_SOURCES_HEAD) $(PIQI_SOURCES_TAIL)

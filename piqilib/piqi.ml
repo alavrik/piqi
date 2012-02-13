@@ -865,9 +865,162 @@ let get_imported_defs imports =
   flatmap aux imports
 
 
-let get_function_defs_init piqi = []
+let make_param_name func param_name =
+  (* construct the type name as a concatentation of the function name and
+   * -input|output|error *)
+  let func_name = func.T.Func#name in
+  let type_name = func_name ^ "-" ^ param_name in
+  (* create a location reference for the newly constructed type name *)
+  Piqloc.addrefret func_name type_name
 
-let get_function_defs = ref get_function_defs_init
+
+let make_param_alias name x =
+  let res =
+    A#{
+      T.default_alias () with
+
+      name = name;
+      typeref = `name x;
+      is_func_param = true; (* mark the new alias as function parameter *)
+    }
+  in
+  Piqloc.addrefret x res
+
+
+let make_param_record name x =
+  let res =
+    R#{
+      T.default_record () with
+
+      name = name;
+      field = x.T.Anonymous_record.field;
+    }
+  in
+  let res = copy_record res in (* preserve the original fields *)
+  Piqloc.addrefret x res
+
+
+let make_param_variant name x =
+  let res =
+    V#{
+      T.default_variant () with
+
+      name = name;
+      option = x.T.Anonymous_variant.option;
+    }
+  in
+  let res = copy_variant res in (* preserve the original options *)
+  Piqloc.addrefret x res
+
+
+let make_param_list name x =
+  let res =
+    L#{
+      T.default_piqlist () with
+
+      name = name;
+      typeref = x.T.Anonymous_list.typeref;
+      (* XXX: what about wire-packed property? -- it is not defined for
+       * anonymous list:
+       * wire_packed = x.T.Anonymous_list.wire_packed;
+       *)
+    }
+  in
+  Piqloc.addrefret x res
+
+
+(* convert function parameter to a type:
+ *  - if the function parameter is a name, convert it to correspondent alias
+ *  - if the function parameter is an anonymous record, convert it to
+ *    correspondent record
+ *  - do the same for anonymous variants, enums and lists
+ *)
+let resolve_param func param_name param =
+  let type_name = make_param_name func param_name in
+  let def =
+    match param with
+      | `name x ->
+          (* make an alias from name reference *)
+          `alias (make_param_alias type_name x)
+      | `record x ->
+          `record (make_param_record type_name x)
+      | `variant x ->
+          `variant (make_param_variant type_name x)
+      | `enum x ->
+          `enum (make_param_variant type_name x)
+      | `list x ->
+          `list (make_param_list type_name x)
+  in
+  Piqloc.addref param def;
+  def
+
+
+(* ughh. this is ugly *)
+let resolve_param func param_name param =
+  match param with
+    | None -> None
+    | Some param ->
+        let res = resolve_param func param_name param in
+        Some res
+
+
+let process_func f =
+  let open T.Func in
+  begin
+    check_name f.name;
+    let i = resolve_param f "input" f.input
+    and o = resolve_param f "output" f.output
+    and e = resolve_param f "error" f.error
+    in T.Func#{
+      f with
+      resolved_input = i;
+      resolved_output = o;
+      resolved_error = e;
+    }
+  end
+
+
+let check_dup_names funs =
+  let open P in
+  let names = List.map (fun x -> x.T.Func#name) funs in
+  check_dup_names "function" names;
+  ()
+
+
+let get_func_defs f =
+  let open T.Func in
+  let get_param = function
+    | None -> []
+    | Some x -> [ (x :> T.piqdef) ]
+  in
+  List.concat [
+    get_param f.resolved_input;
+    get_param f.resolved_output;
+    get_param f.resolved_error;
+  ]
+
+
+let get_functions modules =
+  flatmap (fun x -> x.P#func) modules
+
+
+let get_function_defs (piqi :T.piqi) =
+  let open P in
+  (* get all functions from this module and included modules *)
+  let funs = get_functions piqi.included_piqi in
+
+  (* check for duplicate function names *)
+  check_dup_names funs;
+
+  (* process functions and create a local copy of them *)
+  let resolved_funs = List.map process_func funs in
+
+  (* add function type definitions to Piqi resolved defs *)
+  piqi.resolved_func <- resolved_funs;
+
+  (* returned definitions derived from function parameters *)
+  let defs = flatmap get_func_defs resolved_funs in
+  defs
 
 
 (* do include & extension expansion for the loaded piqi using extensions from
@@ -973,7 +1126,7 @@ let rec process_piqi ?modname ?(fname="") ~cache (piqi: T.piqi) =
   let idtable = resolve_defs ~piqi idtable resolved_defs in
 
   (* get definitions derived from function parameters *)
-  let func_defs = !get_function_defs piqi in
+  let func_defs = get_function_defs piqi in
 
   (* resolving them separately, because they should not be addressable from the
    * normal definitions and from other function definitions as well *)
@@ -1124,9 +1277,8 @@ let boot () =
   (* turn boot mode off *)
   boot_mode := false;
 
-  (* reset wire location counters *)
-  Piqloc.icount := 0;
-  Piqloc.ocount := 0;
+  (* resume object location tracking -- it is paused from the beginning *)
+  Piqloc.resume ();
 
   (* initialize Piqi loader; doing it this way, because Piqi and Piqi_db are
    * mutually recursive modules *)
@@ -1228,43 +1380,45 @@ let load_piqi fname :T.piqi =
   piqi
 
 
-(*
- * this code was previously used by piqicc; keeping it here for a while just
- * in case:
+(* expand all includes and, optionally, extensions and produce an expanded
+ * version of the Piqi module *)
+let expand_piqi ?(includes_only=false) piqi =
+  let open P in
+  let all_piqi = piqi.included_piqi in
+  let orig_piqi = some_of piqi.original_piqi in
 
-let convert_obj new_piqtype obj =
-  debug "convert_obj(0)\n";
-  trace_enter ();
-  (* XXX *)
-  C.resolve_defaults := false;
-  (* serialize to ast and read back as a differnt piqtype *)
-  let ast = Piqobj_to_piq.gen_obj obj in
+  (* create a new piqi module from the original piqi module *)
+  let res_piqi =
+    {
+      (* XXX
+      T.default_piqi () with
 
-  (* XXX: setting this option in order to delay, and then ignore all parsing
-   * warnings *)
-  Piqobj_of_piq.delay_unknown_warnings := true;
+      modname = orig_piqi.modname;
+      proto_package = orig_piqi.proto_package;
+      *)
+      orig_piqi with
 
-  let res = Piqobj_of_piq.parse_obj new_piqtype ast in
+      custom_field = [];
+      includ = [];
 
-  (* reset all warnings *)
-  ignore (Piqobj_of_piq.get_unknown_fields ());
+      (* copy all definitions to the resulting module *)
+      piqdef =
+        if includes_only
+        then get_piqdefs all_piqi
+        else piqi.extended_piqdef;
 
-  trace_leave ();
-  res
+      (* copy all extensions to the resulting module *)
+      extend =
+        if includes_only
+        then get_extensions all_piqi
+        else [];
 
+      (* copy all imports to the resulting module *)
+      import = get_imports all_piqi;
 
-(* XXX: this can be implemented more efficiently using table-base precalculated
- * mapping *)
-let convert_binobj piqtype new_piqtype binobj =
-  debug "convert_binobj(0)\n";
-  trace_enter ();
-  let obj = Piqobj_of_wire.parse_binobj piqtype binobj in
-  debug_loc "convert_binobj(1)";
-  let new_obj = convert_obj new_piqtype obj in
-  debug_loc "convert_binobj(2)";
-  let res = Piqobj_to_wire.gen_binobj new_obj in
-  Piqloc.icount := !Piqloc.ocount;
-  debug_loc "convert_binobj(3)";
-  trace_leave ();
-  res
-*)
+      (* copy all functions to the resulting module *)
+      func = get_functions all_piqi;
+    }
+  in
+  res_piqi
+

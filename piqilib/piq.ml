@@ -22,9 +22,6 @@ module C = Piqi_common
 open C
 
 
-let _ = Piqilib.init ()
-
-
 exception EOF
 
 (* piq stream object *)
@@ -248,7 +245,7 @@ let reset_defaults defs =
 
 
 let expand_piqi piqi =
-  let expanded_piqi = Piqi_ext.expand_piqi piqi in
+  let expanded_piqi = Piqi.expand_piqi piqi in
 
   (* make sure we include all automatically assigned hash-based wire code for
    * fiels and options *)

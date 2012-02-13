@@ -173,12 +173,39 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
       *)
   }
   in
+
+  (* convert piqi to binobj using piqi self-definition that we've just loaded *)
+  let piqi_def = Piqi_db.find_local_piqdef piqi "piqi" in
+  let piqi_type = (piqi_def: T.piqdef :> T.piqtype) in
   let gen_piqi_binobj piqi =
     add_hashcodes piqi.P#piqdef;
-    Piqirun.gen_binobj T.gen__piqi piqi
+    (* Old method that does not account for possible Piqi lang
+     * self-specification refactoring
+     *
+     Piqirun.gen_binobj T.gen__piqi piqi
+     *)
+    Piqloc.pause ();
+    let piqi_ast = Piqi_pp.piqi_to_ast piqi ~simplify:true in
+
+    (* XXX: setting this option in order to delay, and then ignore all parsing
+     * warnings *)
+    Piqobj_of_piq.delay_unknown_warnings := true;
+
+    let piqobj = Piqobj_of_piq.parse_obj piqi_type piqi_ast in
+
+    let unknown_fields = Piqobj_of_piq.get_unknown_fields () in
+    Piqi.check_unknown_fields unknown_fields ["ocaml-name"; "ocaml-type"];
+
+    let res = Piqobj_to_wire.gen_binobj piqobj in
+    Piqloc.resume ();
+    res
   in
+
+  trace "gen_piqi_binobj piqi_lang\n";
   let piqi_binobj = gen_piqi_binobj piqi_lang in
+  trace "gen_piqi_binobj piqi_spec\n";
   let piqi_spec_binobj = gen_piqi_binobj piqi_spec in
+  trace "gen_piqi_binobj boot_piqi\n";
   let piqi_boot_binobj = gen_piqi_binobj boot_piqi in
 
   let code = iod " " [
@@ -210,7 +237,7 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
   (* Override supplied module name *)
   let piqi_impl = P#{piqi_impl with ocaml_module = Some "Piqtype"} in
   let code = iol [
-    Piqic_ocaml_base.piqic piqi_impl;
+    Piqic_ocaml.gen_ocaml_code piqi_impl;
     code;
   ]
   in

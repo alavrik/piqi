@@ -43,10 +43,10 @@ let rec erlname_piqi (piqi:T.piqi) =
 let rec mlname_piqi (piqi:T.piqi) =
   let open P in
   begin
-    Piqic_ocaml_base.mlname_piqi piqi; (* run the original erlname procedure *)
+    Piqic_ocaml.mlname_piqi piqi; (* run the original mlname procedure *)
 
     Piqic_ocaml.mlname_functions piqi.P#func;
-    Piqic_ocaml_base.mlname_defs piqi.P#piqdef;
+    Piqic_ocaml.mlname_defs piqi.P#piqdef;
   end
 
 
@@ -58,7 +58,7 @@ let flag_binary_output = ref false
 
 let expand_file filename =
   let piqi = Piqi.load_piqi filename in
-  let res_piqi = Piqi_ext.expand_piqi piqi in
+  let res_piqi = Piqi.expand_piqi piqi in
 
   (* chdir to the output directory *)
   Main.chdir_output !odir;

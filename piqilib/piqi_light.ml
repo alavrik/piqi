@@ -26,9 +26,6 @@ open C
 open Iolist
 
 
-let _ = Piqilib.init ()
-
-
 let gen_typeref (t:T.typeref) =
   let gen_typename x = ios x ^^ ios "()" in
   match t with
