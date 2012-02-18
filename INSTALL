@@ -60,13 +60,13 @@ PREREQUISITES
         GCC works. Other compilers should work if they are able to build OCaml.
 
 
-* GNU make, m4, sed and probably some other tools.
+* GNU make, sed and probably some other tools.
 
 
 On Debian Squeeze, the above dependencies can be installed using the following
 command:
 
-        apt-get install ocaml camlp4-extra ocaml-findlib gcc m4 make sed
+        apt-get install ocaml camlp4-extra ocaml-findlib gcc make sed
 
 
 INSTALLATION INSTRUCTIONS
