@@ -4,9 +4,9 @@
 
 
 .extend [
-    (.name record field variant option alias list import function)
+    (.typedef record field variant option alias list import function)
 
-    .field [
+    .with.field [
         .name ocaml-name
         .type string
         .optional
@@ -15,9 +15,9 @@
 
 
 .extend [
-    .name piqi
+    .typedef piqi
 
-    .field [
+    .with.field [
         .name ocaml-module
         .type string
         .optional
@@ -26,9 +26,9 @@
 
 
 .extend [
-    .name alias
+    .typedef alias
 
-    .field [
+    .with.field [
         .name ocaml-type
         .type string
         .optional
@@ -38,9 +38,9 @@
 
 % flag for representing repeated fields and lists as OCaml arrays
 .extend [
-    (.name field list)
+    (.typedef field list)
 
-    .field [
+    .with.field [
         .name ocaml-array
         .optional
     ]

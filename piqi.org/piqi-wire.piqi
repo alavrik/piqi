@@ -26,9 +26,9 @@
 
 
 .extend [
-    .name alias
+    .typedef alias
 
-    .field [
+    .with.field [
         .type wire-type
         .optional
     ]
@@ -36,10 +36,10 @@
 
 
 .extend [
-    (.name field option)
+    (.typedef field option)
 
     % unique integer field id to be used to encode field in wire format
-    .field [
+    .with.field [
         .name code % XXX: rename to wire-code?
         .type int32
         .optional
@@ -48,11 +48,11 @@
 
 
 .extend [
-    (.name field list)
+    (.typedef field list)
 
     % indication that Protobuf "packed" format is used for repeated fields or
     % list elements
-    .field [
+    .with.field [
         .name wire-packed
         .optional
     ]

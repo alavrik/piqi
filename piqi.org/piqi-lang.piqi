@@ -19,16 +19,16 @@
 
 % The Piqi language, in addition to the Piqi-spec, has includes and extensions
 .extend [
-    .name piqi
+    .typedef piqi
 
-    .field [
+    .with.field [
         .name custom-field
         .type word
         .repeated
     ]
 
-    .field [ .type include .repeated ]
-    .field [ .type extend .repeated ]
+    .with.field [ .type include .repeated ]
+    .with.field [ .type extend .repeated ]
 ]
 
 
@@ -48,14 +48,40 @@
     .name extend
 
     .field [
-        .type name
+        .name what
+        .type extend-target
         .repeated % several typedefs can be specified as an extension
     ]
 
+    .field [
+        .name with
+        .ocaml-name "piqi_with"
+        .type piq-any % an actual extension object
+        .repeated
+    ]
+
+    % this way of specifying extensions will be deprecated soon
     .field [
         .ocaml-name "quote"
         .type piq-any % an actual extension object
         .repeated
     ]
+]
+
+
+.variant [
+    .name extend-target
+
+    .option [ .name typedef .type name ]
+    .option [
+        % previous name for "typedef"; kept for backwards compatibility; will be
+        % fully deprecated in future Piqi versions; NOTE: typedef takes
+        % precedence over it
+        .type name
+    ]
+    .option [ .name field .type name ]
+    .option [ .name option .type name ]
+    .option [ .name import .type name ]
+    .option [ .name function .type name .ocaml-name "func" ]
 ]
 

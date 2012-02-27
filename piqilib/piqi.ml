@@ -36,6 +36,10 @@ let piqi_spec_def :T.piqtype ref = ref `bool
 (* resolved "piqdef" type definition
  * Will be appropriately initialized during boot stage (see below) *)
 let piqdef_def :T.piqtype ref = ref `bool
+let field_def :T.piqtype ref = ref `bool
+let option_def :T.piqtype ref = ref `bool
+let function_def :T.piqtype ref = ref `bool
+let import_def :T.piqtype ref = ref `bool
 
 
 (* processing hooks to be run at the end of Piqi module load & processing *)
@@ -99,12 +103,33 @@ let find_def idtable name =
     error name ("unknown type " ^ quote name)
 
 
+
+let is_func_param def =
+  match def with
+    | `record x -> x.R#is_func_param
+    | `enum x | `variant x -> x.V#is_func_param
+    | `alias x -> x.A#is_func_param
+    | `list x -> x.L#is_func_param
+
+
+(* mark type definition as a function parameter *)
+let set_is_func_param_flag def =
+  match def with
+    | `record x -> x.R#is_func_param <- true
+    | `enum x | `variant x -> x.V#is_func_param <- true
+    | `alias x -> x.A#is_func_param <- true
+    | `list x -> x.L#is_func_param <- true
+
+
 let resolve_typeref map t =
   match t with
     | `name name ->
         let def = find_def map name in
+        if is_func_param def
+        then error name ("type " ^ quote name ^ " is defined as a function parameter and can't be referenced");
         (def: T.piqdef :> T.typeref)
-    | _ -> t (* already resolved *)
+    | _ ->
+        t (* already resolved *)
 
 
 (* XXX: is there a way to avoid code duplicaton here? *)
@@ -328,23 +353,47 @@ let check_resolved_def def =
     | _ -> ()
 
 
+(* scoped extensions names should have exactly two sections separated by '.' *)
+let is_valid_scoped_extension_name name =
+  if not (Piqi_name.is_valid_name name ~allow:".")
+  then false
+  else
+    match Piq_parser.tokenize name '.' with
+      | [a; b] -> Piqi_name.is_valid_name a && Piqi_name.is_valid_name b
+      | _ -> false
+
+
+let check_extension_name = function
+  | `name name | `typedef name | `import name | `func name ->
+      if not (Piqi_name.is_valid_name name)
+      then error name "invalid extension name"
+
+  | `field name | `option name ->
+      if not (is_valid_scoped_extension_name name)
+      then error name "invalid scoped extension name"
+
+
+let check_extension_spec spec =
+  check_extension_name spec;
+  match spec with
+    | `name name ->
+        C.warning name "use of .name for extending typedefs is deprecated; use .typedef instead"
+    | _ -> ()
+
+
 let check_extension x =
   let open Extend in
   begin
-    if x.name = []
+    if x.what = [] && x.piqi_with = []
     then error x ("extension doesn't specify any names");
 
-    if x.quote = []
+    if x.quote = [] && x.piqi_with = []
     then error x ("extension doesn't specify any extensions");
 
-    List.iter
-      (fun x ->
-        if Piqi_name.has_parent x
-        then
-          error x "extensions of imported defintions are not supported yet")
-      x.name;
+    if x.quote <> []
+    then C.warning (List.hd x.quote) "this style of extensions is deprecated; always use .with prefix";
 
-    List.iter check_scoped_name x.name;
+    List.iter check_extension_spec x.what
   end
 
 
@@ -579,6 +628,15 @@ let assign_import_name x =
         x.name <- Some name
 
 
+let name_of_import x =
+  let open Import in
+  match x.name with
+    | Some x -> x (* import name is already defined *)
+    | None ->
+        (* derive import name from the original module's name *)
+        Piqi_name.get_local_name x.modname
+
+
 let mlobj_to_piqobj piqtype wire_generator mlobj =
   debug_loc "mlobj_to_piqobj(0)";
   assert_loc ();
@@ -651,28 +709,6 @@ let parse_piqi ast =
   res
 
 
-(* get the list of unique piqi includes by traversing recursively through
- * include tree; the input piqi module will be put as the last element of the
- * list *)
-let get_includes piqi =
-  (* get the list of all included modules *)
-  let l = flatmap (fun x ->
-    let res = x.P#included_piqi in
-    if res = [] (* the module is loaded, but hasn't been processed yet *)
-    then error x "included piqi modules form a loop"
-    else res) piqi.P#included_piqi in
-
-  (* remove duplicates -- one module may be included from many modules *)
-  let l = uniqq l in
-
-  (* simple check for includes loop; provides very limited diagnostic *)
-  if List.memq piqi l
-  then error piqi "included piqi modules form a loop";
-
-  (* put the original (input) piqi module at the last position of the list *)
-  l @ [piqi]
-
-
 let get_piqdefs modules =
   flatmap (fun x -> x.P#piqdef) modules
 
@@ -685,13 +721,13 @@ let get_imports modules =
   flatmap (fun x -> x.P#import) modules
 
 
-let get_resolved_imports modules =
-  flatmap (fun x -> x.P#resolved_import) modules
-
-
 let get_custom_fields modules =
   let l = flatmap (fun x -> x.P#custom_field) modules in
   uniq l
+
+
+let get_functions modules =
+  flatmap (fun x -> x.P#func) modules
 
 
 let is_unknown_field custom_fields x =
@@ -720,101 +756,151 @@ let check_unknown_fields ?prepend unknown_fields custom_fields =
   List.iter warn unknown_fields
 
 
-let check_imports piqi =
-  let rec check_dups = function
-    | [] -> ()
-    | h::t ->
-        begin
-          if List.exists (fun x -> h.Import#name = x.Import#name) t
-          then error h ("duplicate import name " ^ quote (some_of h.Import#name));
-
-          if List.exists (fun x -> h.Import#piqi == x.Import#piqi) t
-          then warning h ("duplicate import module " ^ quote h.Import#modname);
-
-          check_dups t
-        end
-  in
-  check_dups piqi.P#resolved_import;
-
-  (* get the list of all imported modules *)
-  let l = List.map (fun x -> some_of x.Import#piqi) piqi.P#resolved_import in
-  (* simple check for import loops; provides very limited diagnostic *)
-  (* NOTE: import loops disallowed in Protobuf as well *)
-  if List.memq piqi l
-  then error piqi "imported piqi modules form a loop"
-
-
-(* resolve extension names to correspondent piqdefs *)
-let process_extension idtable x =
-  let open Extend in
-  let names = x.name in
-  List.map (fun name -> (find_def idtable name, x)) names
-
-
 (* From (key, value) list extract values for the specified key, and return the
  * list of extracted values and the remaining tuples; the order of both values
  * and remaining items is preserved *)
 (* NOTE: not tail recursive *)
-(* NOTE: using reference-based eq function (==) *)
 let takeout key l =
   let rec aux values rem = function
     | [] -> List.rev values, List.rev rem
-    | (key', value)::t when key' == key ->
+    | (key', value)::t when key' = key ->
         aux (value::values) rem t
     | h::t ->
         aux values (h::rem) t
   in aux [] [] l
     
 
-(* group unsorted (key, value) pairs by their first element (key) and return
- * the list of groups containing (key, list of values) for each group *)
-(* NOTE: using reference-based eq function (==) *)
+(* group unsorted (key, [value]) pairs by their first element (key) and return
+ * the list of groups containing (key, [values]) for each group *)
 let group_pairs l =
   let rec aux groups = function
     | [] -> List.rev groups
     | (key, value)::t ->
         let values, rem = takeout key t in
-        aux ((key, value::values)::groups) rem
+        let flatten_values = List.concat (value :: values) in
+        aux ((key, flatten_values)::groups) rem
   in aux [] l
 
 
-let apply_extensions piqdef extensions custom_fields =
+let parse_scoped_name name =
+  match Piq_parser.tokenize name '.' with
+    | [def_name; nested_name] -> def_name, nested_name
+    | _ -> assert false (* this has been checked already *)
+
+
+(* replace the first list element for which [f] returns true with [x]
+ *
+ * NOTE: non-tail recursive
+ *)
+let list_replace l f x =
+  let rec aux = function
+    | [] ->
+        (* we were supposed to replace an item before we reached the end of the
+         * list *)
+        assert false
+    | h::t ->
+        if f h
+        then x::t
+        else h::(aux t)
+  in
+  aux l
+
+
+let idtable_of_defs defs =
+  let idtable = Idtable.empty in
+  add_piqdefs idtable defs
+
+
+let idtable_of_imports imports =
+  List.fold_left
+    (fun t x -> Idtable.add t (name_of_import x) x)
+    Idtable.empty imports
+
+
+let idtable_of_functions funcs =
+  List.fold_left
+    (fun t x -> Idtable.add t x.T.Func#name x)
+    Idtable.empty funcs
+
+
+let list_of_idtable idtable =
+  Idtable.fold (fun k v l -> v::l) [] idtable
+
+
+(* find record field by name *)
+let find_field r field_name scoped_name =
+  try
+    List.find (fun x -> name_of_field x = field_name) r.R#field
+  with Not_found ->
+    error scoped_name ("record doesn't have field named " ^ quote field_name)
+
+
+(* find variant option by name *)
+let find_option v option_name scoped_name =
+  try
+    List.find (fun x -> name_of_option x = option_name) v.V#option
+  with Not_found ->
+    error scoped_name ("variant doesn't have option named " ^ quote option_name)
+
+
+(* replace record field with the new one *)
+let replace_field r f field_name =
+  let fields = r.R#field in
+  let new_fields = list_replace fields (fun x -> name_of_field x = field_name) f in
+  Piqloc.addref fields new_fields;
+  let new_record = R#{r with field = new_fields} in
+  Piqloc.addref r new_record;
+  new_record
+
+
+(* replace variant option with the new one *)
+let replace_option v o option_name =
+  let options = v.V#option in
+  let new_options = list_replace options (fun x -> name_of_option x = option_name) o in
+  Piqloc.addref options new_options;
+  let new_variant = V#{v with option = new_options} in
+  Piqloc.addref v new_variant;
+  new_variant
+
+
+let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_fields =
   let trace' = !Piqloc.trace in
   (* Piqloc.trace := false; *)
   debug "apply_extensions(0)\n";
-  let piqdef_ast = mlobj_to_ast !piqdef_def T.gen__piqdef piqdef in
-  let extension_entries =
-    List.concat (List.map (fun x -> x.Extend#quote) extensions)
-  in
+  let obj_ast = mlobj_to_ast obj_def obj_gen_f obj in
   let extension_asts = List.map (fun x -> some_of x.Any#ast) extension_entries in
-  let extended_piqdef_ast =
-    match piqdef_ast with
-     | `named ({T.Named.value = ((`list l) as _ref)} as x) ->
-         let v = `list (l @ extension_asts) in
+  let extended_obj_ast =
+    match obj_ast with
+      | `named ({T.Named.value = ((`list l) as _ref)} as x) -> (* typedefs -- named containers *)
+          let v = `list (l @ extension_asts) in
 
-         let v = Piq_parser.piq_addrefret _ref v in
+          let v = Piq_parser.piq_addrefret _ref v in
 
-         let res = `named {x with T.Named.value = v} in
+          let res = `named {x with T.Named.value = v} in
 
-         ignore (Piq_parser.piq_addrefret x res);
+          ignore (Piq_parser.piq_addrefret x res);
 
-         res
+          res
 
-     | _ ->
-         (* extensions can only be applied to named containers and all of
-          * piqdefs are named containers *)
-         assert false
+      | (`list l) as _ref -> (* fields and options -- plain containers *)
+          let v = `list (l @ extension_asts) in
+          Piq_parser.piq_addrefret _ref v
+
+      | _ ->
+          (* extensions can only be applied to named containers and all of
+           * piqdefs are named containers *)
+          assert false
   in
   let context_str = "while applying extensions to this definition ..." in
   debug "apply_extensions(1)\n";
-  let extended_piqdef =
+  let extended_obj =
     try
-      mlobj_of_ast !piqdef_def T.parse_piqdef extended_piqdef_ast
+      mlobj_of_ast obj_def obj_parse_f extended_obj_ast
     with (C.Error _) as e ->
       (* TODO, XXX: one error line is printed now, another (original) error
        * later -- it is inconsistent *)
       (
-        prerr_endline (C.error_string piqdef context_str);
+        prerr_endline (C.error_string obj context_str);
         (* re-raise the original exception after printing some context info *)
         raise e
       )
@@ -825,30 +911,192 @@ let apply_extensions piqdef extensions custom_fields =
   (* get unparsed extension fields fields *)
   let unknown_fields = Piqobj_of_piq.get_unknown_fields () in
   check_unknown_fields unknown_fields custom_fields
-    ~prepend:(fun () -> C.warning piqdef context_str);
+    ~prepend:(fun () -> C.warning obj context_str);
 
-  extended_piqdef
+  extended_obj
 
 
-(* expand extensions, i.e. extend exising definitions with extensions *)
-let expand_extensions defs extensions custom_fields =
-  let idtable = Idtable.empty in
-  let idtable = add_piqdefs idtable defs in
-  (* get a list of (piqdef, extensions) pairs from all extensiosn by resolving
-   * extension names to piqdefs *)
-  let l = flatmap (process_extension idtable) extensions in
-  (* group the list of extensions by piqdef obtaining the list of
-   * (piqdef, [extension]) pairs *)
-  let groups = group_pairs l in
-  let extended_defs =
-    List.map (fun (piqdef, extensions) ->
-      apply_extensions piqdef extensions custom_fields) groups
+let apply_option_extensions idtable scoped_name extension_entries custom_fields =
+  let def_name, option_name = parse_scoped_name scoped_name in
+  match find_def idtable def_name with
+    | `variant v ->
+        let option = find_option v option_name scoped_name in
+        let extended_option =
+          apply_extensions option !option_def T.parse_option T.gen__option
+          extension_entries custom_fields
+        in
+        let extended_variant = replace_option v extended_option option_name in
+        let extended_typedef = `variant extended_variant in
+        Piqloc.addref extended_variant extended_typedef;
+        (* replace the original variant with the extended one *)
+        Idtable.add idtable def_name extended_typedef
+    | _ ->
+        error scoped_name
+          ("can't apply option extensions no non-variant definition " ^ quote def_name)
+
+
+let apply_field_extensions idtable scoped_name extension_entries custom_fields =
+  let def_name, field_name = parse_scoped_name scoped_name in
+  match find_def idtable def_name with
+    | `record r ->
+        let field = find_field r field_name scoped_name in
+        let extended_field =
+          apply_extensions field !field_def T.parse_field T.gen__field
+          extension_entries custom_fields
+        in
+        let extended_record = replace_field r extended_field field_name in
+        let extended_typedef = `record extended_record in
+        Piqloc.addref extended_record extended_typedef;
+        (* replace the original record with the extended one *)
+        Idtable.add idtable def_name extended_typedef
+    | _ ->
+        error scoped_name
+          ("can't apply field extensions no non-record definition " ^ quote def_name)
+
+
+let extend_import idtable name extension_entries custom_fields =
+  let import = 
+    try Idtable.find idtable name
+    with Not_found -> error name ("unknown import " ^ quote name)
   in
-  let involved_defs = List.map (fun (def, _) -> def) groups in
-  let untouched_defs =
-    List.filter (fun x -> not (List.memq x involved_defs)) defs
+  let extended_import =
+    apply_extensions import !import_def T.parse_import T.gen__import
+    extension_entries custom_fields
   in
-  untouched_defs @ extended_defs
+  (* replace the original import with the extended one *)
+  Idtable.add idtable name extended_import
+
+
+let extend_imports imports extensions custom_fields =
+  (* group the list of extensions by definition obtaining the list of
+   * (spec, [extension]) pairs *)
+  let extensions_groups = group_pairs extensions in
+  (* apply extensions to each import *)
+  let idtable = idtable_of_imports imports in
+  let idtable =
+    List.fold_left
+      (fun idtable (spec, extension_items) ->
+        let name =
+          match spec with
+            | `import name -> name
+            | _ -> assert false (* typedef and function extensions are already filtered out *)
+        in
+        extend_import idtable name extension_items custom_fields
+      )
+      idtable
+      extensions_groups
+  in
+  (* convert the updated idtable to the list of resulting imports *)
+  list_of_idtable idtable
+
+
+let extend_function idtable name extension_entries custom_fields =
+  let func =
+    try Idtable.find idtable name
+    with Not_found -> error name ("unknown function " ^ quote name)
+  in
+  let extended_func =
+    apply_extensions func !function_def T.parse_func T.gen__func
+    extension_entries custom_fields
+  in
+  (* replace the original function with the extended one *)
+  Idtable.add idtable name extended_func
+
+
+let extend_functions funs extensions custom_fields =
+  (* group the list of extensions by definition obtaining the list of
+   * (spec, [extension]) pairs *)
+  let extensions_groups = group_pairs extensions in
+  (* apply extensions to each function *)
+  let idtable = idtable_of_functions funs in
+  let idtable =
+    List.fold_left
+      (fun idtable (spec, extension_items) ->
+        let name =
+          match spec with
+            | `func name -> name
+            | _ -> assert false (* typedef and import extensions are already filtered out *)
+        in
+        extend_function idtable name extension_items custom_fields
+      )
+      idtable
+      extensions_groups
+  in
+  (* convert the updated idtable to the list of resulting functions *)
+  list_of_idtable idtable
+
+
+(* apply field and option extensions *)
+let apply_def_extensions idtable spec extension_entries custom_fields =
+  match spec with
+    | `name name | `typedef name ->
+        let piqdef = find_def idtable name in
+        let extended_piqdef =
+          apply_extensions piqdef !piqdef_def T.parse_piqdef T.gen__piqdef
+          extension_entries custom_fields
+        in
+        (* replace the original typedef with the extended one *)
+        Idtable.add idtable name extended_piqdef
+    | `field x ->
+        apply_field_extensions idtable x extension_entries custom_fields
+    | `option x ->
+        apply_option_extensions idtable x extension_entries custom_fields
+    | _ ->
+        assert false (* import and function extensions are already filtered out *)
+
+
+(* apply extensions to type defininitions *)
+let apply_defs_extensions defs extensions custom_fields =
+  (* group the list of extensions by definition obtaining the list of
+   * (spec, [extension]) pairs *)
+  let extensions_groups = group_pairs extensions in
+
+  (* defs extensions must be applied before field and option extensions;
+   * therefore partition partition extensions into typedef, and the other types
+   * of extensions; and then append them back together *)
+  let defs_extension_groups, other_extension_groups =
+    List.partition (fun (spec, _) ->
+      match spec with
+        | `name _ | `typedef _ -> true (* these are the same, but `name is depreceated *)
+        | _ -> false
+    ) extensions_groups
+  in
+  let extensions_groups = defs_extension_groups @ other_extension_groups in
+
+  (* create a new idtable from the list of definitions *)
+  let idtable = idtable_of_defs defs in
+
+  (* iterate through groups and apply extensions to correspondent definitions *)
+  let idtable =
+    List.fold_left
+      (fun idtable (spec, extension_items) ->
+        apply_def_extensions idtable spec extension_items custom_fields
+      )
+      idtable extensions_groups
+  in
+  (* convert the updated idtable to the list of resulting defs *)
+  list_of_idtable idtable
+
+
+(* partition extensions into typedef extesions, function extensions and import
+ * extensions *)
+let partition_extensions extensions =
+  let open Extend in
+  (* get a list of (what, [extension]) pairs from all extensions *)
+  let l = flatmap
+    (fun x -> List.map (fun what -> what, (x.piqi_with @ x.quote)) x.what)
+    extensions
+  in
+  let d, f, i =
+    List.fold_left
+      (fun (d, f, i) ((spec, _) as x) ->
+        match spec with
+          | `func _ -> (d, x::f, i)
+          | `import _ -> (d, f, x::i)
+          | `typedef _ | `name _ | `field _ | `option _ -> (x::d, f, i))
+      ([], [], []) l
+  in
+  (List.rev d, List.rev f, List.rev i)
 
 
 let get_imported_defs imports =
@@ -881,7 +1129,6 @@ let make_param_alias name x =
 
       name = name;
       typeref = `name x;
-      is_func_param = true; (* mark the new alias as function parameter *)
     }
   in
   Piqloc.addrefret x res
@@ -955,72 +1202,54 @@ let resolve_param func param_name param =
   def
 
 
-(* ughh. this is ugly *)
-let resolve_param func param_name param =
-  match param with
-    | None -> None
-    | Some param ->
-        let res = resolve_param func param_name param in
-        Some res
-
-
+(* return func, [(def, (def_name, set_f))], where
+ *
+ * [def] is a definition derived from the function's input/output/erorr
+ * parameter
+ *
+ * [def_name] is the definition's name
+ *
+ * [set_f] is a setter which takes a type definition and assigns it to the
+ * correspondnt function's parameter
+ *)
 let process_func f =
   let open T.Func in
-  begin
-    check_name f.name;
-    let i = resolve_param f "input" f.input
-    and o = resolve_param f "output" f.output
-    and e = resolve_param f "error" f.error
-    in T.Func#{
-      f with
-      resolved_input = i;
-      resolved_output = o;
-      resolved_error = e;
-    }
-  end
-
-
-let check_dup_names funs =
-  let open P in
-  let names = List.map (fun x -> x.T.Func#name) funs in
-  check_dup_names "function" names;
-  ()
-
-
-let get_func_defs f =
-  let open T.Func in
-  let get_param = function
-    | None -> []
-    | Some x -> [ (x :> T.piqdef) ]
+  let set_input def = set_is_func_param_flag def; f.resolved_input <- Some def
+  and set_output def = set_is_func_param_flag def; f.resolved_output <- Some def
+  and set_error def = set_is_func_param_flag def; f.resolved_error <- Some def
   in
-  List.concat [
-    get_param f.resolved_input;
-    get_param f.resolved_output;
-    get_param f.resolved_error;
-  ]
+  let process_param param_name param set_f =
+    match param with
+      | None -> []
+      | Some param ->
+          let def = resolve_param f param_name param in
+          let res = (def, (piqdef_name def, set_f)) in
+          [res]
+  in
+  let input = process_param "input" f.input set_input
+  and output = process_param "output" f.output set_output
+  and error = process_param "error" f.error set_error
+  in
+  (input @ output @ error)
 
 
-let get_functions modules =
-  flatmap (fun x -> x.P#func) modules
+let get_function_defs resolved_funs =
+  (* get definitions derived from function parameters *)
+  let defs_pairs = List.map process_func resolved_funs in
 
+  let defs_pairs = List.concat defs_pairs in
+  let defs, name_setter_assoc_l = List.split defs_pairs in
 
-let get_function_defs (piqi :T.piqi) =
-  let open P in
-  (* get all functions from this module and included modules *)
-  let funs = get_functions piqi.included_piqi in
-
-  (* check for duplicate function names *)
-  check_dup_names funs;
-
-  (* process functions and create a local copy of them *)
-  let resolved_funs = List.map process_func funs in
-
-  (* add function type definitions to Piqi resolved defs *)
-  piqi.resolved_func <- resolved_funs;
-
-  (* returned definitions derived from function parameters *)
-  let defs = flatmap get_func_defs resolved_funs in
-  defs
+  (* prepare the setters map *)
+  let setter_map = List.fold_left
+    (fun t (name, setter) -> Idtable.add t name setter)
+    Idtable.empty
+    name_setter_assoc_l
+  in
+  (* returned definitions derived from function parameters and a map that will
+   * be used to set definitions, once resolved, to their appropirate slots in
+   * resolved functions *)
+  defs, setter_map
 
 
 (* do include & extension expansion for the loaded piqi using extensions from
@@ -1039,31 +1268,31 @@ let rec process_piqi ?modname ?(fname="") ~cache (piqi: T.piqi) =
   (* TODO, XXX: this function call is meaningless if Piqi is not parsed from Piq *)
   let unknown_fields = Piqobj_of_piq.get_unknown_fields () in
 
-  (* load imports and includes *)
-  load_dependecies piqi;
-
-  (* get all unique included modules recursively; piqi will become the last
-   * element of the list *)
-  let modules = get_includes piqi in
-  (* expand included_in to contain the list of all included modules including
-   * the current one *)
+  (*
+   * handle includes
+   *)
+  let included_piqi = load_includes piqi.P#includ in
+  (* append the original (input) piqi module to the list of included piqi
+   * modules *)
+  let modules = included_piqi @ [piqi] in
   piqi.P#included_piqi <- modules;
 
-  (* get all imports from this module and included modules *)
-  let resolved_imports = get_resolved_imports modules in
-  piqi.P#resolved_import <- resolved_imports;
+  (* simple check for includes loop; provides very limited diagnostic *)
+  if List.memq piqi included_piqi
+  then error piqi "included piqi modules form a loop";
 
-  (* check for duplicates & looped imports including self-import loop *)
-  check_imports piqi;
+  (*
+   * get all extensions
+   *)
+  List.iter check_extension piqi.P#extend;
+  let extensions = get_extensions modules in
+  let defs_extensions, func_extensions, import_extensions =
+    partition_extensions extensions
+  in
 
-  let imported_defs = get_imported_defs resolved_imports in
-  piqi.P#imported_piqdef <- imported_defs;
-
-  (* fill idtable with their imported modules' definitions *)
-  let idtable = Idtable.empty in
-  let idtable = add_imported_piqdefs idtable imported_defs in
-
-  (* boot defintions *)
+  (*
+   * get boot definitions and boot custom fields
+   *)
   let boot_defs, boot_custom_fields =
     match !boot_piqi with
       | Some x when !Config.noboot = false ->
@@ -1074,40 +1303,111 @@ let rec process_piqi ?modname ?(fname="") ~cache (piqi: T.piqi) =
            * option was specified *)
           [], []
   in
-  (* add defintions from the boot module to the idtable *)
-  let idtable = add_piqdefs idtable boot_defs in
-
-  (* get all definitions from all included modules and the current module *)
-  let defs = get_piqdefs modules in
-
-  (* get all extensions *)
-  let extensions = get_extensions modules in
 
   (* NOTE: for local definitions we're considering custom fields defined only
    * in this module *)
   let custom_fields = piqi.P#custom_field @ boot_custom_fields in
   check_unknown_fields unknown_fields custom_fields;
 
+  (* NOTE: for extensions we're considering all custom fields from all
+   * included modules *)
+  let custom_fields = custom_fields @ (get_custom_fields modules) in
+
+  (*
+   * handle imports
+   *)
+  (* get all imports from included modules *)
+  let imports = get_imports modules in
+  let extended_imports =
+    if import_extensions = []
+    then imports
+    else extend_imports imports import_extensions custom_fields
+  in
+  (* preserve the original imports *)
+  let resolved_imports = copy_imports extended_imports in
+  load_imports resolved_imports;
+  piqi.P#resolved_import <- resolved_imports;
+
+  (* simple check for import loops; provides very limited diagnostic *)
+  (* NOTE: import loops disallowed in Protobuf as well *)
+  if List.exists (fun x -> some_of x.Import#piqi == piqi) resolved_imports
+  then error piqi "imported piqi modules form a loop";
+
+  (*
+   * handle imported defs
+   *)
+  let imported_defs = get_imported_defs resolved_imports in
+  piqi.P#imported_piqdef <- imported_defs;
+
+  (* fill idtable with their imported modules' definitions *)
+  let idtable = Idtable.empty in
+  let idtable = add_imported_piqdefs idtable imported_defs in
+
+  (* add defintions from the boot module to the idtable *)
+  let idtable = add_piqdefs idtable boot_defs in
+
+  (* get all definitions from all included modules and the current module *)
+  let defs = get_piqdefs modules in
+
+  (*
+   * handle functions
+   *)
+  (* get all functions from this module and included modules *)
+  let funs = get_functions modules in
+
+  (* check for duplicate function names *)
+  let func_names = List.map (fun x -> x.T.Func#name) funs in
+  List.iter check_name func_names;
+  check_dup_names "function" func_names;
+
+  let extended_funs =
+    if func_extensions = []
+    then funs
+    else extend_functions funs func_extensions custom_fields
+  in
+  (* preserve the original functions *)
+  let resolved_funs = List.map copy_obj extended_funs in
+  piqi.P#resolved_func <- resolved_funs;
+
+  (* get definitions derived from function parameters *)
+  let func_defs, func_defs_map = get_function_defs resolved_funs in
+
+  (* add function type definitions to Piqi resolved defs *)
+  let defs = defs @ func_defs in
+
   (* expand all extensions over all definitions *)
   (* NOTE, DOC: boot defs can not be extended *)
   let extended_defs =
-    match extensions with
-      | [] -> defs
-      | _ ->
-          (* defs should be correct before extending them *)
-          (* XXX: can they become correct after extension while being
-           * incorrect before? *)
-          check_defs idtable defs;
-
-          List.iter check_extension piqi.P#extend;
-
-          (* NOTE: for extensions we're considering all custom fields from all
-           * included modules *)
-          let custom_fields = custom_fields @ (get_custom_fields modules) in
-          expand_extensions defs extensions custom_fields
+    if defs_extensions = []
+    then defs
+    else (
+        (* defs should be correct before extending them *)
+        (* XXX: can they become correct after extension while being
+         * incorrect before? *)
+        check_defs idtable defs;
+        apply_defs_extensions defs defs_extensions custom_fields
+    )
   in
   (* preserve the original defintions by making a copy *)
   let resolved_defs = copy_defs extended_defs in
+
+  (* set resolved_func.resolved_input/output/error fields to their correspondent
+   * defs that were derived from function parameters *)
+  List.iter
+    (fun def ->
+      try
+        let setter = Idtable.find func_defs_map (piqdef_name def) in
+        setter def
+      with
+        Not_found -> ()
+    )
+    resolved_defs;
+
+  (* remove function defs from the list of extended piqdefs *)
+  let extended_defs = List.filter
+    (fun def -> not (Idtable.mem func_defs_map (piqdef_name def)))
+    extended_defs
+  in
 
   (* if the module includes (or is itself) piqi.org/piqi, use hash-based field
    * and option codes instead of auto-enumerated ones
@@ -1124,16 +1424,6 @@ let rec process_piqi ?modname ?(fname="") ~cache (piqi: T.piqi) =
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)
   let idtable = resolve_defs ~piqi idtable resolved_defs in
-
-  (* get definitions derived from function parameters *)
-  let func_defs = get_function_defs piqi in
-
-  (* resolving them separately, because they should not be addressable from the
-   * normal definitions and from other function definitions as well *)
-  List.iter (fun x -> ignore (resolve_defs ~piqi idtable [x])) func_defs;
-
-  (* now, combine the two together *)
-  let resolved_defs = resolved_defs @ func_defs in
 
   piqi.P#extended_piqdef <- extended_defs;
   piqi.P#resolved_piqdef <- resolved_defs;
@@ -1199,19 +1489,24 @@ and load_piqi_module modname =
     piqi
 
 
-and load_dependecies (piqi:T.piqi) =
+and load_imports l =
+  List.iter load_import l;
+  (* check for duplicates & looped imports including self-import loop *)
+  let rec check_dups = function
+    | [] -> ()
+    | h::t ->
+        begin
+          if List.exists (fun x -> h.Import#name = x.Import#name) t
+          then error h ("duplicate import name " ^ quote (some_of h.Import#name));
 
-  let included_piqi = load_includes piqi.P#includ in
-  piqi.P#included_piqi <- included_piqi;
+          if List.exists (fun x -> h.Import#piqi == x.Import#piqi) t
+          then warning h ("duplicate import module " ^ quote h.Import#modname);
 
-  (* preserve the original imports *)
-  let resolved_imports = copy_imports piqi.P#import in
-  load_imports resolved_imports;
-  piqi.P#resolved_import <- resolved_imports;
-  ()
+          check_dups t
+        end
+  in
+  check_dups l
 
-
-and load_imports l = List.iter load_import l
 
 and load_import x =
   let open Import in (
@@ -1224,7 +1519,21 @@ and load_import x =
   )
 
 
-and load_includes l = List.map load_include l
+and load_includes l =
+  let included_piqi = List.map load_include l in
+
+  (* get the list of unique piqi includes by traversing recursively through
+   * include tree; the input piqi module will be put as the last element of the
+   * list *)
+  let l = flatmap (fun x ->
+    let res = x.P#included_piqi in
+    if res = [] (* the module is loaded, but hasn't been processed yet *)
+    then error x "included piqi modules form a loop"
+    else res) included_piqi in
+
+  (* remove duplicates -- one module may be included from many modules *)
+  uniqq l
+
 
 and load_include x =
   let open Includ in (
@@ -1273,6 +1582,10 @@ let boot () =
   piqi_spec_def := Piqi_db.find_piqtype "embedded/piqi.org/piqi/piqi";
   (* resolved "piqdef" type definition *)
   piqdef_def := find_embedded_piqtype "piqdef";
+  field_def := find_embedded_piqtype "field";
+  option_def := find_embedded_piqtype "option";
+  function_def := find_embedded_piqtype "function";
+  import_def := find_embedded_piqtype "import";
 
   (* turn boot mode off *)
   boot_mode := false;

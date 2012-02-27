@@ -4,9 +4,9 @@
 
 
 .extend [
-    (.name record field variant option alias list function)
+    (.typedef record field variant option alias list function)
 
-    .field [
+    .with.field [
         .name erlang-name
         .type string
         .optional
@@ -15,15 +15,15 @@
 
 
 .extend [
-    .name piqi
+    .typedef piqi
 
-    .field [
+    .with.field [
         .name erlang-module
         .type string
         .optional
     ]
 
-    .field [
+    .with.field [
         .name erlang-type-prefix
         .type string
         .optional
@@ -32,9 +32,9 @@
 
 
 .extend [
-    .name alias
+    .typedef alias
 
-    .field [
+    .with.field [
         .name erlang-type
         .type string
         .optional
@@ -44,9 +44,9 @@
 
 % specifies whether strings are parsed as binaries or lists
 .extend [
-    .name piqi
+    .typedef piqi
 
-    .field [
+    .with.field [
         .type erlang-string-type
         .optional
         .default.binary

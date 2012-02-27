@@ -40,6 +40,9 @@ module Idtable =
 
     let mem idtable name =
       M.mem name idtable 
+
+    let fold f accu idtable =
+      M.fold f idtable accu
   end
 
 

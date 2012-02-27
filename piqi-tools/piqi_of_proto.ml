@@ -399,8 +399,8 @@ let gen_extension idtable ?path x =
   let type_name = gen_type idtable (some_of x.extendee) in
   iod "\n" [
     ios ".extend [";
-      ios ".name " ^^ ios type_name;
-      gen_field idtable ?path x;
+      ios ".typedef " ^^ ios type_name;
+      ios ".with" ^^ gen_field idtable ?path x;
     ios "]";
   ]
 

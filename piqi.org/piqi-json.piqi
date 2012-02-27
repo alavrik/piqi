@@ -13,9 +13,9 @@
 
 
 .extend [
-    (.name record field variant option alias list)
+    (.typedef record field variant option alias list)
 
-    .field [
+    .with.field [
         .name json-name
         .type string
         .optional

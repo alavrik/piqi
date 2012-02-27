@@ -96,6 +96,13 @@ let simplify_piqi_ast (ast:T.ast) =
         | `named {T.Named.name = "piq-any"; T.Named.value = v} -> [v]
         | x -> [x]
     )
+  (* map extend/.what x -> x *)
+  and tr_extend_what =
+    tr ["extend"] (
+      function
+        | `named {T.Named.name = "what"; T.Named.value = v} -> [v]
+        | x -> [x]
+    )
   (* .../type.name x -> type.x *)
   and tr_type_name_common path =
     tr path (
@@ -129,6 +136,7 @@ let simplify_piqi_ast (ast:T.ast) =
   |> rm_piqdef
   |> tr_field_mode ["record"; "field"]
   |> tr_extend_piq_any
+  |> tr_extend_what
   (* .../type.name x -> type.x *)
   |> tr_type_name_common ["record"; "field"]
   |> tr_type_name_common ["variant"; "option"]

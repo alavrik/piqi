@@ -15,15 +15,15 @@
 
 % a single-letter getopt option or flag
 .extend [
-    (.name field option)
+    (.typedef field option)
 
-    .field [
+    .with.field [
         .name getopt-letter
         .type word
         .optional
     ]
 
-    .field [
+    .with.field [
         .name getopt-doc
         .type string
         .optional

@@ -211,10 +211,18 @@ let gen_extension_item x =
   | _ -> []
 
 
+let gen_extension_target = function
+  | `typedef x | `name x -> x
+  | `field x -> "field=" ^ x
+  | `option x -> "option=" ^ x
+  | `import x -> "import=" ^ x
+  | `func x -> "function=" ^ x
+
+
 let gen_extension x =
   let open Extend in
   (* TODO: break long list of extended names to several lines *)
-  let names = List.map ios x.name in
+  let names = List.map (fun x -> ios (gen_extension_target x)) x.what in
   let items = flatmap gen_extension_item x.quote in
   iol [
     ios "extend "; iod " " names; indent;
