@@ -81,9 +81,10 @@ let get_current_piqtype user_piqtype locref =
 
 
 let piqi_of_piq fname ast =
+  (* XXX: validate that the input corresponds to piqi-spec and not to a wider
+   * piqi-lang? *)
   let piqi = Piqi.parse_piqi ast in
-  Piqi.process_piqi piqi ~fname ~cache:false;
-  piqi
+  Piqi.process_piqi piqi ~fname ~cache:false
 
 
 let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
@@ -316,7 +317,7 @@ let piqi_of_wire bin =
    * self-specificaion rather that the language-impl *)
   let piqi = T.parse_piqi bin in
 
-  Piqi.process_piqi piqi ~cache:false;
+  let piqi = Piqi.process_piqi piqi ~cache:false in
   Piqloc.resume ();
   piqi
 
@@ -474,7 +475,7 @@ let piqi_of_json json =
   (* set the default field resolver to json *)
   Piqi.piqobj_of_ref := piqobj_of_json_ref;
 
-  Piqi.process_piqi piqi ~cache:false;
+  let piqi = Piqi.process_piqi piqi ~cache:false in
   piqi
 
 
@@ -627,7 +628,7 @@ let piqi_of_xml xml =
   (* set the default field resolver to xml *)
   Piqi.piqobj_of_ref := piqobj_of_xml_ref;
 
-  Piqi.process_piqi piqi ~cache:false;
+  let piqi = Piqi.process_piqi piqi ~cache:false in
   piqi
 
 

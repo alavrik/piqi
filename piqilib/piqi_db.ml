@@ -85,6 +85,11 @@ let remove_piqi modname =
   loaded_map := Piqitable.remove !loaded_map modname
 
 
+let replace_piqi piqi =
+  let modname = some_of piqi.P#modname in
+  loaded_map := Piqitable.add !loaded_map modname piqi
+
+
 let find_local_piqdef piqi name =
   List.find (fun x -> name = piqdef_name x) piqi.P#resolved_piqdef
 
@@ -117,7 +122,7 @@ let find_load_piqi_module ~auto_load_piqi modname =
   match modname with
     | None -> (* built-in or local type *)
         (* NOTE: local types are not supported yet *)
-        some_of !boot_piqi
+        some_of !C.piqi_boot
     | Some modname ->
         (* check if the module is already loaded, and return it right away *)
         try find_piqi modname

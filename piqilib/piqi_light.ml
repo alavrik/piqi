@@ -188,8 +188,15 @@ let gen_includes l =
 
 (* boot code *)
 
-let field_def = Piqi.find_embedded_piqtype "field"
-let option_def = Piqi.find_embedded_piqtype "option"
+let field_def =
+  if !Sys.interactive
+  then Obj.magic 1 (* don't do anything in interactive (toplevel) mode *)
+  else Piqi.find_embedded_piqtype "field"
+
+let option_def =
+  if !Sys.interactive
+  then Obj.magic 1 (* don't do anything in interactive (toplevel) mode *)
+  else Piqi.find_embedded_piqtype "option"
 
 
 let gen_extension_item x =

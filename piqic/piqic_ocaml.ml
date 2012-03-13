@@ -189,7 +189,7 @@ let gen_ocaml_code (piqi: T.piqi) =
   Piqic_common.piqic_common piqi;
 
   (* set ocaml names that are not specified by user *)
-  (match !C.boot_piqi with
+  (match !C.piqi_boot with
     | None -> ()
     | Some x -> mlname_piqi x
   );

@@ -42,6 +42,11 @@ let function_def :T.piqtype ref = ref `bool
 let import_def :T.piqtype ref = ref `bool
 
 
+(* loaded in boot () -- see below *)
+let piqi_spec :T.piqi option ref = ref None
+let piqi_lang :T.piqi option ref = ref None
+
+
 (* processing hooks to be run at the end of Piqi module load & processing *)
 let processing_hooks = ref []
 
@@ -51,12 +56,17 @@ let register_processing_hook (f :idtable -> T.piqi -> unit) =
    * the plugins actually require a valid idtable to exist at this point, so we
    * don't care *)
   let idtable = Idtable.empty in
+
   (* run the hook on the embedded Piqi self-specification *)
-  f idtable T.boot_piqi; (* XXX: some_of !boot_piqi *)
+  if !piqi_boot <> None
+  then f idtable (some_of !piqi_boot);
+
   debug "register_processing_hook(1.5)\n";
-  f idtable T.piqi_lang;
+  f idtable (some_of !piqi_lang);
+
   debug "register_processing_hook(1.6)\n";
-  f idtable T.piqi_spec;
+  f idtable (some_of !piqi_spec);
+
   debug "register_processing_hook(1)\n";
   (* add the hook to the list of registered hooks *)
   processing_hooks := !processing_hooks @ [f]
@@ -101,7 +111,6 @@ let find_def idtable name =
   try Idtable.find idtable name
   with Not_found ->
     error name ("unknown type " ^ quote name)
-
 
 
 let is_func_param def =
@@ -615,8 +624,6 @@ let check_assign_module_name ?modname fname (piqi:T.piqi) =
         else error piqi "piqi module name can not be derived from the file name"
 
 
-(* XXX: demand explicit import name to avoid potential problems after renaming
- * imported module name? *)
 let assign_import_name x =
   let open Import in
   match x.name with
@@ -707,27 +714,6 @@ let parse_piqi ast =
   let res = mlobj_of_ast !piqi_lang_def T.parse_piqi ast in
   debug "parse_piqi(1)\n";
   res
-
-
-let get_piqdefs modules =
-  flatmap (fun x -> x.P#piqdef) modules
-
-
-let get_extensions modules =
-  flatmap (fun x -> x.P#extend) modules
-
-
-let get_imports modules =
-  flatmap (fun x -> x.P#import) modules
-
-
-let get_custom_fields modules =
-  let l = flatmap (fun x -> x.P#custom_field) modules in
-  uniq l
-
-
-let get_functions modules =
-  flatmap (fun x -> x.P#func) modules
 
 
 let is_unknown_field custom_fields x =
@@ -1252,72 +1238,112 @@ let get_function_defs resolved_funs =
   defs, setter_map
 
 
+(* return a list under top-level list element; remove modname and include
+ * directives *)
+let prepare_included_piqi_ast ast =
+  match ast with
+    | `list l ->
+        List.filter
+          (function
+            | `named {T.Named.name = "module"} -> false
+            | `named {T.Named.name = "include"} -> false
+            | _ -> true
+          )
+          l
+    | _ ->
+        assert false
+
+
+let expand_includes piqi included_piqi =
+  (* get the list of included modules' ASTs *)
+  let included_asts =
+    flatmap (fun x -> prepare_included_piqi_ast (some_of x.P#ast)) included_piqi
+  in
+  (* transform the module's ast to include all elements from all included
+   * modules *)
+  let ast = some_of piqi.P#ast in
+  let new_ast =
+    match ast with
+      | `list l ->
+          let res = `list (included_asts @ l) in
+          Piqloc.addrefret ast res
+      | _ ->
+          assert false
+  in
+  let res_piqi = parse_piqi new_ast in
+
+  (* discard unknown fields -- they have been processed and reported separately
+   * for each individual module *)
+  ignore (Piqobj_of_piq.get_unknown_fields ());
+
+  res_piqi.P#ast <- Some ast;
+  res_piqi
+
+
 (* do include & extension expansion for the loaded piqi using extensions from
  * all included piqi modules *)
-let rec process_piqi ?modname ?(fname="") ~cache (piqi: T.piqi) =
-  (* save the original piqi *)
-  piqi.P#original_piqi <- Some (copy_obj piqi); (* shallow copy *)
+let rec process_piqi ?modname ?(fname="") ?(ast: T.ast option) ~cache (orig_piqi: T.piqi) =
 
-  check_assign_module_name ?modname fname piqi;
+  (* report unparsed fields before we load dependencies (this is meaningless if
+   * Piqi is not parsed from Piq)
+   *)
+  if ast <> None
+  then (
+    let unknown_fields = Piqobj_of_piq.get_unknown_fields () in
+    let custom_fields = orig_piqi.P#custom_field in
+    check_unknown_fields unknown_fields custom_fields;
+  );
+
+  (* preserve the original piqi by creating a shallow copy of it *)
+  let piqi = copy_obj orig_piqi in
+  piqi.P#original_piqi <- Some orig_piqi;
 
   (* it is critical to cache loaded piqi module before we process any of its
    * dependencies; by doing this, we check for circular imports *)
+  check_assign_module_name ?modname fname piqi;
   if cache then Piqi_db.add_piqi piqi;
-
-  (* get unparsed fields before we load dependencies *)
-  (* TODO, XXX: this function call is meaningless if Piqi is not parsed from Piq *)
-  let unknown_fields = Piqobj_of_piq.get_unknown_fields () in
+  piqi.P#ast <- ast;
 
   (*
    * handle includes
    *)
-  let included_piqi = load_includes piqi.P#includ in
+  let included_piqi = load_includes piqi piqi.P#includ in
+  let piqi =
+    if included_piqi = []
+    then piqi
+    else (
+      let extended_piqi = expand_includes piqi included_piqi in
+
+      extended_piqi.P#original_piqi <- Some orig_piqi;
+      extended_piqi.P#modname <- piqi.P#modname;
+      (* replace previously cached piqi module *)
+      if cache then Piqi_db.replace_piqi extended_piqi;
+      extended_piqi
+    )
+  in
+
   (* append the original (input) piqi module to the list of included piqi
    * modules *)
   let modules = included_piqi @ [piqi] in
   piqi.P#included_piqi <- modules;
 
-  (* simple check for includes loop; provides very limited diagnostic *)
-  if List.memq piqi included_piqi
-  then error piqi "included piqi modules form a loop";
-
   (*
    * get all extensions
    *)
-  List.iter check_extension piqi.P#extend;
-  let extensions = get_extensions modules in
+  List.iter check_extension orig_piqi.P#extend;
   let defs_extensions, func_extensions, import_extensions =
-    partition_extensions extensions
+    partition_extensions piqi.P#extend
   in
-
-  (*
-   * get boot definitions and boot custom fields
-   *)
-  let boot_defs, boot_custom_fields =
-    match !boot_piqi with
-      | Some x when !Config.noboot = false ->
-          (* NOTE: boot defs should be already extended *)
-          x.P#resolved_piqdef, x.P#custom_field
-      | _ ->
-          (* boot module is being processed right now, or --noboot command-line
-           * option was specified *)
-          [], []
-  in
-
-  (* NOTE: for local definitions we're considering custom fields defined only
-   * in this module *)
-  let custom_fields = piqi.P#custom_field @ boot_custom_fields in
-  check_unknown_fields unknown_fields custom_fields;
 
   (* NOTE: for extensions we're considering all custom fields from all
    * included modules *)
-  let custom_fields = custom_fields @ (get_custom_fields modules) in
+  let custom_fields = piqi.P#custom_field in
 
   (*
    * handle imports
    *)
   (* get all imports from included modules *)
-  let imports = get_imports modules in
+  let imports = piqi.P#import in
   let extended_imports =
     if import_extensions = []
     then imports
@@ -1325,13 +1351,8 @@ let rec process_piqi ?modname ?(fname="") ~cache (piqi: T.piqi) =
   in
   (* preserve the original imports *)
   let resolved_imports = copy_imports extended_imports in
-  load_imports resolved_imports;
+  load_imports piqi resolved_imports;
   piqi.P#resolved_import <- resolved_imports;
-
-  (* simple check for import loops; provides very limited diagnostic *)
-  (* NOTE: import loops disallowed in Protobuf as well *)
-  if List.exists (fun x -> some_of x.Import#piqi == piqi) resolved_imports
-  then error piqi "imported piqi modules form a loop";
 
   (*
    * handle imported defs
@@ -1344,16 +1365,23 @@ let rec process_piqi ?modname ?(fname="") ~cache (piqi: T.piqi) =
   let idtable = add_imported_piqdefs idtable imported_defs in
 
   (* add defintions from the boot module to the idtable *)
+  let boot_defs =
+    match !piqi_boot with
+      | Some x when !Config.noboot = false ->
+          (* NOTE: boot defs should be already extended *)
+          x.P#resolved_piqdef
+      | _ ->
+          (* boot module is being processed right now, or --noboot command-line
+           * option was specified *)
+          []
+  in
   let idtable = add_piqdefs idtable boot_defs in
-
-  (* get all definitions from all included modules and the current module *)
-  let defs = get_piqdefs modules in
 
   (*
    * handle functions
    *)
   (* get all functions from this module and included modules *)
-  let funs = get_functions modules in
+  let funs = piqi.P#func in
 
   (* check for duplicate function names *)
   let func_names = List.map (fun x -> x.T.Func#name) funs in
@@ -1372,11 +1400,11 @@ let rec process_piqi ?modname ?(fname="") ~cache (piqi: T.piqi) =
   (* get definitions derived from function parameters *)
   let func_defs, func_defs_map = get_function_defs resolved_funs in
 
-  (* add function type definitions to Piqi resolved defs *)
-  let defs = defs @ func_defs in
+  (* add function type definitions to Piqi defs *)
+  let defs = piqi.P#piqdef @ func_defs in
 
   (* expand all extensions over all definitions *)
-  (* NOTE, DOC: boot defs can not be extended *)
+  (* NOTE: boot defs can not be extended *)
   let extended_defs =
     if defs_extensions = []
     then defs
@@ -1435,7 +1463,8 @@ let rec process_piqi ?modname ?(fname="") ~cache (piqi: T.piqi) =
    * after executing hooks, because otherwise json names will be unresolved and
    * default field resolution will fail *)
   List.iter resolve_defaults resolved_defs;
-  ()
+
+  piqi
  
 
 (* XXX: disallow include and import of the same module or produce a warning? *)
@@ -1469,8 +1498,7 @@ and load_piqi_string fname content =
 
 and load_piqi_ast ?modname ~cache fname (ast :T.ast) =
   let piqi = parse_piqi ast in
-  process_piqi ?modname ~cache ~fname piqi;
-  piqi
+  process_piqi piqi ?modname ~cache ~fname ~ast
 
 
 and load_piqi_module modname =
@@ -1489,7 +1517,7 @@ and load_piqi_module modname =
     piqi
 
 
-and load_imports l =
+and load_imports piqi l =
   List.iter load_import l;
   (* check for duplicates & looped imports including self-import loop *)
   let rec check_dups = function
@@ -1505,7 +1533,12 @@ and load_imports l =
           check_dups t
         end
   in
-  check_dups l
+  check_dups l;
+
+  (* simple check for import loops; provides very limited diagnostic *)
+  (* NOTE: import loops disallowed in Protobuf as well *)
+  if List.exists (fun x -> some_of x.Import#piqi == piqi) l
+  then error piqi "imported piqi modules form a loop"
 
 
 and load_import x =
@@ -1519,7 +1552,7 @@ and load_import x =
   )
 
 
-and load_includes l =
+and load_includes piqi l =
   let included_piqi = List.map load_include l in
 
   (* get the list of unique piqi includes by traversing recursively through
@@ -1532,7 +1565,13 @@ and load_includes l =
     else res) included_piqi in
 
   (* remove duplicates -- one module may be included from many modules *)
-  uniqq l
+  let res = uniqq l in
+
+  (* simple check for includes loop; provides very limited diagnostic *)
+  if List.memq piqi res
+  then error piqi "included piqi modules form a loop";
+
+  res
 
 
 and load_include x =
@@ -1544,7 +1583,6 @@ and load_include x =
   )
 
 
-(* XXX: is it correct in case of piqicc and piqic? *)
 let embedded_modname = "embedded/piqi.org/piqi-lang"
 
 
@@ -1559,22 +1597,27 @@ let boot () =
   trace "boot(0)\n";
   (* process embedded Piqi self-specification *)
   (* don't cache them as we are adding the spec to the DB explicitly below *)
-  process_piqi T.boot_piqi ~cache:false;
-  boot_piqi := Some T.boot_piqi;
-  process_piqi T.piqi_lang ~cache:false;
-  process_piqi T.piqi_spec ~cache:false;
+
+  let boot = process_piqi T.piqi_boot ~cache:false in
+  piqi_boot := Some boot;
+
+  let lang = process_piqi T.piqi_lang ~cache:false in
+  piqi_lang := Some lang;
+
+  let spec = process_piqi T.piqi_spec ~cache:false in
+  piqi_spec := Some spec;
 
   (* add the boot spec to the DB under a special name *)
-  T.boot_piqi.P#modname <- Some "embedded/piqi.org/piqi-boot";
-  Piqi_db.add_piqi T.boot_piqi;
+  boot.P#modname <- Some "embedded/piqi.org/piqi-boot";
+  Piqi_db.add_piqi boot;
 
   (* add the self-spec to the DB under a special name *)
-  T.piqi_spec.P#modname <- Some "embedded/piqi.org/piqi";
-  Piqi_db.add_piqi T.piqi_spec;
+  spec.P#modname <- Some "embedded/piqi.org/piqi";
+  Piqi_db.add_piqi spec;
 
   (* add the self-spec to the DB under a special name *)
-  T.piqi_lang.P#modname <- Some embedded_modname;
-  Piqi_db.add_piqi T.piqi_lang;
+  lang.P#modname <- Some embedded_modname;
+  Piqi_db.add_piqi lang;
 
   (* resolved type definition for the Piqi language *)
   piqi_lang_def := find_embedded_piqtype "piqi";
@@ -1602,7 +1645,14 @@ let boot () =
 
 
 let _ =
-  boot ()
+  if !Sys.interactive
+  then () (* don't do anything in interactive (toplevel) mode *)
+  else (
+    (*
+    Piqi_config.debug_level := 1;
+    *)
+    boot ();
+  )
 
 
 let load_embedded_boot_module (modname, content) =
@@ -1628,23 +1678,22 @@ let load_embedded_boot_modules () =
     | _ ->
         assert false
   in
-  let boot_piqi = aux !T.embedded_piqi in
+  let piqi_boot = aux !T.embedded_piqi in
   (* make loaded modules unsearcheable after loading all of them *)
   List.iter (fun (modname, _) -> Piqi_db.remove_piqi modname) !T.embedded_piqi;
-  boot_piqi
+  piqi_boot
 
 
+(* Overriding already loaded boot_piqi with exactly the same boot module but now
+ * it has correct location info because it is parsed from string representation
+ *)
 let load_embedded_boot_piqi () =
-  (* Overriding already loaded boot_piqi with exactly the same boot module but
-   * now it has correct location info because it is parsed from string
-   * representation *)
-  (* Not running piqicc and haven't loaded a custom module before: *)
-  if C.is_boot_piqi T.boot_piqi && !T.embedded_piqi <> []
+  if!T.embedded_piqi <> []
   then
-    boot_piqi :=
+    piqi_boot :=
       (
         (* reset previous boot module *)
-        boot_piqi := None;
+        piqi_boot := None;
         trace "boot using embedded modules\n";
         trace_enter ();
         (* XXX: error handling *)
@@ -1656,10 +1705,10 @@ let load_embedded_boot_piqi () =
 
 (* used only by piqicc to load a custom Piqi boot module from a file *)
 let load_boot_piqi boot_file  =
-  boot_piqi :=
+  piqi_boot :=
     (
       (* reset previous boot module *)
-      boot_piqi := None;
+      piqi_boot := None;
       trace "boot using boot file: %s\n" boot_file;
       trace_enter ();
       (* TODO: error handling *)
@@ -1671,9 +1720,15 @@ let load_boot_piqi boot_file  =
 
 (* this is a local function; it can be called more than once, but produce an
  * effect only on its first run *)
+let is_initialized = ref false
 let init () =
-  if !Config.debug_level > 0 || !Config.flag_trace
-  then load_embedded_boot_piqi ()
+  if not !is_initialized
+  then (
+    if !Config.debug_level > 0 || !Config.flag_trace
+    then load_embedded_boot_piqi ();
+
+    is_initialized := true
+  )
 
 
 (* public interface: read piqi file *)
@@ -1697,40 +1752,31 @@ let load_piqi fname :T.piqi =
  * version of the Piqi module *)
 let expand_piqi ?(includes_only=false) piqi =
   let open P in
-  let all_piqi = piqi.included_piqi in
   let orig_piqi = some_of piqi.original_piqi in
 
   (* create a new piqi module from the original piqi module *)
   let res_piqi =
     {
-      (* XXX
-      T.default_piqi () with
-
-      modname = orig_piqi.modname;
-      proto_package = orig_piqi.proto_package;
-      *)
       orig_piqi with
 
+      (* XXX: no custom fields are left in the definitions by this moment;
+       * however when (if ever) we change expand to be syntax-based, we'll need
+       * to keep the custom fields *)
       custom_field = [];
       includ = [];
 
-      (* copy all definitions to the resulting module *)
       piqdef =
         if includes_only
-        then get_piqdefs all_piqi
-        else piqi.extended_piqdef;
+        then piqi.piqdef (* all typedefs *)
+        else piqi.extended_piqdef; (* all typedefs with extensions applied *)
 
-      (* copy all extensions to the resulting module *)
       extend =
         if includes_only
-        then get_extensions all_piqi
-        else [];
+        then piqi.extend (* all extensions *)
+        else []; (* extensions are already applied *)
 
-      (* copy all imports to the resulting module *)
-      import = get_imports all_piqi;
-
-      (* copy all functions to the resulting module *)
-      func = get_functions all_piqi;
+      import = piqi.import;
+      func = piqi.func;
     }
   in
   res_piqi

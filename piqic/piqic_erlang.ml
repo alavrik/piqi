@@ -259,7 +259,7 @@ let piqic (piqi: T.piqi) =
   Piqic_common.piqic_common piqi;
 
   (* set Erlang names that are not specified by user *)
-  (match !C.boot_piqi with
+  (match !C.piqi_boot with
     | None -> ()
     | Some x -> erlname_piqi x
   );

@@ -53,6 +53,7 @@
     .with.field [ .name included-piqi .type piqi .repeated ]
 
     .with.field [ .name original-piqi .type piqi .optional ]
+    .with.field [ .name ast .type ast .optional ]
 ]
 
 

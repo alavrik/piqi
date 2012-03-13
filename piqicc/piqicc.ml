@@ -66,12 +66,12 @@ let embed_boot_modules ch boot_fname =
   in
   Iolist.to_channel ch code;
 
-  let boot_piqi = some_of !C.boot_piqi in
+  let piqi_boot = some_of !C.piqi_boot in
   (* the list of all included modules including the current one *)
-  let modules = boot_piqi.P#included_piqi in
+  let modules = piqi_boot.P#included_piqi in
   (* Embed in a way that the root module will be at the end of the list and all
    * dependencies are added before *)
-  embed_module ch boot_piqi ~fname:boot_fname;
+  embed_module ch piqi_boot ~fname:boot_fname;
   List.iter (embed_module ch) (List.tl (List.rev modules))
 
 
@@ -113,7 +113,7 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
     with Not_found ->
       piqi_error "missing imported module piqi.org/piqi"
   in
-  let boot_piqi = some_of !C.boot_piqi in
+  let piqi_boot = some_of !C.piqi_boot in
 
   (* prepare embedded Piqi language spec *)
   let piqi_lang = P#{
@@ -156,13 +156,13 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
   }
   in
   (* prepare embedded Piqi boot spec *)
-  let boot_piqi = P#{
-    (some_of boot_piqi.original_piqi) with
-      modname = boot_piqi.P#modname;
+  let piqi_boot = P#{
+    (some_of piqi_boot.original_piqi) with
+      modname = piqi_boot.P#modname;
       ocaml_module = None; (* XXX *)
 
       (* unresolved, but expanded piqdef list *)
-      piqdef = boot_piqi.P#extended_piqdef;
+      piqdef = piqi_boot.P#extended_piqdef;
       includ = [];
       import = [];
       extend = [];
@@ -205,8 +205,8 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
   let piqi_binobj = gen_piqi_binobj piqi_lang in
   trace "gen_piqi_binobj piqi_spec\n";
   let piqi_spec_binobj = gen_piqi_binobj piqi_spec in
-  trace "gen_piqi_binobj boot_piqi\n";
-  let piqi_boot_binobj = gen_piqi_binobj boot_piqi in
+  trace "gen_piqi_binobj piqi_boot\n";
+  let piqi_boot_binobj = gen_piqi_binobj piqi_boot in
 
   let code = iod " " [
     ios "let parse_piqi_binobj x = ";
@@ -223,7 +223,7 @@ let piqicc ch boot_fname piqi_fname piqi_impl_fname =
       ios "in parse_piqi_binobj piqi_spec_binobj";
     eol;
 
-    ios "let boot_piqi = ";
+    ios "let piqi_boot = ";
       ios "let piqi_boot_binobj = "; ioq (String.escaped piqi_boot_binobj);
       ios "in parse_piqi_binobj piqi_boot_binobj";
     eol;

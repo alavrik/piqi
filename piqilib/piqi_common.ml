@@ -57,7 +57,7 @@ let resolve_defaults = ref false
 
 
 (* lazily loaded representation of piqi-boot.piqi (see piqi.ml for details) *)
-let boot_piqi :T.piqi option ref = ref None
+let piqi_boot :T.piqi option ref = ref None
 
 
 (*
@@ -75,7 +75,7 @@ let with_resolve_defaults new_resolve_defaults f x =
 
 
 let is_boot_piqi p =
-  match !boot_piqi with
+  match !piqi_boot with
     | None -> false
     | Some x -> p == x
 

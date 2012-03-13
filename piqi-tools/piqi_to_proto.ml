@@ -555,7 +555,7 @@ let piqi_to_proto (piqi: T.piqi) ch =
   (* implicitly add definitions (aliases) from the boot module to the current
    * module *)
   let boot_defs =
-    match !boot_piqi with
+    match !C.piqi_boot with
       | None -> []
       | Some x -> x. P#resolved_piqdef
   in

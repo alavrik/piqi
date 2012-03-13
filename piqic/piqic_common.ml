@@ -83,7 +83,7 @@ let get_boot_defs seen_defs def =
 (* get all boot defintions used by (i.e. reacheable from) the module's
  * definitions *)
 let get_boot_dependencies piqi =
-  if !boot_piqi = None
+  if !C.piqi_boot = None
   then []
   else
     let rec aux accu root_defs =
