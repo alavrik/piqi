@@ -102,12 +102,18 @@ start_link() ->
 
 %% @private
 init([]) ->
-    Command = piqi:get_command("piqi") ++ " server" ++ ?PIQI_FLAGS,
+    Piqi = piqi:get_command("piqi"),
+    Command = Piqi ++ " server" ++ ?PIQI_FLAGS,
     %Command = "tee ilog | piqi server --trace | tee olog",
 
-    Port = start_port_receiver(Command),
-    State = #sender_state{ port = Port },
-    {ok, State}.
+    case filelib:is_file(Piqi) of
+        false ->
+            {stop, {'cant_find_piqi_executable', Piqi}};
+        true ->
+            Port = start_port_receiver(Command),
+            State = #sender_state{ port = Port },
+            {ok, State}
+    end.
 
 
 %% @private
