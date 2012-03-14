@@ -1282,7 +1282,7 @@ let expand_includes piqi included_piqi =
 
 (* do include & extension expansion for the loaded piqi using extensions from
  * all included piqi modules *)
-let rec process_piqi ?modname ?(fname="") ?(ast: T.ast option) ~cache (orig_piqi: T.piqi) =
+let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option) ~cache (orig_piqi: T.piqi) =
 
   (* report unparsed fields before we load dependencies (this is meaningless if
    * Piqi is not parsed from Piq)
@@ -1307,7 +1307,7 @@ let rec process_piqi ?modname ?(fname="") ?(ast: T.ast option) ~cache (orig_piqi
   (*
    * handle includes
    *)
-  let included_piqi = load_includes piqi piqi.P#includ in
+  let included_piqi = load_includes piqi piqi.P#includ ~include_path in
   let piqi =
     if included_piqi = []
     then piqi
@@ -1469,7 +1469,7 @@ let rec process_piqi ?modname ?(fname="") ?(ast: T.ast option) ~cache (orig_piqi
 
 (* XXX: disallow include and import of the same module or produce a warning? *)
 (* NOTE: using absolute paths by this point *)
-and load_piqi_file ?modname fname =
+and load_piqi_file ?modname ?include_path fname =
   trace "file: %s\n" fname;
   trace_enter ();
   (*
@@ -1479,7 +1479,7 @@ and load_piqi_file ?modname fname =
   (* cache only those modules that were included/imported/referenced by their
    * modname *)
   let cache = modname <> None in
-  let piqi = load_piqi_ast ?modname ~cache fname ast in
+  let piqi = load_piqi_ast ?modname ?include_path ~cache fname ast in
   trace_leave ();
   piqi
 
@@ -1496,12 +1496,12 @@ and load_piqi_string fname content =
   load_piqi_ast fname ast ~cache:false
 
 
-and load_piqi_ast ?modname ~cache fname (ast :T.ast) =
+and load_piqi_ast ?modname ?(include_path=[]) ~cache fname (ast :T.ast) =
   let piqi = parse_piqi ast in
-  process_piqi piqi ?modname ~cache ~fname ~ast
+  process_piqi piqi ?modname ~include_path ~cache ~fname ~ast
 
 
-and load_piqi_module modname =
+and load_piqi_module ?(include_path=[]) modname =
   check_modname modname;
   (* check if the module is already loaded *)
   try Piqi_db.find_piqi modname
@@ -1513,7 +1513,7 @@ and load_piqi_module modname =
         Not_found ->
           error modname ("piqi module is not found: " ^ quote modname)
     in
-    let piqi = load_piqi_file fname ~modname in
+    let piqi = load_piqi_file fname ~modname ~include_path in
     piqi
 
 
@@ -1552,35 +1552,75 @@ and load_import x =
   )
 
 
-and load_includes piqi l =
-  let included_piqi = List.map load_include l in
+and load_includes ~include_path piqi l =
+  List.iter (fun x ->
+    if x.Includ#modname = some_of piqi.P#modname
+    then error x "piqi module includes itself"
+  ) l;
 
-  (* get the list of unique piqi includes by traversing recursively through
-   * include tree; the input piqi module will be put as the last element of the
-   * list *)
-  let l = flatmap (fun x ->
-    let res = x.P#included_piqi in
-    if res = [] (* the module is loaded, but hasn't been processed yet *)
-    then error x "included piqi modules form a loop"
-    else res) included_piqi in
+  let new_include_path = piqi :: include_path in
+  let included_piqi = List.map (load_include new_include_path) l in
+
+  let process_recursive_piqi p =
+    trace "included piqi module %s forms a loop\n" (quote (some_of p.P#modname));
+    (* filter all Piqi includes that have been already proceessed in the DFS
+     * include path *)
+    let includes =
+      List.filter
+        (fun x ->
+          let n = x.Includ#modname in
+          let res = not (List.exists (fun p -> n = some_of p.P#modname) new_include_path) in
+          trace "removing recursive include %s\n" (quote n);
+          res
+        )
+        p.P#includ
+    in
+    (* process the remaining includes as if they were included by the current
+     * module *)
+    trace_enter ();
+    let res = load_includes ~include_path piqi includes in
+    trace_leave ();
+    res
+  in
+
+  (* append all Piqi modules from all included Piqi modules *)
+  let l = flatmap
+    (fun x ->
+      let res = x.P#included_piqi in
+      if res = [] (* the module is loaded, but hasn't been processed yet *)
+      then
+        (* process recursive module's non-recursive includes
+         *
+         * NOTE: we need the module's ast anyway, so appending it to the
+         * results; if it happends to be this same module, it will be filtered
+         * out below
+         *)
+        (process_recursive_piqi x) @ [ x ]
+      else
+        res
+    )
+    included_piqi
+  in
 
   (* remove duplicates -- one module may be included from many modules *)
   let res = uniqq l in
 
-  (* simple check for includes loop; provides very limited diagnostic *)
-  if List.memq piqi res
-  then error piqi "included piqi modules form a loop";
-
-  res
+  (* finally, remove itself from the list of included modules; it could happen
+   * if there is a recursion *)
+  List.filter (fun x -> x != piqi) res
 
 
-and load_include x =
+and load_include include_path x =
   let open Includ in (
     trace "include: %s\n" x.Includ.modname;
     (* load included piqi module if it isn't already *)
-    let piqi = load_piqi_module x.modname in
+    let piqi = load_piqi_module x.modname ~include_path in
     piqi
   )
+
+
+let piqi_loader ?modname fname =
+  load_piqi_file ?modname fname
 
 
 let embedded_modname = "embedded/piqi.org/piqi-lang"
@@ -1638,7 +1678,7 @@ let boot () =
 
   (* initialize Piqi loader; doing it this way, because Piqi and Piqi_db are
    * mutually recursive modules *)
-  Piqi_db.piqi_loader := Some load_piqi_file;
+  Piqi_db.piqi_loader := Some piqi_loader;
 
   trace "boot(1)\n";
   ()
