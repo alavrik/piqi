@@ -94,8 +94,8 @@ let is_valid_pathname x =
 
 let is_valid_modname x =
   let dirname, basename = split_name x in
-  (* NOTE: allowing underscores in basename *)
-  some is_valid_pathname dirname && is_valid_name basename ~allow:"_"
+  (* NOTE: allowing underscores and dots in basename *)
+  some is_valid_pathname dirname && is_valid_name basename ~allow:"_."
 
 
 let is_valid_typename ?allow x =

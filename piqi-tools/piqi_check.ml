@@ -32,6 +32,7 @@ let speclist = Main.common_speclist @
   [
     Piqi_main.arg__strict;
     Piqi_convert_cmd.arg__piqtype;
+    Piqi_main.arg__include_extension;
   ]
 
 

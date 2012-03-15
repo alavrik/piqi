@@ -1,7 +1,4 @@
-
-
-.custom-field ocaml-name
-
+.proto-package "google.protobuf"
 
 .record [
     .name file-descriptor-set
@@ -12,7 +9,6 @@
         .code 1
     ]
 ]
-
 
 .record [
     .name file-descriptor-proto
@@ -66,7 +62,6 @@
     ]
 ]
 
-
 .record [
     .name descriptor-proto
     .field [
@@ -113,7 +108,6 @@
     ]
 ]
 
-
 .record [
     .name descriptor-proto-extension-range
     .field [
@@ -123,13 +117,12 @@
         .code 1
     ]
     .field [
-        .name end .ocaml-name "p_end"
+        .name end
         .type proto-int32
         .optional
         .code 2
     ]
 ]
-
 
 .record [
     .name field-descriptor-proto
@@ -152,7 +145,7 @@
         .code 4
     ]
     .field [
-        .name type .ocaml-name "p_type"
+        .name type
         .type field-descriptor-proto-type
         .optional
         .code 5
@@ -183,210 +176,118 @@
     ]
 ]
 
+.enum [
+    .name field-descriptor-proto-type
+    .option [
+        .name type-double
+        .code 1
+        .proto-name "field_descriptor_proto_type_double"
+    ]
+    .option [
+        .name type-float
+        .code 2
+        .proto-name "field_descriptor_proto_type_float"
+    ]
+    .option [
+        .name type-int64
+        .code 3
+        .proto-name "field_descriptor_proto_type_int64"
+    ]
+    .option [
+        .name type-uint64
+        .code 4
+        .proto-name "field_descriptor_proto_type_uint64"
+    ]
+    .option [
+        .name type-int32
+        .code 5
+        .proto-name "field_descriptor_proto_type_int32"
+    ]
+    .option [
+        .name type-fixed64
+        .code 6
+        .proto-name "field_descriptor_proto_type_fixed64"
+    ]
+    .option [
+        .name type-fixed32
+        .code 7
+        .proto-name "field_descriptor_proto_type_fixed32"
+    ]
+    .option [
+        .name type-bool
+        .code 8
+        .proto-name "field_descriptor_proto_type_bool"
+    ]
+    .option [
+        .name type-string
+        .code 9
+        .proto-name "field_descriptor_proto_type_string"
+    ]
+    .option [
+        .name type-group
+        .code 10
+        .proto-name "field_descriptor_proto_type_group"
+    ]
+    .option [
+        .name type-message
+        .code 11
+        .proto-name "field_descriptor_proto_type_message"
+    ]
+    .option [
+        .name type-bytes
+        .code 12
+        .proto-name "field_descriptor_proto_type_bytes"
+    ]
+    .option [
+        .name type-uint32
+        .code 13
+        .proto-name "field_descriptor_proto_type_uint32"
+    ]
+    .option [
+        .name type-enum
+        .code 14
+        .proto-name "field_descriptor_proto_type_enum"
+    ]
+    .option [
+        .name type-sfixed32
+        .code 15
+        .proto-name "field_descriptor_proto_type_sfixed32"
+    ]
+    .option [
+        .name type-sfixed64
+        .code 16
+        .proto-name "field_descriptor_proto_type_sfixed64"
+    ]
+    .option [
+        .name type-sint32
+        .code 17
+        .proto-name "field_descriptor_proto_type_sint32"
+    ]
+    .option [
+        .name type-sint64
+        .code 18
+        .proto-name "field_descriptor_proto_type_sint64"
+    ]
+]
 
 .enum [
     .name field-descriptor-proto-label
     .option [
         .name label-optional
         .code 1
+        .proto-name "field_descriptor_proto_label_optional"
     ]
     .option [
         .name label-required
         .code 2
+        .proto-name "field_descriptor_proto_label_required"
     ]
     .option [
         .name label-repeated
         .code 3
+        .proto-name "field_descriptor_proto_label_repeated"
     ]
 ]
-
-
-.enum [
-    .name field-descriptor-proto-type
-    .option [
-        .name type-double
-        .code 1
-    ]
-    .option [
-        .name type-float
-        .code 2
-    ]
-    .option [
-        .name type-int64
-        .code 3
-    ]
-    .option [
-        .name type-uint64
-        .code 4
-    ]
-    .option [
-        .name type-int32
-        .code 5
-    ]
-    .option [
-        .name type-fixed64
-        .code 6
-    ]
-    .option [
-        .name type-fixed32
-        .code 7
-    ]
-    .option [
-        .name type-bool
-        .code 8
-    ]
-    .option [
-        .name type-string
-        .code 9
-    ]
-    .option [
-        .name type-group
-        .code 10
-    ]
-    .option [
-        .name type-message
-        .code 11
-    ]
-    .option [
-        .name type-bytes
-        .code 12
-    ]
-    .option [
-        .name type-uint32
-        .code 13
-    ]
-    .option [
-        .name type-enum
-        .code 14
-    ]
-    .option [
-        .name type-sfixed32
-        .code 15
-    ]
-    .option [
-        .name type-sfixed64
-        .code 16
-    ]
-    .option [
-        .name type-sint32
-        .code 17
-    ]
-    .option [
-        .name type-sint64
-        .code 18
-    ]
-]
-
-
-.record [
-    .name field-options
-    .field [
-        .name ctype
-        .type field-options-ctype
-        .optional
-        .default.string
-        .code 1
-    ]
-    .field [
-        .name packed
-        .type bool
-        .optional
-        .code 2
-    ]
-    .field [
-        .name deprecated
-        .type bool
-        .optional
-        .default false
-        .code 3
-    ]
-    .field [
-        .name experimental-map-key
-        .type string
-        .optional
-        .code 9
-    ]
-    .field [
-        .name uninterpreted-option
-        .type uninterpreted-option
-        .repeated
-        .code 999
-    ]
-]
-
-
-.enum [
-    .name field-options-ctype
-    .option [
-        .name string
-        .code 0
-    ]
-    .option [
-        .name cord
-        .code 1
-    ]
-    .option [
-        .name string-piece
-        .code 2
-    ]
-]
-
-
-.record [
-    .name uninterpreted-option
-    .field [
-        .name name
-        .type uninterpreted-option-name-part
-        .repeated
-        .code 2
-    ]
-    .field [
-        .name identifier-value
-        .type string
-        .optional
-        .code 3
-    ]
-    .field [
-        .name positive-int-value
-        .type uint64
-        .optional
-        .code 4
-    ]
-    .field [
-        .name negative-int-value
-        .type proto-int64
-        .optional
-        .code 5
-    ]
-    .field [
-        .name double-value
-        .type float64
-        .optional
-        .code 6
-    ]
-    .field [
-        .name string-value
-        .type binary
-        .optional
-        .code 7
-    ]
-]
-
-
-.record [
-    .name uninterpreted-option-name-part
-    .field [
-        .name name-part
-        .type string
-        .code 1
-    ]
-    .field [
-        .name is-extension
-        .type bool
-        .code 2
-    ]
-]
-
 
 .record [
     .name enum-descriptor-proto
@@ -410,7 +311,6 @@
     ]
 ]
 
-
 .record [
     .name enum-value-descriptor-proto
     .field [
@@ -433,54 +333,6 @@
     ]
 ]
 
-
-.record [
-    .name enum-value-options
-    .field [
-        .name uninterpreted-option
-        .type uninterpreted-option
-        .repeated
-        .code 999
-    ]
-]
-
-
-.record [
-    .name enum-options
-    .field [
-        .name uninterpreted-option
-        .type uninterpreted-option
-        .repeated
-        .code 999
-    ]
-]
-
-
-.record [
-    .name message-options
-    .field [
-        .name message-set-wire-format
-        .type bool
-        .optional
-        .default false
-        .code 1
-    ]
-    .field [
-        .name no-standard-descriptor-accessor
-        .type bool
-        .optional
-        .default false
-        .code 2
-    ]
-    .field [
-        .name uninterpreted-option
-        .type uninterpreted-option
-        .repeated
-        .code 999
-    ]
-]
-
-
 .record [
     .name service-descriptor-proto
     .field [
@@ -490,7 +342,7 @@
         .code 1
     ]
     .field [
-        .name method .ocaml-name "p_method"
+        .name method
         .type method-descriptor-proto
         .repeated
         .code 2
@@ -502,7 +354,6 @@
         .code 3
     ]
 ]
-
 
 .record [
     .name method-descriptor-proto
@@ -531,29 +382,6 @@
         .code 4
     ]
 ]
-
-
-.record [
-    .name method-options
-    .field [
-        .name uninterpreted-option
-        .type uninterpreted-option
-        .repeated
-        .code 999
-    ]
-]
-
-
-.record [
-    .name service-options
-    .field [
-        .name uninterpreted-option
-        .type uninterpreted-option
-        .repeated
-        .code 999
-    ]
-]
-
 
 .record [
     .name file-options
@@ -612,20 +440,194 @@
     ]
 ]
 
-
 .enum [
     .name file-options-optimize-mode
     .option [
         .name speed
         .code 1
+        .proto-name "file_options_speed"
     ]
     .option [
         .name code-size
         .code 2
+        .proto-name "file_options_code_size"
     ]
     .option [
         .name lite-runtime
         .code 3
+        .proto-name "file_options_lite_runtime"
     ]
 ]
 
+.record [
+    .name message-options
+    .field [
+        .name message-set-wire-format
+        .type bool
+        .optional
+        .default false
+        .code 1
+    ]
+    .field [
+        .name no-standard-descriptor-accessor
+        .type bool
+        .optional
+        .default false
+        .code 2
+    ]
+    .field [
+        .name uninterpreted-option
+        .type uninterpreted-option
+        .repeated
+        .code 999
+    ]
+]
+
+.record [
+    .name field-options
+    .field [
+        .name ctype
+        .type field-options-ctype
+        .optional
+        .default.string
+        .code 1
+    ]
+    .field [
+        .name packed
+        .type bool
+        .optional
+        .code 2
+    ]
+    .field [
+        .name deprecated
+        .type bool
+        .optional
+        .default false
+        .code 3
+    ]
+    .field [
+        .name experimental-map-key
+        .type string
+        .optional
+        .code 9
+    ]
+    .field [
+        .name uninterpreted-option
+        .type uninterpreted-option
+        .repeated
+        .code 999
+    ]
+]
+
+.enum [
+    .name field-options-ctype
+    .option [
+        .name string
+        .code 0
+        .proto-name "field_options_string"
+    ]
+    .option [
+        .name cord
+        .code 1
+        .proto-name "field_options_cord"
+    ]
+    .option [
+        .name string-piece
+        .code 2
+        .proto-name "field_options_string_piece"
+    ]
+]
+
+.record [
+    .name enum-options
+    .field [
+        .name uninterpreted-option
+        .type uninterpreted-option
+        .repeated
+        .code 999
+    ]
+]
+
+.record [
+    .name enum-value-options
+    .field [
+        .name uninterpreted-option
+        .type uninterpreted-option
+        .repeated
+        .code 999
+    ]
+]
+
+.record [
+    .name service-options
+    .field [
+        .name uninterpreted-option
+        .type uninterpreted-option
+        .repeated
+        .code 999
+    ]
+]
+
+.record [
+    .name method-options
+    .field [
+        .name uninterpreted-option
+        .type uninterpreted-option
+        .repeated
+        .code 999
+    ]
+]
+
+.record [
+    .name uninterpreted-option
+    .field [
+        .name name
+        .type uninterpreted-option-name-part
+        .repeated
+        .code 2
+    ]
+    .field [
+        .name identifier-value
+        .type string
+        .optional
+        .code 3
+    ]
+    .field [
+        .name positive-int-value
+        .type uint64
+        .optional
+        .code 4
+    ]
+    .field [
+        .name negative-int-value
+        .type proto-int64
+        .optional
+        .code 5
+    ]
+    .field [
+        .name double-value
+        .type float64
+        .optional
+        .code 6
+    ]
+    .field [
+        .name string-value
+        .type binary
+        .optional
+        .code 7
+    ]
+]
+
+.record [
+    .name uninterpreted-option-name-part
+    .field [
+        .name name-part
+        .type string
+        .code 1
+    ]
+    .field [
+        .name is-extension
+        .type bool
+        .code 2
+    ]
+]

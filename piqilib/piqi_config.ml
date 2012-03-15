@@ -68,3 +68,9 @@ let flag_trace =
 let pp_mode = ref false
 
 
+(* Piqi extensions automatically included when loading modules *)
+let extensions = ref []
+
+let add_include_extension (name :string) =
+  extensions := !extensions @ [ name ]
+

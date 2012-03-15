@@ -163,6 +163,10 @@ let arg__strict =
    "--strict", Arg.Set Config.flag_strict,
      "treat unknown and duplicate fields as errors"
 
+let arg__include_extension =
+   "-e", Arg.String Config.add_include_extension,
+     "<name> try including extension <name> for all loaded modules (can be used several times)"
+
 
 let common_speclist =
   [

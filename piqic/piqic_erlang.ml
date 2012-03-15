@@ -284,8 +284,13 @@ let piqic (piqi: T.piqi) =
   ()
 
 
+let init () =
+  Piqi_config.add_include_extension "erlang"
+
+
 let piqic_file ifile =
   Piqic_common.init ();
+  init ();
 
   (* load input .piqi file *)
   let piqi = Piqi.load_piqi ifile in

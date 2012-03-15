@@ -57,6 +57,9 @@ let flag_binary_output = ref false
 
 
 let expand_file filename =
+  if !flag_erlang then Piqic_erlang.init ();
+  if !flag_ocaml then Piqic_ocaml.init ();
+
   let piqi = Piqi.load_piqi filename in
   let res_piqi = Piqi.expand_piqi piqi in
 
@@ -69,9 +72,8 @@ let expand_file filename =
    * naming *)
   res_piqi.P#modname <- piqi.P#modname;
 
-  let expand_all = not (!flag_erlang || !flag_ocaml) in
-  if !flag_erlang || expand_all then erlname_piqi res_piqi;
-  if !flag_ocaml || expand_all then mlname_piqi res_piqi;
+  if !flag_erlang then erlname_piqi res_piqi;
+  if !flag_ocaml then mlname_piqi res_piqi;
 
   if not !flag_binary_output
   then
@@ -108,6 +110,10 @@ let speclist = Piqic_erlang.speclist @
 
 let run () =
   Main.parse_args () ~usage ~speclist;
+
+  let expand_all = not (!flag_erlang || !flag_ocaml) in
+  if expand_all then (flag_ocaml := true; flag_erlang := true);
+
   expand_file !ifile
 
  

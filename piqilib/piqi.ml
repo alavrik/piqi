@@ -25,7 +25,9 @@ type idtable = T.piqdef Idtable.t
 
 
 (* start in boot_mode by default, it will be switched off later (see below) *)
-let boot_mode = ref true
+let is_boot_mode = ref true
+(* similarly, for initialization *)
+let is_initialized = ref false
 
 (* resolved type definition for the Piqi language;
  * it will be appropriately initialized during boot stage (see below) *)
@@ -205,7 +207,7 @@ let check_typeref obj (t:T.typeref) =
 
 
 let error_noboot obj s =
-  if !boot_mode || !Config.noboot
+  if !is_boot_mode || !Config.noboot
   then ()
   else error obj s
 
@@ -616,10 +618,11 @@ let check_assign_module_name ?modname fname (piqi:T.piqi) =
     | None, Some x -> 
         piqi.modname <- modname
     | None, None ->
-        (* basename + chop all extensions + underscores to dashes *)
+        (* basename + chop .piqi and .proto.piqi extensions + underscores to
+         * dashes *)
         let basename = Piqi_file.basename fname in
         let name = Piqi_name.make_local_name basename in
-        if Piqi_name.is_valid_name name
+        if Piqi_name.is_valid_modname name
         then piqi.modname <- Some name
         else error piqi "piqi module name can not be derived from the file name"
 
@@ -1280,6 +1283,25 @@ let expand_includes piqi included_piqi =
   res_piqi
 
 
+(* find all applicable extensions for a given module *)
+let find_extensions modname =
+  let is_extension modname =
+    String.contains (Piqi_name.get_local_name modname) '.'
+  in
+  let find_extension ext_name =
+    let modname = modname ^ "." ^ ext_name in
+    try
+      ignore (Piqi_file.find_piqi modname);
+      trace "found extension: %s\n" modname;
+      [modname]
+    with
+      Not_found -> []
+  in
+  if is_extension modname
+  then [] (* extensions are not appliable to extensions *)
+  else flatmap find_extension !Config.extensions
+
+
 (* do include & extension expansion for the loaded piqi using extensions from
  * all included piqi modules *)
 let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option) ~cache (orig_piqi: T.piqi) =
@@ -1307,7 +1329,18 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option
   (*
    * handle includes
    *)
-  let included_piqi = load_includes piqi piqi.P#includ ~include_path in
+  let extension_includes =
+    if ast = None || not !is_initialized
+    then
+      (* extensions are not appliable for non-Piq representation and embeeded
+       * modules loaded during initialization *)
+      []
+    else
+      List.map (fun x -> Includ#{modname = x})
+      (find_extensions (some_of piqi.P#modname))
+  in
+  let includes = piqi.P#includ @ extension_includes in
+  let included_piqi = load_includes piqi includes  ~include_path in
   let piqi =
     if included_piqi = []
     then piqi
@@ -1671,7 +1704,7 @@ let boot () =
   import_def := find_embedded_piqtype "import";
 
   (* turn boot mode off *)
-  boot_mode := false;
+  is_boot_mode := false;
 
   (* resume object location tracking -- it is paused from the beginning *)
   Piqloc.resume ();
@@ -1760,7 +1793,6 @@ let load_boot_piqi boot_file  =
 
 (* this is a local function; it can be called more than once, but produce an
  * effect only on its first run *)
-let is_initialized = ref false
 let init () =
   if not !is_initialized
   then (

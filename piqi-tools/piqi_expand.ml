@@ -35,6 +35,8 @@ let speclist = Main.common_speclist @
 
    "--includes-only", Arg.Set flag_includes_only,
      "expand only includes (don't expand extensions)";
+
+    Piqi_main.arg__include_extension;
   ]
 
 

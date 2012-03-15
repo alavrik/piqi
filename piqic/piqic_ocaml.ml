@@ -278,8 +278,14 @@ let piqic piqi =
   gen_output_file ofile code
 
 
+let init () =
+  Piqi_config.add_include_extension "ocaml"
+
+
 let piqic_file ifile =
   Piqic_common.init ();
+  init ();
+
   (* load input .piqi file *)
   let piqi = Piqi.load_piqi ifile in
   piqic piqi

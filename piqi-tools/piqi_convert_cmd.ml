@@ -69,6 +69,8 @@ let speclist = Main.common_speclist @
     "--embed-piqi", Arg.Set flag_embed_piqi,
     "embed Piqi dependencies, i.e. Piqi specs which the input depends on";
 
+    Piqi_main.arg__include_extension;
+
     arg__;
   ]
 
