@@ -6,10 +6,10 @@
 % Copyright 2009, 2010, 2011 Anton Lavrik
 
 
-.module piqi.org/piqi-proto
+.module piqi.org/piqi.proto
 
 
-.include [ .module piqi.org/piqi-base ]
+.include [ .module piqi.org/piqi ]
 
 
 .extend [

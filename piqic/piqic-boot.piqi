@@ -1,4 +1,0 @@
-
-.include [ .module piqic/piqi-boot-ocaml ]
-.include [ .module piqic/piqi-boot-erlang ]
-

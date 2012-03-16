@@ -7,10 +7,10 @@
 % Copyright 2009, 2010, 2011 Anton Lavrik
 
 
-.module piqi.org/piqi-getopt
+.module piqi.org/piqi.getopt
 
 
-.include [ .module piqi.org/piqi-base ]
+.include [ .module piqi.org/piqi ]
 
 
 % a single-letter getopt option or flag

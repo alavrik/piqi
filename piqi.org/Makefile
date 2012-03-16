@@ -4,11 +4,10 @@ PIQI_FILES = \
 	piqast.piqi \
 	piqtype.piqi \
 	\
-	piqi-base.piqi \
-	piqi-proto.piqi \
-	piqi-wire.piqi \
-	piqi-json.piqi \
-	piqi-getopt.piqi \
+	piqi.proto.piqi \
+	piqi.wire.piqi \
+	piqi.json.piqi \
+	piqi.getopt.piqi \
 	\
 	piqi.piqi \
 	piqi-lang.piqi \

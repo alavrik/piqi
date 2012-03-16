@@ -10,5 +10,5 @@
 
 .include [ .module piqilib/piqi-impl ]
 
-.include [ .module piqicc/piqicc ]
+.include [ .module piqicc/piqi-lang ]
 
