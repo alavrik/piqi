@@ -1283,11 +1283,12 @@ let expand_includes piqi included_piqi =
   res_piqi
 
 
+let is_extension modname =
+  String.contains (Piqi_name.get_local_name modname) '.'
+
+
 (* find all applicable extensions for a given module *)
 let find_extensions modname =
-  let is_extension modname =
-    String.contains (Piqi_name.get_local_name modname) '.'
-  in
   let find_extension ext_name =
     let modname = modname ^ "." ^ ext_name in
     try
@@ -1591,23 +1592,42 @@ and load_includes ~include_path piqi l =
     then error x "piqi module includes itself"
   ) l;
 
+  (* if there's any included extension that's also a parent, remove all included
+   * extensions from the list of includes *)
+  let remove_extensions l include_path =
+    if List.exists (fun x ->
+        let n = x.Includ#modname in
+        is_extension n &&
+        List.exists (fun x -> n = some_of x.P#modname) include_path
+      ) l
+    then
+      List.filter (fun x ->
+        let n = x.Includ#modname in
+        let keep = not (is_extension x.Includ#modname) in
+        if not keep
+        then trace "removing extension include %s\n" (quote n);
+        keep
+      ) l
+    else l
+  in
+
   let new_include_path = piqi :: include_path in
+
+  let l = remove_extensions l include_path in
   let included_piqi = List.map (load_include new_include_path) l in
 
   let process_recursive_piqi p =
     trace "included piqi module %s forms a loop\n" (quote (some_of p.P#modname));
-    (* filter all Piqi includes that have been already proceessed in the DFS
+    let includes = remove_extensions p.P#includ new_include_path in
+    (* check for all Piqi includes that have been already processed in the DFS
      * include path *)
-    let includes =
-      List.filter
-        (fun x ->
-          let n = x.Includ#modname in
-          let res = not (List.exists (fun p -> n = some_of p.P#modname) new_include_path) in
-          trace "removing recursive include %s\n" (quote n);
-          res
-        )
-        p.P#includ
-    in
+    List.iter
+      (fun x ->
+        let n = x.Includ#modname in
+        if List.exists (fun p -> n = some_of p.P#modname) new_include_path
+        then error x ("recursive include " ^ quote n)
+      )
+      includes;
     (* process the remaining includes as if they were included by the current
      * module *)
     trace_enter ();
