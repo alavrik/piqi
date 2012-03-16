@@ -86,16 +86,18 @@ let add_hashcodes defs =
 
 
 (* piq interface compiler compile *)
-let piqicc ch boot_fname piqi_fname piqi_impl_fname =
+let piqicc ch boot_fname lang_fname impl_fname =
   trace "piqicc(0)\n";
+
   (* reload the boot module from file if it was specified using --boot option *)
+  trace "piqicc: loading piqi-boot spec from: %s\n" boot_fname;
   Piqi.load_boot_piqi boot_fname;
 
-  trace "piqicc: loading piqi spec from: %s\n" piqi_fname;
-  let piqi = Piqi.load_piqi piqi_fname in
+  trace "piqicc: loading piqi-lang spec from: %s\n" lang_fname;
+  let piqi = Piqi.load_piqi lang_fname in
 
-  trace "piqicc: loading piqi-impl spec from: %s\n" piqi_impl_fname;
-  let piqi_impl = Piqi.load_piqi piqi_impl_fname in
+  trace "piqicc: loading piqi-impl spec from: %s\n" impl_fname;
+  let piqi_impl = Piqi.load_piqi impl_fname in
 
   trace "piqicc: piqi compiling compiler\n";
   (* TODO: check & report piqi incompatibility *)
@@ -251,8 +253,8 @@ open Main
 
 
 (* command-line options *)
-let boot_file = ref ""
-let piqi_file = ref ""
+let piqi_boot_file = ref ""
+let piqi_lang_file = ref ""
 let piqi_impl_file = ref ""
 
 
@@ -263,9 +265,9 @@ let speclist = Main.common_speclist @
   [
     arg_o;
     (* XXX: arg_C; *)
-    "--boot", Arg.Set_string boot_file,
+    "--boot", Arg.Set_string piqi_boot_file,
       "<.piqi file> specify a Piqi boot module";
-    "--piqi", Arg.Set_string piqi_file,
+    "--lang", Arg.Set_string piqi_lang_file,
       "<.piqi file> specify the Piqi language spec";
     "--impl", Arg.Set_string piqi_impl_file,
       "<.piqi file> specify spec for internal representation";
@@ -278,12 +280,12 @@ let piqicc_file () =
     Arg.usage speclist usage;
     die ""
   in
-  if !piqi_file = "" then error "'--piqi' parameter is missing";
+  if !piqi_lang_file = "" then error "'--lang' parameter is missing";
   if !piqi_impl_file = "" then error "'--impl' parameter is missing";
-  if !boot_file = "" then error "'--boot' parameter is missing";
+  if !piqi_boot_file = "" then error "'--boot' parameter is missing";
 
   let ch = Main.open_output !ofile in
-  piqicc ch !boot_file !piqi_file !piqi_impl_file
+  piqicc ch !piqi_boot_file !piqi_lang_file !piqi_impl_file
 
 
 let run () =
