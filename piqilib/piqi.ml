@@ -1387,6 +1387,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option
   let resolved_imports = copy_imports extended_imports in
   load_imports piqi resolved_imports;
   piqi.P#resolved_import <- resolved_imports;
+  piqi.P#extended_import <- extended_imports;
 
   (*
    * handle imported defs
@@ -1430,6 +1431,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option
   (* preserve the original functions *)
   let resolved_funs = List.map copy_obj extended_funs in
   piqi.P#resolved_func <- resolved_funs;
+  piqi.P#extended_func <- extended_funs;
 
   (* get definitions derived from function parameters *)
   let func_defs, func_defs_map = get_function_defs resolved_funs in
@@ -1857,18 +1859,25 @@ let expand_piqi ?(includes_only=false) piqi =
       custom_field = [];
       includ = [];
 
-      piqdef =
-        if includes_only
-        then piqi.piqdef (* all typedefs *)
-        else piqi.extended_piqdef; (* all typedefs with extensions applied *)
-
       extend =
         if includes_only
         then piqi.extend (* all extensions *)
         else []; (* extensions are already applied *)
 
-      import = piqi.import;
-      func = piqi.func;
+      piqdef =
+        if includes_only
+        then piqi.piqdef (* all typedefs *)
+        else piqi.extended_piqdef; (* all typedefs with extensions applied *)
+
+      import =
+        if includes_only
+        then piqi.import
+        else piqi.extended_import; (* all imports with extensions applied *)
+
+      func =
+        if includes_only
+        then piqi.func
+        else piqi.extended_func; (* all functions with extensions applied *)
     }
   in
   res_piqi

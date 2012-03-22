@@ -48,8 +48,13 @@
     .with.field [ .name extended-piqdef .type piqdef .repeated ]
     .with.field [ .name resolved-piqdef .type piqdef .repeated ]
     .with.field [ .name imported-piqdef .type piqdef .repeated ]
+
     .with.field [ .name resolved-import .type import .repeated ]
+    .with.field [ .name extended-import .type import .repeated ]
+
     .with.field [ .name resolved-func .type function .repeated ]
+    .with.field [ .name extended-func .type function .repeated ]
+
     .with.field [ .name included-piqi .type piqi .repeated ]
 
     .with.field [ .name original-piqi .type piqi .optional ]

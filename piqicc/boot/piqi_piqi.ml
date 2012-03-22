@@ -187,7 +187,9 @@ and
           mutable resolved_piqdef : Piqtype.piqdef list;
           mutable imported_piqdef : Piqtype.piqdef list;
           mutable resolved_import : Piqtype.import list;
+          mutable extended_import : Piqtype.import list;
           mutable resolved_func : Piqtype.func list;
+          mutable extended_func : Piqtype.func list;
           mutable included_piqi : Piqtype.piqi list;
           mutable original_piqi : Piqtype.piqi option;
           mutable ast : Piqtype.ast option;
@@ -558,6 +560,8 @@ and parse_piqi x =
       (let (_ast, x) = Piqirun.parse_optional_field 4849474 parse_ast x in
        let (_modname, x) =
          Piqirun.parse_optional_field 13841580 parse_word x in
+       let (_extended_func, x) =
+         Piqirun.parse_repeated_field 79393432 parse_func x in
        let (_resolved_piqdef, x) =
          Piqirun.parse_repeated_field 106036066 parse_piqdef x in
        let (_resolved_import, x) =
@@ -588,6 +592,8 @@ and parse_piqi x =
          Piqirun.parse_repeated_field 405875126 parse_string x in
        let (_extended_piqdef, x) =
          Piqirun.parse_repeated_field 422489281 parse_piqdef x in
+       let (_extended_import, x) =
+         Piqirun.parse_repeated_field 430482873 parse_import x in
        let (_original_piqi, x) =
          Piqirun.parse_optional_field 455316941 parse_piqi x
        in
@@ -595,6 +601,7 @@ and parse_piqi x =
           {
             Piqi.ast = _ast;
             Piqi.modname = _modname;
+            Piqi.extended_func = _extended_func;
             Piqi.resolved_piqdef = _resolved_piqdef;
             Piqi.resolved_import = _resolved_import;
             Piqi.extend = _extend;
@@ -610,6 +617,7 @@ and parse_piqi x =
             Piqi.ocaml_module = _ocaml_module;
             Piqi.proto_custom = _proto_custom;
             Piqi.extended_piqdef = _extended_piqdef;
+            Piqi.extended_import = _extended_import;
             Piqi.original_piqi = _original_piqi;
           }))
 and parse_piqdef x =
@@ -1221,6 +1229,8 @@ and gen__piqi code x =
    let _ast = Piqirun.gen_optional_field 4849474 gen__ast x.Piqi.ast in
    let _modname =
      Piqirun.gen_optional_field 13841580 gen__word x.Piqi.modname in
+   let _extended_func =
+     Piqirun.gen_repeated_field 79393432 gen__func x.Piqi.extended_func in
    let _resolved_piqdef =
      Piqirun.gen_repeated_field 106036066 gen__piqdef x.Piqi.resolved_piqdef in
    let _resolved_import =
@@ -1250,14 +1260,17 @@ and gen__piqi code x =
      Piqirun.gen_repeated_field 405875126 gen__string x.Piqi.proto_custom in
    let _extended_piqdef =
      Piqirun.gen_repeated_field 422489281 gen__piqdef x.Piqi.extended_piqdef in
+   let _extended_import =
+     Piqirun.gen_repeated_field 430482873 gen__import x.Piqi.extended_import in
    let _original_piqi =
      Piqirun.gen_optional_field 455316941 gen__piqi x.Piqi.original_piqi
    in
      Piqirun.gen_record code
-       [ _ast; _modname; _resolved_piqdef; _resolved_import; _extend;
-         _piqdef; _import; _included_piqi; _custom_field; _resolved_func;
-         _includ; _imported_piqdef; _proto_package; _func; _ocaml_module;
-         _proto_custom; _extended_piqdef; _original_piqi ])
+       [ _ast; _modname; _extended_func; _resolved_piqdef; _resolved_import;
+         _extend; _piqdef; _import; _included_piqi; _custom_field;
+         _resolved_func; _includ; _imported_piqdef; _proto_package; _func;
+         _ocaml_module; _proto_custom; _extended_piqdef; _extended_import;
+         _original_piqi ])
 and gen__piqdef code (x : Piqtype.piqdef) =
   (refer x;
    Piqirun.gen_record code
@@ -1642,6 +1655,7 @@ and default_piqi () =
   {
     Piqi.ast = None;
     Piqi.modname = None;
+    Piqi.extended_func = [];
     Piqi.resolved_piqdef = [];
     Piqi.resolved_import = [];
     Piqi.extend = [];
@@ -1657,6 +1671,7 @@ and default_piqi () =
     Piqi.ocaml_module = None;
     Piqi.proto_custom = [];
     Piqi.extended_piqdef = [];
+    Piqi.extended_import = [];
     Piqi.original_piqi = None;
   }
 and default_piqdef () = `record (default_record ())
