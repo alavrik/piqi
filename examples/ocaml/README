@@ -19,6 +19,9 @@ This example is based on the Google Protocol Buffers examples:
 The data definition file "addressbook.proto.piqi" is converted from the original
 "../addressbook.proto" using the "piqi of-proto" command.
 
+OCaml-specific extensions to the converted ".proto" specificaion are defined in
+"addressbook.ocaml.piqi".
+
 The OCaml programs implement exactly the same functionality as Python, Java and
 C++ programs from the Protobuf examples. The data structure and the binary
 encoding of the addressbook data structure is fully compatible as well. As a
