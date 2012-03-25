@@ -1853,10 +1853,6 @@ let expand_piqi ?(includes_only=false) piqi =
     {
       orig_piqi with
 
-      (* XXX: no custom fields are left in the definitions by this moment;
-       * however when (if ever) we change expand to be syntax-based, we'll need
-       * to keep the custom fields *)
-      custom_field = [];
       includ = [];
 
       extend =
@@ -1878,6 +1874,37 @@ let expand_piqi ?(includes_only=false) piqi =
         if includes_only
         then piqi.func
         else piqi.extended_func; (* all functions with extensions applied *)
+    }
+  in
+  res_piqi
+
+
+(* narrow down Piqi language to Piqi specficiation
+ *
+ * Piqi language (piqi-lang.piqi) adds the following extensions to Piqi
+ * specification (piqi.piqi):
+ *
+ *   - includes
+ *   - extensions
+ *   - custom fields
+ *   - embedded definition of function parameters
+ *
+ * In addition, in certain cases, Piqi specificaion should have fully resolved
+ * defaults. For example, all required fields should be explicitly marked as
+ * such instead of leaving this value out and assuming the are required by
+ * default.
+ *)
+let lang_to_spec piqi =
+  let open P in
+  (* expand includes and apply all extensions *)
+  let piqi = expand_piqi piqi in
+  (* remove custom fields handle embedded typedefs in functions *)
+  let res_piqi =
+    {
+      piqi with
+      custom_field = [];
+      (* TODO: transform functions to remove embedded type definitions and add
+       * them at top-level *)
     }
   in
   res_piqi

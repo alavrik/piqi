@@ -245,21 +245,21 @@ let reset_defaults defs =
   List.iter reset_record_defaults defs
 
 
-let expand_piqi piqi =
-  let expanded_piqi = Piqi.expand_piqi piqi in
+let lang_to_spec piqi =
+  let piqi_spec = Piqi.lang_to_spec piqi in
 
   (* make sure we include all automatically assigned hash-based wire code for
    * fiels and options *)
   if C.is_self_spec piqi
-  then Piqi_wire.add_hashcodes expanded_piqi.P#piqdef;
+  then Piqi_wire.add_hashcodes piqi_spec.P#piqdef;
 
   (* make sure that the module's name is set *)
-  P#{expanded_piqi with modname = piqi.P#modname}
+  P#{piqi_spec with modname = piqi.P#modname}
 
 
 let piqi_to_piqobj piqi =
   Piqloc.pause ();
-  let piqi = expand_piqi piqi in
+  let piqi = lang_to_spec piqi in
 
   let piqtype = !Piqi.piqi_spec_def in
   let wire_generator = T.gen__piqi in

@@ -119,60 +119,24 @@ let piqicc ch boot_fname lang_fname impl_fname =
 
   (* prepare embedded Piqi language spec *)
   let piqi_lang = P#{
-    (some_of piqi.original_piqi) with
+    (Piqi.expand_piqi piqi) with
       modname = piqi.P#modname;
       ocaml_module = None; (* XXX *)
-
-      (* unresolved, but expanded piqdef list *)
-      piqdef = piqi.P#extended_piqdef;
-      includ = [];
-      import = [];
-      extend = [];
-
-      (* NOTE: leaving the original custom_fields *)
-      (*
-      custom_field = [];
-
-      extended_piqdef = [];
-      resolved_piqdef = [];
-      imported_piqdef = [];
-      resolved_import = [];
-      included_piqi = [];
-      original_piqi = None;
-      *)
   }
   in
   (* prepare embedded Piqi self-specification *)
   let piqi_spec = P#{
-    (some_of piqi_spec.original_piqi) with
+    (Piqi.expand_piqi piqi_spec) with
       modname = piqi_spec.P#modname;
-      ocaml_module = None;
-
-      (* unresolved, but expanded piqdef list *)
-      piqdef = piqi_spec.P#extended_piqdef;
-      includ = [];
-      import = [];
-      extend = [];
-
-      custom_field = [];
+      ocaml_module = None; (* XXX *)
+      custom_field = []; (* XXX *)
   }
   in
   (* prepare embedded Piqi boot spec *)
   let piqi_boot = P#{
-    (some_of piqi_boot.original_piqi) with
+    (Piqi.expand_piqi piqi_boot) with
       modname = piqi_boot.P#modname;
       ocaml_module = None; (* XXX *)
-
-      (* unresolved, but expanded piqdef list *)
-      piqdef = piqi_boot.P#extended_piqdef;
-      includ = [];
-      import = [];
-      extend = [];
-
-      (* NOTE: leaving the original custom_fields *)
-      (*
-      custom_field = [];
-      *)
   }
   in
 
