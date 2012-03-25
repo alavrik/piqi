@@ -258,18 +258,32 @@ let gen_const c =
   ]
 
 
-let gen_enum ?name e =
+let gen_enum e =
   let open E in
-  let name = match name with Some x -> x | _ -> some_of e.proto_name in
+  let enum_name = some_of e.proto_name in
   let const_defs = List.map gen_const e.option in
-  iol
-    [
+  let make_enum_def name =
+    iol [
       ios "enum "; ios name; ios " {"; indent;
         iod "\n" const_defs;
         gen_proto_custom e.proto_custom;
         unindent; eol;
-      ios "}"; eol;
+      ios "}";
     ]
+  in
+  if e.is_func_param (* embedded function parameter *)
+  then
+    (* we need to generate an enclosing message for enum function parameter *)
+    iol [
+        ios "message "; ios enum_name;
+        ios " {"; indent;
+          make_enum_def enum_name; ios ";"; eol;
+          ios "required "; ios enum_name; ios " elem = 1;";
+        unindent; eol;
+        ios "}"; eol;
+    ]
+  else
+    make_enum_def enum_name ^^ eol
 
 
 let gen_option o =
@@ -317,20 +331,20 @@ let gen_list ?name l =
   in ldef
 
 
-let gen_def0 ?name t =
+let gen_noalias_def ?name t =
   match t with
     | `record t -> gen_record t ?name
     | `variant t -> gen_variant t ?name
-    | `enum t -> gen_enum t ?name
+    | `enum t -> gen_enum t
     | `list t -> gen_list t ?name
-    | `alias _ -> assert false
 
 
 let rec gen_def ?name ?is_func_param def =
   match def with
-    | `alias t -> gen_alias t ?name ?is_func_param
-    | x ->
-        let res = gen_def0 x ?name
+    | `alias t ->
+        gen_alias t ?name ?is_func_param
+    | `record _ | `variant _ | `enum _ | `list _ as x  ->
+        let res = gen_noalias_def x ?name
         in [res]
 
 
@@ -343,12 +357,12 @@ and gen_alias ?name ?(is_func_param=false) a =
   in
   let is_func_param = is_func_param || a.is_func_param in
   match piqtype a.typeref with
-    | #T.piqdef as def ->
+    | `record _ | `variant _ | `alias _ | `list _ as def ->
         (* generate the original definition with the new name *)
         (* XXX: make such generation optional, just to be able to have less
          * Protobuf-generated code in the end *)
         gen_def def ?name ~is_func_param
-    | _ -> (* alias of a pritmitive type *)
+    | _ -> (* alias of a pritmitive type or enum *)
         if is_func_param
         then
           (* for primitive function parameters, generate a record that includes
