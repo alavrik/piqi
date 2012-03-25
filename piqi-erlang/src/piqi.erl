@@ -50,6 +50,12 @@ get_command(Name) ->
     KernelName = os:cmd("uname -s") -- "\n",
     Machine = os:cmd("uname -m") -- "\n",
     BinDir = lists:concat(["bin-", KernelName, "-", Machine]),
-    filename:join([PiqiDir, "priv", BinDir, Name]).
+    FullName = filename:join([PiqiDir, "priv", BinDir, Name]),
+    case filelib:is_file(FullName) of
+        false ->
+            erlang:error({"can't locate Piqi command: ", FullName});
+        true ->
+            FullName
+    end.
 -endif.
 
