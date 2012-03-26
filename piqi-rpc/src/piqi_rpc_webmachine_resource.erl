@@ -311,17 +311,21 @@ rpc(ReqData, Context, InputFormat) ->
     % make the actual call
     RpcResponse = RpcMod:rpc(ImplMod, FuncName, InputData, InputFormat, OutputFormat, Options),
 
+    % allow the server implementation to modify the Webmachine response
+    % This allows the implementing module to set response headers such as cookies
+    ReqDataResponse = erlang:get(wrq, ReqData),
+
     case RpcResponse of
         ok ->
             % return empty 204 "No Content"
             % NOTE: we don't need Content-Type for empty response which
             % Webmachine inserts by default
-            NewReqData = wrq:remove_resp_header("Content-Type", ReqData),
+            NewReqData = wrq:remove_resp_header("Content-Type", ReqDataResponse),
             {true, NewReqData, Context};
 
         {ok, OutputData} ->
             % return 200 OK
-            NewReqData = set_data_response(OutputData, OutputFormat, ReqData),
+            NewReqData = set_data_response(OutputData, OutputFormat, ReqDataResponse),
             {true, NewReqData, Context};
 
         {error, ErrorData} -> % application error
@@ -334,9 +338,9 @@ rpc(ReqData, Context, InputFormat) ->
             % the same 500 HTTP status code. The the only difference between
             % them is the "Content-Type" header which is set to "text/plain" in
             % the latter case.
-            NewReqData = set_data_response(ErrorData, OutputFormat, ReqData),
+            NewReqData = set_data_response(ErrorData, OutputFormat, ReqDataResponse),
 
-            case wrq:get_req_header("X-Piqi-RPC-return-http-status-via-header", ReqData) of
+            case wrq:get_req_header("X-Piqi-RPC-return-http-status-via-header", ReqDataResponse) of
                 "true" ->
                     NewReqDataWithHttpStatus = wrq:set_resp_header("X-Piqi-RPC-http-status", "500", NewReqData),
                     {true, NewReqDataWithHttpStatus, Context};
@@ -348,35 +352,35 @@ rpc(ReqData, Context, InputFormat) ->
         {'rpc_error', 'unknown_function'} ->
             % return 404 "Not Found"
             NewReqData =
-                set_string_error("unknown function: " ++ FuncName, ReqData),
+                set_string_error("unknown function: " ++ FuncName, ReqDataResponse),
             {{halt, 404}, NewReqData, Context};
 
         {'rpc_error', 'missing_input'} ->
             % return 411 "Length required"
-            NewReqData = set_string_error("non-empty input expected", ReqData),
+            NewReqData = set_string_error("non-empty input expected", ReqDataResponse),
             {{halt, 411}, NewReqData, Context};
 
         {'rpc_error', {'invalid_input', Err}} ->
             % return 400 "Bad Request"
-            NewReqData = set_string_error(Err, ReqData),
+            NewReqData = set_string_error(Err, ReqDataResponse),
             {{halt, 400}, NewReqData, Context};
 
         % server errors:
         {'rpc_error', {'invalid_output', Err}} ->
             % return 502 "Bad Gateway"
-            NewReqData = set_string_error(Err, ReqData),
+            NewReqData = set_string_error(Err, ReqDataResponse),
             {{halt, 502}, NewReqData, Context};
 
         {'rpc_error', {'internal_error', Err}} ->
             % return 500 "Internal Server Error" NOTE: using the same status
             % code as for application error, but different Content-Type. See the
             % "{error, _}" case for the details.
-            NewReqData = set_string_error(Err, ReqData),
+            NewReqData = set_string_error(Err, ReqDataResponse),
             {{halt, 500}, NewReqData, Context};
 
         {'rpc_error', {'service_unavailable', Err}} ->
             % return 503 "Service Unavailable"
-            NewReqData = set_string_error(Err, ReqData),
+            NewReqData = set_string_error(Err, ReqDataResponse),
             {{halt, 503}, NewReqData, Context}
 
         % NOTE: Piqi-RPC over HTTP never generates this one because protocol
