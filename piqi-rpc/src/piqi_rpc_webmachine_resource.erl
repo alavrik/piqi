@@ -313,7 +313,7 @@ rpc(ReqData, Context, InputFormat) ->
 
     % allow the server implementation to modify the Webmachine response
     % This allows the implementing module to set response headers such as cookies
-    ReqDataResponse = erlang:get(wrq, ReqData),
+    ReqDataResponse = erlang:get(wrq),
 
     case RpcResponse of
         ok ->
