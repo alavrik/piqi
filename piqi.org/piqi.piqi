@@ -3,7 +3,7 @@
 % This file contains specification for piqi as it is supported by "piqi"
 % command-line utility.
 % 
-% Copyright 2009, 2010, 2011 Anton Lavrik
+% Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
 
 .module piqi.org/piqi

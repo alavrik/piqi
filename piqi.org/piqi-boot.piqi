@@ -7,7 +7,7 @@
 % file for convenience. It allows to see direct mapping between piq, wire and
 % Protobuf types in a single file.
 % 
-% Copyright 2009, 2010, 2011 Anton Lavrik
+% Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
 
 .module piqi.org/piqi-boot

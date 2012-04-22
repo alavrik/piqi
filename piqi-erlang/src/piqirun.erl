@@ -1,4 +1,4 @@
-%% Copyright 2009, 2010, 2011 The Piqi Authors
+%% Copyright 2009, 2010, 2011, 2012 The Piqi Authors
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
