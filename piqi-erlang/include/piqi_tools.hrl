@@ -23,6 +23,24 @@
 
 -type piqi_convert_output_format() :: piqi_tools_format().
 
+
+% Serialization options to be passed as an argument to * gen_<typename>/3 and
+% parse_<typename>/3 functions
+%
+% pretty_print
+%
+%      Pretty-print generated JSON and XML output (default = true)
+%
+% json_omit_null_fields
+%
+%      Omit missing optional fields from JSON output instead of representing
+%      them as {"field_name": null} JSON fields (default = true)
+%
+% use_strict_parsing
+%
+%      Treat unknown and duplicate fields as errors when parsing JSON,
+%      XML and Piq formats (default = false)
+%
 -type piqi_convert_option() ::
        'pretty_print'
     | {'pretty_print', boolean()}

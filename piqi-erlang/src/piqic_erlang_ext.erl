@@ -207,9 +207,24 @@ piqdef_erlname({piq_list, X}) -> X#piq_list.erlang_name.
 
 gen_parse(Mod, ErlMod, Name, ErlName) ->
     [
+        gen_parse_2(Mod, ErlMod, Name, ErlName),
+        gen_parse_3(Mod, ErlMod, Name, ErlName)
+    ].
+
+
+gen_parse_2(Mod, ErlMod, Name, ErlName) ->
+    [
         "parse_", ErlName, "(X, Format) ->\n",
         "    ", ErlMod, ":parse_", ErlName, "(\n",
         "        ", gen_convert(Mod, Name, "Format", "'pb'", "X"), ").\n\n"
+    ].
+
+
+gen_parse_3(Mod, ErlMod, Name, ErlName) ->
+    [
+        "parse_", ErlName, "(X, Format, Options) ->\n",
+        "    ", ErlMod, ":parse_", ErlName, "(\n",
+        "        ", gen_convert(Mod, Name, "Format", "'pb'", "X, Options"), ").\n\n"
     ].
 
 
