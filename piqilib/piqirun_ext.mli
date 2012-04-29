@@ -34,6 +34,24 @@ val init_piqi : string list -> unit
 
 val find_piqtype : string -> piqtype
 
+
+(* Construct serialization options to be passed as an optional argument to
+ * gen_<typename> and parse_<typename> functions. Available options:
+ *
+ * pretty_print
+ *
+ *      Pretty-print generated JSON and XML output (default = true)
+ *
+ * json_omit_null_fields
+ *
+ *      Omit missing optional fields from JSON output instead of representing
+ *      them as {"field_name": null} JSON fields (default = true)
+ *
+ * use_strict_parsing
+ *
+ *      Treat unknown and duplicate fields as errors when parsing JSON,
+ *      XML and Piq formats (default = false)
+ *)
 val make_options:
         ?pretty_print:bool ->
         ?json_omit_null_fields:bool ->
