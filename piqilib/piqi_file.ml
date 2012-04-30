@@ -1,5 +1,5 @@
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -34,11 +34,19 @@ let chop_all_extensions fname =
   with Not_found -> fname
 
 
+let chop_piqi_extensions fname =
+  if Filename.check_suffix fname ".proto.piqi"
+  then Filename.chop_suffix fname ".proto.piqi"
+  else
+    if Filename.check_suffix fname ".piqi"
+    then Filename.chop_suffix fname ".piqi"
+    else fname
 
-(* basename + chop all extensions *)
+
+(* basename + chop .piqi and .proto.piqi extensions *)
 let basename filename =
   let basename = Filename.basename filename in
-  chop_all_extensions basename
+  chop_piqi_extensions basename
 
 
 let dirname = Filename.dirname

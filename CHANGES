@@ -1,3 +1,103 @@
+Piqi 0.5.7 (April 29, 2012)
+===========================
+
+Backward incompatible changes:
+
+  - The way Piqi flags are represented in JSON format changes
+    from "<name>": null to "<name>": true
+
+Piqi language:
+
+  - "extend" statement can be applied to all kinds of Piqi entries: type
+    definitions, fields, options, functions, function parameters, imports
+  - Change Piqi includes to be syntax-based
+
+Piq language:
+
+  - Make ":piqtype" directive optional -- which makes Piq format usable for
+    storing configuration files and keep them independent of Piqi type
+    definitions
+
+Erlang:
+
+  - Check for missing piqi binary (thanks to Bart van Deenen)
+  - Make edoc work without errors
+  - Optimize Protobuf record parsing from O(N^2) to O(N)
+  - Improve Protobuf compatibility -- take last value instead of first when
+    reading Protobuf optional or required fields
+  - "piqic erlang" automatically loads and includes <f>.erlang.piqi extension
+    module into each input module <f>.piqi
+  - New serialization options:
+    - json_omit_null_fields (default = true) -- add JSON "null" fields for
+      missing optional Piqi fields
+    - pretty_print (default = true) -- pretty-print JSON and XML output
+    - use_strict_parsing (default = false) -- treat unknown and duplicate fields
+      as errors when parsing JSON, XML and Piq formats
+
+OCaml:
+
+  - Fix #14: incorrect "piqic ocaml-ext" output when used w/o --pp flag
+  - Optimize Protobuf record parsing from O(N^2) to O(N)
+  - Improve Protobuf compatibility -- take last value instead of first when
+    reading Protobuf optional or required fields
+  - New examples for using custom types and using Piq as a config file format
+  - "piqic ocaml" automatically loads and includes <f>.ocaml.piqi extension
+    module into each input module <f>.piqi
+  - New serialization options:
+    - json_omit_null_fields (default = true) -- add JSON "null" fields for
+      missing optional Piqi fields
+    - pretty_print (default = true) -- pretty-print JSON and XML output
+    - use_strict_parsing (default = false) -- treat unknown and duplicate fields
+      as errors when parsing JSON, XML and Piq formats
+
+Piqi tools:
+
+  - (piqi json-pp) New --indent flag for indenting instead of pretty-printing
+  - (piqi convert, check) --piqtype command-line parameter defines default type
+    when reading Piq input
+  - (piqi convert) Improve Protobuf compatibility -- take last value instead of
+    first when reading Protobuf optional or required fields
+  - (piqi convert) New --json-omit-null-fields option for including JSON "null"
+    fields for missing optional Piqi fields (omitted from JSON output by
+    default)
+  - (piqi convert, check) New --strict flag for piqi check & convert -- treat
+    unknown and duplicate fields as errors when parsing JSON, XML and Piq
+    formats
+  - (piqi convert, check, expand) New -e <extension-name> option to
+    automatically including Piqi extension for each loaded Piqi module
+
+"piqi to-proto" improvements and fixes:
+
+  - Fix a problem in "piqi to-proto" with aliasing imported defs
+  - Fix "piqi to-proto" for function parameters (not generating Protobuf defs
+    for function parameters of primitive types)
+  - Improve handling of Piqi enums by "piqi to-proto"
+
+Piqi-RPC:
+
+  - Fix HTTP GET returning internal error when Piqi imports are used
+  - Add configuration options for services:
+    - pretty-print JSON and XML output (default = true)
+    - omit fields with 'null' values from JSON output (default = true)
+    - treat unknown and duplicate fields as errors when parsing JSON or XML
+      input (default = false)
+    - do not include Erlang stracktraces in HTTP 500 responses when request
+      handler crashes (default = true) (thanks to Thijs Terlouw)
+  - Ignore content-type header part after ';' (thanks to Bart van Deenen)
+  - Allow callbacks to modify Webmachine Request (thanks to Thijs Terlouw)
+  - Improve "addressbook" example
+
+Internal improvements:
+
+  - Improve and simplify Piqi bootstrap procedure
+  - Get rid of m4 as a build dependency
+  - Split Piqi self-definition into two parts: piqi-spec and piqi-lang
+  - Represent .piqi as piqi-spec instead of piqi-lang in Protobuf, XML and JSON
+    formats
+  - Symbolic representation of Piqi defaults in JSON and XML (i.e. when .piqi is
+    converted to JSON and XML)
+
+
 Piqi 0.5.6 (August 7, 2011)
 ===========================
 

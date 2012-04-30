@@ -1,5 +1,0 @@
-% Piqi compiler compiler (piqicc) produces OCaml code, therefore it has to
-% support OCaml-specific extensions.
-
-.include [ .module piqic/piqi-ocaml ]
-

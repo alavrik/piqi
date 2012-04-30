@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,9 +23,6 @@ module C = Piqi_common
 open C
 
 
-let _ = Piqilib.init ()
-
-
 module R = Piqobj.Record
 module F = Piqobj.Field
 module V = Piqobj.Variant
@@ -41,7 +38,12 @@ let error_duplicate obj name =
 
 
 let handle_unknown_field ((n, _) as x) =
-  warning x ("unknown field: " ^ quote n)
+  let f =
+    if !Config.flag_strict
+    then error
+    else warning
+  in
+  f x ("unknown field: " ^ quote n)
 
 
 let parse_int (obj:json) = match obj with
@@ -99,16 +101,11 @@ let rec parse_obj (t:T.piqtype) (x:json) :Piqobj.obj =
 
 
 and parse_any x =
-  (* parse json into piqobj of type ast *)
-  let piqtype = Piqobj_to_json.ast_def in
-  let piqobj = parse_obj piqtype x in
-  (* convert ast piqobj to binobj *)
-  let binobj = Piqobj_to_wire.gen_binobj piqobj in
-  (* parse binobj into ast OCaml representation *)
-  let ast = Piqirun.parse_binobj T.parse_ast binobj in
-
-  let piq_any = T.Any#{ast = Some ast; binobj = None} in
-  Any#{ any = piq_any; obj = Some piqobj }
+  (* store JSON parse tree in the object store; it will be retrieved later when
+   * needed by the referece *)
+  let ref = Piqi_objstore.put x in
+  let piq_any = T.Any#{T.default_any() with ref = Some ref} in
+  Any#{ any = piq_any; obj = None }
 
 
 and parse_record t = function
@@ -199,7 +196,8 @@ and find_fields (name:string) (l:(string*json) list) :(json list * (string*json)
 and find_flags (name:string) (l:(string*json) list) :(string list * (string*json) list) =
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
-    | (n, `Null ())::t when n = name -> aux (n::accu) rem t
+    | (n, `Bool true)::t when n = name -> aux (n::accu) rem t
+    | (n, `Null ())::t when n = name -> aux accu rem t (* skipping *)
     | (n, _)::t when n = name ->
         error n ("value can not be specified for flag " ^ quote n)
     | h::t -> aux accu (h::rem) t
@@ -245,8 +243,12 @@ and parse_variant t x =
             error x ("unknown variant option: " ^ quote name)
         in
         V#{ piqtype = t; option = option }
-    | `Assoc _ ->
-        error x "exactly one option field expected"
+    | `Assoc l ->
+        let l = List.filter (fun (n, v) -> v <> `Null ()) l in
+        (match l with
+          | [_] -> parse_variant t (`Assoc l)
+          | _ -> error x "exactly one non-null option field expected"
+        )
     | _ ->
         error x "object expected"
 
@@ -254,12 +256,10 @@ and parse_variant t x =
 and parse_option t x =
   let open T.Option in
   match t.typeref, x with
-    | None, `Null () ->
+    | None, `Bool true ->
         O#{ piqtype = t; obj = None }
     | None, _ ->
-        error x "null value expected"
-    | Some _, `Null () ->
-        error x "non-null value expected"
+        error x "true value expected"
     | Some typeref, _ ->
         let option_type = piqtype typeref in
         let obj = parse_obj option_type x in

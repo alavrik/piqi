@@ -1,0 +1,24 @@
+
+.include [ .module piqi.org/piqi-boot ]
+
+
+.custom-field erlang-type
+
+
+.extend [
+    (.typedef int)
+    (.typedef int32 int32-fixed proto-int32)
+    (.typedef int64 int64-fixed proto-int64)
+
+    .with.erlang-type "integer"
+]
+
+
+.extend [
+    (.typedef uint)
+    (.typedef uint32 uint32-fixed)
+    (.typedef uint64 uint64-fixed)
+
+    .with.erlang-type "non_neg_integer"
+]
+

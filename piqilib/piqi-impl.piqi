@@ -1,11 +1,11 @@
 
-.include [ .module piqi.org/piqi ]
+.include [ .module piqi.org/piqi-lang ]
 
 
 .extend [
-    .name import
+    .typedef import
 
-    .field [
+    .with.field [
         .type piqi
         .optional
     ]
@@ -20,9 +20,9 @@
 
 
 .extend [
-    (.name record variant alias list)
+    (.typedef record variant alias list)
 
-    .field [
+    .with.field [
         .name parent
         .type namespace
         .optional
@@ -31,10 +31,10 @@
 
 
 .extend [
-    .name record
+    .typedef record
 
     % record's fields ordered by integer wire code
-    .field [
+    .with.field [
         .name wire-field
         .type field
         .repeated
@@ -43,35 +43,41 @@
 
 
 .extend [
-    .name piqi
+    .typedef piqi
 
-    .field [ .name extended-piqdef .type piqdef .repeated ]
-    .field [ .name resolved-piqdef .type piqdef .repeated ]
-    .field [ .name imported-piqdef .type piqdef .repeated ]
-    .field [ .name resolved-import .type import .repeated ]
-    .field [ .name resolved-func .type function .repeated ]
-    .field [ .name included-piqi .type piqi .repeated ]
+    .with.field [ .name extended-piqdef .type piqdef .repeated ]
+    .with.field [ .name resolved-piqdef .type piqdef .repeated ]
+    .with.field [ .name imported-piqdef .type piqdef .repeated ]
 
-    .field [ .name original-piqi .type piqi .optional ]
+    .with.field [ .name resolved-import .type import .repeated ]
+    .with.field [ .name extended-import .type import .repeated ]
+
+    .with.field [ .name resolved-func .type function .repeated ]
+    .with.field [ .name extended-func .type function .repeated ]
+
+    .with.field [ .name included-piqi .type piqi .repeated ]
+
+    .with.field [ .name original-piqi .type piqi .optional ]
+    .with.field [ .name ast .type ast .optional ]
 ]
 
 
 .extend [
-    .name function
+    .typedef function
 
-    .field [
+    .with.field [
         .name resolved-input
         .type piqdef
         .optional
     ]
 
-    .field [
+    .with.field [
         .name resolved-output
         .type piqdef
         .optional
     ]
 
-    .field [
+    .with.field [
         .name resolved-error
         .type piqdef
         .optional
@@ -80,28 +86,31 @@
 
 
 .extend [
-    .name alias
-    .field [
-        .name is-func-param % if alias is a function parameter
+    (.typedef alias record variant list)
+
+    % if type definition is a function parameter, i.e. was defined inside
+    % function definition
+    .with.field [
+        .name is-func-param
         .optional
     ]
 ]
 
 
 .extend [
-    .name ast
+    .typedef ast
 
     % These two token types are used only in several special cases, and can't be
     % represented in Piq text format directly.
 
-    .option [
+    .with.option [
         % Raw word -- a valid utf8 Piq word: may be parsed as either of these:
         % word, bool, number, string, binary
 
         .name raw-word
         .type word
     ]
-    .option [
+    .with.option [
         % Raw binary -- just a sequence of bytes: may be parsed as either binary
         % or utf8 string
 
@@ -111,14 +120,35 @@
 ]
 
 
+.extend [
+    .typedef any
+
+    % These fields are used for processing default values represented as JSON or
+    % XML data structures
+
+    .with.field [
+        .name type
+        .ocaml-name "typename"
+        .type word
+        .optional
+    ]
+
+    .with.field [
+        .name ref % reference to JSON or XML value/parse tree
+        .type int
+        .optional
+    ]
+]
+
+
 % Alternative name for field and option. It is used by Piq parse
 % (piqobj_of_piqi) if a field or an option can be referred using an alternative
 % name. An example of such alternative name can be .getopt-letter defined in
 % piqi.org/piqi-getopt.piqi
 .extend [
-    (.name field option)
+    (.typedef field option)
 
-    .field [
+    .with.field [
         .name alt-name
         .type word
         .optional

@@ -1,4 +1,4 @@
-%% Copyright 2009, 2010, 2011 Anton Lavrik
+%% Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -50,6 +50,12 @@ get_command(Name) ->
     KernelName = os:cmd("uname -s") -- "\n",
     Machine = os:cmd("uname -m") -- "\n",
     BinDir = lists:concat(["bin-", KernelName, "-", Machine]),
-    filename:join([PiqiDir, "priv", BinDir, Name]).
+    FullName = filename:join([PiqiDir, "priv", BinDir, Name]),
+    case filelib:is_file(FullName) of
+        false ->
+            erlang:error({"can't locate Piqi command: ", FullName});
+        true ->
+            FullName
+    end.
 -endif.
 

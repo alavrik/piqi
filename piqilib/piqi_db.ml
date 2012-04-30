@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -40,6 +40,9 @@ module Idtable =
 
     let mem idtable name =
       M.mem name idtable 
+
+    let fold f accu idtable =
+      M.fold f idtable accu
   end
 
 
@@ -48,30 +51,43 @@ module Piqitable = Idtable
 let loaded_map = ref Piqitable.empty
 
 
+(* find already loaded module by name *)
+let find_piqi modname :T.piqi =
+  Piqitable.find !loaded_map modname
+
+
+let try_find_piqi modname =
+  try Some (find_piqi modname)
+  with Not_found -> None
+
+
 let add_piqi piqi =
   let modname = some_of piqi.P#modname in
   trace "piqi_db: caching piqi module \"%s\"\n" modname;
 
+  let do_add_piqi modname piqi =
+    loaded_map := Piqitable.add !loaded_map modname piqi
+  in
   (* check for name override/conflict *)
   (* XXX: prohibit override? *)
-  (
-    try
-      let prev_piqi = Piqitable.find !loaded_map modname in
-      warning piqi ("redefinition of module " ^ quote modname);
-      warning prev_piqi "previous definition is here";
-    with Not_found -> ()
-  );
-
-  loaded_map := Piqitable.add !loaded_map modname piqi
+  match try_find_piqi modname with
+    | Some prev_piqi when prev_piqi == piqi -> (* don't readd the same module *)
+        ()
+    | Some prev_piqi ->
+        warning piqi ("redefinition of module " ^ quote modname);
+        warning prev_piqi "previous definition is here";
+        do_add_piqi modname piqi
+    | None ->
+        do_add_piqi modname piqi
 
 
 let remove_piqi modname =
   loaded_map := Piqitable.remove !loaded_map modname
 
 
-(* find already loaded module by name *)
-let find_piqi modname :T.piqi =
-  Piqitable.find !loaded_map modname
+let replace_piqi piqi =
+  let modname = some_of piqi.P#modname in
+  loaded_map := Piqitable.add !loaded_map modname piqi
 
 
 let find_local_piqdef piqi name =
@@ -83,48 +99,55 @@ let find_local_piqdef piqi name =
 let piqi_loader :(?modname:string -> string -> T.piqi) option ref = ref None
 
 
-let find_load_piqi_module modname =
-  (* check if the module is already loaded, and return it right away *)
-  try find_piqi modname
-  with
-    Not_found ->
-      trace "piqi_db: loading module: %s\n" modname;
-      let fname = Piqi_file.find_piqi modname in (* can raise Not_found *)
-      (* XXX
-      (* reset Config.noboot option, we can't use this option for dependent types
-       * and modules *)
-      let saved_noboot = !Config.noboot in
-      Config.noboot := false;
-      *)
-      let load_piqi_file = some_of !piqi_loader in
-      let piqi = load_piqi_file ~modname fname in
-      (*
-      Config.noboot := saved_noboot;
-      *)
-      piqi
+let load_piqi_module modname =
+  trace "piqi_db: loading module: %s\n" modname;
+  trace_enter ();
+  let fname = Piqi_file.find_piqi modname in (* can raise Not_found *)
+  (* XXX
+  (* reset Config.noboot option, we can't use this option for
+   * dependent types and modules *)
+  let saved_noboot = !Config.noboot in
+  Config.noboot := false;
+  *)
+  let load_piqi_file = some_of !piqi_loader in
+  let piqi = load_piqi_file ~modname fname in
+  (*
+  Config.noboot := saved_noboot;
+  *)
+  trace_leave ();
+  piqi
 
 
-let find_piqdef name =
-  (* XXX: check global type name before loading? *)
-  let modname, typename = Piqi_name.split_name name in
-  let piqi = 
-    match modname with
-      | Some m ->
-          trace "looking for type: %s\n" name;
-          trace_enter ();
+let find_load_piqi_module ~auto_load_piqi modname =
+  match modname with
+    | None -> (* built-in or local type *)
+        (* NOTE: local types are not supported yet *)
+        some_of !C.piqi_boot
+    | Some modname ->
+        (* check if the module is already loaded, and return it right away *)
+        try find_piqi modname
+        with Not_found when auto_load_piqi ->
           (* XXX: handle load errors *)
-          let piqi = find_load_piqi_module m in
-          trace_leave ();
-          piqi
-      | None -> (* built-in or local type *)
-          (* NOTE: local types are not supported yet *)
-          some_of !boot_piqi
-  in
+          load_piqi_module modname
+
+
+let find_piqdef ?(auto_load_piqi=true) name =
+  (* XXX: check global type name before loading? *)
+  trace "looking for type: %s\n" name;
+  let modname, typename = Piqi_name.split_name name in
+  let piqi = find_load_piqi_module modname ~auto_load_piqi in
   find_local_piqdef piqi typename
 
 
-let find_piqtype name = 
+let find_piqtype name =
   let def = find_piqdef name in
   (def: T.piqdef :> T.piqtype)
 
+
+let try_find_piqtype name =
+  try
+    let def = find_piqdef name ~auto_load_piqi:false in
+    Some (def: T.piqdef :> T.piqtype)
+  with
+    Not_found -> None
 

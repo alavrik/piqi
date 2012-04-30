@@ -12,11 +12,10 @@ SOURCES = \
 PACKS = unix piqi.lib
 
 
-PIQI_FILES = addressbook.proto.piqi piqi-obj.piqi piqtype.piqi
+PIQI_FILES = addressbook.proto.piqi piqi-obj.piqi
 
 PIQI_ML_FILES = \
 	addressbook_piqi.ml addressbook_piqi_ext.ml \
-	piqtype.ml piqtype_ext.ml \
 	piqi_obj_piqi.ml piqi_obj_piqi_ext.ml
 
 

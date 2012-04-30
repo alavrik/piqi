@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,9 +23,6 @@ module C = Piqi_common
 open C
 
 
-let _ = Piqilib.init ()
-
-
 let init () =
   (* XXX: this is necessary when we convert to/from json, but now calling it
    * regardless of whether we actually need it *)
@@ -38,7 +35,7 @@ let find_piqtype typename =
     piqi_error ("invalid type name: " ^ typename);
 
   if typename = "piqi" (* special case *)
-  then !Piqi.piqi_def (* return Piqi type from embedded self-definition *)
+  then !Piqi.piqi_lang_def (* return Piqi type from embedded self-definition *)
   else
     try Piqi_db.find_piqtype typename
     with Not_found ->
@@ -65,9 +62,9 @@ let parse_piq_common get_next ~is_piqi_input =
 let fname = "input" (* XXX *)
 
 
-let parse_piq s ~is_piqi_input =
+let parse_piq piqtype s ~is_piqi_input =
   let piq_parser = Piq_parser.init_from_string fname s in
-  let get_next () = Piq.load_piq_obj piq_parser in
+  let get_next () = Piq.load_piq_obj (Some piqtype) piq_parser in
   let obj = parse_piq_common get_next ~is_piqi_input in
   (* XXX: check eof? *)
   obj
@@ -78,9 +75,9 @@ let gen_piq obj =
   Piq_gen.to_string ast
 
 
-let parse_wire s ~is_piqi_input =
+let parse_wire piqtype s ~is_piqi_input =
   let buf = Piqirun.IBuf.of_string s in
-  let get_next () = Piq.load_wire_obj buf in
+  let get_next () = Piq.load_wire_obj (Some piqtype) buf in
   let obj = parse_piq_common get_next ~is_piqi_input in
   (* XXX: check eof? *)
   obj
@@ -133,15 +130,15 @@ let gen_xml ?pretty_print obj =
 
 let parse_obj piqtype input_format data =
   (* XXX *)
-  let is_piqi_input = (piqtype == !Piqi.piqi_def) in
+  let is_piqi_input = (piqtype == !Piqi.piqi_lang_def) in
   let piqobj =
     match input_format with
-      | `piq  -> parse_piq data ~is_piqi_input
+      | `piq  -> parse_piq piqtype data ~is_piqi_input
       | `json -> parse_json piqtype data
       | `pb -> parse_pb piqtype data
       | `xml -> parse_xml piqtype data
       (* XXX *)
-      | `wire -> parse_wire data ~is_piqi_input
+      | `wire -> parse_wire piqtype data ~is_piqi_input
   in piqobj
 
 
@@ -155,7 +152,38 @@ let gen_obj ~pretty_print output_format piqobj =
     | `wire -> gen_wire piqobj
 
 
-let convert_piqtype ?(pretty_print=true) piqtype input_format output_format data =
+type options =
+  {
+    mutable json_omit_null_fields : bool;
+    mutable pretty_print : bool;
+    mutable use_strict_parsing : bool;
+  }
+
+
+let make_options
+        ?(pretty_print=true)
+        ?(json_omit_null_fields=true)
+        ?(use_strict_parsing=false)
+        () =
+  {
+    json_omit_null_fields = json_omit_null_fields;
+    pretty_print = pretty_print;
+    use_strict_parsing = use_strict_parsing;
+  }
+
+
+let set_options opts =
+  Piqobj_to_json.omit_null_fields := opts.json_omit_null_fields;
+  Piqi_config.flag_strict := opts.use_strict_parsing;
+  ()
+
+
+let convert_piqtype ~opts piqtype input_format output_format data =
+
+  (* apply some of the settings *)
+  set_options opts;
+
+  (* perform the conversion *)
   let piqobj =
     (* XXX: We need to resolve all defaults before converting to JSON or XML *)
     C.with_resolve_defaults
@@ -163,10 +191,8 @@ let convert_piqtype ?(pretty_print=true) piqtype input_format output_format data
       (fun () -> parse_obj piqtype input_format data)
       ()
   in
-  gen_obj output_format piqobj ~pretty_print
+  (* reset location db to allow GC to collect previously read objects *)
+  Piqloc.reset ();
 
-
-let convert ?(pretty_print=true) type_name input_format output_format data =
-  let piqtype = find_piqtype type_name in
-  convert_piqtype piqtype input_format output_format data ~pretty_print
+  gen_obj output_format piqobj ~pretty_print:opts.pretty_print
 

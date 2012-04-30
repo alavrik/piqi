@@ -1,5 +1,5 @@
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -159,6 +159,14 @@ let arg__noboot =
    "--noboot", Arg.Set Config.noboot,
      "don't boot, i.e. don't use boot definitions while processing .piqi"
 
+let arg__strict =
+   "--strict", Arg.Set Config.flag_strict,
+     "treat unknown and duplicate fields as errors"
+
+let arg__include_extension =
+   "-e", Arg.String Config.add_include_extension,
+     "<name> try including extension <name> for all loaded modules (can be used several times)"
+
 
 let common_speclist =
   [
@@ -226,7 +234,7 @@ let usage () =
     (List.rev !commands);
   print_cmd "version" "print version";
   prerr_endline 
-    "\nMore information is available at http://piqi.org/doc/tools/\n"
+    "\nMore information is available at http://piqi.org/doc/\n"
 
 
 let exit_usage () =

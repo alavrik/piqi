@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,9 +17,6 @@
 
 
 open Piqi_common 
-
-
-let _ = Piqilib.init ()
 
 
 (* old method for pretty-printing:
@@ -99,6 +96,13 @@ let simplify_piqi_ast (ast:T.ast) =
         | `named {T.Named.name = "piq-any"; T.Named.value = v} -> [v]
         | x -> [x]
     )
+  (* map extend/.what x -> x *)
+  and tr_extend_what =
+    tr ["extend"] (
+      function
+        | `named {T.Named.name = "what"; T.Named.value = v} -> [v]
+        | x -> [x]
+    )
   (* .../type.name x -> type.x *)
   and tr_type_name_common path =
     tr path (
@@ -132,6 +136,7 @@ let simplify_piqi_ast (ast:T.ast) =
   |> rm_piqdef
   |> tr_field_mode ["record"; "field"]
   |> tr_extend_piq_any
+  |> tr_extend_what
   (* .../type.name x -> type.x *)
   |> tr_type_name_common ["record"; "field"]
   |> tr_type_name_common ["variant"; "option"]
@@ -181,7 +186,7 @@ let piqi_to_ast ?(simplify=false) piqi =
    * custom-fields at this stage *)
   let piqi = P#{piqi with custom_field = []} in
   (* XXX, TODO: move this call to Piqi.gen_piqi? *)
-  let ast = Piqi.mlobj_to_ast !Piqi.piqi_def T.gen__piqi piqi in
+  let ast = Piqi.mlobj_to_ast !Piqi.piqi_lang_def T.gen__piqi piqi in
   let ast = sort_piqi_items ast in
   if simplify
   then simplify_piqi_ast ast

@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -173,4 +173,13 @@ let open_json fname =
 let read_json_obj json_parser =
   let res = Piqi_json_parser.read_next json_parser in
   res
+
+
+(* for internal use only: read one parsed JSON value from its string
+ * representation *)
+let json_of_string s :Piqi_json_common.json =
+  let json_parser = Piqi_json_parser.init_from_string s in
+  match read_json_obj json_parser with
+    | Some ast -> ast
+    | None -> assert false
 

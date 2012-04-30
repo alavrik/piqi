@@ -1,1 +1,4 @@
-../piqic/piqi-boot-ocaml.piqi
+.include [ .module piqi.org/piqi-boot ]
+
+.include [ .module piqic/piqi-boot.ocaml ]
+

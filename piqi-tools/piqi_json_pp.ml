@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -26,15 +26,23 @@ open Main
 let usage = "Usage: piqi json-pp [options] [<.json file>] [output file]\nOptions:"
 
 
+let flag_indent = ref false
+
+let arg__indent =
+    "--indent", Arg.Set flag_indent,
+    "use simple indentation instead of pretty-printing"
+
+
 let speclist = Main.common_speclist @
   [
+    arg__indent;
     arg_o;
     arg__;
   ]
 
 
 let prettyprint_json ch json =
-  Piqi_json_gen.pretty_to_channel ch json
+  Piqi_json_gen.pretty_to_channel ch json ~indent:!flag_indent
 
 
 let prettyprint_json ch json_parser =

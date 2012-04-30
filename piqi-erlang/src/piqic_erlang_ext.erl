@@ -1,4 +1,4 @@
-%% Copyright 2009, 2010, 2011 Anton Lavrik
+%% Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 %% See the License for the specific language governing permissions and
 %% limitations under the License.
 
-%% @doc Extended Piqi compiler for Erlang
+%% Extended Piqi compiler for Erlang
 %%
 %% This module contains extended version of the Piqi compiler for Erlang. It
 %% calls the base compiler ("piqic erlang") as a first step, and then generates
@@ -52,6 +52,7 @@ usage() ->
   --noboot don't boot, i.e. don't use boot definitions while processing .piqi
   -C <output directory> specify output directory
   --normalize <true|false> normalize identifiers (default: true)
+  --gen-defaults generate default value constructors for generated types
   -help  Display this list of options
   --help  Display this list of options
 "
@@ -206,17 +207,46 @@ piqdef_erlname({piq_list, X}) -> X#piq_list.erlang_name.
 
 gen_parse(Mod, ErlMod, Name, ErlName) ->
     [
+        gen_parse_2(Mod, ErlMod, Name, ErlName),
+        gen_parse_3(Mod, ErlMod, Name, ErlName)
+    ].
+
+
+gen_parse_2(Mod, ErlMod, Name, ErlName) ->
+    [
         "parse_", ErlName, "(X, Format) ->\n",
         "    ", ErlMod, ":parse_", ErlName, "(\n",
         "        ", gen_convert(Mod, Name, "Format", "'pb'", "X"), ").\n\n"
     ].
 
 
+gen_parse_3(Mod, ErlMod, Name, ErlName) ->
+    [
+        "parse_", ErlName, "(X, Format, Options) ->\n",
+        "    ", ErlMod, ":parse_", ErlName, "(\n",
+        "        ", gen_convert(Mod, Name, "Format", "'pb'", "X, Options"), ").\n\n"
+    ].
+
+
 gen_gen(Mod, ErlMod, Name, ErlName) ->
+    [
+        gen_gen_2(Mod, ErlMod, Name, ErlName),
+        gen_gen_3(Mod, ErlMod, Name, ErlName)
+    ].
+
+
+gen_gen_2(Mod, ErlMod, Name, ErlName) ->
     [
         "gen_", ErlName, "(X, Format) ->\n",
         "    Iolist = ", ErlMod, ":gen_", ErlName, "(X),\n",
         "    ", gen_convert(Mod, Name, "'pb'", "Format", "iolist_to_binary(Iolist)"), ".\n\n"
+    ].
+
+gen_gen_3(Mod, ErlMod, Name, ErlName) ->
+    [
+        "gen_", ErlName, "(X, Format, Options) ->\n",
+        "    Iolist = ", ErlMod, ":gen_", ErlName, "(X),\n",
+        "    ", gen_convert(Mod, Name, "'pb'", "Format", "iolist_to_binary(Iolist), Options"), ".\n\n"
     ].
 
 

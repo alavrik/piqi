@@ -1,50 +1,53 @@
-include Makefile.piqicc_common
+include $(PIQI_ROOT)/make/Makefile.ocaml
+include $(PIQI_ROOT)/piqilib/Makefile.piqi_common
 
 
 RESULT = piqicc
 
 
+PIQIC_LIB_SOURCES = \
+	piqic_common.ml \
+	piqic_ocaml_types.ml \
+	piqic_ocaml_out.ml \
+	piqic_ocaml_in.ml \
+	piqic_ocaml_defaults.ml \
+	piqic_ocaml.ml \
+
+
+SOURCES += $(PIQIC_LIB_SOURCES)
 SOURCES += piqicc.ml piqicc_run.ml
+
+
+PRE_TARGETS += $(PIQI_SOURCES) $(PIQIC_LIB_SOURCES)
 
 
 PIQIC_FLAGS = -I $(PIQI_ROOT)
 PIQICC_FLAGS = $(PIQIC_FLAGS)
 
 
-
-.PHONY: boot boot2 reboot
-boot: piqi_boot
-boot2: piqi_boot2
-reboot: piqi_reboot
+all: dc top #bc
 
 
-
-piqi_piqi.ml: piqi_reboot $(wildcard *.piqi)
-	./piqi_reboot $(PIQICC_FLAGS) -o piqi_piqi.tmp.ml \
-		--boot piqicc-boot.piqi --piqi piqicc.piqi --impl piqicc-impl.piqi
-	rm -f *.cmo *.cmi
-	$(CAMLP4_O) -o piqi_piqi.3.ml piqi_piqi.tmp.ml
-	ln -sf piqi_piqi.3.ml $@
+$(PIQIC_LIB_SOURCES): %.ml: $(PIQI_ROOT)/piqic/%.ml
+	ln -s $< $@
 
 
-piqi_reboot: piqi_boot2
-	rm -f piqi_piqi.ml
-	$(MAKE) -f Makefile.reboot
+piqi_piqi.ml: boot/piqi_piqi.ml
+	cp $< $@
 
-piqi_boot2: piqi_boot
-	rm -f piqi_piqi.ml
-	$(MAKE) -f Makefile.boot2
 
-piqi_boot: boot/piqi_piqi.ml.m4 boot/piqdefs.ml boot/piqast.ml.m4
-	rm -f piqi_piqi.ml
-	$(MAKE) -f Makefile.boot
+.PHONY: reboot
+
+
+reboot:
+	./piqicc $(PIQICC_FLAGS) -o piqi_piqi.tmp.ml \
+		--boot piqi-boot.piqi --lang piqi-lang.piqi --impl piqi-impl.piqi
+	$(CAMLP4_O) -o boot/piqi_piqi.ml piqi_piqi.tmp.ml
+	rm -f piqi_piqi.tmp.ml
 
 
 clean::
-	$(MAKE) -f Makefile.reboot clean
-	$(MAKE) -f Makefile.boot2 clean
-	$(MAKE) -f Makefile.boot clean
-	rm -f piqi_piqi.tmp.ml piqi_piqi.3.ml
+	rm -f piqi_piqi.tmp.ml
 
 
 include $(OCAMLMAKEFILE)

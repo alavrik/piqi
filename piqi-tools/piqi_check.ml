@@ -1,5 +1,5 @@
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -30,6 +30,9 @@ let usage = "Usage: piqi check [options] <.piqi|.piq file>\nOptions:"
 
 let speclist = Main.common_speclist @
   [
+    Piqi_main.arg__strict;
+    Piqi_convert_cmd.arg__piqtype;
+    Piqi_main.arg__include_extension;
   ]
 
 
@@ -44,7 +47,8 @@ let check_piq filename =
   try
     while true
     do
-      ignore (Piq.load_piq_obj piq_parser)
+      let piqtype = Piqi_convert_cmd.resolve_typename () in
+      ignore (Piq.load_piq_obj piqtype piq_parser)
     done
   with
     Piq.EOF -> ()

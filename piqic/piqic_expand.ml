@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -43,10 +43,10 @@ let rec erlname_piqi (piqi:T.piqi) =
 let rec mlname_piqi (piqi:T.piqi) =
   let open P in
   begin
-    Piqic_ocaml_base.mlname_piqi piqi; (* run the original erlname procedure *)
+    Piqic_ocaml.mlname_piqi piqi; (* run the original mlname procedure *)
 
     Piqic_ocaml.mlname_functions piqi.P#func;
-    Piqic_ocaml_base.mlname_defs piqi.P#piqdef;
+    Piqic_ocaml.mlname_defs piqi.P#piqdef;
   end
 
 
@@ -57,8 +57,11 @@ let flag_binary_output = ref false
 
 
 let expand_file filename =
+  if !flag_erlang then Piqic_erlang.init ();
+  if !flag_ocaml then Piqic_ocaml.init ();
+
   let piqi = Piqi.load_piqi filename in
-  let res_piqi = Piqi_ext.expand_piqi piqi in
+  let res_piqi = Piqi.expand_piqi piqi in
 
   (* chdir to the output directory *)
   Main.chdir_output !odir;
@@ -69,9 +72,8 @@ let expand_file filename =
    * naming *)
   res_piqi.P#modname <- piqi.P#modname;
 
-  let expand_all = not (!flag_erlang || !flag_ocaml) in
-  if !flag_erlang || expand_all then erlname_piqi res_piqi;
-  if !flag_ocaml || expand_all then mlname_piqi res_piqi;
+  if !flag_erlang then erlname_piqi res_piqi;
+  if !flag_ocaml then mlname_piqi res_piqi;
 
   if not !flag_binary_output
   then
@@ -108,6 +110,10 @@ let speclist = Piqic_erlang.speclist @
 
 let run () =
   Main.parse_args () ~usage ~speclist;
+
+  let expand_all = not (!flag_erlang || !flag_ocaml) in
+  if expand_all then (flag_ocaml := true; flag_erlang := true);
+
   expand_file !ifile
 
  

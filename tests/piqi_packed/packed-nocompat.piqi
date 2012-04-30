@@ -12,9 +12,9 @@
 
 
 .extend [
-    .name r-all
+    .typedef r-all
 
-    .field [
+    .with.field [
         .name ee
         .type ee
         .repeated

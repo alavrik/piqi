@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ let call_local_server ((ich, och) as _handle) func_name data =
   let response, _caller_ref = Piqi_rpc.receive_response ich in
   match response with
     | `rpc_error err ->
-        piqi_error ("local rpc error: " ^ string_of_rpc_error err)
+        piqi_error ("remote rpc error: " ^ string_of_rpc_error err)
     | x -> x
 
 
@@ -110,7 +110,9 @@ let init_piqi_common data =
   let piqi_list =
       List.map (fun x ->
           let buf = Piqirun.init_from_string x in
-          Piq.piqi_of_wire buf ~cache:true
+          let piqi = Piq.piqi_of_wire buf in
+          Piqi_db.add_piqi piqi;
+          piqi
         ) bin_piqi_list
   in
   piqi_list

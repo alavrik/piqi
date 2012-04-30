@@ -1,5 +1,5 @@
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -27,10 +27,38 @@ type output_format = [ input_format | `json_pretty | `xml_pretty ]
 
 type piqtype
 
+type options
+
 
 val init_piqi : string list -> unit
 
 val find_piqtype : string -> piqtype
 
-val convert : piqtype -> input_format -> output_format -> string -> string
+
+(* Construct serialization options to be passed as an optional argument to
+ * gen_<typename> and parse_<typename> functions. Available options:
+ *
+ * pretty_print
+ *
+ *      Pretty-print generated JSON and XML output (default = true)
+ *
+ * json_omit_null_fields
+ *
+ *      Omit missing optional fields from JSON output instead of representing
+ *      them as {"field_name": null} JSON fields (default = true)
+ *
+ * use_strict_parsing
+ *
+ *      Treat unknown and duplicate fields as errors when parsing JSON,
+ *      XML and Piq formats (default = false)
+ *)
+val make_options:
+        ?pretty_print:bool ->
+        ?json_omit_null_fields:bool ->
+        ?use_strict_parsing:bool ->
+        unit -> options
+
+val convert:
+  ?opts:options ->
+  piqtype -> input_format -> output_format -> string -> string
 

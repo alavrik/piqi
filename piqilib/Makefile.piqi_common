@@ -1,3 +1,4 @@
+# This Makefile is used by piqilib, piqic and piqicc
 
 all:
 
@@ -28,13 +29,16 @@ PIQI_SOURCES_TAIL = \
 	piq_parser.ml \
 	piq_gen.ml \
 	\
+	piqobj.ml \
 	piqobj_common.ml \
-	piqobj_of_piq.ml \
-	piqobj_to_piq.ml \
 	piqobj_to_wire.ml \
 	piqobj_of_wire.ml \
+	piqobj_of_piq.ml \
+	piqobj_to_piq.ml \
 	\
 	piqi.ml \
+	\
+	piqi_pp.ml \
 
 
 PIQI_SOURCES = $(PIQI_SOURCES_HEAD) $(PIQI_SOURCES_TAIL)
@@ -44,11 +48,10 @@ SOURCES = \
 	piqi_version.ml \
 	$(PIQI_SOURCES_HEAD) \
 	piqi_piqi.ml \
-	piqobj.ml \
 	$(PIQI_SOURCES_TAIL)
 
 
-PRE_TARGETS = piqi_version.ml piqi_piqi.ml piqobj.ml
+PRE_TARGETS = piqi_version.ml piqi_piqi.ml
 
 
 PACKS = ulex easy-format piqirun
@@ -62,9 +65,6 @@ PACKS = ulex easy-format piqirun
 # INCDIRS += +camlp4
 # USE_CAMLP4 = yes
 
-
-piqobj.ml: $(PIQI_ROOT)/piqilib/piqobj.ml.m4
-	m4 $< >$@
 
 piqi_version.ml: $(PIQI_ROOT)/VERSION
 	echo "let version = \"`head -1 $<`\"" >$@

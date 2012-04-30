@@ -1,0 +1,63 @@
+
+
+.include [ .module piqi.org/piqi ]
+
+
+.extend [
+    (.typedef record field variant option alias list function)
+
+    .with.field [
+        .name erlang-name
+        .type string
+        .optional
+    ]
+]
+
+
+.extend [
+    .typedef piqi
+
+    .with.field [
+        .name erlang-module
+        .type string
+        .optional
+    ]
+
+    .with.field [
+        .name erlang-type-prefix
+        .type string
+        .optional
+    ]
+]
+
+
+.extend [
+    .typedef alias
+
+    .with.field [
+        .name erlang-type
+        .type string
+        .optional
+    ]
+]
+
+
+% specifies whether strings are parsed as binaries or lists
+.extend [
+    .typedef piqi
+
+    .with.field [
+        .type erlang-string-type
+        .optional
+        .default.binary
+    ]
+]
+
+
+.enum [
+    .name erlang-string-type
+
+    .option [ binary ]
+    .option [ list ]
+]
+

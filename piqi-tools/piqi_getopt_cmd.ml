@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -63,11 +63,6 @@ let getopt_command () =
     | _ ->
         let writer = Piqi_convert_cmd.make_writer !output_encoding in
         let piqtype = Piqi_convert.find_piqtype !typename in
-
-        (* parse the Piq AST according to "--piqtype" and convert to the output
-         * format according to "-t" *)
-        C.resolve_defaults := !Piqi_convert_cmd.flag_add_defaults;
-
         let piqobj = Piqi_getopt.parse_args piqtype piq_ast_list in
 
         (* write the object *)

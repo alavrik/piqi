@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -18,9 +18,6 @@
 
 module C = Piqi_common
 open C
-
-
-let _ = Piqilib.init ()
 
 
 module R = Piqobj.Record
@@ -85,17 +82,10 @@ let rec gen_obj (x:Piqobj.obj) :xml list =
 
 and gen_any x =
   let open Any in
-  (* XXX: is ast always defined? *)
-
-  (* TODO: handle typed *)
-  let ast = some_of x.any.T.Any.ast in
-  (* convert ast to binary *)
-  let binobj = Piqirun.gen_binobj T.gen__ast ast in
-  (* convert binary ast to piqobj of type ast *)
-  let piqtype = Piqobj_to_json.ast_def in
-  let piqobj = Piqobj_of_wire.parse_binobj piqtype binobj in
-  (* generate xml from the piqobj *)
-  gen_obj piqobj
+  (* NOTE: converting only typed and fully resolved piq objects to xml *)
+  match x.obj with
+    | None -> [`Elem ("undefined", [])] (* XXX: will it be always present? *)
+    | Some obj -> gen_obj obj
 
 
 and gen_record x =

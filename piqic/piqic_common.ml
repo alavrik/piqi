@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ let get_boot_defs seen_defs def =
 (* get all boot defintions used by (i.e. reacheable from) the module's
  * definitions *)
 let get_boot_dependencies piqi =
-  if !boot_piqi = None
+  if !C.piqi_boot = None
   then []
   else
     let rec aux accu root_defs =
@@ -103,8 +103,9 @@ let piqic_common piqi =
   depends_on_piq_any := Piqi_common.depends_on_piq_any piqi;
 
   (* indication whether the module that is being processed is a Piqi self-spec,
-   * i.e. it is "piqi.org/piqtype" or includes it *)
-  is_self_spec := Piqi_common.is_self_spec piqi;
+   * i.e. it is "piqi.org/piqi" or includes it *)
+  if not !is_self_spec
+  then is_self_spec := Piqi_common.is_self_spec piqi;
 
   (* implicitly add defintions from the boot module to the current module *)
   let boot_defs = get_boot_dependencies piqi in
@@ -116,6 +117,41 @@ let piqic_common piqi =
    *)
   piqi.P#resolved_piqdef <- boot_defs @ piqi.P#resolved_piqdef;
   ()
+
+
+let rec get_piqi_deps piqi =
+  if C.is_boot_piqi piqi
+  then [] (* boot Piqi is not a dependency *)
+  else
+    let imports =
+      List.map (fun x -> some_of x.T.Import#piqi) piqi.P#resolved_import
+    in
+    (* get all imports' dependencies recursively *)
+    let import_deps =
+      flatmap (fun piqi ->
+          flatmap get_piqi_deps piqi.P#included_piqi
+        ) imports
+    in
+    (* remove duplicate entries *)
+    let deps = C.uniqq (import_deps @ imports) in
+    deps @ [piqi]
+
+
+let encode_embedded_piqi piqi =
+  (* XXX: or just use piqi.orig_piqi and also get includes in get_piqi_deps? *)
+  let res_piqi = Piqi.expand_piqi piqi in
+  (* add the Module's name even if it wasn't set *)
+  res_piqi.P#modname <- piqi.P#modname;
+  (* generate embedded object (i.e. without field header) *)
+  let iodata = T.gen_piqi res_piqi in
+  Piqirun.to_string iodata
+
+
+(* build a list of all import dependencies including the specified module and
+ * encode each Piqi module in the list using Protobuf encoding *)
+let build_piqi_deps piqi =
+  let deps = get_piqi_deps piqi in
+  List.map encode_embedded_piqi deps
 
 
 (* common command-line arguments processing *)
@@ -130,7 +166,7 @@ let arg__normalize =
 
 let arg__gen_defaults =
     "--gen-defaults", Arg.Set flag_gen_defaults,
-      "generate default values for all generated types"
+      "generate default value constructors for generated types"
 
 let arg__embed_piqi =
     "--embed-piqi", Arg.Set flag_embed_piqi,

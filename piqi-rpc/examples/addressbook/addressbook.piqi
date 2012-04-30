@@ -1,4 +1,4 @@
-.include [ .module person ]
+.import [ .module person ]
 
 
 .erlang-type-prefix ""
@@ -7,7 +7,7 @@
 .function [
     .name add-person
 
-    .input person
+    .input person/person
 
     .error string
 ]
@@ -23,7 +23,7 @@
         ]
     ]
 
-    .output person
+    .output person/person
 
     .error string
 ]
@@ -38,6 +38,6 @@
 
 .list [
     .name addressbook
-    .type person
+    .type person/person
 ]
 

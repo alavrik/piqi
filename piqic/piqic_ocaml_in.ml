@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ let rec gen_parse_type ocaml_type wire_type wire_packed x =
     | `any ->
         if !Piqic_common.is_self_spec
         then ios "parse_any"
-        else ios "Piqtype.parse_any"
+        else ios "Piqi_piqi.parse_any"
     | (#T.piqdef as x) ->
         let modname = gen_parent x in
         iol [

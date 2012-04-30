@@ -1,5 +1,5 @@
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -52,6 +52,7 @@ let reset_paths () =
 let noboot = ref false
 
 
+let flag_strict = ref false
 let flag_no_warnings = ref false
 let debug_level = ref 0
 let flag_trace =
@@ -66,4 +67,10 @@ let flag_trace =
  * for/during pretty-printing or for real use *)
 let pp_mode = ref false
 
+
+(* Piqi extensions automatically included when loading modules *)
+let extensions = ref []
+
+let add_include_extension (name :string) =
+  extensions := !extensions @ [ name ]
 

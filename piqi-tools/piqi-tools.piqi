@@ -48,11 +48,39 @@
             .type format
         ]
 
+        % this option is relevant only for JSON or XML output formats; Piq is
+        % always pretty-printed
         .field [
-            .name pretty-print  %NOTE: affects only JSON output
+            .name pretty-print
             .type bool
             .optional
             .default true
+        ]
+
+        % omit undefined fields in JSON output; if false, they will be present
+        % in the output with their values set to "null", e.g. {"foo":null}
+        .field [
+            .name json-omit-null-fields
+            .type bool
+            .optional
+            .default true
+        ]
+
+        % Strict parsing for JSON, XML, Piq. When this option is set to "true",
+        % Piqi will treat duplicate and unknown record fields as errors (in the
+        % same way as "piqi convert --strict").
+        %
+        % When set to "false", Piqi generates warnings, but they get silently
+        % ignored, because warnings can not be transmitted via Piqi-RPC and
+        % Piqi-RPC over HTTP protocols.
+        %
+        % XXX: something to think about in the future.
+
+        .field [
+            .name use-strict-parsing
+            .type bool
+            .optional
+            .default false
         ]
     ]
 

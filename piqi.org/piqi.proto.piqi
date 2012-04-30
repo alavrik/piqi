@@ -1,0 +1,67 @@
+% Google Protocol Buffers extension for piqi
+%
+% This file defines some extensions to base piqi specification enabling fields
+% specific for Protobuf
+% 
+% Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+
+
+.module piqi.org/piqi.proto
+
+
+.include [ .module piqi.org/piqi ]
+
+
+.extend [
+    (.typedef record field variant option alias list)
+
+    .with.field [
+        .name proto-name
+        .type string
+        .optional
+    ]
+]
+
+
+.extend [
+    (.typedef record variant list)
+
+    % arbitrary string that will be included in .proto message and enum
+    % definitions as a result of .piqi -> .proto conversion
+    .with.field [
+        .name proto-custom
+        .type string
+        .repeated
+    ]
+]
+
+
+.extend [
+    .typedef piqi
+
+    .with.field [
+        .name proto-package
+        .type string
+        .optional
+    ]
+
+    % arbitrary string that will be included in .proto as a result of .piqi ->
+    % .proto conversion
+    .with.field [
+        .name proto-custom
+        .type string
+        .repeated
+    ]
+]
+
+
+.extend [
+    .typedef alias
+
+    .with.field [
+        .name proto-type
+        .type string
+        .optional
+    ]
+]
+

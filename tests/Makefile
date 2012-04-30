@@ -29,6 +29,7 @@ DIRS_OCAML = \
        ocaml_array \
        ocaml_misc \
        ocaml_custom_types \
+       ocaml_piq_config \
 
 
 DIRS = \

@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -196,8 +196,13 @@ let check_duplicate name tail =
   match tail with
     | [] -> ()
     | l ->
-        List.iter (fun obj ->
-          warning obj ("duplicate field " ^ quote name)) l
+        if !Config.flag_strict
+        then
+          let obj = List.hd l in
+          error obj ("duplicate field " ^ quote name)
+        else
+          List.iter (fun obj ->
+            warning obj ("duplicate field " ^ quote name)) l
 
 
 (* truncate the string till the first newline or to max_len *)
@@ -227,14 +232,13 @@ let warn_unknown_field x =
 
 
 let handle_unknown_field (x:T.ast) =
-  (*
-  if is_ignored_field x
-  then ()
+  if !Config.flag_strict
+  then
+    error x ("unknown field: " ^ string_of_piqast x)
   else
-  *)
-  if !delay_unknown_warnings
-  then add_unknown_field x
-  else warn_unknown_field x
+    if !delay_unknown_warnings
+    then add_unknown_field x
+    else warn_unknown_field x
 
 
 let handle_unknown_variant (x:T.ast) =
@@ -317,7 +321,7 @@ and parse_any x =
   (* NOTE: the object is not fully resolved during this stage; at least
    * "obj" should be obtained by parsing "piqtype.ast" at later stages (see
    * Piqi.resolve_defaults for example *)
-  let piq_any = T.Any#{ ast = Some x; binobj = None } in
+  let piq_any = T.Any#{T.default_any () with ast = Some x} in
   Piqloc.addref x piq_any;
   Any#{ any = piq_any; obj = None }
 

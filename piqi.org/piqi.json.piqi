@@ -1,0 +1,24 @@
+% JSON-specific extensions for piqi
+%
+% This file defines some extensions to base piqi specification enabling fields
+% specific to JSON
+% 
+% Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+
+
+.module piqi.org/piqi.json
+
+
+.include [ .module piqi.org/piqi ]
+
+
+.extend [
+    (.typedef record field variant option alias list)
+
+    .with.field [
+        .name json-name
+        .type string
+        .optional
+    ]
+]
+

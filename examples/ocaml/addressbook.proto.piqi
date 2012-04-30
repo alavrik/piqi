@@ -1,24 +1,9 @@
 % This file was generated from "addressbook.proto" using the following command:
 %
 %     piqi of-proto --normalize addressbook.proto
-%
-% After conversion, ocaml-name field was added for field "type" in
-% "person-phone-name" record. This is necessary because "type" is a keyword in
-% OCaml
-%
-% Another addition is "erlang-type-prefix" top-level property. If we didn't do
-% that, all Erlang types and records would be prefixed with "addressbook_". Such
-% prefixing is done by default to avoid type and record name conflicts across
-% several modules. We don't need prefixes at all for this simple example.
-
-(.custom-field ocaml-name erlang-type-prefix)
 
 
 .proto-package "tutorial"
-
-
-.erlang-type-prefix ""
-
 
 .record [
     .name person
@@ -55,7 +40,6 @@
     ]
     .field [
         .name type
-        .ocaml-name "phone_type"
         .type person-phone-type
         .optional
         .default.home

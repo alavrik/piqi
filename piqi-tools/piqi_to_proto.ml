@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -55,6 +55,18 @@ let is_self_spec = ref false
 let new_imports = ref []
 
 
+let recalc_import_parent ?parent current_parent =
+  match current_parent with
+    | Some (`import _) -> current_parent
+    | _ -> parent (* previous import parent or None *)
+
+
+let recalc_name ?name proto_name =
+  match name with
+    | Some name -> name
+    | None -> some_of proto_name
+
+
 let rec typename ?parent (t:T.piqtype) =
   let gen_name current_parent proto_name =
     let parent =
@@ -78,7 +90,7 @@ let rec typename ?parent (t:T.piqtype) =
     | `list t -> gen_name t.L#parent t.L#proto_name
     | `alias t ->
         (* unwind aliases to their original type *)
-        gen_alias_typename t
+        gen_alias_typename t ?parent
     | `any ->
         if !is_self_spec
         then "any" (* there is a defined type in Piqi self-spec called "any" *)
@@ -91,7 +103,7 @@ let rec typename ?parent (t:T.piqtype) =
            *
            * Thus, adding "_org" suffix to the top namespace for now.
            *)
-          ".piqi_org.piqtype.any"
+          ".piqi_org.piqi.any"
 
 
 and gen_alias_typename ?parent x =
@@ -99,14 +111,10 @@ and gen_alias_typename ?parent x =
   match x.proto_type with
     | Some x -> x
     | None ->
-        let current_parent = x.parent in
-        let parent =
-          match current_parent with
-            | Some (`import _) -> current_parent
-            | _ -> parent (* previous import parent *)
-        in
+        let parent = recalc_import_parent ?parent x.parent in
         match piqtype x.typeref with
-          | `alias x -> gen_alias_typename x ?parent
+          | `alias x ->
+              gen_alias_typename x ?parent
           | x ->
               (match parent with
                 | Some (`import x) ->
@@ -119,13 +127,13 @@ and gen_alias_typename ?parent x =
               typename x ?parent
 
 
-let gen_typeref t =
-  ios (typename (piqtype t))
+let gen_typeref ?parent t =
+  ios (typename (piqtype t) ?parent)
 
 
-let gen_typeref' = function
+let gen_typeref' ?parent = function
   | None -> ios "bool"
-  | Some t -> gen_typeref t
+  | Some t -> gen_typeref t ?parent
 
 
 let piqdef_proto_name = function
@@ -216,7 +224,7 @@ let gen_default x =
     | _, _ -> iol [] (* there is no default *)
 
 
-let gen_field f = 
+let gen_field parent f =
   let open F in
   let packed =
     if f.wire_packed
@@ -226,7 +234,7 @@ let gen_field f =
   let fdef = iod " " (* field definition *)
     [
       ios (string_of_mode f.mode);
-      gen_typeref' f.typeref;
+      gen_typeref' f.typeref ?parent;
       protoname_of_field f; ios "=";
         gen_code f.code ^^ gen_default f ^^ ios packed ^^ ios ";";
     ]
@@ -234,11 +242,12 @@ let gen_field f =
   fdef
 
 
-let gen_record ?name r =
+let gen_record ?name ?parent r =
   let open R in
-  let name = match name with Some x -> x | _ -> some_of r.proto_name in
+  let parent = recalc_import_parent ?parent r.parent in
+  let name = recalc_name ?name r.proto_name in
   (* field definition list *) 
-  let fdefs = List.map gen_field r.field in
+  let fdefs = List.map (gen_field parent) r.field in
   let rdef = iol
     [
       ios "message "; ios name;
@@ -258,33 +267,48 @@ let gen_const c =
   ]
 
 
-let gen_enum ?name e =
+let gen_enum e =
   let open E in
-  let name = match name with Some x -> x | _ -> some_of e.proto_name in
+  let enum_name = some_of e.proto_name in
   let const_defs = List.map gen_const e.option in
-  iol
-    [
+  let make_enum_def name =
+    iol [
       ios "enum "; ios name; ios " {"; indent;
         iod "\n" const_defs;
         gen_proto_custom e.proto_custom;
         unindent; eol;
-      ios "}"; eol;
+      ios "}";
     ]
+  in
+  if e.is_func_param (* embedded function parameter *)
+  then
+    (* we need to generate an enclosing message for enum function parameter *)
+    iol [
+        ios "message "; ios enum_name;
+        ios " {"; indent;
+          make_enum_def enum_name; ios ";"; eol;
+          ios "required "; ios enum_name; ios " elem = 1;";
+        unindent; eol;
+        ios "}"; eol;
+    ]
+  else
+    make_enum_def enum_name ^^ eol
 
 
-let gen_option o =
+let gen_option parent o =
   let open Option in
   iod " " [
-    ios "optional"; gen_typeref' o.typeref;
+    ios "optional"; gen_typeref' o.typeref ?parent;
       protoname_of_option o; ios "="; gen_code o.code ^^ ios ";";
   ]
 
 
-let gen_variant ?name v =
+let gen_variant ?name ?parent v =
   let open Variant in
-  let name = match name with Some x -> x | _ -> some_of v.proto_name in
+  let parent = recalc_import_parent ?parent v.parent in
+  let name = recalc_name ?name v.proto_name in
   (* field definition list *) 
-  let vdefs = List.map gen_option v.option in
+  let vdefs = List.map (gen_option parent) v.option in
   let vdef = iol
     [
       ios "message "; ios name;
@@ -297,9 +321,10 @@ let gen_variant ?name v =
   in vdef
 
 
-let gen_list ?name l =
+let gen_list ?name ?parent l =
   let open L in
-  let name = match name with Some x -> x | _ -> some_of l.proto_name in
+  let parent = recalc_import_parent ?parent l.parent in
+  let name = recalc_name ?name l.proto_name in
   let packed =
     if l.wire_packed
     then " [packed = true]"
@@ -309,7 +334,7 @@ let gen_list ?name l =
     [
       ios "message "; ios name;
       ios " {"; indent;
-        ios "repeated "; gen_typeref l.typeref; ios " elem = 1"; ios packed; ios ";";
+        ios "repeated "; gen_typeref l.typeref ?parent; ios " elem = 1"; ios packed; ios ";";
         gen_proto_custom l.proto_custom;
         unindent; eol;
       ios "}"; eol;
@@ -317,46 +342,44 @@ let gen_list ?name l =
   in ldef
 
 
-let gen_def0 ?name t =
+let gen_noalias_def ?name ?parent t =
   match t with
-    | `record t -> gen_record t ?name
-    | `variant t -> gen_variant t ?name
-    | `enum t -> gen_enum t ?name
-    | `list t -> gen_list t ?name
-    | `alias _ -> assert false
+    | `record t -> gen_record t ?name ?parent
+    | `variant t -> gen_variant t ?name ?parent
+    | `enum t -> gen_enum t
+    | `list t -> gen_list t ?name ?parent
 
 
-let rec gen_def ?name def =
+let rec gen_def ?name ?parent ?is_func_param def =
   match def with
-    | `alias t -> gen_alias t ?name
-    | x ->
-        let res = gen_def0 x ?name
+    | `alias t ->
+        gen_alias t ?name ?parent ?is_func_param
+    | `record _ | `variant _ | `enum _ | `list _ as x  ->
+        let res = gen_noalias_def x ?name ?parent
         in [res]
 
 
-and gen_alias ?name a =
+and gen_alias ?name ?parent ?(is_func_param=false) a =
   let open A in
-  let name =
-    match name with
-      | Some _ -> name
-      | None -> a.proto_name
-  in
+  let is_func_param = is_func_param || a.is_func_param in
+  let parent = recalc_import_parent ?parent a.parent in
+  let name = recalc_name ?name a.proto_name in
   match piqtype a.typeref with
-    | #T.piqdef as def ->
+    | `record _ | `variant _ | `alias _ | `list _ as def ->
         (* generate the original definition with the new name *)
         (* XXX: make such generation optional, just to be able to have less
          * Protobuf-generated code in the end *)
-        gen_def def ?name
-    | _ -> (* alias of a pritmitive type *)
-        if a.is_func_param
+        gen_def def ~name ~is_func_param ?parent
+    | _ -> (* alias of a pritmitive type or enum *)
+        if is_func_param
         then
           (* for primitive function parameters, generate a record that includes
            * one field of that type *)
           let res =
             iol [
-              ios "message "; ios (some_of name);
+              ios "message "; ios name;
               ios " {"; indent;
-              ios "required "; gen_typeref a.typeref; ios " elem = 1;";
+              ios "required "; gen_typeref a.typeref ?parent; ios " elem = 1;";
               unindent; eol;
               ios "}"; eol;
             ]
@@ -423,7 +446,7 @@ let gen_piqi (piqi:T.piqi) =
     if C.depends_on_piq_any piqi && not !is_self_spec
     then
       iol [
-        ios "import \"piqi.org/piqtype.piqi.proto\";";
+        ios "import \"piqi.org/piqi.piqi.proto\";";
         eol;
       ]
     else iol []
@@ -554,7 +577,7 @@ let piqi_to_proto (piqi: T.piqi) ch =
   (* implicitly add definitions (aliases) from the boot module to the current
    * module *)
   let boot_defs =
-    match !boot_piqi with
+    match !C.piqi_boot with
       | None -> []
       | Some x -> x. P#resolved_piqdef
   in

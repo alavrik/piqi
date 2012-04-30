@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -233,4 +233,11 @@ let xml_to_string ?pretty_print xml =
   let buf = Buffer.create 256 in
   xml_to_buffer ?pretty_print buf xml;
   Buffer.contents buf
+
+
+let xml_of_string s :xml =
+  let xml_parser = init_from_string s in
+  match read_xml_obj xml_parser with
+    | Some ast -> ast
+    | None -> assert false
 

@@ -33,7 +33,7 @@ SOURCES = \
 RESULTDEPS = ../piqilib/piqilib.cmxa $(wildcard ../piqilib/piqilib.cma)
 
 
-PIQI_MODULES = descriptor.piqi piqi-tools.piqi piqi-rpc.piqi
+PIQI_MODULES = descriptor.proto.piqi piqi-tools.piqi piqi-rpc.piqi
 
 PIQI_ML_SOURCES = descriptor_piqi.ml piqi_tools_piqi.ml piqi_rpc_piqi.ml
 
@@ -62,6 +62,16 @@ $(PIQI_ML_SOURCES): $(PIQI_MODULES)
 	do \
 		$(PIQIC) ocaml $(PIQIC_FLAGS) --pp $$i; \
 	done
+
+
+# rule for re-creating descriptor.proto.piqi from a (newer) descriptor.proto
+# (it is called manually when when there are changes in the upstream
+# descriptor.proto)
+descriptor: descriptor.proto
+	./piqi of-proto --normalize $<
+
+
+.PHONY: descriptor
 
 
 clean::

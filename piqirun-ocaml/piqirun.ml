@@ -1,5 +1,5 @@
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -656,12 +656,31 @@ let bool_of_packed_varint buf =
  *)
 
 let parse_record_buf buf =
-  let rec aux accu =
+  let rec parse_unordered accu =
     match parse_field buf with
-      | Some field -> aux (field::accu)
-      | None -> List.rev accu
+      | Some field ->
+          parse_unordered (field::accu)
+      | None ->
+          let res = List.rev accu in
+          (* stable-sort the obtained fields by codes: it is safe to use
+           * subtraction, because field codes are 29-bit integers *)
+          List.stable_sort (fun (a, _) (b, _) -> a - b) res
   in
-  aux []
+  let rec parse_ordered accu =
+    match parse_field buf with
+      | Some ((code, _value) as field) ->
+          (* check if the fields appear in order *)
+          (match accu with
+            | (prev_code, _)::_ when prev_code > code ->
+                (* the field is out of order *)
+                parse_unordered (field::accu)
+            | _ ->
+                parse_ordered (field::accu)
+          )
+      | None ->
+          List.rev accu
+  in
+  parse_ordered []
 
 
 let parse_record obj =
@@ -678,14 +697,42 @@ let parse_variant obj =
     | _ -> error obj "variant contains more than one option"
 
 
-(* find record field by code *)
+(* find all fields with the given code in the list of fields sorted by codes *)
 let find_fields code l =
-  let rec aux accu rem = function
-    | [] -> List.rev accu, List.rev rem
-    | (code', obj)::t when code = code' -> aux (obj::accu) rem t
-    | h::t -> aux accu (h::rem) t
+  let rec aux accu = function
+    | (code', obj)::t when code' = code ->
+        aux (obj::accu) t
+    | (code', obj)::t when code' < code ->
+        (* skipping the field which code is less than the requested one *)
+        aux accu t
+    | rem ->
+        List.rev accu, rem
   in
-  aux [] [] l
+  aux [] l
+
+
+(* find the last instance of a field given its code in the list of fields sorted
+ * by codes *)
+let find_field code l =
+  let rec try_find_next_field prev_value = function
+    | (code', value)::t when code' = code -> (* field is found again *)
+        try_find_next_field value t
+    | rem -> (* previous field was the last one *)
+        Some prev_value, rem
+  in
+  let rec find_first_field = function
+    | (code', value)::t when code' = code -> (* field is found *)
+        (* check if this is the last instance of it, if not, continue iterating
+         * through the list *)
+        try_find_next_field value t
+    | (code', _)::t when code' < code ->
+        (* skipping the field which code is less than the requested one *)
+        find_first_field t
+    | rem -> (* not found *)
+        None, rem
+
+  in
+  find_first_field l
 
 
 let parse_binobj parse_fun binobj =
@@ -698,34 +745,23 @@ let parse_default binobj =
   buf
 
 
-let check_duplicate code tail =
-  match tail with
-    | [] -> ()
-    | obj::_ -> ()
-        (* XXX: issue warnings on duplicate fields?
-        error obj  ("duplicate field " ^ string_of_int code)
-        *)
-
-
 (* XXX, NOTE: using default with requried or optional-default fields *)
 let parse_required_field code parse_value ?default l =
-  let res, rem = find_fields code l in
+  let res, rem = find_field code l in
   match res with
-    | [] ->
+    | None ->
         (match default with
            | Some x -> parse_value (parse_default x), rem
            | None -> error_missing l code)
-    | x::t ->
-        check_duplicate code t;
+    | Some x ->
         parse_value x, rem
 
 
 let parse_optional_field code parse_value l =
-  let res, rem = find_fields code l in
+  let res, rem = find_field code l in
   match res with
-    | [] -> None, l
-    | x::t ->
-        check_duplicate code t;
+    | None -> None, l
+    | Some x ->
         Some (parse_value x), rem
 
 
@@ -833,11 +869,10 @@ let parse_packed_repeated_array64_field code parse_packed_value parse_value l =
 
 
 let parse_flag code l =
-  let res, rem = find_fields code l in
+  let res, rem = find_field code l in
   match res with
-    | [] -> false, l
-    | x::t ->
-        check_duplicate code t;
+    | None -> false, l
+    | Some x ->
         (match parse_bool_field x with
           | true -> true, rem
           | false -> error x "invalid encoding for a flag")

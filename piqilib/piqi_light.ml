@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,9 +24,6 @@
 module C = Piqi_common
 open C
 open Iolist
-
-
-let _ = Piqilib.init ()
 
 
 let gen_typeref (t:T.typeref) =
@@ -191,8 +188,15 @@ let gen_includes l =
 
 (* boot code *)
 
-let field_def = Piqi.find_embedded_piqtype "field"
-let option_def = Piqi.find_embedded_piqtype "option"
+let field_def =
+  if !Sys.interactive
+  then Obj.magic 1 (* don't do anything in interactive (toplevel) mode *)
+  else Piqi.find_embedded_piqtype "field"
+
+let option_def =
+  if !Sys.interactive
+  then Obj.magic 1 (* don't do anything in interactive (toplevel) mode *)
+  else Piqi.find_embedded_piqtype "option"
 
 
 let gen_extension_item x =
@@ -214,10 +218,18 @@ let gen_extension_item x =
   | _ -> []
 
 
+let gen_extension_target = function
+  | `typedef x | `name x -> x
+  | `field x -> "field=" ^ x
+  | `option x -> "option=" ^ x
+  | `import x -> "import=" ^ x
+  | `func x -> "function=" ^ x
+
+
 let gen_extension x =
   let open Extend in
   (* TODO: break long list of extended names to several lines *)
-  let names = List.map ios x.name in
+  let names = List.map (fun x -> ios (gen_extension_target x)) x.what in
   let items = flatmap gen_extension_item x.quote in
   iol [
     ios "extend "; iod " " names; indent;

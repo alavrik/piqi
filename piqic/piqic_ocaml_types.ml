@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -89,7 +89,7 @@ let rec gen_piqtype t ocaml_type =
           | `any ->
               if !Piqic_common.is_self_spec
               then scoped_name "any"
-              else "Piqtype.any"
+              else "Piqi_piqi.any"
           | `record r -> gen_deftype r.R#parent r.R#ocaml_name
           | `variant v -> gen_deftype v.V#parent v.V#ocaml_name
           | `enum e -> gen_deftype e.E#parent e.E#ocaml_name

@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ let resolve_defaults = ref false
 
 
 (* lazily loaded representation of piqi-boot.piqi (see piqi.ml for details) *)
-let boot_piqi :T.piqi option ref = ref None
+let piqi_boot :T.piqi option ref = ref None
 
 
 (*
@@ -75,7 +75,7 @@ let with_resolve_defaults new_resolve_defaults f x =
 
 
 let is_boot_piqi p =
-  match !boot_piqi with
+  match !piqi_boot with
     | None -> false
     | Some x -> p == x
 
@@ -298,11 +298,11 @@ let is_container_type t =
 
 
 (* check if the module is a Piqi self-specification, i.e. it is
- * "piqi.org/piqtype" or includes it *)
+ * "piqi.org/piqi" or includes it *)
 let is_self_spec (piqi: T.piqi) =
   (* XXX: cache this information to avoid computing it over and over again *)
   List.exists
-    (fun x -> x.P#modname = Some "piqi.org/piqtype")
+    (fun x -> x.P#modname = Some "piqi.org/piqi")
     piqi.P#included_piqi
 
 

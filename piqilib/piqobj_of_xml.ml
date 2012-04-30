@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,9 +20,6 @@ module C = Piqi_common
 open C
 
 
-let _ = Piqilib.init ()
-
-
 module R = Piqobj.Record
 module F = Piqobj.Field
 module V = Piqobj.Variant
@@ -37,20 +34,9 @@ type xml = Piqi_xml.xml
 type xml_elem = Piqi_xml.xml_elem
 
 
-let error_duplicate obj name =
-  error obj ("duplicate field: " ^ quote name)
+let handle_unknown_field = Piqobj_of_json.handle_unknown_field
 
-
-let handle_unknown_field ((n, _) as x) =
-  warning x ("unknown field: " ^ quote n)
-
-
-let check_duplicate name tail =
-  match tail with
-    | [] -> ()
-    | l ->
-        List.iter (fun obj ->
-          warning obj ("duplicate field " ^ quote name)) l
+let check_duplicate = Piqobj_of_piq.check_duplicate
 
 
 let parse_scalar xml_elem err_string =
@@ -139,16 +125,11 @@ let rec parse_obj (t: T.piqtype) (x: xml_elem) :Piqobj.obj =
 
 
 and parse_any x =
-  (* parse json into piqobj of type ast *)
-  let piqtype = Piqobj_to_json.ast_def in
-  let piqobj = parse_obj piqtype x in
-  (* convert ast piqobj to binobj *)
-  let binobj = Piqobj_to_wire.gen_binobj piqobj in
-  (* parse binobj into ast OCaml representation *)
-  let ast = Piqirun.parse_binobj T.parse_ast binobj in
-
-  let piq_any = T.Any#{ast = Some ast; binobj = None} in
-  Any#{ any = piq_any; obj = Some piqobj }
+  (* store JSON parse tree in the object store; it will be retrieved later when
+   * needed by the referece *)
+  let ref = Piqi_objstore.put (`Elem x) in
+  let piq_any = T.Any#{T.default_any() with ref = Some ref} in
+  Any#{ any = piq_any; obj = None }
 
 
 and parse_record t xml_elem =
@@ -191,10 +172,10 @@ and do_parse_flag t l =
   let res, rem = find_flags name l in
   match res with
     | [] -> [], rem
-    | [x] ->
+    | x::tail ->
+        check_duplicate name tail;
         let res = F#{ piqtype = t; obj = None } in
         [res], rem
-    | _::o::_ -> error_duplicate o name
 
 
 and do_parse_field loc t l =
@@ -224,8 +205,9 @@ and parse_required_field loc name field_type l =
   let res, rem = find_fields name l in
   match res with
     | [] -> error loc ("missing field " ^ quote name)
-    | [x] -> parse_obj field_type x, rem
-    | _::o::_ -> error_duplicate o name
+    | x::tail ->
+        check_duplicate name tail;
+        parse_obj field_type x, rem
 
 
 (* find field by name, return found fields and remaining fields *)
@@ -254,8 +236,9 @@ and parse_optional_field name field_type default l =
   let res, rem = find_fields name l in
   match res with
     | [] -> Piqobj_of_wire.parse_default field_type default, rem
-    | [x] -> Some (parse_obj field_type x), rem
-    | _::o::_ -> error_duplicate o name
+    | x::tail ->
+        check_duplicate name tail;
+        Some (parse_obj field_type x), rem
 
 
 (* parse repeated variant field allowing variant names if field name is

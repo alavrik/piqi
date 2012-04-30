@@ -5,15 +5,18 @@ RESULT = a.out
 
 
 SOURCES = \
+	$(PIQI_ML_FILES1) \
 	piqirun_custom.ml \
-	$(PIQI_ML_FILES) \
+	$(PIQI_ML_FILES2) \
 
 
 PACKS = piqi.lib num
 
 
-PIQI_FILES = example.piqi
-PIQI_ML_FILES = example_piqi.ml
+PIQI_FILES = example.piqi skvl.piqi
+PIQI_ML_FILES1 = skvl_piqi.ml
+PIQI_ML_FILES2 = example_piqi.ml
+PIQI_ML_FILES = $(PIQI_ML_FILES1) $(PIQI_ML_FILES2)
 
 
 PRE_TARGETS = $(PIQI_ML_FILES)

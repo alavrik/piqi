@@ -2,11 +2,15 @@
 
 PIQI_FILES = \
 	piqast.piqi \
-	piqi-base.piqi \
-	piqi.piqi \
-	piqi-proto.piqi \
 	piqtype.piqi \
-	piqtype-wire.piqi \
+	\
+	piqi.proto.piqi \
+	piqi.wire.piqi \
+	piqi.json.piqi \
+	piqi.getopt.piqi \
+	\
+	piqi.piqi \
+	piqi-lang.piqi \
 	\
 	piqobj.piqi
 
@@ -42,6 +46,8 @@ test_piqi_piqi:
 	piqi expand --includes-only piqi.piqi > pp.piqi
 	piqi check pp.piqi
 	piqi convert -t pb p.piqi
+	piqi convert -t pb piqi.piqi
+	cmp p.piqi.pb piqi.piqi.pb
 	test ! `which protoc` || protoc -I.. -I. --decode=piqi_org.piqi.piqi piqi.piqi.proto < p.piqi.pb > p.piqi.text
 	piqi convert -t piq-json p.piqi
 	piqi convert p.piqi.json >/dev/null

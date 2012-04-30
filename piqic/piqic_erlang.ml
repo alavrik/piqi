@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -209,7 +209,7 @@ let gen_hrl modname piqi =
 
 
 let gen_embedded_piqi piqi =
-  let l = Piqic_common_ext.build_piqi_deps piqi in
+  let l = Piqic_common.build_piqi_deps piqi in
   let l = List.map Piqic_erlang_in.gen_erlang_binary l in
   iol [
     ios "piqi() ->"; indent;
@@ -259,7 +259,7 @@ let piqic (piqi: T.piqi) =
   Piqic_common.piqic_common piqi;
 
   (* set Erlang names that are not specified by user *)
-  (match !C.boot_piqi with
+  (match !C.piqi_boot with
     | None -> ()
     | Some x -> erlname_piqi x
   );
@@ -284,8 +284,13 @@ let piqic (piqi: T.piqi) =
   ()
 
 
+let init () =
+  Piqi_config.add_include_extension "erlang"
+
+
 let piqic_file ifile =
   Piqic_common.init ();
+  init ();
 
   (* load input .piqi file *)
   let piqi = Piqi.load_piqi ifile in

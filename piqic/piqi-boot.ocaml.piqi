@@ -1,0 +1,25 @@
+
+
+.include [ .module piqi.org/piqi-boot ]
+
+
+.custom-field ocaml-type
+
+
+.extend [
+    (.typedef int uint)
+    .with.ocaml-type "int"
+]
+
+
+.extend [
+    (.typedef int32 uint32 int32-fixed uint32-fixed proto-int32)
+    .with.ocaml-type "int32"
+]
+
+
+.extend [
+    (.typedef int64 uint64 int64-fixed uint64-fixed proto-int64)
+    .with.ocaml-type "int64"
+]
+

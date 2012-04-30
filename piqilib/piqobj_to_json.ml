@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -22,9 +22,6 @@ module C = Piqi_common
 open C
 
 
-let _ = Piqilib.init ()
-
-
 module R = Piqobj.Record
 module F = Piqobj.Field
 module V = Piqobj.Variant
@@ -35,9 +32,12 @@ module Any = Piqobj.Any
 module L = Piqobj.List
 
 
-(* boot code *)
-(* XXX: move ast def to Piqi module? *)
-let ast_def = Piqi.find_embedded_piqtype "ast"
+(* configuration/command-line option:
+ *
+ * omit undefined fields in JSON output; if false, they will be present in the
+ * output with their values set to "null", e.g. {"foo":null}
+ *)
+let omit_null_fields = ref true
 
 
 let make_named name value =
@@ -45,7 +45,7 @@ let make_named name value =
 
 
 let make_name name =
-  name, `Null ()
+  name, `Bool true
 
 
 let rec gen_obj (x:Piqobj.obj) :json =
@@ -79,17 +79,10 @@ and gen_typed_obj x =
 
 and gen_any x =
   let open Any in
-  (* XXX: is ast always defined? *)
-
-  (* TODO: handle typed *)
-  let ast = some_of x.any.T.Any.ast in
-  (* convert ast to binary *)
-  let binobj = Piqirun.gen_binobj T.gen__ast ast in
-  (* convert binary ast to piqobj of type ast *)
-  let piqtype = ast_def in
-  let piqobj = Piqobj_of_wire.parse_binobj piqtype binobj in
-  (* generate json from the piqobj *)
-  gen_obj piqobj
+  (* NOTE: converting only typed and fully resolved piq objects to json *)
+  match x.obj with
+    | None -> `Null () (* XXX: will it be always present? *)
+    | Some obj -> gen_obj obj
 
 
 and gen_record x =
@@ -113,7 +106,11 @@ and gen_field fields t =
                | Some obj -> make_named name (gen_obj obj)
           in [res]
         with
-          Not_found -> [])
+          Not_found ->
+            if !omit_null_fields
+            then []
+            else [make_named name (`Null ())]
+        )
     | `repeated ->
         let fields = List.find_all pred fields in
         let json_fields = List.map (fun f -> gen_obj (some_of f.obj)) fields in

@@ -1,4 +1,4 @@
-%% Copyright 2009, 2010, 2011 Anton Lavrik
+%% Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -114,7 +114,7 @@ init(RpcServices) ->
     {ok, State}.
 
 
-make_service(RpcService = {ImplMod, RpcMod, _UrlPath}) ->
+make_service(RpcService = {ImplMod, RpcMod, _UrlPath, _Options}) ->
     % loading the implementation module, otherwise
     % erlang:function_exported() called from Piqi-RPC runtime would
     % return false

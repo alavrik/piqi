@@ -1,4 +1,4 @@
-%% Copyright 2009, 2010, 2011 The Piqi Authors
+%% Copyright 2009, 2010, 2011, 2012 The Piqi Authors
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -46,6 +46,11 @@
 %%
 %% @doc Piqi runtime library
 %%
+%% Encoding rules follow this specification:
+%%
+%%      http://code.google.com/apis/protocolbuffers/docs/encoding.html
+
+
 -module(piqirun).
 -compile(export_all).
 
@@ -208,6 +213,7 @@ parse_block(Bytes) ->
     my_split_binary(Rest_1, Length).
 
 
+-ifndef(EDOC).
 -spec gen_record/2 :: (
     Code :: piqirun_code(),
     Fields :: [iolist()] ) -> iolist().
@@ -225,6 +231,7 @@ parse_block(Bytes) ->
     Code :: piqirun_code(),
     GenValue :: packed_encode_fun(),
     L :: [any()] ) -> iolist().
+-endif.
 
 
 gen_record(Code, Fields) ->
@@ -259,6 +266,7 @@ gen_packed_list(Code, GenValue, L) ->
 -type packed_encode_fun() ::
      fun( (Value :: any()) -> iolist() ).
 
+-ifndef(EDOC).
 -spec gen_required_field/3 :: (
     Code :: piqirun_code(),
     GenValue :: encode_fun(),
@@ -278,6 +286,7 @@ gen_packed_list(Code, GenValue, L) ->
     Code :: pos_integer(),
     GenValue :: packed_encode_fun(),
     X :: [any()] ) -> iolist().
+-endif.
 
 
 gen_required_field(Code, GenValue, X) ->
@@ -309,6 +318,7 @@ gen_flag(_Code, false) -> []; % no flag
 gen_flag(Code, true) -> gen_bool_field(Code, true).
 
 
+-ifndef(EDOC).
 -spec non_neg_integer_to_varint/2 :: (
     Code :: piqirun_code(),
     X :: non_neg_integer()) -> iolist().
@@ -370,6 +380,7 @@ gen_flag(Code, true) -> gen_bool_field(Code, true).
 -spec string_to_block/2 :: (
     Code :: piqirun_code(),
     X :: string() | binary() ) -> iolist().
+-endif.
 
 
 non_neg_integer_to_varint(Code, X) when X >= 0 ->
@@ -463,6 +474,7 @@ string_to_block(Code, X) when is_list(X); is_binary(X) ->
 % types)
 %
 
+-ifndef(EDOC).
 -spec non_neg_integer_to_packed_varint/1 :: (non_neg_integer()) -> binary().
 -spec integer_to_packed_signed_varint/1 :: (integer()) -> binary().
 -spec integer_to_packed_zigzag_varint/1 :: (integer()) -> binary().
@@ -474,6 +486,7 @@ string_to_block(Code, X) when is_list(X); is_binary(X) ->
 -spec integer_to_packed_signed_fixed64/1 :: (non_neg_integer()) -> binary().
 -spec float_to_packed_fixed64/1 :: (number() ) -> binary().
 -spec float_to_packed_fixed32/1 :: (number() ) -> binary().
+-endif.
 
 
 non_neg_integer_to_packed_varint(X) when X >= 0 ->
@@ -573,6 +586,7 @@ parse_field_part(Bytes) ->
     end.
 
 
+-ifndef(EDOC).
 -spec parse_record/1 :: (
     piqirun_buffer() ) -> [ parsed_field() ].
 
@@ -590,6 +604,7 @@ parse_field_part(Bytes) ->
     ParsePackedValue :: packed_decode_fun(),
     ParseValue :: decode_fun(),
     piqirun_buffer() ) -> [ any() ].
+-endif.
 
 
 parse_record({'block', Bytes}) ->
@@ -599,13 +614,29 @@ parse_record(TopBlock) when is_binary(TopBlock) ->
 
 
 parse_record_buf(Bytes) ->
-    parse_record_buf(Bytes, []).
+    parse_record_buf_ordered(Bytes, []).
 
-parse_record_buf(<<>>, Accu) ->
+parse_record_buf_ordered(<<>>, Accu) ->
     lists:reverse(Accu);
-parse_record_buf(Bytes, Accu) ->
-    {Value, Rest} = parse_field(Bytes),
-    parse_record_buf(Rest, [Value | Accu]).
+parse_record_buf_ordered(Bytes, Accu) ->
+    {Field, Rest} = parse_field(Bytes),
+    {Code, _Value} = Field,
+    % check if the fields appear in order
+    case Accu of
+        [{PrevCode, _}|_] when PrevCode > Code ->
+            % the field is out of order
+            parse_record_buf_unordered(Rest, [Field | Accu]);
+        _ ->
+            parse_record_buf_ordered(Rest, [Field | Accu])
+    end.
+
+parse_record_buf_unordered(<<>>, Accu) ->
+    Res = lists:reverse(Accu),
+    % stable-sort the obtained fields by codes
+    lists:keysort(1, Res);
+parse_record_buf_unordered(Bytes, Accu) ->
+    {Field, Rest} = parse_field(Bytes),
+    parse_record_buf_unordered(Rest, [Field | Accu]).
 
 
 parse_variant(X) ->
@@ -639,17 +670,44 @@ parse_packed_list_elem(ParsePackedValue, ParseValue, {1, X}) ->
         L :: [ parsed_field() ] ) ->
     { Found ::[ piqirun_return_buffer() ], Rest :: [ parsed_field() ]}.
 
-% find record field by code
+% find all fields with the given code in the list of fields sorted by codes
 find_fields(Code, L) ->
-    find_fields(Code, L, [], []).
+    find_fields(Code, L, _Accu = []).
 
 
-find_fields(_Code, [], Accu, Rest) ->
-    {lists:reverse(Accu), lists:reverse(Rest)};
-find_fields(Code, [{Code, X} | T], Accu, Rest) ->
-    find_fields(Code, T, [X | Accu], Rest);
-find_fields(Code, [H | T], Accu, Rest) ->
-    find_fields(Code, T, Accu, [H | Rest]).
+find_fields(Code, [{Code, Value} | T], Accu) ->
+    find_fields(Code, T, [Value | Accu]);
+find_fields(Code, [{NextCode, _} | T], Accu) when NextCode < Code ->
+    % skipping the field which code is less than the requested one
+    find_fields(Code, T, Accu);
+find_fields(_Code, Rest, Accu) ->
+    {lists:reverse(Accu), Rest}.
+
+
+-spec find_field/2 :: (
+        Code :: pos_integer(),
+        L :: [ parsed_field() ] ) ->
+    { Found :: 'undefined' | piqirun_return_buffer(), Rest :: [ parsed_field() ]}.
+
+% find the last instance of a field given its code in the list of fields sorted
+% by codes
+find_field(Code, [{Code, Value} | T]) ->
+    % check if this is the last instance of it, if not, continue iterating
+    % through the list
+    try_find_next_field(Code, Value, T);
+find_field(Code, [{NextCode, _Value} | T]) when NextCode < Code ->
+    % skipping the field which code is less than the requested one
+    find_field(Code, T);
+find_field(_Code, Rest) -> % not found
+    {'undefined', Rest}.
+
+
+try_find_next_field(Code, _PrevValue, [{Code, Value} | T]) ->
+    % field is found again
+    try_find_next_field(Code, Value, T);
+try_find_next_field(_Code, PrevValue, Rest) ->
+    % previous field was the last one
+    {PrevValue, Rest}.
 
 
 -spec throw_error/1 :: (any()) -> no_return().
@@ -662,6 +720,7 @@ throw_error(X) ->
 
 -type packed_decode_fun() :: fun( (binary()) -> {any(), binary()} ).
 
+-ifndef(EDOC).
 -spec parse_required_field/3 :: (
     Code :: pos_integer(),
     ParseValue :: decode_fun(),
@@ -692,6 +751,7 @@ throw_error(X) ->
 -spec parse_flag/2 :: (
     Code :: pos_integer(),
     L :: [parsed_field()] ) -> { Res :: boolean(), Rest :: [parsed_field()] }.
+-endif.
 
 
 parse_required_field(Code, ParseValue, L) ->
@@ -711,11 +771,11 @@ parse_optional_field(Code, ParseValue, L, Default) ->
 
 
 parse_optional_field(Code, ParseValue, L) ->
-    {Fields, Rest} = find_fields(Code, L),
+    {Field, Rest} = find_field(Code, L),
     Res = 
-        case Fields of
-            [] -> 'undefined';
-            [X|_] ->
+        case Field of
+            'undefined' -> 'undefined';
+            X ->
                 % NOTE: handling field duplicates without failure
                 % XXX, TODO: produce a warning
                 ParseValue(X)
@@ -775,6 +835,7 @@ error_enum_const(X) -> throw_error({'unknown_enum_const', X}).
 error_option(_X, Code) -> throw_error({'unknown_option', Code}).
 
 
+-ifndef(EDOC).
 -spec non_neg_integer_of_varint/1 :: (piqirun_buffer()) -> non_neg_integer().
 -spec integer_of_signed_varint/1 :: (piqirun_buffer()) -> integer().
 -spec integer_of_zigzag_varint/1 :: (piqirun_buffer()) -> integer().
@@ -790,6 +851,7 @@ error_option(_X, Code) -> throw_error({'unknown_option', Code}).
 -spec binary_of_block/1 :: (piqirun_buffer()) -> binary().
 -spec binary_string_of_block/1 :: (piqirun_buffer()) -> binary().
 -spec list_string_of_block/1 :: (piqirun_buffer()) -> string().
+-endif.
 
 
 parse_toplevel_header(Bytes) ->
@@ -882,6 +944,7 @@ list_string_of_block(X) ->
 % types)
 %
 
+-ifndef(EDOC).
 -spec non_neg_integer_of_packed_varint/1 :: (binary()) ->
     {non_neg_integer(), Rest :: binary()}.
 -spec integer_of_packed_signed_varint/1 :: (binary()) ->
@@ -903,6 +966,7 @@ list_string_of_block(X) ->
     {float(), Rest :: binary()}.
 -spec float_of_packed_fixed32/1 :: (binary()) ->
     {float(), Rest :: binary()}.
+-endif.
 
 
 non_neg_integer_of_packed_varint(Bin) ->
@@ -964,8 +1028,10 @@ float_of_packed_fixed32(_) ->
 %
 %       -type piqi_float() :: float() | '-infinity' | 'infinity' | 'nan'.
 %
--spec parse_ieee754_64/1 :: (<<_:8>>) -> no_return().
--spec parse_ieee754_32/1 :: (<<_:4>>) -> no_return().
+-ifndef(EDOC).
+-spec parse_ieee754_64/1 :: (<<_:64>>) -> no_return().
+-spec parse_ieee754_32/1 :: (<<_:32>>) -> no_return().
+-endif.
 
 parse_ieee754_64(_) -> throw_error('ieee754_infinities_NaN_not_supported_yet').
 parse_ieee754_32(_) -> throw_error('ieee754_infinities_NaN_not_supported_yet').
