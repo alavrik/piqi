@@ -54,8 +54,9 @@ let rec gen_parse_type ocaml_type wire_type wire_packed x =
           gen_cc " x))";
         ]
 
-and gen_parse_typeref ?ocaml_type ?wire_type ?(wire_packed=false) (t:T.typeref) =
-  gen_parse_type ocaml_type wire_type wire_packed (piqtype t)
+
+let gen_parse_piqtype ?ocaml_type ?wire_type ?(wire_packed=false) (t:T.piqtype) =
+  gen_parse_type ocaml_type wire_type wire_packed t
 
 
 (* TODO: parse defaults once at boot time rather than each time when we need to
@@ -88,18 +89,18 @@ let gen_field_parser f =
   let mode = gen_mode f in
   let fcons =
   match f.typeref with
-    | Some typeref ->
+    | Some piqtype ->
         (* field constructor *)
         iod " "
           [
             (* "parse_(required|optional|repeated)_field" function invocation *)
             ios "Piqirun.parse_" ^^ ios mode ^^ ios "_field";
               gen_code f.code;
-              gen_parse_typeref typeref ~wire_packed:f.wire_packed;
+              gen_parse_piqtype piqtype ~wire_packed:f.wire_packed;
               (* when parsing packed repeated fields, we should also accept
                * fields in unpacked representation; therefore, specifying an
                * unpacked field parser as another parameter *)
-              if f.wire_packed then gen_parse_typeref typeref else iol [];
+              if f.wire_packed then gen_parse_piqtype piqtype else iol [];
               ios " x";
               gen_default f.default;
           ]
@@ -186,7 +187,7 @@ let rec gen_option varname o =
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
         iod " " [
           ios "|"; gen_code o.code; ios "->";
-            ios "("; gen_parse_typeref t; ios "x :>"; ios varname; ios ")"
+            ios "("; gen_parse_piqtype t; ios "x :>"; ios varname; ios ")"
         ]
     | _, Some t ->
         let n = mlname_of_option o in
@@ -194,7 +195,7 @@ let rec gen_option varname o =
           ios "|"; gen_code o.code; ios "->";
             ios "let res = ";
               gen_cc "let count = curr_count() in refer count (";
-              gen_parse_typeref t; ios "x";
+              gen_parse_piqtype t; ios "x";
               gen_cc ")";
               ios "in";
               gen_pvar_name n; ios "res";
@@ -228,12 +229,12 @@ let gen_alias a ~wire_packed =
     packed; ios "parse_"; ios (some_of a.ocaml_name); ios " x = ";
     gen_convert_of a.typeref a.ocaml_type (
       iol [
-        gen_parse_typeref
-          a.typeref
-            ?ocaml_type:a.ocaml_type
-            ?wire_type:a.wire_type
-            ~wire_packed;
-          ios " x";
+        gen_parse_piqtype
+          (some_of a.typeref)
+          ?ocaml_type:a.ocaml_type
+          ?wire_type:a.wire_type
+          ~wire_packed;
+        ios " x";
       ]
     )
   ]
@@ -259,14 +260,14 @@ let gen_list l =
       gen_cc "let count = next_count() in refer count (";
         (* Piqirun.parse_(packed_)?(list|array|array32|array64) *)
         ios "Piqirun.parse_"; repr;
-          ios " ("; gen_parse_typeref l.typeref ~wire_packed:l.wire_packed; ios ")";
+          ios " ("; gen_parse_piqtype (some_of l.typeref) ~wire_packed:l.wire_packed; ios ")";
 
           (* when parsing packed repeated fields, we should also accept
            * fields in unpacked representation; therefore, specifying an
            * unpacked field parser as another parameter *)
           if l.wire_packed
           then iol [
-          ios " ("; gen_parse_typeref l.typeref; ios ")";
+          ios " ("; gen_parse_piqtype (some_of l.typeref); ios ")";
           ]
           else iol [];
 

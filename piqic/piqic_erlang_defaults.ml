@@ -51,15 +51,15 @@ let gen_default_type erlang_type wire_type x =
         ]
 
 
-let gen_default_typeref ?erlang_type ?wire_type (t:T.typeref) =
-  gen_default_type erlang_type wire_type (piqtype t)
+let gen_default_piqtype ?erlang_type ?wire_type (t: T.piqtype) =
+  gen_default_type erlang_type wire_type t
 
 
 let gen_field_cons f =
   let open Field in
   let value =
     match f.mode with
-      | `required -> gen_default_typeref (some_of f.typeref)
+      | `required -> gen_default_piqtype (some_of f.typeref)
       | `optional when f.typeref = None -> ios "false" (* flag *)
       (* XXX: generate default value? (see piqic_ocaml_defaults.ml)
       | `optional when f.default <> None ->
@@ -107,11 +107,11 @@ let rec gen_option varname o =
     | Some n, None ->
         ios n
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
-        gen_default_typeref t
+        gen_default_piqtype t
     | _, Some t ->
         let n = erlname_of_option o in
         iol [
-          ios "{"; ios n; ios ", "; gen_default_typeref t; ios "}";
+          ios "{"; ios n; ios ", "; gen_default_piqtype t; ios "}";
         ]
     | None, None -> assert false
 
@@ -130,8 +130,8 @@ let gen_alias a =
   iol [
     ios "default_"; ios (some_of a.erlang_name); ios "() -> ";
     Piqic_erlang_in.gen_convert_of a.typeref a.erlang_type (
-      gen_default_typeref
-        a.typeref ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
+      gen_default_piqtype
+        (some_of a.typeref) ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
     );
     ios ".";
   ]

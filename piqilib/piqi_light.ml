@@ -26,21 +26,14 @@ open C
 open Iolist
 
 
-let gen_typeref (t:T.typeref) =
-  let gen_typename x = ios x ^^ ios "()" in
-  match t with
-    | `name x -> gen_typename x
-    | (#T.piqdef as x) -> gen_typename (piqdef_name x)
-    | (#T.piqtype as t) ->
-        (* generate name for built-in types *)
-        ios "." ^^ ios (piqi_typename t)
+let gen_typename x = ios x ^^ ios "()"
 
 
-let gen_name_typeref name typeref =
-  match name, typeref with
+let gen_name_type name typename =
+  match name, typename with
     | Some n, None -> ios n
-    | None, Some t -> gen_typeref t
-    | Some n, Some t -> ios n ^^ ios " :: " ^^ gen_typeref t
+    | None, Some t -> gen_typename t
+    | Some n, Some t -> ios n ^^ ios " :: " ^^ gen_typename t
     | _ -> assert false
 
 
@@ -73,7 +66,7 @@ let gen_field x =
   let open F in
   let field_mode = gen_field_mode x.mode in
   iol [
-    ios field_mode; ios " "; gen_name_typeref x.name x.typeref;
+    ios field_mode; ios " "; gen_name_type x.name x.typename;
     gen_default x.default;
   ]
 
@@ -92,7 +85,7 @@ let gen_record x =
 let gen_option x =
   let open O in
   iol [
-    ios "| "; gen_name_typeref x.name x.typeref
+    ios "| "; gen_name_type x.name x.typename
   ]
 
 
@@ -118,15 +111,22 @@ let gen_variant x =
 
 let gen_list x =
   let open L in
-  let typename = gen_typeref x.typeref in
   iol [
-    ios " [ "; typename; ios " ]"
+    ios " [ "; gen_typename x.typename; ios " ]"
   ]
 
 
 let gen_alias x =
   let open A in
-  let typename = gen_typeref x.typeref in
+  let typename =
+    match x.typename with
+      | Some n ->
+          gen_typename n
+      | None ->
+          (* generate name for built-in types *)
+          let piqtype = ((some_of x.piqi_type) :> T.piqtype) in
+          ios "." ^^ ios (C.piqi_typename piqtype)
+  in
   iol [
     ios " "; typename;
   ]
@@ -293,6 +293,8 @@ let gen_piqi ch (piqi:T.piqi) =
       gen_module piqi.modname;
       gen_imports piqi.import;
       gen_includes piqi.includ;
+      (* NOTE: can't use resolved or extended piqdef here, because we are
+       * printing inludes and extensions separately *)
       gen_defs piqi.piqdef;
       gen_extensions piqi.extend;
       gen_functions piqi.resolved_func;

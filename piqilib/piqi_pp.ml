@@ -137,11 +137,10 @@ let simplify_piqi_ast (ast:T.ast) =
   |> tr_field_mode ["record"; "field"]
   |> tr_extend_piq_any
   |> tr_extend_what
-  (* .../type.name x -> type.x *)
+  (* .../type.name x -> type x *)
   |> tr_type_name_common ["record"; "field"]
   |> tr_type_name_common ["variant"; "option"]
   |> tr_type_name_common ["enum"; "option"]
-  |> tr_type_name_common ["alias"]
   |> tr_type_name_common ["list"]
   (* functions *)
   |> simplify_function_param "input"

@@ -100,17 +100,14 @@ let rec gen_piqtype t ocaml_type =
 and gen_aliastype a =
   let open Alias in
   let ocaml_name = some_of a.ocaml_name in
-  let typename = gen_typeref a.typeref ?ocaml_type:a.ocaml_type in
+  let typename = gen_piqtype (some_of a.typeref) a.ocaml_type in
   if ocaml_name = typename
   then ocaml_name (* don't generate aliases for built-in types *)
   else gen_deftype a.parent a.ocaml_name
 
 
-and gen_typeref ?ocaml_type (t:T.typeref) =
-  gen_piqtype (piqtype t) ocaml_type
-
-
-let ios_gen_typeref ?ocaml_type t = ios (gen_typeref ?ocaml_type t)
+let ios_gen_piqtype ?ocaml_type (t :T.piqtype) =
+  ios (gen_piqtype t ocaml_type)
 
 
 let gen_field_type f =
@@ -118,7 +115,7 @@ let gen_field_type f =
   match f.typeref with
     | None -> ios "bool"; (* flags are represented as booleans *)
     | Some t ->
-      let deftype = ios_gen_typeref t in
+      let deftype = ios_gen_piqtype t in
       match f.mode with
         | `required -> deftype
         | `optional when f.default <> None -> deftype (* optional + default *)
@@ -209,10 +206,10 @@ let gen_option o =
          * non-qualified names in this case *)
         if is_local_def def
         then ios (some_of v.V#ocaml_name)
-        else ios_gen_typeref def
+        else ios_gen_piqtype def
     | _, Some t ->
         let n = gen_pvar_name (mlname_of_option o) in
-        n ^^ ios " of " ^^ ios_gen_typeref t
+        n ^^ ios " of " ^^ ios_gen_piqtype t
     | Some mln, None -> gen_pvar_name mln
     | None, None -> assert false
 
@@ -221,14 +218,14 @@ let gen_alias a =
   let open Alias in
   iol [
     ios (some_of a.ocaml_name); ios " = ";
-      ios_gen_typeref a.typeref ?ocaml_type:a.ocaml_type ]
+      ios_gen_piqtype (some_of a.typeref) ?ocaml_type:a.ocaml_type ]
 
 
 let gen_list l =
   let open L in
   iol [
     ios (some_of l.ocaml_name); ios " = ";
-      ios_gen_typeref l.typeref;
+      ios_gen_piqtype (some_of l.typeref);
       if l.ocaml_array
       then ios " array"
       else ios " list";
@@ -262,7 +259,7 @@ let gen_def = function
 let gen_alias a =
   let open Alias in
   let name = some_of a.ocaml_name in
-  let typename = gen_typeref a.typeref ?ocaml_type:a.ocaml_type in
+  let typename = gen_piqtype (some_of a.typeref) a.ocaml_type in
   if name = typename
   then [] (* don't generate cyclic type abbreviation *)
   else [ gen_alias a ]

@@ -127,13 +127,13 @@ and gen_alias_typename ?parent x =
               typename x ?parent
 
 
-let gen_typeref ?parent t =
-  ios (typename (piqtype t) ?parent)
+let gen_piqtype ?parent t =
+  ios (typename t ?parent)
 
 
-let gen_typeref' ?parent = function
+let gen_piqtype' ?parent = function
   | None -> ios "bool"
-  | Some t -> gen_typeref t ?parent
+  | Some t -> gen_piqtype t ?parent
 
 
 let piqdef_proto_name = function
@@ -217,8 +217,7 @@ let rec gen_default_obj (x:Piqobj.obj) =
 let gen_default x =
   let open F in
   match x.default, x.typeref with
-    | Some {T.Any.ast = Some ast }, Some typeref ->
-        let piqtype = C.piqtype typeref in
+    | Some {T.Any.ast = Some ast }, Some piqtype ->
         let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
         gen_default_obj piqobj
     | _, _ -> iol [] (* there is no default *)
@@ -234,7 +233,7 @@ let gen_field parent f =
   let fdef = iod " " (* field definition *)
     [
       ios (string_of_mode f.mode);
-      gen_typeref' f.typeref ?parent;
+      gen_piqtype' f.typeref ?parent;
       protoname_of_field f; ios "=";
         gen_code f.code ^^ gen_default f ^^ ios packed ^^ ios ";";
     ]
@@ -298,7 +297,7 @@ let gen_enum e =
 let gen_option parent o =
   let open Option in
   iod " " [
-    ios "optional"; gen_typeref' o.typeref ?parent;
+    ios "optional"; gen_piqtype' o.typeref ?parent;
       protoname_of_option o; ios "="; gen_code o.code ^^ ios ";";
   ]
 
@@ -334,7 +333,7 @@ let gen_list ?name ?parent l =
     [
       ios "message "; ios name;
       ios " {"; indent;
-        ios "repeated "; gen_typeref l.typeref ?parent; ios " elem = 1"; ios packed; ios ";";
+        ios "repeated "; gen_piqtype (some_of l.typeref) ?parent; ios " elem = 1"; ios packed; ios ";";
         gen_proto_custom l.proto_custom;
         unindent; eol;
       ios "}"; eol;
@@ -379,7 +378,7 @@ and gen_alias ?name ?parent ?(is_func_param=false) a =
             iol [
               ios "message "; ios name;
               ios " {"; indent;
-              ios "required "; gen_typeref a.typeref ?parent; ios " elem = 1;";
+              ios "required "; gen_piqtype (some_of a.typeref) ?parent; ios " elem = 1;";
               unindent; eol;
               ios "}"; eol;
             ]

@@ -386,7 +386,7 @@ and do_parse_field loc t l =
   let open T.Field in
   let name = name_of_field t in
   debug "do_parse_field: %s\n" name;
-  let field_type = piqtype (some_of t.typeref) in
+  let field_type = piqtype t.typeref in
   let values, rem =
     match t.mode with
       | `required -> 
@@ -619,7 +619,7 @@ and parse_named_option options name x =
       | Some n, None when equals_name n ->
           error x ("value can not be specified for option " ^ n)
       | Some n, Some _ -> equals_name n
-      | None, Some t when piqi_typerefname t = name -> true
+      | None, Some t when piqi_typename t = name -> true
       | _, _ -> false
   in parse_typed_option options f x
 
@@ -628,7 +628,7 @@ and make_option_finder f o =
   let open T.Option in
   match o.typeref with
     | None -> false
-    | Some x -> f (unalias (piqtype x)) (* TODO: optimize *)
+    | Some x -> f (unalias x) (* TODO: optimize *)
 
 
 and parse_bool_option options x =
@@ -694,7 +694,7 @@ and parse_list_option options x =
 
 and parse_typed_option (options:T.Option.t list) f (x:T.ast) :Piqobj.Option.t =
   let option = List.find f options in
-  let option_type = piqtype (some_of option.T.Option#typeref) in
+  let option_type = piqtype option.T.Option#typeref in
   O#{ piqtype = option; obj = Some (parse_obj option_type x) }
 
 

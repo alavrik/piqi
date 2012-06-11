@@ -48,11 +48,26 @@
 
 
 .variant [
-    .name type
-    .ocaml-name "typeref"
+    .name piqi-type
 
-    .option [ .type name ] 
-    .option [ .type piqtype ]
+    % built-in types
+    .option [ .name int ]
+    .option [ .name float ]
+    .option [ .name bool ]
+    .option [ .name string ]
+    .option [ .name binary ]
+    .option [ .name text ]
+
+    .option [ .name word ]
+    .option [ .name any ]
+]
+
+
+.alias [
+    .name type
+    .type name
+
+    .ocaml-name "typename"
 ]
 
 
@@ -139,7 +154,19 @@
     .name alias
 
     .field [ .type name ]
-    .field [ .type type ]
+
+    % either type or piqi-type fields must be present; we don't use variant here
+    % in order to simplify external representation which is going to be flat in
+    % such case, as opposed to nested if we used variant
+    .field [
+        .type type
+        .optional
+    ]
+
+    .field [
+        .type piqi-type
+        .optional
+    ]
 ]
 
 

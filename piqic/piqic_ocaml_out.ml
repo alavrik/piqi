@@ -71,8 +71,8 @@ let rec gen_gen_type ocaml_type wire_type wire_packed x =
           gen_cc ")";
         ]
 
-and gen_gen_typeref ?ocaml_type ?wire_type ?(wire_packed=false) t =
-  gen_gen_type ocaml_type wire_type wire_packed (piqtype t)
+let gen_gen_piqtype ?ocaml_type ?wire_type ?(wire_packed=false) t =
+  gen_gen_type ocaml_type wire_type wire_packed t
 
 
 (* calculates and generates the width of a packed wire element in bits:
@@ -108,7 +108,7 @@ let gen_mode f =
         in
         if f.ocaml_array
         then
-          let width = gen_wire_elem_width (some_of f.typeref) f.wire_packed in
+          let width = gen_wire_elem_width f.typeref f.wire_packed in
           mode ^ "_array" ^ width
         else mode
 
@@ -122,13 +122,13 @@ let gen_field rname f =
   let mode = gen_mode f in
   let fgen =
     match f.typeref with
-      | Some typeref ->
+      | Some piqtype ->
           (* field generation code *)
           iod " "
             [ 
               ios "Piqirun.gen_" ^^ ios mode ^^ ios "_field";
                 gen_code f.code;
-                gen_gen_typeref typeref ~wire_packed:f.wire_packed;
+                gen_gen_piqtype piqtype ~wire_packed:f.wire_packed;
                 ffname
             ]
       | None ->
@@ -228,13 +228,13 @@ let rec gen_option o =
         in
         iod " " [
           ios "| (#" ^^ ios scoped_name; ios " as x) ->";
-            gen_gen_typeref t; gen_code o.code; ios "x";
+            gen_gen_piqtype t; gen_code o.code; ios "x";
         ]
     | _, Some t ->
         let mln = mlname_of_option o in
         iod " " [
           ios "|"; gen_pvar_name mln; ios "x ->";
-            gen_gen_typeref t; gen_code o.code; ios "x";
+            gen_gen_piqtype t; gen_code o.code; ios "x";
         ]
     | None, None -> assert false
 
@@ -245,7 +245,7 @@ let gen_variant v =
   iod " "
     [
       ios "gen__" ^^ ios (some_of v.ocaml_name);
-      ios "code (x:" ^^ ios_gen_typeref (`variant v) ^^ ios ") =";
+      ios "code (x:" ^^ ios_gen_piqtype (`variant v) ^^ ios ") =";
       gen_cc "refer x;";
       ios "Piqirun.gen_record code [(match x with"; iol options; ios ")]";
     ]
@@ -275,7 +275,7 @@ let gen_alias a =
   iol [
     ios "gen__"; ios (some_of a.ocaml_name);
     ios " code x = ";
-      gen_gen_typeref a.typeref ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+      gen_gen_piqtype (some_of a.typeref) ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
       ios " code"; gen_convert_to a.typeref a.ocaml_type (ios " x");
   ]
 
@@ -285,7 +285,7 @@ let gen_packed_alias a =
   iol [
     ios "packed_gen__"; ios (some_of a.ocaml_name);
     ios " x = ";
-      gen_gen_typeref a.typeref
+      gen_gen_piqtype (some_of a.typeref)
         ?ocaml_type:a.ocaml_type
         ?wire_type:a.wire_type
         ~wire_packed:true;
@@ -325,7 +325,7 @@ let gen_list l =
       gen_cc "reference ";
         (* Piqirun.gen_(packed_)?(list|array|array32|array64) *)
         ios "(Piqirun.gen_"; repr; ios " (";
-          gen_gen_typeref l.typeref ~wire_packed:l.wire_packed;
+          gen_gen_piqtype (some_of l.typeref) ~wire_packed:l.wire_packed;
         ios ")) code x";
   ]
 

@@ -54,8 +54,8 @@ let gen_default_type ocaml_type wire_type x =
         ]
 
 
-let gen_default_typeref ?ocaml_type ?wire_type (t:T.typeref) =
-  gen_default_type ocaml_type wire_type (piqtype t)
+let gen_default_piqtype ?ocaml_type ?wire_type (t:T.piqtype) =
+  gen_default_type ocaml_type wire_type t
 
 
 let gen_field_cons rname f =
@@ -66,13 +66,13 @@ let gen_field_cons rname f =
   in 
   let value =
     match f.mode with
-      | `required -> gen_default_typeref (some_of f.typeref)
+      | `required -> gen_default_piqtype (some_of f.typeref)
       | `optional when f.typeref = None -> ios "false" (* flag *)
       | `optional when f.default <> None ->
           let default = some_of f.default in
           let default_str = String.escaped (some_of default.T.Any.binobj) in
           iod " " [
-            Piqic_ocaml_in.gen_parse_typeref (some_of f.typeref);
+            Piqic_ocaml_in.gen_parse_piqtype (some_of f.typeref);
               ios "(Piqirun.parse_default"; ioq default_str; ios ")";
           ]
 
@@ -120,13 +120,13 @@ let rec gen_option varname o =
         gen_pvar_name mln
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
         iod " " [
-            ios "("; gen_default_typeref t; ios ":>"; ios varname; ios ")"
+            ios "("; gen_default_piqtype t; ios ":>"; ios varname; ios ")"
         ]
     | _, Some t ->
         let n = mlname_of_option o in
         iod " " [
               gen_pvar_name n;
-              ios "("; gen_default_typeref t; ios ")";
+              ios "("; gen_default_piqtype t; ios ")";
         ]
     | None, None -> assert false
 
@@ -147,8 +147,8 @@ let gen_alias a =
     [
       ios "default_" ^^ ios (some_of a.ocaml_name); ios "() =";
       Piqic_ocaml_in.gen_convert_of a.typeref a.ocaml_type (
-        gen_default_typeref
-          a.typeref ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+        gen_default_piqtype
+          (some_of a.typeref) ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
       );
     ]
 

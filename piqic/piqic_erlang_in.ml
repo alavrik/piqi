@@ -60,8 +60,8 @@ let rec gen_parse_type erlang_type wire_type wire_packed x =
             ios (W.get_wire_type_name x wire_type);
         ]
 
-and gen_parse_typeref ?erlang_type ?wire_type ?(wire_packed=false) (t:T.typeref) =
-  gen_parse_type erlang_type wire_type wire_packed (piqtype t)
+let gen_parse_piqtype ?erlang_type ?wire_type ?(wire_packed=false) (t :T.piqtype) =
+  gen_parse_type erlang_type wire_type wire_packed t
 
 
 let gen_erlang_binary x =
@@ -105,14 +105,14 @@ let gen_field_parser i f =
   let mode = gen_mode f in
   let fcons =
     match f.typeref with
-      | Some typeref ->
+      | Some piqtype ->
           (* field constructor *)
           iol [
             (* "parse_(req|opt|rep)_field" function invocation *)
             ios "piqirun:parse_" ^^ ios mode ^^ ios "_field(";
               gen_code f.code; ios ", ";
               ios "fun ";
-                gen_parse_typeref typeref ~wire_packed:f.wire_packed;
+                gen_parse_piqtype piqtype ~wire_packed:f.wire_packed;
                 ios "/1, ";
 
               (* when parsing packed repeated fields, we should also accept
@@ -121,7 +121,7 @@ let gen_field_parser i f =
               if f.wire_packed
               then iol [
               ios "fun ";
-                gen_parse_typeref typeref;
+                gen_parse_piqtype piqtype;
                 ios "/1, ";
               ] else iol [];
 
@@ -228,14 +228,14 @@ let rec gen_option o =
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
         iol [
           gen_code o.code; ios " -> ";
-            gen_parse_typeref t; ios "(Obj)";
+            gen_parse_piqtype t; ios "(Obj)";
         ]
     | _, Some t ->
         let ename = erlname_of_option o in
         iol [
           gen_code o.code; ios " -> ";
             ios "{"; ios ename; ios ", ";
-              gen_parse_typeref t; ios "(Obj)";
+              gen_parse_piqtype t; ios "(Obj)";
             ios "}";
         ]
     | None, None -> assert false
@@ -270,7 +270,7 @@ let gen_alias a ~wire_packed =
     packed; ios "parse_"; ios (some_of a.erlang_name); ios "(X) ->"; indent;
       gen_convert_of a.typeref a.erlang_type (
         iol [
-          gen_parse_typeref a.typeref
+          gen_parse_piqtype (some_of a.typeref)
             ?erlang_type:a.erlang_type
             ?wire_type:a.wire_type
             ~wire_packed;
@@ -301,7 +301,7 @@ let gen_list l =
     ios "parse_" ^^ ios (some_of l.erlang_name); ios "(X) ->"; indent;
       ios "piqirun:parse_"; packed; ios "list(";
         ios "fun ";
-          gen_parse_typeref l.typeref ~wire_packed:l.wire_packed;
+          gen_parse_piqtype (some_of l.typeref) ~wire_packed:l.wire_packed;
           ios "/1, ";
 
         (* when parsing packed repeated fields, we should also accept
@@ -310,7 +310,7 @@ let gen_list l =
         if l.wire_packed
         then iol [
         ios "fun ";
-          gen_parse_typeref l.typeref;
+          gen_parse_piqtype (some_of l.typeref);
           ios "/1, ";
         ] else iol [];
 
@@ -323,7 +323,7 @@ let gen_spec x =
   iol [
     ios "-spec parse_"; ios (piqdef_erlname x); ios "/1 :: (";
       ios "X :: "; ios "piqirun_buffer()"; ios ") -> ";
-    ios_gen_in_typeref (x :> T.typeref);
+    ios_gen_in_piqtype (x :> T.piqtype);
     ios ".";
   ]
 

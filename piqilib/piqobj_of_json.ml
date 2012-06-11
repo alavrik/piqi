@@ -155,7 +155,7 @@ and do_parse_field loc t l =
   let open T.Field in
   let name = some_of t.json_name in
   debug "do_parse_field: %s\n" name;
-  let field_type = piqtype (some_of t.typeref) in
+  let field_type = piqtype t.typeref in
   let values, rem =
     match t.mode with
       | `required -> 
@@ -260,8 +260,7 @@ and parse_option t x =
         O#{ piqtype = t; obj = None }
     | None, _ ->
         error x "true value expected"
-    | Some typeref, _ ->
-        let option_type = piqtype typeref in
+    | Some option_type, _ ->
         let obj = parse_obj option_type x in
         O#{ piqtype = t; obj = Some obj }
 

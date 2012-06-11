@@ -83,24 +83,20 @@ and gen_aliastype a =
   let open Alias in
   match some_of a.parent with
     | `piqi p when is_boot_piqi p ->
-        gen_typeref a.typeref ?erlang_type:a.erlang_type
+        gen_piqtype (some_of a.typeref) a.erlang_type
     | _ ->
         gen_deftype a.parent a.erlang_name
 
 
-and gen_typeref ?erlang_type (t:T.typeref) =
-  gen_piqtype (piqtype t) erlang_type
-
-
-let ios_gen_in_typeref t =
+let ios_gen_in_piqtype t =
   let rec unalias = function
     | `alias t when t.A#erlang_type = None ->
-        unalias t.A#typeref
+        unalias (some_of t.A#typeref)
     | t -> t
   in
   (* un-alias to avoid Dialyzer complaints like this one: "... states that the
    * function might also return string() but the inferred return is binary()" *)
-  let n = gen_typeref (unalias t) in
+  let n = gen_piqtype (unalias t) None in
   (* recognized the fact that strings are actually parsed as binaries *)
   let n =
     if n <> "string"
@@ -113,8 +109,8 @@ let ios_gen_in_typeref t =
   ios n ^^ ios "()"
 
 
-let ios_gen_out_typeref ?erlang_type t =
-  let n = gen_typeref ?erlang_type t in
+let ios_gen_out_piqtype ?erlang_type t =
+  let n = gen_piqtype t erlang_type in
   (* allow more flexible typing in certain cases: loosen type restrictions for
    * convenience *)
   match n with
@@ -127,7 +123,7 @@ let gen_field_type fl ft =
   match ft with
     | None -> ios "boolean()"; (* flags are represented as booleans *)
     | Some ft ->
-      let deftype = ios_gen_out_typeref ft in
+      let deftype = ios_gen_out_piqtype ft in
       match fl with
         | `required -> deftype
         | `optional -> deftype
@@ -198,7 +194,7 @@ let gen_option o =
           ios "{";
             ios n;
             ios ", ";
-            ios_gen_out_typeref t;
+            ios_gen_out_piqtype t;
           ios "}";
         ]
     | Some _, None ->
@@ -222,7 +218,7 @@ let gen_variant v =
 let gen_alias a =
   let open Alias in
   let name = some_of a.erlang_name in
-  let type_expr = ios_gen_out_typeref a.typeref ?erlang_type:a.erlang_type in
+  let type_expr = ios_gen_out_piqtype (some_of a.typeref) ?erlang_type:a.erlang_type in
   gen_type name type_expr
 
 
@@ -231,7 +227,7 @@ let gen_list l =
   let name = some_of l.erlang_name in
   let type_expr =
     iol [
-      ios "["; ios_gen_out_typeref l.typeref; ios "]";
+      ios "["; ios_gen_out_piqtype (some_of l.typeref); ios "]";
     ]
   in
   gen_type name type_expr

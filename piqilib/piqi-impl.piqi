@@ -98,6 +98,17 @@
 
 
 .extend [
+    (.typedef alias list field option)
+
+    .with.field [
+        .name typeref
+        .type piqtype
+        .optional
+    ]
+]
+
+
+.extend [
     .typedef ast
 
     % These two token types are used only in several special cases, and can't be

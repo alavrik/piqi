@@ -182,7 +182,7 @@ and do_parse_field loc t l =
   let open T.Field in
   let name = C.name_of_field t in
   debug "do_parse_field: %s\n" name;
-  let field_type = piqtype (some_of t.typeref) in
+  let field_type = piqtype t.typeref in
   let values, rem =
     match t.mode with
       | `required -> 
@@ -278,8 +278,7 @@ and parse_option t xml_elem =
         O#{ piqtype = t; obj = None }
     | None, _ ->
         error name ("no value expected for option flag " ^ quote name)
-    | Some typeref, _ ->
-        let option_type = piqtype typeref in
+    | Some option_type, _ ->
         let obj = parse_obj option_type xml_elem in
         O#{ piqtype = t; obj = Some obj }
 

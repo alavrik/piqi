@@ -15,10 +15,10 @@ PIQI_FILES = \
 	piqobj.piqi
 
 
-BOOT_PIQI_FILES = piqi-boot.piqi piqtype-core.piqi
+BOOT_PIQI_FILES = piqi-boot.piqi #piqtype-core.piqi
 
 
-test: test_boot test_piqi test_piqi_piqi test_piqtype_core
+test: test_boot test_piqi test_piqi_piqi #test_piqtype_core
 
 
 test_boot:
@@ -27,6 +27,7 @@ test_boot:
 	for i in $(BOOT_PIQI_FILES); \
 	do \
 		piqi check --noboot $$i; \
+		piqi light --noboot $$i; \
 	done
 
 

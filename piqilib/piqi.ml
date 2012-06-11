@@ -132,43 +132,50 @@ let set_is_func_param_flag def =
     | `list x -> x.L#is_func_param <- true
 
 
-let resolve_typeref map t =
-  match t with
-    | `name name ->
-        let def = find_def map name in
-        if is_func_param def
-        then error name ("type " ^ quote name ^ " is defined as a function parameter and can't be referenced");
-        (def: T.piqdef :> T.typeref)
-    | _ ->
-        t (* already resolved *)
+let resolve_typename map name :T.piqtype =
+    let def = find_def map name in
+    if is_func_param def
+    then error name ("type " ^ quote name ^ " is defined as a function parameter and can't be referenced");
+    (def :> T.piqtype)
 
 
 (* XXX: is there a way to avoid code duplicaton here? *)
-let resolve_field_typeref map f =
+let resolve_field_typename map f =
   let open F in
-  match f.typeref with
+  match f.typename with
     | None -> () (* flag *)
-    | Some t ->
-        f.typeref <- Some (resolve_typeref map t)
+    | Some name ->
+        f.typeref <- Some (resolve_typename map name)
 
 
-let resolve_option_typeref map o =
+let resolve_option_typename map o =
   let open O in
-  match o.typeref with
+  match o.typename with
     | None -> ()
-    | Some t ->
-        o.typeref <- Some (resolve_typeref map t)
+    | Some name ->
+        o.typeref <- Some (resolve_typename map name)
 
 
-let resolve_typerefs map = function
+let resolve_typenames map = function
   | `record r ->
-      List.iter (resolve_field_typeref map) r.R#field
+      List.iter (resolve_field_typename map) r.R#field
   | `variant v ->
-      List.iter (resolve_option_typeref map) v.V#option
+      List.iter (resolve_option_typename map) v.V#option
   | `alias a ->
-      a.A#typeref <- resolve_typeref map a.A#typeref
+      (match a.A#piqi_type with
+        | Some x ->
+            a.A#typeref <- Some (x :> T.piqtype)
+        | None ->
+            (*
+            a.A#typeref <- resolve_typeref map a.A#typeref
+            *)
+            a.A#typeref <- Some (resolve_typename map (some_of a.A#typename))
+            (*
+            a.A#typeref <- resolve_typename map (some_of a.A#typename)
+            *)
+      )
   | `list l ->
-      l.L#typeref <- resolve_typeref map l.L#typeref
+      l.L#typeref <- Some (resolve_typename map l.L#typename)
   | _ -> ()
 
 
@@ -199,6 +206,13 @@ let check_dup_names what names =
             error_string prev "first defined here")
 
 
+let error_noboot obj s =
+  if !is_boot_mode || !Config.noboot
+  then ()
+  else error obj s
+
+
+(*
 let check_typeref obj (t:T.typeref) =
   match t with 
     | `name x -> check_scoped_name x
@@ -207,17 +221,12 @@ let check_typeref obj (t:T.typeref) =
     | _ -> ()
 
 
-let error_noboot obj s =
-  if !is_boot_mode || !Config.noboot
-  then ()
-  else error obj s
-
-
 let check_no_builtin_type obj t =
   match t with 
     | #T.piqdef | `name _ -> check_typeref obj t
     | _ ->
         error_noboot obj "use of built-in types is allowed only from boot files or when running in \"noboot\" mode"
+*)
 
 
 let check_field f =
@@ -225,11 +234,9 @@ let check_field f =
   begin
     begin
     check_opt_name f.name;
-    match f.name, f.typeref with
+    match f.name, f.typename with
       | None, None ->
           error f "name or type must be specified for a field"
-      | _, Some t ->
-          check_no_builtin_type f t
       | Some _, None -> (* flag *)
           begin
             (if f.mode <> `optional
@@ -238,6 +245,8 @@ let check_field f =
             (if f.default <> None
             then error f "flags may not specify default")
           end
+      | _ ->
+          ()
     end;
 
     if f.default <> None && f.mode <> `optional
@@ -260,9 +269,7 @@ let check_option o =
   let open Option in
   begin
     check_opt_name o.name;
-    match o.name, o.typeref with
-      | _, Some t ->
-          check_no_builtin_type o t
+    match o.name, o.typename with
       | None, None ->
           error o "name or type must be specified for an option"
       | _ -> ()
@@ -285,7 +292,7 @@ let check_enum_option x =
     if x.name = None
     then error x ("enum options must specify name");
 
-    if x.typeref <> None
+    if x.typename <> None
     then error x ("enum options must not specify type");
 
     check_opt_name x.name;
@@ -314,8 +321,11 @@ let check_wire_type a wt =
 let check_alias a =
   let open A in
   begin
-    check_typeref a a.typeref;
+    if a.typename = None && a.piqi_type = None
+    then
+      error a ("alias " ^ quote a.name ^ " must specify either piqi-type or type");
     (*
+     * TODO:
     check_no_builtin_type a a.typeref;
     *)
   end
@@ -324,7 +334,6 @@ let check_alias a =
 let check_list l =
   let open L in
   begin
-    check_no_builtin_type l l.typeref
   end
 
 
@@ -416,8 +425,11 @@ let debug_loc prefix =
 let assert_loc () =
   if (!Piqloc.ocount <> !Piqloc.icount)
   then
-    failwith
-     (Printf.sprintf "internal_error: out count = %d, in count = %d\n" !Piqloc.ocount !Piqloc.icount)
+    let s = Printf.sprintf "internal_error: out count = %d, in count = %d\n" !Piqloc.ocount !Piqloc.icount in
+    (*
+    failwith s
+    *)
+    piqi_warning s
 
 
 (* convert textobj, i.e. JSON or XML to piqobj -- this function will be set by
@@ -452,13 +464,11 @@ let resolve_field_default x =
     | Some {T.Any.binobj = Some _}, _ ->
         (* nothing to do -- object is already resolved *)
         ()
-    | Some ({T.Any.ast = Some ast} as default), Some typeref ->
-        let piqtype = C.piqtype typeref in
+    | Some ({T.Any.ast = Some ast} as default), Some piqtype ->
         let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
         resolve_default_value default piqtype piqobj
 
-    | Some ({T.Any.ref = Some ref} as default), Some typeref ->
-        let piqtype = C.piqtype typeref in
+    | Some ({T.Any.ref = Some ref} as default), Some piqtype ->
         let piqobj = !piqobj_of_ref piqtype ref in
         resolve_default_value default piqtype piqobj
 
@@ -525,8 +535,8 @@ let resolve_defs ?piqi idtable (defs:T.piqdef list) =
   (* add definitions to the map: def name -> def *)
   let idtable = add_piqdefs idtable defs in
 
-  (* resolve type references using the map *)
-  List.iter (resolve_typerefs idtable) defs;
+  (* resolve type names using the map *)
+  List.iter (resolve_typenames idtable) defs;
 
   (* check records, variants, enums for duplicate field/option names; check wire
    * types in aliases *)
@@ -1116,7 +1126,7 @@ let make_param_alias name x =
       T.default_alias () with
 
       name = name;
-      typeref = `name x;
+      typename = Some x;
     }
   in
   Piqloc.addrefret x res
@@ -1154,7 +1164,7 @@ let make_param_list name x =
       T.default_piqlist () with
 
       name = name;
-      typeref = x.T.Anonymous_list.typeref;
+      typename = x.T.Anonymous_list.typename;
       (* XXX: what about wire-packed property? -- it is not defined for
        * anonymous list:
        * wire_packed = x.T.Anonymous_list.wire_packed;
@@ -1482,7 +1492,8 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option
    * NOTE: this step must be performed before resolving defaults -- this is
    * critical for potential piqi extensions such as those used in various piqic
    *)
-  if C.is_self_spec piqi then Piqi_wire.add_hashcodes resolved_defs;
+  if ast <> None && C.is_self_spec piqi
+  then Piqi_wire.add_hashcodes resolved_defs;
 
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)
@@ -1692,12 +1703,15 @@ let boot () =
   (* process embedded Piqi self-specification *)
   (* don't cache them as we are adding the spec to the DB explicitly below *)
 
+  trace "boot(1)\n";
   let boot = process_piqi T.piqi_boot ~cache:false in
   piqi_boot := Some boot;
 
+  trace "boot(2)\n";
   let lang = process_piqi T.piqi_lang ~cache:false in
   piqi_lang := Some lang;
 
+  trace "boot(3)\n";
   let spec = process_piqi T.piqi_spec ~cache:false in
   piqi_spec := Some spec;
 

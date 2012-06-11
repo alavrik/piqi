@@ -341,12 +341,6 @@ let gen_piqtype t =
   gen_typename (piqi_typename t)
 
 
-let gen_typeref (t:T.typeref) =
-  match t with
-    | `name x -> gen_typename x
-    | (#T.piqtype as t) -> gen_piqtype t
-
-
 let max_opt_len = ref 0
 let reset_padding () = max_opt_len := 0
 
@@ -370,7 +364,7 @@ let gen_option_help typeref name getopt_letter getopt_doc =
   let res =
     match typeref with
       | None -> res
-      | Some t -> iol [ res; ios " "; gen_typeref t ]
+      | Some t -> iol [ res; ios " "; gen_piqtype t ]
   in
   let res =
     match getopt_doc with
@@ -474,7 +468,7 @@ let gen_enum = gen_variant
 
 let gen_list x =
   let open L in
-  let typename = gen_typeref x.typeref in
+  let typename = gen_piqtype (C.piqtype x.typeref) in
   iol [
     ios "["; typename; ios " ...]";
     match unalias (piqtype x.typeref) with

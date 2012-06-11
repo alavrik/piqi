@@ -68,8 +68,9 @@ let rec gen_gen_type erlang_type wire_type wire_packed x =
           ios (W.get_wire_type_name x wire_type);
         ]
 
-and gen_gen_typeref ?erlang_type ?wire_type ?(wire_packed=false) t =
-  gen_gen_type erlang_type wire_type wire_packed (piqtype t)
+
+let gen_gen_piqtype ?erlang_type ?wire_type ?(wire_packed=false) (t :T.piqtype) =
+  gen_gen_type erlang_type wire_type wire_packed t
 
 
 let gen_mode f =
@@ -92,13 +93,13 @@ let gen_field rname f =
   let mode = gen_mode f in
   let fgen =
     match f.typeref with
-      | Some typeref ->
+      | Some piqtype ->
           (* field generation code *)
           iol [
             ios "piqirun:gen_" ^^ ios mode ^^ ios "_field(";
               gen_code f.code; ios ", ";
               ios "fun ";
-                gen_gen_typeref typeref ~wire_packed:f.wire_packed;
+                gen_gen_piqtype piqtype ~wire_packed:f.wire_packed;
                 if f.wire_packed (* arity *)
                 then ios "/1, "
                 else ios "/2, ";
@@ -197,7 +198,7 @@ let gen_inner_option pattern outer_option =
   let res =
     iol [
       pattern; ios " -> ";
-        gen_gen_typeref t; ios "("; gen_code o.code; ios ", X)";
+        gen_gen_piqtype t; ios "("; gen_code o.code; ios ", X)";
     ]
   in [res]
 
@@ -228,7 +229,7 @@ let rec gen_option outer_option o =
           let res = 
             iol [
               ios "{"; ios ename; ios ", Y} -> ";
-                gen_gen_typeref t; ios "("; gen_code o.code; ios ", Y)";
+                gen_gen_piqtype t; ios "("; gen_code o.code; ios ", Y)";
             ]
           in [res]
     | None, None -> assert false
@@ -273,7 +274,7 @@ let gen_alias a =
   iol [
     ios "gen_"; ios (some_of a.erlang_name);
     ios "(Code, X) ->"; indent;
-      gen_gen_typeref a.typeref ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
+      gen_gen_piqtype (some_of a.typeref) ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
       ios "(Code, "; gen_convert_to a.typeref a.erlang_type (ios "X"); ios ").";
     unindent; eol;
   ]
@@ -284,7 +285,7 @@ let gen_packed_alias a =
   iol [
     ios "packed_gen_"; ios (some_of a.erlang_name);
     ios "(X) ->"; indent;
-      gen_gen_typeref a.typeref
+      gen_gen_piqtype (some_of a.typeref)
         ?erlang_type:a.erlang_type
         ?wire_type:a.wire_type
         ~wire_packed:true;
@@ -313,7 +314,7 @@ let gen_list l =
     ios "(Code, X) ->"; indent;
       ios "piqirun:gen_"; packed; ios "list(Code, ";
         ios "fun ";
-          gen_gen_typeref l.typeref ~wire_packed:l.wire_packed;
+          gen_gen_piqtype (some_of l.typeref) ~wire_packed:l.wire_packed;
           if l.wire_packed (* arity *)
           then ios "/1, X)."
           else ios "/2, X).";
@@ -326,7 +327,7 @@ let gen_spec_2 x =
   iol [
     ios "-spec gen_"; ios (piqdef_erlname x); ios "/2 :: (";
       ios "Code :: piqirun_code(), ";
-      ios "X :: "; ios_gen_out_typeref (x :> T.typeref); ios ") -> ";
+      ios "X :: "; ios_gen_out_piqtype (x :> T.piqtype); ios ") -> ";
     ios "iolist().";
   ]
 
@@ -349,7 +350,7 @@ let gen_def_2 x =
 let gen_spec_1 x =
   iol [
     ios "-spec gen_"; ios (piqdef_erlname x); ios "/1 :: (";
-      ios "X :: "; ios_gen_out_typeref (x :> T.typeref); ios ") -> ";
+      ios "X :: "; ios_gen_out_piqtype (x :> T.piqtype); ios ") -> ";
     ios "iolist().";
   ]
 

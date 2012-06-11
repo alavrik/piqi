@@ -17,6 +17,10 @@ piqi check $f.piqi
 piqi expand $f.piqi
 
 
+# check piqi light
+piqi light $f.piqi
+
+
 # convert .piqi specification to piq, basically wrapping piqi in a piq object
 piqi convert $f.piqi
 

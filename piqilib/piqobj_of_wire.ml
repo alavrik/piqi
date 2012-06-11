@@ -198,7 +198,7 @@ and do_parse_flag t l =
 and do_parse_field t l =
   let open T.Field in
   let code = Int32.to_int (some_of t.code) in
-  let field_type = piqtype (some_of t.typeref) in
+  let field_type = piqtype t.typeref in
   let values, rem =
     match t.mode with
       | `required -> 
@@ -278,8 +278,7 @@ and parse_option t x =
           Piqloc.addrefret count res
         else
           piqi_error "invalid representation of untyped option"
-    | Some typeref ->
-        let option_type = piqtype typeref in
+    | Some option_type ->
         let obj = parse_obj option_type x in
         let res = O#{ piqtype = t; obj = Some obj } in
         Piqloc.addrefret obj res

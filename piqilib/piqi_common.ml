@@ -238,23 +238,17 @@ let full_piqi_typename x =
         name
 
 
-let piqtype (t:T.typeref) :T.piqtype =
+let piqtype (t:T.piqtype option) :T.piqtype =
   match t with
-    | `name _ -> assert false (* type has to be resolved by that moment *)
-    | (#T.piqtype as t) -> t
-
-
-let piqi_typerefname (t:T.typeref) =
-  match t with
-    | `name x -> x
-    | (#T.piqtype as t) -> piqi_typename t
+    | None -> assert false (* type has to be resolved by that moment *)
+    | Some x -> x
 
 
 let name_of_field f =
   let open T.Field in
   match f.name, f.typeref with
     | Some n, _ -> n
-    | None, Some t -> piqi_typerefname t
+    | None, Some t -> piqi_typename t
     | _ -> assert false
 
 
@@ -262,7 +256,7 @@ let name_of_option o =
   let open T.Option in
   match o.name, o.typeref with
     | Some n, _ -> n
-    | None, Some t -> piqi_typerefname t
+    | None, Some t -> piqi_typename t
     | _ -> assert false
 
 
@@ -309,7 +303,7 @@ let is_self_spec (piqi: T.piqi) =
 (* check if any of the module's definitions depends on "piq_any" type *)
 let depends_on_piq_any (piqi: T.piqi) =
   let aux x =
-    let is_any x = (unalias (piqtype x)) = `any in
+    let is_any x = (unalias x) = `any in
     let is_any_opt = function
       | Some x -> is_any x
       | None -> false
@@ -317,7 +311,7 @@ let depends_on_piq_any (piqi: T.piqi) =
     match x with
       | `record x -> List.exists (fun x -> is_any_opt x.F#typeref) x.R#field
       | `variant x -> List.exists (fun x -> is_any_opt x.O#typeref) x.V#option
-      | `list x -> is_any x.L#typeref
+      | `list x -> is_any (piqtype x.L#typeref)
       | `enum _ -> false
       | `alias _ -> false (* don't check aliases, we do unalias instead *)
   in

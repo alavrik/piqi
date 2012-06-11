@@ -153,6 +153,10 @@ let piqicc ch boot_fname lang_fname impl_fname =
     Piqloc.pause ();
     let piqi_ast = Piqi_pp.piqi_to_ast piqi ~simplify:true in
 
+    (* useful for debugging:
+    Piqi_pp.prettyprint_piqi stdout piqi;
+    *)
+
     (* XXX: setting this option in order to delay, and then ignore all parsing
      * warnings *)
     Piqobj_of_piq.delay_unknown_warnings := true;

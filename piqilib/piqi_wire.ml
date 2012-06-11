@@ -38,7 +38,8 @@ thus not recommended.
 
 *)
 
-open Piqi_common
+module C = Piqi_common
+open C
 
 
 let default_wire_type (t:T.piqtype) =
@@ -237,7 +238,7 @@ let check_packed_field x =
     if x.mode <> `repeated
     then error x "packed representation can be used only for repeated fields";
 
-    check_packed_type x (some_of x.typeref)
+    check_packed_type x x.typeref
   )
 
 
@@ -285,25 +286,47 @@ let hashcode' x =
   Some res
 
 
+let name_of_field f =
+  let open T.Field in
+  match f.name, f.typeref with
+    | None, None -> (* not resolved yet *)
+        some_of f.typename
+    | _ ->
+        C.name_of_field f
+
+
+let name_of_option o =
+  let open T.Option in
+  match o.name, o.typeref with
+    | None, None -> (* not resolved yet *)
+        some_of o.typename
+    | _ ->
+        C.name_of_option o
+
+
 let add_hashcodes_field f =
   let open T.Field in
-  f.code <- hashcode' (name_of_field f)
+  if f.code = None
+  then
+    f.code <- hashcode' (name_of_field f)
 
 
 let add_hashcodes_option o =
   let open T.Option in
-  o.code <- hashcode' (name_of_option o)
+  if o.code = None
+  then
+    o.code <- hashcode' (name_of_option o)
 
 
 let add_hashcodes_record r =
   let open T.Record in
-  (* NOTE: silently overriding existing codes *)
+  (* XXX: override existing hashcodes? *)
   List.iter add_hashcodes_field r.field
 
 
 let add_hashcodes_variant v =
   let open T.Variant in
-  (* NOTE: silently overriding existing codes *)
+  (* XXX: override existing hashcodes? *)
   List.iter add_hashcodes_option v.option
 
 
