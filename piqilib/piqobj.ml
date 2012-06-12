@@ -91,7 +91,7 @@ and List:
   sig
     type t =
       {
-        mutable piqtype : Piqi_piqi.piqlist;
+        mutable piqtype : Piqi_piqi.piqi_list;
         mutable obj: Types.obj list;
       }
   end = List

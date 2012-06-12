@@ -320,7 +320,7 @@ and gen_packed_enum_option x =
 
 and gen_list code x =
   let open L in
-  if not x.piqtype.T.Piqlist.wire_packed
+  if not x.piqtype.T.Piqi_list.wire_packed
   then Piqirun.gen_list gen_obj code x.obj
   else Piqirun.gen_packed_list gen_packed_obj code x.obj
 

@@ -60,18 +60,20 @@
 
 .record [
     .name record 
-    .erlang-name "piq_record"
 
     .field [ .type name ]
     .field [
         .type field
         .repeated
     ]
+
+    .erlang-name "piqi_record"
 ]
 
 
 .record [
     .name field
+
     .field [
         .type name
         .optional
@@ -89,7 +91,7 @@
 
     .field [
         .name default
-        .type piq-any % the type should correspond with the field type
+        .type piq-any
         .optional
     ]
 ]
@@ -97,6 +99,7 @@
 
 .enum [
     .name field-mode
+
     .option [ required ]
     .option [ optional ]
     .option [ repeated ]
@@ -129,7 +132,7 @@
 
 
 .alias [
-    % restriction. enum options shouldn't specify type and must specify name
+    % restriction: enum options shouldn't specify type and must specify name
     .name enum
     .type variant
 
@@ -159,10 +162,11 @@
 
 .record [
     .name list
-    .ocaml-name "piqlist"
-    .erlang-name "piq_list"
 
     .field [ .type name ]
     .field [ .type type ]
+
+    .ocaml-name "piqi_list"
+    .erlang-name "piqi_list"
 ]
 

@@ -101,7 +101,7 @@ and DEFRECORD(Option,
   >>)
 and DEFRECORD(List,
   <<
-    mutable piqtype : Piqi_piqi.piqlist;
+    mutable piqtype : Piqi_piqi.piqi_list;
     mutable obj: Types.obj list;
   >>)
 and DEFRECORD(Alias,

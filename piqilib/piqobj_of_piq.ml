@@ -711,7 +711,7 @@ and parse_list t = function
 
 
 and do_parse_list t l =
-  let obj_type = piqtype t.T.Piqlist#typeref in
+  let obj_type = piqtype t.T.Piqi_list#typeref in
   let contents = List.map (parse_obj obj_type) l in
   L#{ piqtype = t; obj = contents }
 

@@ -39,7 +39,7 @@ module V = Variant
 module O = Option
 module E = Enum
 module A = Alias
-module L = T.Piqlist
+module L = T.Piqi_list
 module P = T.Piqi
 
 

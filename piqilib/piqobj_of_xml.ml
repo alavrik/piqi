@@ -300,8 +300,8 @@ and parse_enum t xml_elem =
 
 
 and parse_list t xml_elem =
-  debug "parse_list: %s\n" t.T.Piqlist#name;
-  let obj_type = piqtype t.T.Piqlist#typeref in
+  debug "parse_list: %s\n" t.T.Piqi_list#name;
+  let obj_type = piqtype t.T.Piqi_list#typeref in
   let _name, l = xml_elem in
   let contents = List.map (parse_list_item obj_type) l in
   L#{ piqtype = t; obj = contents }

@@ -313,9 +313,9 @@ and parse_enum_option t code32 =
 
 
 and parse_list t x = 
-  let obj_type = piqtype t.T.Piqlist#typeref in
+  let obj_type = piqtype t.T.Piqi_list#typeref in
   let contents =
-    if not t.T.Piqlist.wire_packed
+    if not t.T.Piqi_list.wire_packed
     then Piqirun.parse_list (parse_obj obj_type) x
     else Piqirun.parse_packed_list
       (parse_packed_obj obj_type) (parse_obj obj_type) x

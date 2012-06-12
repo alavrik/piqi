@@ -191,18 +191,18 @@ gen_embedded_piqi(ErlMod) ->
     ].
 
 
-typedef_name({piq_record, X}) -> X#piq_record.name;
+typedef_name({piqi_record, X}) -> X#piqi_record.name;
 typedef_name({variant, X}) -> X#variant.name;
 typedef_name({enum, X}) -> X#variant.name;
 typedef_name({alias, X}) -> X#alias.name;
-typedef_name({piq_list, X}) -> X#piq_list.name.
+typedef_name({piqi_list, X}) -> X#piqi_list.name.
 
 
-typedef_erlname({piq_record, X}) -> X#piq_record.erlang_name;
+typedef_erlname({piqi_record, X}) -> X#piqi_record.erlang_name;
 typedef_erlname({variant, X}) -> X#variant.erlang_name;
 typedef_erlname({enum, X}) -> X#variant.erlang_name;
 typedef_erlname({alias, X}) -> X#alias.erlang_name;
-typedef_erlname({piq_list, X}) -> X#piq_list.erlang_name.
+typedef_erlname({piqi_list, X}) -> X#piqi_list.erlang_name.
 
 
 gen_parse(Mod, ErlMod, Name, ErlName) ->

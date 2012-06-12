@@ -1161,7 +1161,7 @@ let make_param_variant name x =
 let make_param_list name x =
   let res =
     L#{
-      T.default_piqlist () with
+      T.default_piqi_list () with
 
       name = name;
       typename = x.T.Anonymous_list.typename;

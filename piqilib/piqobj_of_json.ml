@@ -285,8 +285,8 @@ and parse_enum t x =
 and parse_list t x =
   match x with
     | `List l ->
-        debug "parse_list: %s\n" t.T.Piqlist#name;
-        let obj_type = piqtype t.T.Piqlist#typeref in
+        debug "parse_list: %s\n" t.T.Piqi_list#name;
+        let obj_type = piqtype t.T.Piqi_list#typeref in
         let contents = List.map (parse_obj obj_type) l in
         L#{ piqtype = t; obj = contents }
     | _ ->
