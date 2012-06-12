@@ -66,13 +66,13 @@ let gen_field_cons rname f =
   in 
   let value =
     match f.mode with
-      | `required -> gen_default_piqtype (some_of f.typeref)
-      | `optional when f.typeref = None -> ios "false" (* flag *)
+      | `required -> gen_default_piqtype (some_of f.piqtype)
+      | `optional when f.piqtype = None -> ios "false" (* flag *)
       | `optional when f.default <> None ->
           let default = some_of f.default in
           let default_str = String.escaped (some_of default.T.Any.binobj) in
           iod " " [
-            Piqic_ocaml_in.gen_parse_piqtype (some_of f.typeref);
+            Piqic_ocaml_in.gen_parse_piqtype (some_of f.piqtype);
               ios "(Piqirun.parse_default"; ioq default_str; ios ")";
           ]
 
@@ -115,7 +115,7 @@ let gen_enum e =
 
 let rec gen_option varname o =
   let open Option in
-  match o.ocaml_name, o.typeref with
+  match o.ocaml_name, o.piqtype with
     | Some mln, None ->
         gen_pvar_name mln
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
@@ -146,9 +146,9 @@ let gen_alias a =
   iod " "
     [
       ios "default_" ^^ ios (some_of a.ocaml_name); ios "() =";
-      Piqic_ocaml_in.gen_convert_of a.typeref a.ocaml_type (
+      Piqic_ocaml_in.gen_convert_of a.piqtype a.ocaml_type (
         gen_default_piqtype
-          (some_of a.typeref) ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+          (some_of a.piqtype) ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
       );
     ]
 

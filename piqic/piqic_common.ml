@@ -73,11 +73,11 @@ let get_boot_defs seen_defs def =
     | None -> []
   in
   match def with
-    | `record x -> flatmap (fun x -> get_boot_def_opt x.F#typeref) x.R#field
-    | `variant x -> flatmap (fun x -> get_boot_def_opt x.O#typeref) x.V#option
-    | `list x -> get_boot_def (some_of x.L#typeref)
+    | `record x -> flatmap (fun x -> get_boot_def_opt x.F#piqtype) x.R#field
+    | `variant x -> flatmap (fun x -> get_boot_def_opt x.O#piqtype) x.V#option
+    | `list x -> get_boot_def (some_of x.L#piqtype)
     | `enum _ -> []
-    | `alias a -> get_boot_def (some_of a.A#typeref)
+    | `alias a -> get_boot_def (some_of a.A#piqtype)
 
 
 (* get all boot defintions used by (i.e. reacheable from) the module's

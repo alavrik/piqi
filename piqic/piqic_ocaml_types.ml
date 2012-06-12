@@ -100,7 +100,7 @@ let rec gen_piqtype t ocaml_type =
 and gen_aliastype a =
   let open Alias in
   let ocaml_name = some_of a.ocaml_name in
-  let typename = gen_piqtype (some_of a.typeref) a.ocaml_type in
+  let typename = gen_piqtype (some_of a.piqtype) a.ocaml_type in
   if ocaml_name = typename
   then ocaml_name (* don't generate aliases for built-in types *)
   else gen_deftype a.parent a.ocaml_name
@@ -112,7 +112,7 @@ let ios_gen_piqtype ?ocaml_type (t :T.piqtype) =
 
 let gen_field_type f =
   let open F in
-  match f.typeref with
+  match f.piqtype with
     | None -> ios "bool"; (* flags are represented as booleans *)
     | Some t ->
       let deftype = ios_gen_piqtype t in
@@ -127,8 +127,8 @@ let gen_field_type f =
             else ios " list"
 
 
-let mlname_of name typeref =
-  match name, typeref with
+let mlname_of name piqtype =
+  match name, piqtype with
     | Some n, _ -> n
     | None, Some t -> typedef_mlname t
     | _ -> assert false
@@ -137,11 +137,11 @@ let mlname_of name typeref =
 (* XXX: move this functionality to mlname_*. mlname assignment should be done
  * once rahter than calling it from every place where it is needed *)
 let mlname_of_field f =
-  let open F in mlname_of f.ocaml_name f.typeref
+  let open F in mlname_of f.ocaml_name f.piqtype
 
 
 let mlname_of_option o =
-  let open O in mlname_of o.ocaml_name o.typeref
+  let open O in mlname_of o.ocaml_name o.piqtype
 
 
 let gen_field f = 
@@ -199,7 +199,7 @@ let is_local_def def =
 
 let gen_option o =
   let open Option in
-  match o.ocaml_name, o.typeref with
+  match o.ocaml_name, o.piqtype with
     | None, Some ((`variant v) as def) | None, Some ((`enum v) as def) ->
         (* NOTE: for some reason, ocaml complains about fully qualified
          * polymorphic variants in recursive modules, so we need to use
@@ -218,14 +218,14 @@ let gen_alias a =
   let open Alias in
   iol [
     ios (some_of a.ocaml_name); ios " = ";
-      ios_gen_piqtype (some_of a.typeref) ?ocaml_type:a.ocaml_type ]
+      ios_gen_piqtype (some_of a.piqtype) ?ocaml_type:a.ocaml_type ]
 
 
 let gen_list l =
   let open L in
   iol [
     ios (some_of l.ocaml_name); ios " = ";
-      ios_gen_piqtype (some_of l.typeref);
+      ios_gen_piqtype (some_of l.piqtype);
       if l.ocaml_array
       then ios " array"
       else ios " list";
@@ -259,7 +259,7 @@ let gen_def = function
 let gen_alias a =
   let open Alias in
   let name = some_of a.ocaml_name in
-  let typename = gen_piqtype (some_of a.typeref) a.ocaml_type in
+  let typename = gen_piqtype (some_of a.piqtype) a.ocaml_type in
   if name = typename
   then [] (* don't generate cyclic type abbreviation *)
   else [ gen_alias a ]
@@ -357,7 +357,7 @@ let order_defs defs =
         (* get the list of included variants *)
         flatmap (fun o ->
           let open O in
-          match o.ocaml_name, o.typeref with
+          match o.ocaml_name, o.piqtype with
             | None, Some ((`variant _) as def)
             | None, Some ((`enum _) as def) ->
                 if is_local_def def (* omit any imported definitions *)

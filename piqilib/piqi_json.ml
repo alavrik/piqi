@@ -69,8 +69,8 @@ let typedef_json_name = function
       assert false
 
 
-let json_name_of name typeref =
-  match name, typeref with
+let json_name_of name piqtype =
+  match name, piqtype with
     | Some n, _ -> json_name n
     | None, Some t -> typedef_json_name t
     | _ -> assert false
@@ -79,7 +79,7 @@ let json_name_of name typeref =
 let json_name_field x =
   let open Field in
   match x.json_name with
-    | None -> x.json_name <- json_name_of x.name x.typeref
+    | None -> x.json_name <- json_name_of x.name x.piqtype
     | Some n -> check_json_name n
 
 
@@ -94,7 +94,7 @@ let json_name_record x =
 let json_name_option x =
   let open Option in
   match x.json_name with
-    | None -> x.json_name <- json_name_of x.name x.typeref
+    | None -> x.json_name <- json_name_of x.name x.piqtype
     | Some n -> check_json_name n
 
 

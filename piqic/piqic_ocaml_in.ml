@@ -88,7 +88,7 @@ let gen_field_parser f =
   let fname = mlname_of_field f in
   let mode = gen_mode f in
   let fcons =
-  match f.typeref with
+  match f.piqtype with
     | Some piqtype ->
         (* field constructor *)
         iod " "
@@ -176,7 +176,7 @@ let gen_enum e =
 
 let rec gen_option varname o =
   let open Option in
-  match o.ocaml_name, o.typeref with
+  match o.ocaml_name, o.piqtype with
     | Some mln, None -> (* boolean true *)
         iod " " [
           ios "|"; gen_code o.code; ios "when x = Piqirun.Varint 1"; ios "->";
@@ -218,8 +218,8 @@ let gen_variant v =
     ]
 
 
-let gen_convert_of typeref ocaml_type value =
-  gen_convert_value typeref ocaml_type "_of_" value
+let gen_convert_of piqtype ocaml_type value =
+  gen_convert_value piqtype ocaml_type "_of_" value
 
 
 let gen_alias a ~wire_packed =
@@ -227,10 +227,10 @@ let gen_alias a ~wire_packed =
   let packed = ios (if wire_packed then "packed_" else "") in
   iol [
     packed; ios "parse_"; ios (some_of a.ocaml_name); ios " x = ";
-    gen_convert_of a.typeref a.ocaml_type (
+    gen_convert_of a.piqtype a.ocaml_type (
       iol [
         gen_parse_piqtype
-          (some_of a.typeref)
+          (some_of a.piqtype)
           ?ocaml_type:a.ocaml_type
           ?wire_type:a.wire_type
           ~wire_packed;
@@ -242,7 +242,7 @@ let gen_alias a ~wire_packed =
 
 let gen_alias a =
   let open Alias in
-  if Piqi_wire.can_be_packed (piqtype a.typeref)
+  if Piqi_wire.can_be_packed (some_of a.piqtype)
   then
     (* generate another function for packed encoding *)
     iod " and " [
@@ -260,14 +260,14 @@ let gen_list l =
       gen_cc "let count = next_count() in refer count (";
         (* Piqirun.parse_(packed_)?(list|array|array32|array64) *)
         ios "Piqirun.parse_"; repr;
-          ios " ("; gen_parse_piqtype (some_of l.typeref) ~wire_packed:l.wire_packed; ios ")";
+          ios " ("; gen_parse_piqtype (some_of l.piqtype) ~wire_packed:l.wire_packed; ios ")";
 
           (* when parsing packed repeated fields, we should also accept
            * fields in unpacked representation; therefore, specifying an
            * unpacked field parser as another parameter *)
           if l.wire_packed
           then iol [
-          ios " ("; gen_parse_piqtype (some_of l.typeref); ios ")";
+          ios " ("; gen_parse_piqtype (some_of l.piqtype); ios ")";
           ]
           else iol [];
 

@@ -59,8 +59,8 @@ let gen_field_cons f =
   let open Field in
   let value =
     match f.mode with
-      | `required -> gen_default_piqtype (some_of f.typeref)
-      | `optional when f.typeref = None -> ios "false" (* flag *)
+      | `required -> gen_default_piqtype (some_of f.piqtype)
+      | `optional when f.piqtype = None -> ios "false" (* flag *)
       (* XXX: generate default value? (see piqic_ocaml_defaults.ml)
       | `optional when f.default <> None ->
       *)
@@ -103,7 +103,7 @@ let gen_enum e =
 
 let rec gen_option varname o =
   let open Option in
-  match o.erlang_name, o.typeref with
+  match o.erlang_name, o.piqtype with
     | Some n, None ->
         ios n
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
@@ -129,9 +129,9 @@ let gen_alias a =
   let open Alias in
   iol [
     ios "default_"; ios (some_of a.erlang_name); ios "() -> ";
-    Piqic_erlang_in.gen_convert_of a.typeref a.erlang_type (
+    Piqic_erlang_in.gen_convert_of a.piqtype a.erlang_type (
       gen_default_piqtype
-        (some_of a.typeref) ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
+        (some_of a.piqtype) ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
     );
     ios ".";
   ]

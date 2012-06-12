@@ -112,7 +112,7 @@ and gen_alias_typename ?parent x =
     | Some x -> x
     | None ->
         let parent = recalc_import_parent ?parent x.parent in
-        match piqtype x.typeref with
+        match some_of x.piqtype with
           | `alias x ->
               gen_alias_typename x ?parent
           | x ->
@@ -147,8 +147,8 @@ let typedef_proto_name = function
       assert false
 
 
-let protoname_of name typeref =
-  match name, typeref with
+let protoname_of name piqtype =
+  match name, piqtype with
     | Some n, _ -> ios n
     | None, Some t ->
         ios (typedef_proto_name t)
@@ -156,11 +156,11 @@ let protoname_of name typeref =
 
 
 let protoname_of_field f =
-  let open F in protoname_of f.proto_name f.typeref
+  let open F in protoname_of f.proto_name f.piqtype
 
 
 let protoname_of_option o =
-  let open O in protoname_of o.proto_name o.typeref
+  let open O in protoname_of o.proto_name o.piqtype
 
 
 let gen_proto_custom proto_custom =
@@ -216,7 +216,7 @@ let rec gen_default_obj (x:Piqobj.obj) =
 (* using the same technique as in Piqi.resolve_field_default *)
 let gen_default x =
   let open F in
-  match x.default, x.typeref with
+  match x.default, x.piqtype with
     | Some {T.Any.ast = Some ast }, Some piqtype ->
         let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
         gen_default_obj piqobj
@@ -233,7 +233,7 @@ let gen_field parent f =
   let fdef = iod " " (* field definition *)
     [
       ios (string_of_mode f.mode);
-      gen_piqtype' f.typeref ?parent;
+      gen_piqtype' f.piqtype ?parent;
       protoname_of_field f; ios "=";
         gen_code f.code ^^ gen_default f ^^ ios packed ^^ ios ";";
     ]
@@ -297,7 +297,7 @@ let gen_enum e =
 let gen_option parent o =
   let open Option in
   iod " " [
-    ios "optional"; gen_piqtype' o.typeref ?parent;
+    ios "optional"; gen_piqtype' o.piqtype ?parent;
       protoname_of_option o; ios "="; gen_code o.code ^^ ios ";";
   ]
 
@@ -333,7 +333,7 @@ let gen_list ?name ?parent l =
     [
       ios "message "; ios name;
       ios " {"; indent;
-        ios "repeated "; gen_piqtype (some_of l.typeref) ?parent; ios " elem = 1"; ios packed; ios ";";
+        ios "repeated "; gen_piqtype (some_of l.piqtype) ?parent; ios " elem = 1"; ios packed; ios ";";
         gen_proto_custom l.proto_custom;
         unindent; eol;
       ios "}"; eol;
@@ -363,7 +363,7 @@ and gen_alias ?name ?parent ?(is_func_param=false) a =
   let is_func_param = is_func_param || a.is_func_param in
   let parent = recalc_import_parent ?parent a.parent in
   let name = recalc_name ?name a.proto_name in
-  match piqtype a.typeref with
+  match some_of a.piqtype with
     | `record _ | `variant _ | `alias _ | `list _ as def ->
         (* generate the original definition with the new name *)
         (* XXX: make such generation optional, just to be able to have less
@@ -378,7 +378,7 @@ and gen_alias ?name ?parent ?(is_func_param=false) a =
             iol [
               ios "message "; ios name;
               ios " {"; indent;
-              ios "required "; gen_piqtype (some_of a.typeref) ?parent; ios " elem = 1;";
+              ios "required "; gen_piqtype (some_of a.piqtype) ?parent; ios " elem = 1;";
               unindent; eol;
               ios "}"; eol;
             ]
@@ -437,7 +437,7 @@ let gen_piqi (piqi:T.piqi) =
       | Some n -> iol [ios "package "; ios n; ios ";"; eol; eol]
   in
 
-  (* add import "piqi.org/piqtype.piqi.proto" if 'any' typeref is used *)
+  (* add import "piqi.org/piqtype.piqi.proto" if 'any' piqtype is used *)
   is_self_spec := C.is_self_spec piqi;
 
   let defs = gen_defs piqi.P#resolved_typedef in

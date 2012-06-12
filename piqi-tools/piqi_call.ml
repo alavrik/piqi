@@ -353,7 +353,7 @@ let padded s =
   iol [ ios s; ios padding ]
 
 
-let gen_option_help typeref name getopt_letter getopt_doc =
+let gen_option_help piqtype name getopt_letter getopt_doc =
   let short =
     match getopt_letter with
       | None -> ios ""
@@ -362,7 +362,7 @@ let gen_option_help typeref name getopt_letter getopt_doc =
   let long = ios "--" ^^ ios name in
   let res = iol [ short; long ] in
   let res =
-    match typeref with
+    match piqtype with
       | None -> res
       | Some t -> iol [ res; ios " "; gen_piqtype t ]
   in
@@ -405,7 +405,7 @@ let gen_field x =
   let field_mode = gen_field_mode x.mode in
   iol [
     field_indent;
-    gen_option_help x.typeref (name_of_field x) x.getopt_letter x.getopt_doc;
+    gen_option_help x.piqtype (name_of_field x) x.getopt_letter x.getopt_doc;
     ios field_mode;
     gen_default x.default;
   ]
@@ -436,7 +436,7 @@ let gen_option x =
   let open O in
   iol [
     field_indent;
-    gen_option_help x.typeref (name_of_option x) x.getopt_letter x.getopt_doc;
+    gen_option_help x.piqtype (name_of_option x) x.getopt_letter x.getopt_doc;
   ]
 
 
@@ -468,10 +468,10 @@ let gen_enum = gen_variant
 
 let gen_list x =
   let open L in
-  let typename = gen_piqtype (C.piqtype x.typeref) in
+  let typename = gen_piqtype (some_of x.piqtype) in
   iol [
     ios "["; typename; ios " ...]";
-    match unalias (piqtype x.typeref) with
+    match unalias (some_of x.piqtype) with
       | `variant x | `enum x ->
           iol [
             ios ", where "; typename; ios " is one of:";
@@ -495,7 +495,7 @@ let gen_def name t =
 let gen_input def =
   match def with
     | `alias x ->
-        let t = piqtype x.A#typeref in
+        let t = some_of x.A#piqtype in
         let name = piqi_typename t in
         gen_def name (unalias t)
     | _ -> gen_def "input" def

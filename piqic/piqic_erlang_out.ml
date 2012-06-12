@@ -92,7 +92,7 @@ let gen_field rname f =
   in 
   let mode = gen_mode f in
   let fgen =
-    match f.typeref with
+    match f.piqtype with
       | Some piqtype ->
           (* field generation code *)
           iol [
@@ -194,7 +194,7 @@ let gen_enum e =
 let gen_inner_option pattern outer_option =
   let open Option in
   let o = some_of outer_option in
-  let t = some_of o.typeref in
+  let t = some_of o.piqtype in
   let res =
     iol [
       pattern; ios " -> ";
@@ -205,7 +205,7 @@ let gen_inner_option pattern outer_option =
 
 let rec gen_option outer_option o =
   let open Option in
-  match o.erlang_name, o.typeref with
+  match o.erlang_name, o.piqtype with
     | Some ename, None -> (* gen true *)
         if outer_option <> None
         then gen_inner_option (ios ename) outer_option
@@ -252,8 +252,8 @@ let gen_variant v =
     ]
 
 
-let gen_convert_value typeref erlang_type direction value =
-  match piqtype typeref with
+let gen_convert_value piqtype erlang_type direction value =
+  match some_of piqtype with
     | (#T.typedef as typedef) when erlang_type <> None -> (* custom Erlang type *)
         iol [
           ios (some_of erlang_type);
@@ -265,8 +265,8 @@ let gen_convert_value typeref erlang_type direction value =
         value
 
 
-let gen_convert_to typeref erlang_type value =
-  gen_convert_value typeref erlang_type "_to_" value
+let gen_convert_to piqtype erlang_type value =
+  gen_convert_value piqtype erlang_type "_to_" value
 
 
 let gen_alias a =
@@ -274,8 +274,8 @@ let gen_alias a =
   iol [
     ios "gen_"; ios (some_of a.erlang_name);
     ios "(Code, X) ->"; indent;
-      gen_gen_piqtype (some_of a.typeref) ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
-      ios "(Code, "; gen_convert_to a.typeref a.erlang_type (ios "X"); ios ").";
+      gen_gen_piqtype (some_of a.piqtype) ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
+      ios "(Code, "; gen_convert_to a.piqtype a.erlang_type (ios "X"); ios ").";
     unindent; eol;
   ]
 
@@ -285,18 +285,18 @@ let gen_packed_alias a =
   iol [
     ios "packed_gen_"; ios (some_of a.erlang_name);
     ios "(X) ->"; indent;
-      gen_gen_piqtype (some_of a.typeref)
+      gen_gen_piqtype (some_of a.piqtype)
         ?erlang_type:a.erlang_type
         ?wire_type:a.wire_type
         ~wire_packed:true;
-      ios "("; gen_convert_to a.typeref a.erlang_type (ios "X"); ios ").";
+      ios "("; gen_convert_to a.piqtype a.erlang_type (ios "X"); ios ").";
     unindent; eol;
   ]
 
 
 let gen_alias a =
   let open Alias in
-  if Piqi_wire.can_be_packed (piqtype a.typeref)
+  if Piqi_wire.can_be_packed (some_of a.piqtype)
   then
     (* generate another function for packed encoding *)
     iod "\n\n" [
@@ -314,7 +314,7 @@ let gen_list l =
     ios "(Code, X) ->"; indent;
       ios "piqirun:gen_"; packed; ios "list(Code, ";
         ios "fun ";
-          gen_gen_piqtype (some_of l.typeref) ~wire_packed:l.wire_packed;
+          gen_gen_piqtype (some_of l.piqtype) ~wire_packed:l.wire_packed;
           if l.wire_packed (* arity *)
           then ios "/1, X)."
           else ios "/2, X).";

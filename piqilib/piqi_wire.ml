@@ -226,7 +226,7 @@ let can_be_packed t =
 
 
 let check_packed_type obj t =
-  if not (can_be_packed (piqtype t))
+  if not (can_be_packed (some_of t))
   then
     error obj "packed representation can be used only for numeric, bool and enum types"
 
@@ -238,14 +238,14 @@ let check_packed_field x =
     if x.mode <> `repeated
     then error x "packed representation can be used only for repeated fields";
 
-    check_packed_type x x.typeref
+    check_packed_type x x.piqtype
   )
 
 
 let check_packed_list x =
   let open L in
   if x.wire_packed
-  then check_packed_type x x.typeref
+  then check_packed_type x x.piqtype
 
 
 let process_def = function
@@ -288,7 +288,7 @@ let hashcode' x =
 
 let name_of_field f =
   let open T.Field in
-  match f.name, f.typeref with
+  match f.name, f.piqtype with
     | None, None -> (* not resolved yet *)
         some_of f.typename
     | _ ->
@@ -297,7 +297,7 @@ let name_of_field f =
 
 let name_of_option o =
   let open T.Option in
-  match o.name, o.typeref with
+  match o.name, o.piqtype with
     | None, None -> (* not resolved yet *)
         some_of o.typename
     | _ ->

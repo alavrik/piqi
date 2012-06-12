@@ -361,7 +361,7 @@ and is_required_field t = (t.T.Field#mode = `required)
 
 and parse_field loc (accu, rem) t =
   let fields, rem =
-    match t.T.Field#typeref with
+    match t.T.Field#piqtype with
       | None -> do_parse_flag t rem
       | Some _ -> do_parse_field loc t rem
   in
@@ -386,7 +386,7 @@ and do_parse_field loc t l =
   let open T.Field in
   let name = name_of_field t in
   debug "do_parse_field: %s\n" name;
-  let field_type = piqtype t.typeref in
+  let field_type = some_of t.piqtype in
   let values, rem =
     match t.mode with
       | `required -> 
@@ -557,7 +557,7 @@ and parse_variant ~try_mode t x =
     (* XXX: aliased variants are contra-variants? *)
     let is_covariant o =
       let open T.Option in
-      match o.name, o.typeref with
+      match o.name, o.piqtype with
         | None, Some (`variant _) -> true (* co-variant *)
         | None, Some (`enum _) -> true (* co-variant *)
         | _ -> false (* contra-variant *)
@@ -565,7 +565,7 @@ and parse_variant ~try_mode t x =
     let get_covariant o =
       let open T.Option in
       let v =
-        match o.typeref with
+        match o.piqtype with
           | Some (`variant v) -> v
           | Some (`enum v) -> v
           | _ -> assert false
@@ -601,7 +601,7 @@ and parse_name_option options name =
   let f o =
     let open T.Option in
     let equals_name x = equals_name x o.alt_name name in
-    match o.name, o.typeref with
+    match o.name, o.piqtype with
       | Some n, Some _ when equals_name n ->
           error name ("value expected for option " ^ quote n)
       | Some n, None -> equals_name n
@@ -615,7 +615,7 @@ and parse_named_option options name x =
   let f o =
     let open T.Option in
     let equals_name x = equals_name x o.alt_name name in
-    match o.name, o.typeref with
+    match o.name, o.piqtype with
       | Some n, None when equals_name n ->
           error x ("value can not be specified for option " ^ n)
       | Some n, Some _ -> equals_name n
@@ -626,7 +626,7 @@ and parse_named_option options name x =
 
 and make_option_finder f o =
   let open T.Option in
-  match o.typeref with
+  match o.piqtype with
     | None -> false
     | Some x -> f (unalias x) (* TODO: optimize *)
 
@@ -669,7 +669,7 @@ and parse_raw_word_option ~try_mode options x s =
     (* try to parse it as a name *)
     let f o =
       let open T.Option in
-      match o.name, o.typeref with
+      match o.name, o.piqtype with
         | Some n, None -> equals_name n o.alt_name s
         | _, _ -> false
     in
@@ -694,7 +694,7 @@ and parse_list_option options x =
 
 and parse_typed_option (options:T.Option.t list) f (x:T.ast) :Piqobj.Option.t =
   let option = List.find f options in
-  let option_type = piqtype option.T.Option#typeref in
+  let option_type = some_of option.T.Option#piqtype in
   O#{ piqtype = option; obj = Some (parse_obj option_type x) }
 
 
@@ -711,14 +711,14 @@ and parse_list t = function
 
 
 and do_parse_list t l =
-  let obj_type = piqtype t.T.Piqi_list#typeref in
+  let obj_type = some_of t.T.Piqi_list#piqtype in
   let contents = List.map (parse_obj obj_type) l in
   L#{ piqtype = t; obj = contents }
 
 
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t x =
-  let obj_type = piqtype t.T.Alias#typeref in
+  let obj_type = some_of t.T.Alias#piqtype in
   let obj = parse_obj obj_type x in
   A#{ piqtype = t; obj = obj }
 

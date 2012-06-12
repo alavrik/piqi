@@ -104,7 +104,7 @@ let gen_field_parser i f =
   let fname = erlname_of_field f in
   let mode = gen_mode f in
   let fcons =
-    match f.typeref with
+    match f.piqtype with
       | Some piqtype ->
           (* field constructor *)
           iol [
@@ -220,7 +220,7 @@ let gen_enum e =
 
 let rec gen_option o =
   let open Option in
-  match o.erlang_name, o.typeref with
+  match o.erlang_name, o.piqtype with
     | Some ename, None -> (* expecting boolean true for a flag *)
         iol [
           gen_code o.code; ios " when Obj == 1 -> "; ios ename;
@@ -259,8 +259,8 @@ let gen_variant v =
   ]
 
 
-let gen_convert_of typeref erlang_type value =
-  gen_convert_value typeref erlang_type "_of_" value
+let gen_convert_of piqtype erlang_type value =
+  gen_convert_value piqtype erlang_type "_of_" value
 
 
 let gen_alias a ~wire_packed =
@@ -268,9 +268,9 @@ let gen_alias a ~wire_packed =
   let packed = ios (if wire_packed then "packed_" else "") in
   iol [
     packed; ios "parse_"; ios (some_of a.erlang_name); ios "(X) ->"; indent;
-      gen_convert_of a.typeref a.erlang_type (
+      gen_convert_of a.piqtype a.erlang_type (
         iol [
-          gen_parse_piqtype (some_of a.typeref)
+          gen_parse_piqtype (some_of a.piqtype)
             ?erlang_type:a.erlang_type
             ?wire_type:a.wire_type
             ~wire_packed;
@@ -284,7 +284,7 @@ let gen_alias a ~wire_packed =
 
 let gen_alias a =
   let open Alias in
-  if Piqi_wire.can_be_packed (piqtype a.typeref)
+  if Piqi_wire.can_be_packed (some_of a.piqtype)
   then
     (* generate another function for packed encoding *)
     iod "\n\n" [
@@ -301,7 +301,7 @@ let gen_list l =
     ios "parse_" ^^ ios (some_of l.erlang_name); ios "(X) ->"; indent;
       ios "piqirun:parse_"; packed; ios "list(";
         ios "fun ";
-          gen_parse_piqtype (some_of l.typeref) ~wire_packed:l.wire_packed;
+          gen_parse_piqtype (some_of l.piqtype) ~wire_packed:l.wire_packed;
           ios "/1, ";
 
         (* when parsing packed repeated fields, we should also accept
@@ -310,7 +310,7 @@ let gen_list l =
         if l.wire_packed
         then iol [
         ios "fun ";
-          gen_parse_piqtype (some_of l.typeref);
+          gen_parse_piqtype (some_of l.piqtype);
           ios "/1, ";
         ] else iol [];
 

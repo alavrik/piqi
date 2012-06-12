@@ -145,7 +145,7 @@ let resolve_field_typename map f =
   match f.typename with
     | None -> () (* flag *)
     | Some name ->
-        f.typeref <- Some (resolve_typename map name)
+        f.piqtype <- Some (resolve_typename map name)
 
 
 let resolve_option_typename map o =
@@ -153,7 +153,7 @@ let resolve_option_typename map o =
   match o.typename with
     | None -> ()
     | Some name ->
-        o.typeref <- Some (resolve_typename map name)
+        o.piqtype <- Some (resolve_typename map name)
 
 
 let resolve_typenames map = function
@@ -164,18 +164,12 @@ let resolve_typenames map = function
   | `alias a ->
       (match a.A#piqi_type with
         | Some x ->
-            a.A#typeref <- Some (x :> T.piqtype)
+            a.A#piqtype <- Some (x :> T.piqtype)
         | None ->
-            (*
-            a.A#typeref <- resolve_typeref map a.A#typeref
-            *)
-            a.A#typeref <- Some (resolve_typename map (some_of a.A#typename))
-            (*
-            a.A#typeref <- resolve_typename map (some_of a.A#typename)
-            *)
+            a.A#piqtype <- Some (resolve_typename map (some_of a.A#typename))
       )
   | `list l ->
-      l.L#typeref <- Some (resolve_typename map l.L#typename)
+      l.L#piqtype <- Some (resolve_typename map l.L#typename)
   | _ -> ()
 
 
@@ -204,29 +198,6 @@ let check_dup_names what names =
         error name
           ("duplicate " ^ what ^ " name " ^ quote name ^ "\n" ^
             error_string prev "first defined here")
-
-
-let error_noboot obj s =
-  if !is_boot_mode || !Config.noboot
-  then ()
-  else error obj s
-
-
-(*
-let check_typeref obj (t:T.typeref) =
-  match t with 
-    | `name x -> check_scoped_name x
-    | #T.typedef ->
-        error obj "use of type definition as type is prohibited"
-    | _ -> ()
-
-
-let check_no_builtin_type obj t =
-  match t with 
-    | #T.typedef | `name _ -> check_typeref obj t
-    | _ ->
-        error_noboot obj "use of built-in types is allowed only from boot files or when running in \"noboot\" mode"
-*)
 
 
 let check_field f =
@@ -318,15 +289,24 @@ let check_wire_type a wt =
                  " is incompatible with piq type " ^ quote (piqi_typename t))
 
 
+let error_noboot obj s =
+  if !is_boot_mode || !Config.noboot
+  then ()
+  else error obj s
+
+
 let check_alias a =
   let open A in
   begin
+    (* TODO: this check is incomplete *)
     if a.typename = None && a.piqi_type = None
     then
       error a ("alias " ^ quote a.name ^ " must specify either piqi-type or type");
-    (*
-     * TODO:
-    check_no_builtin_type a a.typeref;
+
+    (* TODO, XXX:
+    if a.piqi_type <> None
+    then
+        error_noboot obj "use of built-in types is allowed only from boot files or when running in \"noboot\" mode"
     *)
   end
 
@@ -459,7 +439,7 @@ let resolve_default_value default piqtype piqobj =
 let resolve_field_default x =
   (* debug "resolve_field_default: %s\n" (C.name_of_field x); *)
   let open F in
-  match x.default, x.typeref with
+  match x.default, x.piqtype with
     | None, _ -> () (* no default *)
     | Some {T.Any.binobj = Some _}, _ ->
         (* nothing to do -- object is already resolved *)

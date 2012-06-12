@@ -101,7 +101,6 @@
     (.typedef alias list field option)
 
     .with.field [
-        .name typeref
         .type piqtype
         .optional
     ]

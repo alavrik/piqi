@@ -170,7 +170,7 @@ and parse_record t x =
 
 and parse_field (accu, rem) t =
   let fields, rem =
-    match t.T.Field#typeref with
+    match t.T.Field#piqtype with
       | None -> do_parse_flag t rem
       | Some _ -> do_parse_field t rem
   in
@@ -198,7 +198,7 @@ and do_parse_flag t l =
 and do_parse_field t l =
   let open T.Field in
   let code = Int32.to_int (some_of t.code) in
-  let field_type = piqtype t.typeref in
+  let field_type = some_of t.piqtype in
   let values, rem =
     match t.mode with
       | `required -> 
@@ -268,7 +268,7 @@ and parse_variant t x =
 
 and parse_option t x =
   let open T.Option in
-  match t.typeref with
+  match t.piqtype with
     | None ->
         if Piqirun.parse_bool_field x = true
         then
@@ -313,7 +313,7 @@ and parse_enum_option t code32 =
 
 
 and parse_list t x = 
-  let obj_type = piqtype t.T.Piqi_list#typeref in
+  let obj_type = some_of t.T.Piqi_list#piqtype in
   let contents =
     if not t.T.Piqi_list.wire_packed
     then Piqirun.parse_list (parse_obj obj_type) x
@@ -332,7 +332,7 @@ and parse_alias t ?wire_type x =
   let open T.Alias in
   let wire_type = resolve_wire_type ?wire_type t in
   let obj =
-    match piqtype t.typeref with
+    match some_of t.piqtype with
       | `int -> parse_int x ?wire_type
       | `float -> `float (parse_float x ?wire_type)
       | `alias t -> `alias (parse_alias t x ?wire_type)
@@ -345,7 +345,7 @@ and parse_packed_alias t ?wire_type x =
   let open T.Alias in
   let wire_type = resolve_wire_type ?wire_type t in
   let obj =
-    match piqtype t.typeref with
+    match some_of t.piqtype with
       | `int -> parse_packed_int x ?wire_type
       | `float -> `float (parse_packed_float x ?wire_type)
       | `alias t -> `alias (parse_packed_alias t x ?wire_type)

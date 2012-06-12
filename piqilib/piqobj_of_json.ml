@@ -131,7 +131,7 @@ and do_parse_record loc t l =
 
 and parse_field loc (accu, rem) t =
   let fields, rem =
-    match t.T.Field#typeref with
+    match t.T.Field#piqtype with
       | None -> do_parse_flag t rem
       | Some _ -> do_parse_field loc t rem
   in
@@ -155,7 +155,7 @@ and do_parse_field loc t l =
   let open T.Field in
   let name = some_of t.json_name in
   debug "do_parse_field: %s\n" name;
-  let field_type = piqtype t.typeref in
+  let field_type = some_of t.piqtype in
   let values, rem =
     match t.mode with
       | `required -> 
@@ -255,7 +255,7 @@ and parse_variant t x =
 
 and parse_option t x =
   let open T.Option in
-  match t.typeref, x with
+  match t.piqtype, x with
     | None, `Bool true ->
         O#{ piqtype = t; obj = None }
     | None, _ ->
@@ -286,7 +286,7 @@ and parse_list t x =
   match x with
     | `List l ->
         debug "parse_list: %s\n" t.T.Piqi_list#name;
-        let obj_type = piqtype t.T.Piqi_list#typeref in
+        let obj_type = some_of t.T.Piqi_list#piqtype in
         let contents = List.map (parse_obj obj_type) l in
         L#{ piqtype = t; obj = contents }
     | _ ->
@@ -296,7 +296,7 @@ and parse_list t x =
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t x =
   let open T.Alias in
-  let obj_type = piqtype t.typeref in
+  let obj_type = some_of t.piqtype in
   debug "parse_alias: %s\n" t.T.Alias#name;
   let obj = parse_obj obj_type x in
   A#{ piqtype = t; obj = obj }

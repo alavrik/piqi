@@ -208,7 +208,7 @@ and
           mutable json_name : string option;
           mutable getopt_letter : Piqtype.word option;
           mutable getopt_doc : string option;
-          mutable typeref : Piqtype.piqtype option;
+          mutable piqtype : Piqtype.piqtype option;
           mutable alt_name : Piqtype.word option;
           mutable ocaml_name : string option
         }
@@ -229,7 +229,7 @@ and
           mutable json_name : string option;
           mutable parent : Piqtype.namespace option;
           mutable is_func_param : bool;
-          mutable typeref : Piqtype.piqtype option;
+          mutable piqtype : Piqtype.piqtype option;
           mutable ocaml_name : string option; mutable ocaml_array : bool
         }
       
@@ -274,7 +274,7 @@ and
           mutable json_name : string option;
           mutable getopt_letter : Piqtype.word option;
           mutable getopt_doc : string option;
-          mutable typeref : Piqtype.piqtype option;
+          mutable piqtype : Piqtype.piqtype option;
           mutable alt_name : Piqtype.word option;
           mutable ocaml_name : string option; mutable ocaml_array : bool
         }
@@ -327,7 +327,7 @@ and
           mutable json_name : string option;
           mutable parent : Piqtype.namespace option;
           mutable is_func_param : bool;
-          mutable typeref : Piqtype.piqtype option;
+          mutable piqtype : Piqtype.piqtype option;
           mutable ocaml_name : string option;
           mutable ocaml_type : string option
         }
@@ -667,6 +667,8 @@ and parse_option x =
          Piqirun.parse_optional_field 139663632 parse_string x in
        let (_name, x) =
          Piqirun.parse_optional_field 150958667 parse_name x in
+       let (_piqtype, x) =
+         Piqirun.parse_optional_field 170743570 parse_piqtype x in
        let (_alt_name, x) =
          Piqirun.parse_optional_field 177782575 parse_word x in
        let (_getopt_letter, x) =
@@ -675,8 +677,6 @@ and parse_option x =
          Piqirun.parse_optional_field 218690234 parse_typename x in
        let (_ocaml_name, x) =
          Piqirun.parse_optional_field 351856652 parse_string x in
-       let (_typeref, x) =
-         Piqirun.parse_optional_field 417519321 parse_piqtype x in
        let (_getopt_doc, x) =
          Piqirun.parse_optional_field 442330184 parse_string x in
        let (_json_name, x) =
@@ -687,11 +687,11 @@ and parse_option x =
             Option.code = _code;
             Option.proto_name = _proto_name;
             Option.name = _name;
+            Option.piqtype = _piqtype;
             Option.alt_name = _alt_name;
             Option.getopt_letter = _getopt_letter;
             Option.typename = _typename;
             Option.ocaml_name = _ocaml_name;
-            Option.typeref = _typeref;
             Option.getopt_doc = _getopt_doc;
             Option.json_name = _json_name;
           }))
@@ -730,6 +730,8 @@ and parse_piqi_list x =
          Piqirun.parse_optional_field 139663632 parse_string x in
        let (_name, x) =
          Piqirun.parse_required_field 150958667 parse_name x in
+       let (_piqtype, x) =
+         Piqirun.parse_optional_field 170743570 parse_piqtype x in
        let (_typename, x) =
          Piqirun.parse_required_field 218690234 parse_typename x in
        let (_parent, x) =
@@ -742,8 +744,6 @@ and parse_piqi_list x =
          incr_count_if_true (Piqirun.parse_flag 367658567 x) in
        let (_proto_custom, x) =
          Piqirun.parse_repeated_field 405875126 parse_string x in
-       let (_typeref, x) =
-         Piqirun.parse_optional_field 417519321 parse_piqtype x in
        let (_wire_packed, x) =
          incr_count_if_true (Piqirun.parse_flag 422905280 x) in
        let (_json_name, x) =
@@ -753,13 +753,13 @@ and parse_piqi_list x =
           {
             Piqi_list.proto_name = _proto_name;
             Piqi_list.name = _name;
+            Piqi_list.piqtype = _piqtype;
             Piqi_list.typename = _typename;
             Piqi_list.parent = _parent;
             Piqi_list.ocaml_array = _ocaml_array;
             Piqi_list.ocaml_name = _ocaml_name;
             Piqi_list.is_func_param = _is_func_param;
             Piqi_list.proto_custom = _proto_custom;
-            Piqi_list.typeref = _typeref;
             Piqi_list.wire_packed = _wire_packed;
             Piqi_list.json_name = _json_name;
           }))
@@ -886,6 +886,8 @@ and parse_field x =
            ~default: "\b\223\162\138\147\001" in
        let (_name, x) =
          Piqirun.parse_optional_field 150958667 parse_name x in
+       let (_piqtype, x) =
+         Piqirun.parse_optional_field 170743570 parse_piqtype x in
        let (_alt_name, x) =
          Piqirun.parse_optional_field 177782575 parse_word x in
        let (_getopt_letter, x) =
@@ -896,8 +898,6 @@ and parse_field x =
          incr_count_if_true (Piqirun.parse_flag 333250744 x) in
        let (_ocaml_name, x) =
          Piqirun.parse_optional_field 351856652 parse_string x in
-       let (_typeref, x) =
-         Piqirun.parse_optional_field 417519321 parse_piqtype x in
        let (_wire_packed, x) =
          incr_count_if_true (Piqirun.parse_flag 422905280 x) in
        let (_getopt_doc, x) =
@@ -913,12 +913,12 @@ and parse_field x =
             Field.proto_name = _proto_name;
             Field.mode = _mode;
             Field.name = _name;
+            Field.piqtype = _piqtype;
             Field.alt_name = _alt_name;
             Field.getopt_letter = _getopt_letter;
             Field.typename = _typename;
             Field.ocaml_array = _ocaml_array;
             Field.ocaml_name = _ocaml_name;
-            Field.typeref = _typeref;
             Field.wire_packed = _wire_packed;
             Field.getopt_doc = _getopt_doc;
             Field.default = _default;
@@ -1096,6 +1096,8 @@ and parse_alias x =
          Piqirun.parse_optional_field 139663632 parse_string x in
        let (_name, x) =
          Piqirun.parse_required_field 150958667 parse_name x in
+       let (_piqtype, x) =
+         Piqirun.parse_optional_field 170743570 parse_piqtype x in
        let (_piqi_type, x) =
          Piqirun.parse_optional_field 198318774 parse_piqi_type x in
        let (_proto_type, x) =
@@ -1108,8 +1110,6 @@ and parse_alias x =
          Piqirun.parse_optional_field 351856652 parse_string x in
        let (_is_func_param, x) =
          incr_count_if_true (Piqirun.parse_flag 367658567 x) in
-       let (_typeref, x) =
-         Piqirun.parse_optional_field 417519321 parse_piqtype x in
        let (_ocaml_type, x) =
          Piqirun.parse_optional_field 419588219 parse_string x in
        let (_json_name, x) =
@@ -1120,13 +1120,13 @@ and parse_alias x =
             Alias.wire_type = _wire_type;
             Alias.proto_name = _proto_name;
             Alias.name = _name;
+            Alias.piqtype = _piqtype;
             Alias.piqi_type = _piqi_type;
             Alias.proto_type = _proto_type;
             Alias.typename = _typename;
             Alias.parent = _parent;
             Alias.ocaml_name = _ocaml_name;
             Alias.is_func_param = _is_func_param;
-            Alias.typeref = _typeref;
             Alias.ocaml_type = _ocaml_type;
             Alias.json_name = _json_name;
           }))
@@ -1333,6 +1333,8 @@ and gen__option code x =
      Piqirun.gen_optional_field 139663632 gen__string x.Option.proto_name in
    let _name =
      Piqirun.gen_optional_field 150958667 gen__name x.Option.name in
+   let _piqtype =
+     Piqirun.gen_optional_field 170743570 gen__piqtype x.Option.piqtype in
    let _alt_name =
      Piqirun.gen_optional_field 177782575 gen__word x.Option.alt_name in
    let _getopt_letter =
@@ -1341,16 +1343,14 @@ and gen__option code x =
      Piqirun.gen_optional_field 218690234 gen__typename x.Option.typename in
    let _ocaml_name =
      Piqirun.gen_optional_field 351856652 gen__string x.Option.ocaml_name in
-   let _typeref =
-     Piqirun.gen_optional_field 417519321 gen__piqtype x.Option.typeref in
    let _getopt_doc =
      Piqirun.gen_optional_field 442330184 gen__string x.Option.getopt_doc in
    let _json_name =
      Piqirun.gen_optional_field 515275216 gen__string x.Option.json_name
    in
      Piqirun.gen_record code
-       [ _code; _proto_name; _name; _alt_name; _getopt_letter; _typename;
-         _ocaml_name; _typeref; _getopt_doc; _json_name ])
+       [ _code; _proto_name; _name; _piqtype; _alt_name; _getopt_letter;
+         _typename; _ocaml_name; _getopt_doc; _json_name ])
 and gen__namespace code (x : Piqtype.namespace) =
   (refer x;
    Piqirun.gen_record code
@@ -1369,6 +1369,8 @@ and gen__piqi_list code x =
      Piqirun.gen_optional_field 139663632 gen__string x.Piqi_list.proto_name in
    let _name =
      Piqirun.gen_required_field 150958667 gen__name x.Piqi_list.name in
+   let _piqtype =
+     Piqirun.gen_optional_field 170743570 gen__piqtype x.Piqi_list.piqtype in
    let _typename =
      Piqirun.gen_required_field 218690234 gen__typename x.Piqi_list.typename in
    let _parent =
@@ -1382,16 +1384,14 @@ and gen__piqi_list code x =
    let _proto_custom =
      Piqirun.gen_repeated_field 405875126 gen__string
        x.Piqi_list.proto_custom in
-   let _typeref =
-     Piqirun.gen_optional_field 417519321 gen__piqtype x.Piqi_list.typeref in
    let _wire_packed =
      reference_if_true Piqirun.gen_flag 422905280 x.Piqi_list.wire_packed in
    let _json_name =
      Piqirun.gen_optional_field 515275216 gen__string x.Piqi_list.json_name
    in
      Piqirun.gen_record code
-       [ _proto_name; _name; _typename; _parent; _ocaml_array; _ocaml_name;
-         _is_func_param; _proto_custom; _typeref; _wire_packed; _json_name ])
+       [ _proto_name; _name; _piqtype; _typename; _parent; _ocaml_array;
+         _ocaml_name; _is_func_param; _proto_custom; _wire_packed; _json_name ])
 and gen__includ code x =
   (refer x;
    let _modname =
@@ -1460,6 +1460,8 @@ and gen__field code x =
    let _mode =
      Piqirun.gen_required_field 140563299 gen__field_mode x.Field.mode in
    let _name = Piqirun.gen_optional_field 150958667 gen__name x.Field.name in
+   let _piqtype =
+     Piqirun.gen_optional_field 170743570 gen__piqtype x.Field.piqtype in
    let _alt_name =
      Piqirun.gen_optional_field 177782575 gen__word x.Field.alt_name in
    let _getopt_letter =
@@ -1470,8 +1472,6 @@ and gen__field code x =
      reference_if_true Piqirun.gen_flag 333250744 x.Field.ocaml_array in
    let _ocaml_name =
      Piqirun.gen_optional_field 351856652 gen__string x.Field.ocaml_name in
-   let _typeref =
-     Piqirun.gen_optional_field 417519321 gen__piqtype x.Field.typeref in
    let _wire_packed =
      reference_if_true Piqirun.gen_flag 422905280 x.Field.wire_packed in
    let _getopt_doc =
@@ -1482,8 +1482,8 @@ and gen__field code x =
      Piqirun.gen_optional_field 515275216 gen__string x.Field.json_name
    in
      Piqirun.gen_record code
-       [ _code; _proto_name; _mode; _name; _alt_name; _getopt_letter;
-         _typename; _ocaml_array; _ocaml_name; _typeref; _wire_packed;
+       [ _code; _proto_name; _mode; _name; _piqtype; _alt_name;
+         _getopt_letter; _typename; _ocaml_array; _ocaml_name; _wire_packed;
          _getopt_doc; _default; _json_name ])
 and gen__extend_target code (x : Piqtype.extend_target) =
   (refer x;
@@ -1561,6 +1561,8 @@ and gen__alias code x =
    let _proto_name =
      Piqirun.gen_optional_field 139663632 gen__string x.Alias.proto_name in
    let _name = Piqirun.gen_required_field 150958667 gen__name x.Alias.name in
+   let _piqtype =
+     Piqirun.gen_optional_field 170743570 gen__piqtype x.Alias.piqtype in
    let _piqi_type =
      Piqirun.gen_optional_field 198318774 gen__piqi_type x.Alias.piqi_type in
    let _proto_type =
@@ -1573,16 +1575,14 @@ and gen__alias code x =
      Piqirun.gen_optional_field 351856652 gen__string x.Alias.ocaml_name in
    let _is_func_param =
      reference_if_true Piqirun.gen_flag 367658567 x.Alias.is_func_param in
-   let _typeref =
-     Piqirun.gen_optional_field 417519321 gen__piqtype x.Alias.typeref in
    let _ocaml_type =
      Piqirun.gen_optional_field 419588219 gen__string x.Alias.ocaml_type in
    let _json_name =
      Piqirun.gen_optional_field 515275216 gen__string x.Alias.json_name
    in
      Piqirun.gen_record code
-       [ _wire_type; _proto_name; _name; _piqi_type; _proto_type; _typename;
-         _parent; _ocaml_name; _is_func_param; _typeref; _ocaml_type;
+       [ _wire_type; _proto_name; _name; _piqtype; _piqi_type; _proto_type;
+         _typename; _parent; _ocaml_name; _is_func_param; _ocaml_type;
          _json_name ])
   
 let gen_piq_word x = gen__piq_word (-1) x
@@ -1747,11 +1747,11 @@ and default_option () =
     Option.code = None;
     Option.proto_name = None;
     Option.name = None;
+    Option.piqtype = None;
     Option.alt_name = None;
     Option.getopt_letter = None;
     Option.typename = None;
     Option.ocaml_name = None;
-    Option.typeref = None;
     Option.getopt_doc = None;
     Option.json_name = None;
   }
@@ -1763,13 +1763,13 @@ and default_piqi_list () =
   {
     Piqi_list.proto_name = None;
     Piqi_list.name = default_name ();
+    Piqi_list.piqtype = None;
     Piqi_list.typename = default_typename ();
     Piqi_list.parent = None;
     Piqi_list.ocaml_array = false;
     Piqi_list.ocaml_name = None;
     Piqi_list.is_func_param = false;
     Piqi_list.proto_custom = [];
-    Piqi_list.typeref = None;
     Piqi_list.wire_packed = false;
     Piqi_list.json_name = None;
   }
@@ -1801,12 +1801,12 @@ and default_field () =
     Field.mode =
       parse_field_mode (Piqirun.parse_default "\b\223\162\138\147\001");
     Field.name = None;
+    Field.piqtype = None;
     Field.alt_name = None;
     Field.getopt_letter = None;
     Field.typename = None;
     Field.ocaml_array = false;
     Field.ocaml_name = None;
-    Field.typeref = None;
     Field.wire_packed = false;
     Field.getopt_doc = None;
     Field.default = None;
@@ -1830,13 +1830,13 @@ and default_alias () =
     Alias.wire_type = None;
     Alias.proto_name = None;
     Alias.name = default_name ();
+    Alias.piqtype = None;
     Alias.piqi_type = None;
     Alias.proto_type = None;
     Alias.typename = None;
     Alias.parent = None;
     Alias.ocaml_name = None;
     Alias.is_func_param = false;
-    Alias.typeref = None;
     Alias.ocaml_type = None;
     Alias.json_name = None;
   }

@@ -158,7 +158,7 @@ and parse_record t xml_elem =
 
 and parse_field loc (accu, rem) t =
   let fields, rem =
-    match t.T.Field#typeref with
+    match t.T.Field#piqtype with
       | None -> do_parse_flag t rem
       | Some _ -> do_parse_field loc t rem
   in
@@ -182,7 +182,7 @@ and do_parse_field loc t l =
   let open T.Field in
   let name = C.name_of_field t in
   debug "do_parse_field: %s\n" name;
-  let field_type = piqtype t.typeref in
+  let field_type = some_of t.piqtype in
   let values, rem =
     match t.mode with
       | `required -> 
@@ -273,7 +273,7 @@ and parse_variant t xml_elem =
 and parse_option t xml_elem =
   let open T.Option in
   let name, l = xml_elem in
-  match t.typeref, l with
+  match t.piqtype, l with
     | None, [] ->
         O#{ piqtype = t; obj = None }
     | None, _ ->
@@ -301,7 +301,7 @@ and parse_enum t xml_elem =
 
 and parse_list t xml_elem =
   debug "parse_list: %s\n" t.T.Piqi_list#name;
-  let obj_type = piqtype t.T.Piqi_list#typeref in
+  let obj_type = some_of t.T.Piqi_list#piqtype in
   let _name, l = xml_elem in
   let contents = List.map (parse_list_item obj_type) l in
   L#{ piqtype = t; obj = contents }
@@ -319,7 +319,7 @@ and parse_list_item obj_type xml =
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t x =
   let open T.Alias in
-  let obj_type = piqtype t.typeref in
+  let obj_type = some_of t.piqtype in
   debug "parse_alias: %s\n" t.T.Alias#name;
   let obj = parse_obj obj_type x in
   A#{ piqtype = t; obj = obj }

@@ -77,19 +77,19 @@ let gen_gen_piqtype ?ocaml_type ?wire_type ?(wire_packed=false) t =
 
 (* calculates and generates the width of a packed wire element in bits:
  * generated value can be 32, 64 or empty *)
-let gen_wire_elem_width typeref wire_packed =
+let gen_wire_elem_width piqtype wire_packed =
   let rec aux ?wire_type = function
     | `alias x ->
         (* NOTE: overriding upper-level wire type even if this one is undefined
          *)
-        aux (piqtype x.A#typeref) ?wire_type:x.A#wire_type
+        aux (some_of x.A#piqtype) ?wire_type:x.A#wire_type
     | t ->
         Piqi_wire.get_wire_type_width t wire_type
   in
   if not wire_packed
   then ""
   else
-    match aux (piqtype typeref) with
+    match aux (some_of piqtype) with
       | Some x -> string_of_int x
       | None -> ""
 
@@ -108,7 +108,7 @@ let gen_mode f =
         in
         if f.ocaml_array
         then
-          let width = gen_wire_elem_width f.typeref f.wire_packed in
+          let width = gen_wire_elem_width f.piqtype f.wire_packed in
           mode ^ "_array" ^ width
         else mode
 
@@ -121,7 +121,7 @@ let gen_field rname f =
   in 
   let mode = gen_mode f in
   let fgen =
-    match f.typeref with
+    match f.piqtype with
       | Some piqtype ->
           (* field generation code *)
           iod " "
@@ -210,7 +210,7 @@ let gen_enum e =
 
 let rec gen_option o =
   let open Option in
-  match o.ocaml_name, o.typeref with
+  match o.ocaml_name, o.piqtype with
     | Some mln, None -> (* gen true *)
         iod " " [
           ios "|"; gen_pvar_name mln; ios "->";
@@ -251,8 +251,8 @@ let gen_variant v =
     ]
 
 
-let gen_convert_value typeref ocaml_type direction value =
-  match piqtype typeref with
+let gen_convert_value piqtype ocaml_type direction value =
+  match some_of piqtype with
     | (#T.typedef as typedef) when ocaml_type <> None -> (* custom OCaml type *)
         iol [
           ios "(";
@@ -266,8 +266,8 @@ let gen_convert_value typeref ocaml_type direction value =
         value
 
 
-let gen_convert_to typeref ocaml_type value =
-  gen_convert_value typeref ocaml_type "_to_" value
+let gen_convert_to piqtype ocaml_type value =
+  gen_convert_value piqtype ocaml_type "_to_" value
 
 
 let gen_alias a =
@@ -275,8 +275,8 @@ let gen_alias a =
   iol [
     ios "gen__"; ios (some_of a.ocaml_name);
     ios " code x = ";
-      gen_gen_piqtype (some_of a.typeref) ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
-      ios " code"; gen_convert_to a.typeref a.ocaml_type (ios " x");
+      gen_gen_piqtype (some_of a.piqtype) ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+      ios " code"; gen_convert_to a.piqtype a.ocaml_type (ios " x");
   ]
 
 
@@ -285,17 +285,17 @@ let gen_packed_alias a =
   iol [
     ios "packed_gen__"; ios (some_of a.ocaml_name);
     ios " x = ";
-      gen_gen_piqtype (some_of a.typeref)
+      gen_gen_piqtype (some_of a.piqtype)
         ?ocaml_type:a.ocaml_type
         ?wire_type:a.wire_type
         ~wire_packed:true;
-      gen_convert_to a.typeref a.ocaml_type (ios " x");
+      gen_convert_to a.piqtype a.ocaml_type (ios " x");
   ]
 
 
 let gen_alias a =
   let open Alias in
-  if Piqi_wire.can_be_packed (piqtype a.typeref)
+  if Piqi_wire.can_be_packed (some_of a.piqtype)
   then
     (* generate another function for packed encoding *)
     iod " and " [
@@ -311,7 +311,7 @@ let gen_list_repr l =
   let packed = ios (if l.wire_packed then "packed_" else "") in
   let repr =
     if l.ocaml_array
-    then ios "array" ^^ ios (gen_wire_elem_width l.typeref l.wire_packed)
+    then ios "array" ^^ ios (gen_wire_elem_width l.piqtype l.wire_packed)
     else ios "list"
   in
   packed ^^ repr
@@ -325,7 +325,7 @@ let gen_list l =
       gen_cc "reference ";
         (* Piqirun.gen_(packed_)?(list|array|array32|array64) *)
         ios "(Piqirun.gen_"; repr; ios " (";
-          gen_gen_piqtype (some_of l.typeref) ~wire_packed:l.wire_packed;
+          gen_gen_piqtype (some_of l.piqtype) ~wire_packed:l.wire_packed;
         ios ")) code x";
   ]
 
