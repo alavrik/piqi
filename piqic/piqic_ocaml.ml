@@ -109,7 +109,7 @@ let mlname_list x =
   if x.ocaml_name = None then x.ocaml_name <- mlname x.name
 
 
-let mlname_piqdef = function
+let mlname_typedef = function
   | `record x -> mlname_record x
   | `variant x -> mlname_variant x
   | `enum x -> mlname_enum x
@@ -117,8 +117,8 @@ let mlname_piqdef = function
   | `list x -> mlname_list x
 
 
-let mlname_defs (defs:T.piqdef list) =
-  List.iter mlname_piqdef defs
+let mlname_defs (defs:T.typedef list) =
+  List.iter mlname_typedef defs
 
 
 let mlmodname n =
@@ -166,8 +166,8 @@ let rec mlname_piqi (piqi:T.piqi) =
      * overriden in mlname_defs *)
     mlname_functions piqi.P#resolved_func;
 
-    mlname_defs piqi.P#resolved_piqdef;
-    mlname_defs piqi.P#imported_piqdef;
+    mlname_defs piqi.P#resolved_typedef;
+    mlname_defs piqi.P#imported_typedef;
     mlname_imports piqi.P#resolved_import;
   end
 

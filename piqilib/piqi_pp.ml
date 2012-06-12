@@ -73,11 +73,11 @@ let transform_ast path f (ast:T.ast) =
 (* simplify piqi ast: *)
 let simplify_piqi_ast (ast:T.ast) =
   let tr = transform_ast in
-  (* map piqdef.x -> x *)
-  let rm_piqdef =
+  (* map typedef.x -> x *)
+  let rm_typedef =
     tr [] (
       function
-        | `named {T.Named.name = "piqdef"; T.Named.value = v} -> [v]
+        | `named {T.Named.name = "typedef"; T.Named.value = v} -> [v]
         | x -> [x]
     )
   (* del .../mode.required *)
@@ -133,7 +133,7 @@ let simplify_piqi_ast (ast:T.ast) =
     |> tr_type_name_common ["function"; param; "list"]
   in
   ast
-  |> rm_piqdef
+  |> rm_typedef
   |> tr_field_mode ["record"; "field"]
   |> tr_extend_piq_any
   |> tr_extend_what
@@ -165,7 +165,7 @@ let compare_piqi_items a b =
       (* skipping custom-field, see below
        * | "custom-field" -> 4
        *)
-      | "piqdef" -> 5
+      | "typedef" -> 5
       | "extend" -> 6
       | _ -> 100
   in

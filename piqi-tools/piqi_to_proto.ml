@@ -136,14 +136,14 @@ let gen_piqtype' ?parent = function
   | Some t -> gen_piqtype t ?parent
 
 
-let piqdef_proto_name = function
+let typedef_proto_name = function
   | `record t -> some_of t.R#proto_name
   | `variant t -> some_of t.V#proto_name
   | `enum t -> some_of t.E#proto_name
   | `alias t -> some_of t.A#proto_name
   | `list t -> some_of t.L#proto_name
   | _ ->
-      (* this function will be called only for named types (i.e. piqdefs) *)
+      (* this function will be called only for named types (i.e. typedefs) *)
       assert false
 
 
@@ -151,7 +151,7 @@ let protoname_of name typeref =
   match name, typeref with
     | Some n, _ -> ios n
     | None, Some t ->
-        ios (piqdef_proto_name t)
+        ios (typedef_proto_name t)
     | _ -> assert false
 
 
@@ -389,7 +389,7 @@ and gen_alias ?name ?parent ?(is_func_param=false) a =
           []
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   let defs = flatmap gen_def defs in
   iod "\n" defs
 
@@ -440,7 +440,7 @@ let gen_piqi (piqi:T.piqi) =
   (* add import "piqi.org/piqtype.piqi.proto" if 'any' typeref is used *)
   is_self_spec := C.is_self_spec piqi;
 
-  let defs = gen_defs piqi.P#resolved_piqdef in
+  let defs = gen_defs piqi.P#resolved_typedef in
   let piqi_import =
     if C.depends_on_piq_any piqi && not !is_self_spec
     then
@@ -523,7 +523,7 @@ let protoname_list x =
   if x.proto_name = None then x.proto_name <- protoname x.name
 
 
-let protoname_piqdef = function
+let protoname_typedef = function
   | `record x -> protoname_record x
   | `variant x -> protoname_variant x
   | `enum x -> protoname_enum x
@@ -531,8 +531,8 @@ let protoname_piqdef = function
   | `list x -> protoname_list x
 
 
-let protoname_defs (defs:T.piqdef list) =
-  List.iter protoname_piqdef defs
+let protoname_defs (defs:T.typedef list) =
+  List.iter protoname_typedef defs
 
 
 (*
@@ -556,8 +556,8 @@ let rec protoname_piqi (piqi:T.piqi) =
     (*
     if piqi.proto_package = None then piqi.proto_package <- proto_modname piqi.modname;
     *)
-    protoname_defs piqi.P#resolved_piqdef;
-    protoname_defs piqi.P#imported_piqdef;
+    protoname_defs piqi.P#resolved_typedef;
+    protoname_defs piqi.P#imported_typedef;
     protoname_imports piqi.P#resolved_import;
   end
 
@@ -578,9 +578,9 @@ let piqi_to_proto (piqi: T.piqi) ch =
   let boot_defs =
     match !C.piqi_boot with
       | None -> []
-      | Some x -> x. P#resolved_piqdef
+      | Some x -> x. P#resolved_typedef
   in
-  piqi.P#resolved_piqdef <- boot_defs @ piqi.P#resolved_piqdef;
+  piqi.P#resolved_typedef <- boot_defs @ piqi.P#resolved_typedef;
 
   (* set proto names which are not specified by user *)
   protoname_piqi piqi;

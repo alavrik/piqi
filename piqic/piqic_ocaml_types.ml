@@ -52,14 +52,14 @@ let top_modname = ref ""
 let scoped_name name = !top_modname ^ "." ^ name
 
 
-let piqdef_mlname = function
+let typedef_mlname = function
   | `record t -> some_of t.R#ocaml_name
   | `variant t -> some_of t.V#ocaml_name
   | `enum t -> some_of t.E#ocaml_name
   | `alias t -> some_of t.A#ocaml_name
   | `list t -> some_of t.L#ocaml_name
   | _ ->
-      (* this function will be called only for named types (i.e. piqdefs) *)
+      (* this function will be called only for named types (i.e. typedefs) *)
       assert false
 
 
@@ -130,7 +130,7 @@ let gen_field_type f =
 let mlname_of name typeref =
   match name, typeref with
     | Some n, _ -> n
-    | None, Some t -> piqdef_mlname t
+    | None, Some t -> typedef_mlname t
     | _ -> assert false
 
 
@@ -276,7 +276,7 @@ let gen_mod_def = function
   | _ -> []
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   let mod_defs = flatmap gen_mod_def defs in
   let odefs = flatmap gen_def defs in
   let odef =
@@ -350,7 +350,7 @@ let order_defs defs =
   (* topologically sort local variant defintions *)
   let cycle_visit def =
     Piqi_common.error def
-      ("cyclic OCaml variant definition: " ^ piqdef_name def)
+      ("cyclic OCaml variant definition: " ^ typedef_name def)
   in
   let get_adjacent_vertixes = function
     | `variant v ->
@@ -375,6 +375,6 @@ let order_defs defs =
 let gen_piqi (piqi:T.piqi) =
   iol [
     gen_imports piqi.P#resolved_import;
-    gen_defs (order_defs piqi.P#resolved_piqdef);
+    gen_defs (order_defs piqi.P#resolved_typedef);
   ]
 

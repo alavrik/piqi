@@ -165,7 +165,7 @@ custom_args() -> "--embed-piqi ".
 gen_piqi(Piqi) ->
     Mod = Piqi#piqi.module,
     ErlMod = Piqi#piqi.erlang_module,
-    Defs = Piqi#piqi.piqdef,
+    Defs = Piqi#piqi.typedef,
     Functions = Piqi#piqi.func,
 
     Filename = binary_to_list(ErlMod) ++ "_ext.erl",
@@ -191,18 +191,18 @@ gen_embedded_piqi(ErlMod) ->
     ].
 
 
-piqdef_name({piq_record, X}) -> X#piq_record.name;
-piqdef_name({variant, X}) -> X#variant.name;
-piqdef_name({enum, X}) -> X#variant.name;
-piqdef_name({alias, X}) -> X#alias.name;
-piqdef_name({piq_list, X}) -> X#piq_list.name.
+typedef_name({piq_record, X}) -> X#piq_record.name;
+typedef_name({variant, X}) -> X#variant.name;
+typedef_name({enum, X}) -> X#variant.name;
+typedef_name({alias, X}) -> X#alias.name;
+typedef_name({piq_list, X}) -> X#piq_list.name.
 
 
-piqdef_erlname({piq_record, X}) -> X#piq_record.erlang_name;
-piqdef_erlname({variant, X}) -> X#variant.erlang_name;
-piqdef_erlname({enum, X}) -> X#variant.erlang_name;
-piqdef_erlname({alias, X}) -> X#alias.erlang_name;
-piqdef_erlname({piq_list, X}) -> X#piq_list.erlang_name.
+typedef_erlname({piq_record, X}) -> X#piq_record.erlang_name;
+typedef_erlname({variant, X}) -> X#variant.erlang_name;
+typedef_erlname({enum, X}) -> X#variant.erlang_name;
+typedef_erlname({alias, X}) -> X#alias.erlang_name;
+typedef_erlname({piq_list, X}) -> X#piq_list.erlang_name.
 
 
 gen_parse(Mod, ErlMod, Name, ErlName) ->
@@ -262,14 +262,14 @@ gen_convert(Mod, Name, InputFormat, OutputFormat, Data) ->
 
 
 gen_parse_def(Mod, ErlMod, Def) ->
-    Name = piqdef_name(Def),
-    ErlName = piqdef_erlname(Def),
+    Name = typedef_name(Def),
+    ErlName = typedef_erlname(Def),
     gen_parse(Mod, ErlMod, Name, ErlName).
 
 
 gen_gen_def(Mod, ErlMod, Def) ->
-    Name = piqdef_name(Def),
-    ErlName = piqdef_erlname(Def),
+    Name = typedef_name(Def),
+    ErlName = typedef_erlname(Def),
     gen_gen(Mod, ErlMod, Name, ErlName).
 
 

@@ -37,12 +37,12 @@ let rec gen_parse_type ocaml_type wire_type wire_packed x =
         if !Piqic_common.is_self_spec
         then ios "parse_any"
         else ios "Piqi_piqi.parse_any"
-    | (#T.piqdef as x) ->
+    | (#T.typedef as x) ->
         let modname = gen_parent x in
         iol [
           modname;
           packed; ios "parse_";
-          ios (piqdef_mlname x)
+          ios (typedef_mlname x)
         ]
     | _ -> (* gen parsers for built-in types *)
         iol [
@@ -284,7 +284,7 @@ let gen_def = function
   | `alias t -> gen_alias t
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   let defs = List.map gen_def defs in
   if defs = []
   then iol []
@@ -311,4 +311,4 @@ let gen_defs (defs:T.piqdef list) =
 
 
 let gen_piqi (piqi:T.piqi) =
-  gen_defs piqi.P#resolved_piqdef
+  gen_defs piqi.P#resolved_typedef

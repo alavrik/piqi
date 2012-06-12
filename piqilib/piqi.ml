@@ -21,7 +21,7 @@ open C
 
 
 module Idtable = Piqi_db.Idtable
-type idtable = T.piqdef Idtable.t
+type idtable = T.typedef Idtable.t
 
 
 (* start in boot_mode by default, it will be switched off later (see below) *)
@@ -35,9 +35,9 @@ let piqi_lang_def :T.piqtype ref = ref `bool
 (* resolved type definition for the Piqi specification *)
 let piqi_spec_def :T.piqtype ref = ref `bool
 
-(* resolved "piqdef" type definition
+(* resolved "typedef" type definition
  * Will be appropriately initialized during boot stage (see below) *)
-let piqdef_def :T.piqtype ref = ref `bool
+let typedef_def :T.piqtype ref = ref `bool
 let field_def :T.piqtype ref = ref `bool
 let option_def :T.piqtype ref = ref `bool
 let function_def :T.piqtype ref = ref `bool
@@ -74,39 +74,39 @@ let register_processing_hook (f :idtable -> T.piqi -> unit) =
   processing_hooks := !processing_hooks @ [f]
 
 
-let add_piqdef idtable (piqdef:T.piqdef) = 
-  let name = piqdef_name piqdef in
-  debug "add_piqdef: %s\n" name;
+let add_typedef idtable (typedef:T.typedef) = 
+  let name = typedef_name typedef in
+  debug "add_typedef: %s\n" name;
   if Idtable.mem idtable name
   then
     let prev_def = Idtable.find idtable name in
-    error piqdef
+    error typedef
       ("duplicate type definition " ^ quote name ^ "\n" ^
        error_string prev_def "first defined here")
   else
-    Idtable.add idtable name piqdef
+    Idtable.add idtable name typedef
 
 
-let add_piqdefs idtable defs =
-  List.fold_left add_piqdef idtable defs
+let add_typedefs idtable defs =
+  List.fold_left add_typedef idtable defs
 
 
-let add_imported_piqdef idtable (piqdef:T.piqdef) =
+let add_imported_typedef idtable (typedef:T.typedef) =
   let open Import in
   let import = 
-    match get_parent piqdef with
+    match get_parent typedef with
       | `import x -> x
       | _ -> assert false
   in
   (* while adding imported defs to the idtable, transform definition's names to
    * contain module's namespace *)
-  let name = some_of import.name ^ "/" ^ piqdef_name piqdef in
-  debug "add_imported_piqdef: %s\n" name;
-  Idtable.add idtable name piqdef
+  let name = some_of import.name ^ "/" ^ typedef_name typedef in
+  debug "add_imported_typedef: %s\n" name;
+  Idtable.add idtable name typedef
 
 
-let add_imported_piqdefs idtable defs =
-  List.fold_left add_imported_piqdef idtable defs
+let add_imported_typedefs idtable defs =
+  List.fold_left add_imported_typedef idtable defs
 
 
 let find_def idtable name =
@@ -216,14 +216,14 @@ let error_noboot obj s =
 let check_typeref obj (t:T.typeref) =
   match t with 
     | `name x -> check_scoped_name x
-    | #T.piqdef ->
+    | #T.typedef ->
         error obj "use of type definition as type is prohibited"
     | _ -> ()
 
 
 let check_no_builtin_type obj t =
   match t with 
-    | #T.piqdef | `name _ -> check_typeref obj t
+    | #T.typedef | `name _ -> check_typeref obj t
     | _ ->
         error_noboot obj "use of built-in types is allowed only from boot files or when running in \"noboot\" mode"
 *)
@@ -338,7 +338,7 @@ let check_list l =
 
 
 let check_def def =
-  check_name (piqdef_name def);
+  check_name (typedef_name def);
   match def with
     | `record x -> check_record x
     | `variant x -> check_variant x
@@ -504,7 +504,7 @@ let copy_record ?(copy_parts=true) x =
   else copy_obj x
 
 
-let copy_def ~copy_parts (x:T.piqdef) =
+let copy_def ~copy_parts (x:T.typedef) =
   let res =
     match x with
       | `record x -> `record (copy_record ~copy_parts x)
@@ -523,7 +523,7 @@ let copy_defs ?(copy_parts=true) defs = List.map (copy_def ~copy_parts) defs
 let copy_imports l = List.map copy_obj l
 
 
-let resolve_defs ?piqi idtable (defs:T.piqdef list) =
+let resolve_defs ?piqi idtable (defs:T.typedef list) =
   (*
   (* a fresh copy of defs is needed, since we can't alter the original ones:
    * we need to resolve types & assign codes in order to resolve_defaults *)
@@ -533,7 +533,7 @@ let resolve_defs ?piqi idtable (defs:T.piqdef list) =
   List.iter check_def defs;
 
   (* add definitions to the map: def name -> def *)
-  let idtable = add_piqdefs idtable defs in
+  let idtable = add_typedefs idtable defs in
 
   (* resolve type names using the map *)
   List.iter (resolve_typenames idtable) defs;
@@ -806,7 +806,7 @@ let list_replace l f x =
 
 let idtable_of_defs defs =
   let idtable = Idtable.empty in
-  add_piqdefs idtable defs
+  add_typedefs idtable defs
 
 
 let idtable_of_imports imports =
@@ -886,7 +886,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
 
       | _ ->
           (* extensions can only be applied to named containers and all of
-           * piqdefs are named containers *)
+           * typedefs are named containers *)
           assert false
   in
   let context_str = "while applying extensions to this definition ..." in
@@ -1028,13 +1028,13 @@ let extend_functions funs extensions custom_fields =
 let apply_def_extensions idtable spec extension_entries custom_fields =
   match spec with
     | `name name | `typedef name ->
-        let piqdef = find_def idtable name in
-        let extended_piqdef =
-          apply_extensions piqdef !piqdef_def T.parse_piqdef T.gen__piqdef
+        let typedef = find_def idtable name in
+        let extended_typedef =
+          apply_extensions typedef !typedef_def T.parse_typedef T.gen__typedef
           extension_entries custom_fields
         in
         (* replace the original typedef with the extended one *)
-        Idtable.add idtable name extended_piqdef
+        Idtable.add idtable name extended_typedef
     | `field x ->
         apply_field_extensions idtable x extension_entries custom_fields
     | `option x ->
@@ -1103,7 +1103,7 @@ let get_imported_defs imports =
     (* in order to avoid conflict between local defs and also defs imported
      * several times, creating a shallow copy of imported defs just to be able
      * to safely mutate the "parent" field *)
-    let imported_defs = copy_defs piqi.P#resolved_piqdef ~copy_parts:false in
+    let imported_defs = copy_defs piqi.P#resolved_typedef ~copy_parts:false in
     (* set parent namespace for imported definitions *)
     List.iter (fun def -> set_parent def (`import x)) imported_defs;
     imported_defs
@@ -1221,7 +1221,7 @@ let process_func f =
       | None -> []
       | Some param ->
           let def = resolve_param f param_name param in
-          let res = (def, (piqdef_name def, set_f)) in
+          let res = (def, (typedef_name def, set_f)) in
           [res]
   in
   let input = process_param "input" f.input set_input
@@ -1402,24 +1402,24 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option
    * handle imported defs
    *)
   let imported_defs = get_imported_defs resolved_imports in
-  piqi.P#imported_piqdef <- imported_defs;
+  piqi.P#imported_typedef <- imported_defs;
 
   (* fill idtable with their imported modules' definitions *)
   let idtable = Idtable.empty in
-  let idtable = add_imported_piqdefs idtable imported_defs in
+  let idtable = add_imported_typedefs idtable imported_defs in
 
   (* add defintions from the boot module to the idtable *)
   let boot_defs =
     match !piqi_boot with
       | Some x when !Config.noboot = false ->
           (* NOTE: boot defs should be already extended *)
-          x.P#resolved_piqdef
+          x.P#resolved_typedef
       | _ ->
           (* boot module is being processed right now, or --noboot command-line
            * option was specified *)
           []
   in
-  let idtable = add_piqdefs idtable boot_defs in
+  let idtable = add_typedefs idtable boot_defs in
 
   (*
    * handle functions
@@ -1446,7 +1446,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option
   let func_defs, func_defs_map = get_function_defs resolved_funs in
 
   (* add function type definitions to Piqi defs *)
-  let defs = piqi.P#piqdef @ func_defs in
+  let defs = piqi.P#typedef @ func_defs in
 
   (* expand all extensions over all definitions *)
   (* NOTE: boot defs can not be extended *)
@@ -1469,16 +1469,16 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option
   List.iter
     (fun def ->
       try
-        let setter = Idtable.find func_defs_map (piqdef_name def) in
+        let setter = Idtable.find func_defs_map (typedef_name def) in
         setter def
       with
         Not_found -> ()
     )
     resolved_defs;
 
-  (* remove function defs from the list of extended piqdefs *)
+  (* remove function defs from the list of extended typedefs *)
   let extended_defs = List.filter
-    (fun def -> not (Idtable.mem func_defs_map (piqdef_name def)))
+    (fun def -> not (Idtable.mem func_defs_map (typedef_name def)))
     extended_defs
   in
 
@@ -1499,8 +1499,8 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option
    * fields *)
   let idtable = resolve_defs ~piqi idtable resolved_defs in
 
-  piqi.P#extended_piqdef <- extended_defs;
-  piqi.P#resolved_piqdef <- resolved_defs;
+  piqi.P#extended_typedef <- extended_defs;
+  piqi.P#resolved_typedef <- resolved_defs;
 
   (* run registered processing hooks *)
   List.iter (fun f -> f idtable piqi) !processing_hooks;
@@ -1731,8 +1731,8 @@ let boot () =
   piqi_lang_def := find_embedded_piqtype "piqi";
   (* resolved type definition for the Piqi specification *)
   piqi_spec_def := Piqi_db.find_piqtype "embedded/piqi.org/piqi/piqi";
-  (* resolved "piqdef" type definition *)
-  piqdef_def := find_embedded_piqtype "piqdef";
+  (* resolved "typedef" type definition *)
+  typedef_def := find_embedded_piqtype "typedef";
   field_def := find_embedded_piqtype "field";
   option_def := find_embedded_piqtype "option";
   function_def := find_embedded_piqtype "function";
@@ -1873,10 +1873,10 @@ let expand_piqi ?(includes_only=false) piqi =
         then piqi.extend (* all extensions *)
         else []; (* extensions are already applied *)
 
-      piqdef =
+      typedef =
         if includes_only
-        then piqi.piqdef (* all typedefs *)
-        else piqi.extended_piqdef; (* all typedefs with extensions applied *)
+        then piqi.typedef (* all typedefs *)
+        else piqi.extended_typedef; (* all typedefs with extensions applied *)
 
       import =
         if includes_only

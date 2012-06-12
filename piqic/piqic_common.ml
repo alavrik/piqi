@@ -35,7 +35,7 @@ let gen_code = function
 let gen_builtin_default_value wire_type t =
   let gen_obj code x =
     match x with
-      | #T.piqdef | `any -> assert false
+      | #T.typedef | `any -> assert false
       | `int -> Piqobj_to_wire.gen_int code 0L ?wire_type
       | `float -> Piqobj_to_wire.gen_float code 0.0 ?wire_type
       | `bool -> Piqobj_to_wire.gen_bool code false
@@ -62,7 +62,7 @@ let is_boot_def def =
 
 let get_boot_defs seen_defs def =
   let get_boot_def = function
-    | #T.piqdef as x when is_boot_def x ->
+    | #T.typedef as x when is_boot_def x ->
         if List.memq x seen_defs (* previously seen boot def? *)
         then []
         else [x]
@@ -94,7 +94,7 @@ let get_boot_dependencies piqi =
         let accu = uniqq (new_boot_defs @ accu) in
         aux accu new_boot_defs
     in
-    aux [] piqi.P#resolved_piqdef
+    aux [] piqi.P#resolved_typedef
 
 
 let piqic_common piqi =
@@ -113,9 +113,9 @@ let piqic_common piqi =
   (* NOTE: alternatively, we could just include all boot defintions like that,
    * but this will produce some unnecessary (unused) parsers, generators and
    * type defintions:
-   * let boot_defs = (some_of !boot_piqi).P#resolved_piqdef in
+   * let boot_defs = (some_of !boot_piqi).P#resolved_typedef in
    *)
-  piqi.P#resolved_piqdef <- boot_defs @ piqi.P#resolved_piqdef;
+  piqi.P#resolved_typedef <- boot_defs @ piqi.P#resolved_typedef;
   ()
 
 

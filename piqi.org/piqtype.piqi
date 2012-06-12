@@ -14,9 +14,10 @@
 
 
 .variant [
-    .name piqdef
-
     % user-defined types
+
+    .name typedef
+
     .option [ .type record ]
     .option [ .type variant ]
     .option [ .type enum ]
@@ -25,6 +26,8 @@
         .type list
         .ocaml-name "list"
     ]
+
+    .proto-name "piqi_typedef"
 ]
 
 
@@ -130,7 +133,7 @@
     .name enum
     .type variant
 
-    .proto-name "piq_enum"
+    .proto-name "piqi_enum"
 ]
 
 

@@ -258,7 +258,7 @@ let process_def = function
   | _ -> ()
 
 
-let process_defs (defs: T.piqdef list) =
+let process_defs (defs: T.typedef list) =
   List.iter process_def defs
 
 
@@ -347,6 +347,6 @@ let add_hashcodes_def def =
  * by calling Piqi_wire.add_codes() from Piqi module as usual. This will ensure
  * we didn't get any hash conflicts and, also, reorder record fields by codes.
  *)
-let add_hashcodes (defs: T.piqdef list) =
+let add_hashcodes (defs: T.typedef list) =
   List.iter add_hashcodes_def defs
 

@@ -24,7 +24,7 @@
         .ocaml-name "modname"
     ]
 
-    .field [ .type piqdef .repeated ]
+    .field [ .type typedef .repeated ]
     .field [ .type import .repeated ]
     .field [ .type function .repeated ]
 ]

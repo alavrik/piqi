@@ -45,9 +45,9 @@
 .extend [
     .typedef piqi
 
-    .with.field [ .name extended-piqdef .type piqdef .repeated ]
-    .with.field [ .name resolved-piqdef .type piqdef .repeated ]
-    .with.field [ .name imported-piqdef .type piqdef .repeated ]
+    .with.field [ .name extended-typedef .type typedef .repeated ]
+    .with.field [ .name resolved-typedef .type typedef .repeated ]
+    .with.field [ .name imported-typedef .type typedef .repeated ]
 
     .with.field [ .name resolved-import .type import .repeated ]
     .with.field [ .name extended-import .type import .repeated ]
@@ -67,19 +67,19 @@
 
     .with.field [
         .name resolved-input
-        .type piqdef
+        .type typedef
         .optional
     ]
 
     .with.field [
         .name resolved-output
-        .type piqdef
+        .type typedef
         .optional
     ]
 
     .with.field [
         .name resolved-error
-        .type piqdef
+        .type typedef
         .optional
     ]
 ]
@@ -112,7 +112,7 @@
     .name piqtype
 
     % user-defined types
-    .option [ .type piqdef ]
+    .option [ .type typedef ]
 
     % built-in types
     .option [ .type piqi-type ]

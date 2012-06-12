@@ -36,14 +36,14 @@ let string_type :T.erlang_string_type ref = ref `binary
 let scoped_name name = !type_prefix ^ name
 
 
-let piqdef_erlname = function
+let typedef_erlname = function
   | `record t -> some_of t.R#erlang_name
   | `variant t -> some_of t.V#erlang_name
   | `enum t -> some_of t.E#erlang_name
   | `alias t -> some_of t.A#erlang_name
   | `list t -> some_of t.L#erlang_name
   | _ ->
-      (* this function will be called only for named types (i.e. piqdefs) *)
+      (* this function will be called only for named types (i.e. typedefs) *)
       assert false
 
 
@@ -133,7 +133,7 @@ let gen_field_type fl ft =
 let erlname_of name typeref =
   match name, typeref with
     | Some n, _ -> n
-    | None, Some t -> piqdef_erlname t
+    | None, Some t -> typedef_erlname t
     | _ -> assert false
 
 
@@ -253,7 +253,7 @@ let gen_def x =
         [gen_def x]
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   let records = flatmap (function `record x -> [x] | _ -> []) defs in
   let record_types = List.map gen_record_type records in
   let defs = flatmap gen_def defs in
@@ -289,6 +289,6 @@ let gen_imports l =
 let gen_piqi (piqi:T.piqi) =
   iol [
     gen_imports piqi.P#resolved_import;
-    gen_defs piqi.P#resolved_piqdef;
+    gen_defs piqi.P#resolved_typedef;
   ]
 

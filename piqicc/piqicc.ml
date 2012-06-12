@@ -141,10 +141,10 @@ let piqicc ch boot_fname lang_fname impl_fname =
   in
 
   (* convert piqi to binobj using piqi self-definition that we've just loaded *)
-  let piqi_def = Piqi_db.find_local_piqdef piqi "piqi" in
-  let piqi_type = (piqi_def: T.piqdef :> T.piqtype) in
+  let piqi_def = Piqi_db.find_local_typedef piqi "piqi" in
+  let piqi_type = (piqi_def: T.typedef :> T.piqtype) in
   let gen_piqi_binobj piqi =
-    add_hashcodes piqi.P#piqdef;
+    add_hashcodes piqi.P#typedef;
     (* Old method that does not account for possible Piqi lang
      * self-specification refactoring
      *

@@ -90,8 +90,8 @@ let replace_piqi piqi =
   loaded_map := Piqitable.add !loaded_map modname piqi
 
 
-let find_local_piqdef piqi name =
-  List.find (fun x -> name = piqdef_name x) piqi.P#resolved_piqdef
+let find_local_typedef piqi name =
+  List.find (fun x -> name = typedef_name x) piqi.P#resolved_typedef
 
 
 (* To be set up later to Piqi.load_piqi_file; we do this since OCaml doesn't
@@ -131,23 +131,23 @@ let find_load_piqi_module ~auto_load_piqi modname =
           load_piqi_module modname
 
 
-let find_piqdef ?(auto_load_piqi=true) name =
+let find_typedef ?(auto_load_piqi=true) name =
   (* XXX: check global type name before loading? *)
   trace "looking for type: %s\n" name;
   let modname, typename = Piqi_name.split_name name in
   let piqi = find_load_piqi_module modname ~auto_load_piqi in
-  find_local_piqdef piqi typename
+  find_local_typedef piqi typename
 
 
 let find_piqtype name =
-  let def = find_piqdef name in
-  (def: T.piqdef :> T.piqtype)
+  let def = find_typedef name in
+  (def: T.typedef :> T.piqtype)
 
 
 let try_find_piqtype name =
   try
-    let def = find_piqdef name ~auto_load_piqi:false in
-    Some (def: T.piqdef :> T.piqtype)
+    let def = find_typedef name ~auto_load_piqi:false in
+    Some (def: T.typedef :> T.piqtype)
   with
     Not_found -> None
 

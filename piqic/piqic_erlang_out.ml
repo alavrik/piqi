@@ -55,10 +55,10 @@ let rec gen_gen_type erlang_type wire_type wire_packed x =
         if !Piqic_common.is_self_spec
         then ios "gen_" ^^ ios !any_erlname
         else ios "piqi_piqi:gen_any"
-    | (#T.piqdef as x) ->
+    | (#T.typedef as x) ->
         let modname = gen_parent x in
         iol [
-          modname; packed; ios "gen_"; ios (piqdef_erlname x)
+          modname; packed; ios "gen_"; ios (typedef_erlname x)
         ]
     | _ -> (* gen generators for built-in types *)
         iol [
@@ -254,11 +254,11 @@ let gen_variant v =
 
 let gen_convert_value typeref erlang_type direction value =
   match piqtype typeref with
-    | (#T.piqdef as piqdef) when erlang_type <> None -> (* custom Erlang type *)
+    | (#T.typedef as typedef) when erlang_type <> None -> (* custom Erlang type *)
         iol [
           ios (some_of erlang_type);
           ios direction;
-          ios (piqdef_erlname piqdef);
+          ios (typedef_erlname typedef);
           ios "("; value; ios ")";
         ]
     | _ ->
@@ -325,7 +325,7 @@ let gen_list l =
 (* generate gen_<name>/2 specs and functions *)
 let gen_spec_2 x =
   iol [
-    ios "-spec gen_"; ios (piqdef_erlname x); ios "/2 :: (";
+    ios "-spec gen_"; ios (typedef_erlname x); ios "/2 :: (";
       ios "Code :: piqirun_code(), ";
       ios "X :: "; ios_gen_out_piqtype (x :> T.piqtype); ios ") -> ";
     ios "iolist().";
@@ -349,13 +349,13 @@ let gen_def_2 x =
 (* generate gen_<name>/1 specs and functions *)
 let gen_spec_1 x =
   iol [
-    ios "-spec gen_"; ios (piqdef_erlname x); ios "/1 :: (";
+    ios "-spec gen_"; ios (typedef_erlname x); ios "/1 :: (";
       ios "X :: "; ios_gen_out_piqtype (x :> T.piqtype); ios ") -> ";
     ios "iolist().";
   ]
 
 let gen_def_1 x =
-  let func_name = ios "gen_" ^^ ios (piqdef_erlname x) in
+  let func_name = ios "gen_" ^^ ios (typedef_erlname x) in
   let generator =
     iol [
       func_name; ios "(X) ->"; indent;
@@ -368,11 +368,11 @@ let gen_def_1 x =
   ]
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   let defs_2 = List.map gen_def_2 defs in
   let defs_1 = List.map gen_def_1 defs in
   iod "\n" (defs_2 @ defs_1)
 
 
 let gen_piqi (piqi:T.piqi) =
-  gen_defs piqi.P#resolved_piqdef
+  gen_defs piqi.P#resolved_typedef

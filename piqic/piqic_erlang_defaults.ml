@@ -36,9 +36,9 @@ let gen_default_type erlang_type wire_type x =
         if !Piqic_common.is_self_spec
         then ios "default_" ^^ ios !any_erlname ^^ ios "()"
         else ios "piqi_piqi:default_any()"
-    | (#T.piqdef as x) ->
+    | (#T.typedef as x) ->
         let modname = gen_parent x in
-        modname ^^ ios "default_" ^^ ios (piqdef_erlname x) ^^ ios "()"
+        modname ^^ ios "default_" ^^ ios (typedef_erlname x) ^^ ios "()"
     | _ -> (* gen parsers for built-in types *)
         let default = Piqic_common.gen_builtin_default_value wire_type x in
         let default_expr = Piqic_erlang_in.gen_erlang_binary default in
@@ -152,7 +152,7 @@ let gen_def = function
   | `alias t -> gen_alias t
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   let defs = List.map gen_def defs in
   if defs = []
   then iol []
@@ -164,4 +164,4 @@ let gen_defs (defs:T.piqdef list) =
 
 
 let gen_piqi (piqi:T.piqi) =
-  gen_defs piqi.P#resolved_piqdef
+  gen_defs piqi.P#resolved_typedef

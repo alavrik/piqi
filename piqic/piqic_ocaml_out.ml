@@ -54,12 +54,12 @@ let rec gen_gen_type ocaml_type wire_type wire_packed x =
         if !Piqic_common.is_self_spec
         then ios "(fun code x -> gen__any code x)"
         else ios "(fun code x -> Piqi_piqi.gen__any code x)"
-    | (#T.piqdef as x) ->
+    | (#T.typedef as x) ->
         let modname = gen_parent x in
         iol [
           modname;
           packed; ios "gen__";
-          ios (piqdef_mlname x)
+          ios (typedef_mlname x)
         ]
     | _ -> (* gen generators for built-in types *)
         iol [
@@ -218,7 +218,7 @@ let rec gen_option o =
             ios "Piqirun.gen_bool_field"; gen_code o.code; ios "true";
         ]
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
-        let ocaml_name = piqdef_mlname t in
+        let ocaml_name = typedef_mlname t in
         let scoped_name =
           match get_parent t with
             | `import x -> (* imported name *)
@@ -253,12 +253,12 @@ let gen_variant v =
 
 let gen_convert_value typeref ocaml_type direction value =
   match piqtype typeref with
-    | (#T.piqdef as piqdef) when ocaml_type <> None -> (* custom OCaml type *)
+    | (#T.typedef as typedef) when ocaml_type <> None -> (* custom OCaml type *)
         iol [
           ios "(";
             ios (some_of ocaml_type);
             ios direction;
-            ios (piqdef_mlname piqdef);
+            ios (typedef_mlname typedef);
             ios "("; value; ios ")";
           ios ")"
         ]
@@ -340,7 +340,7 @@ let gen_def = function
 
 (* generate gen_<name>/1 functions *)
 let gen_def_1 x =
-  let name = ios (piqdef_mlname x) in
+  let name = ios (typedef_mlname x) in
   iol [
     ios "let gen_"; name; ios " x = ";
       ios"gen__"; name; ios " (-1) x";
@@ -348,7 +348,7 @@ let gen_def_1 x =
   ]
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   if defs = []
   then iol []
   else
@@ -377,4 +377,4 @@ let gen_defs (defs:T.piqdef list) =
 
 
 let gen_piqi (piqi:T.piqi) =
-  gen_defs piqi.P#resolved_piqdef
+  gen_defs piqi.P#resolved_typedef

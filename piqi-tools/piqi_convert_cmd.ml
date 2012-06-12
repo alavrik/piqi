@@ -236,12 +236,12 @@ let rec get_piqi_deps piqi ~only_imports =
 
 
 let get_parent_piqi (t: T.piqtype) =
-  let piqdef =
+  let typedef =
     match t with
-      | #T.piqdef as x -> x
+      | #T.typedef as x -> x
       | _ -> assert false
   in
-  C.get_parent_piqi piqdef
+  C.get_parent_piqi typedef
 
 
 let get_dependencies (obj :Piq.obj) ~only_imports =

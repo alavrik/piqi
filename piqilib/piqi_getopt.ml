@@ -148,7 +148,7 @@ let getopt_name_record x =
 let getopt_name_variant x =
    List.iter getopt_name_option x.V#option
 
-let getopt_name_piqdef = function
+let getopt_name_typedef = function
   | `record x -> getopt_name_record x
   | `variant x | `enum x -> getopt_name_variant x
   | _ -> ()
@@ -156,12 +156,12 @@ let getopt_name_piqdef = function
 
 let getopt_name_defs defs =
     (* name fields and options *)
-    List.iter getopt_name_piqdef defs
+    List.iter getopt_name_typedef defs
 
 
 let getopt_name_piqi _idtable (piqi:T.piqi) =
   let open P in
-  getopt_name_defs piqi.resolved_piqdef
+  getopt_name_defs piqi.resolved_typedef
 
 
 (* NOTE: this function is called only in case if a getopt-related operation is

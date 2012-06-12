@@ -92,7 +92,7 @@ let erlname_list x =
   if x.erlang_name = None then x.erlang_name <- erlname x.name
 
 
-let erlname_piqdef = function
+let erlname_typedef = function
   | `record x -> erlname_record x
   | `variant x -> erlname_variant x
   | `enum x -> erlname_enum x
@@ -100,8 +100,8 @@ let erlname_piqdef = function
   | `list x -> erlname_list x
 
 
-let erlname_defs (defs:T.piqdef list) =
-  List.iter erlname_piqdef defs
+let erlname_defs (defs:T.typedef list) =
+  List.iter erlname_typedef defs
 
 
 let erlname_func_param func_name param_name param =
@@ -164,8 +164,8 @@ let rec erlname_piqi (piqi:T.piqi) =
      * overriden in erlname_defs *)
     erlname_functions piqi.P#resolved_func;
 
-    erlname_defs piqi.P#resolved_piqdef;
-    erlname_defs piqi.P#imported_piqdef;
+    erlname_defs piqi.P#resolved_typedef;
+    erlname_defs piqi.P#imported_typedef;
     erlname_imports piqi.P#resolved_import;
   end
 
@@ -274,8 +274,8 @@ let piqic (piqi: T.piqi) =
   (* set Erlang name for the type "any" *)
   if !Piqic_common.is_self_spec
   then (
-    let def = Piqi_db.find_local_piqdef piqi "any" in
-    let erl_name = Piqic_erlang_types.piqdef_erlname def in
+    let def = Piqi_db.find_local_typedef piqi "any" in
+    let erl_name = Piqic_erlang_types.typedef_erlname def in
     Piqic_erlang_types.any_erlname := erl_name
   );
 

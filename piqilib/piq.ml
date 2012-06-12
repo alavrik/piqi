@@ -251,7 +251,7 @@ let lang_to_spec piqi =
   (* make sure we include all automatically assigned hash-based wire code for
    * fiels and options *)
   if C.is_self_spec piqi
-  then Piqi_wire.add_hashcodes piqi_spec.P#piqdef;
+  then Piqi_wire.add_hashcodes piqi_spec.P#typedef;
 
   (* make sure that the module's name is set *)
   P#{piqi_spec with modname = piqi.P#modname}
@@ -295,7 +295,7 @@ let piqi_spec_wire_code = (1 lsl 29) - 1
 let piqi_to_pb_common piqi ~code =
   (* TODO: fix that ugliness by providing an "external mode" in Piqi_of/to_wire
    * that respects the external definition of the "any" record *)
-  reset_defaults piqi.P#extended_piqdef;
+  reset_defaults piqi.P#extended_typedef;
 
   let piqobj = piqi_to_piqobj piqi in
   piqobj_to_wire code piqobj

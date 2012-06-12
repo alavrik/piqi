@@ -58,21 +58,21 @@ let check_json_name s =
 
 
 (* XXX: use name instead of json_name for foreign types? *)
-let piqdef_json_name = function
+let typedef_json_name = function
   | `record t -> t.R#json_name
   | `variant t -> t.V#json_name
   | `enum t -> t.E#json_name
   | `alias t -> t.A#json_name
   | `list t -> t.L#json_name
   | _ ->
-      (* this function will be called only for named types (i.e. piqdefs) *)
+      (* this function will be called only for named types (i.e. typedefs) *)
       assert false
 
 
 let json_name_of name typeref =
   match name, typeref with
     | Some n, _ -> json_name n
-    | None, Some t -> piqdef_json_name t
+    | None, Some t -> typedef_json_name t
     | _ -> assert false
 
 
@@ -120,7 +120,7 @@ let json_name_list x =
     | Some n -> check_json_name n
 
 
-let json_name_piqdef = function
+let json_name_typedef = function
   | `record x -> json_name_record x
   | `variant x | `enum x -> json_name_variant x
   | `alias x -> json_name_alias x
@@ -134,7 +134,7 @@ let json_name_record' x =
 let json_name_variant' x =
    List.iter json_name_option x.V#option
 
-let json_name_piqdef' = function
+let json_name_typedef' = function
   | `record x -> json_name_record' x
   | `variant x | `enum x -> json_name_variant' x
   | _ -> ()
@@ -142,14 +142,14 @@ let json_name_piqdef' = function
 
 let json_name_defs defs =
     (* name data structures *)
-    List.iter json_name_piqdef defs;
+    List.iter json_name_typedef defs;
     (* name fields and options *)
-    List.iter json_name_piqdef' defs
+    List.iter json_name_typedef' defs
 
 
 let json_name_piqi _idtable (piqi:T.piqi) =
   let open P in
-  json_name_defs piqi.resolved_piqdef
+  json_name_defs piqi.resolved_typedef
 
 
 (* NOTE: this function is called only in case if a JSON-related operation is

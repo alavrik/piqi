@@ -132,7 +132,7 @@ let gen_alias x =
   ]
 
 
-let gen_piqdef_repr = function
+let gen_typedef_repr = function
   | `record t -> gen_record t
   | `variant t -> gen_variant t
   | `enum t -> gen_enum t
@@ -141,8 +141,8 @@ let gen_piqdef_repr = function
 
 
 let gen_def x =
-  let name = piqdef_name x in
-  let repr = gen_piqdef_repr x in
+  let name = typedef_name x in
+  let repr = gen_typedef_repr x in
   iol [
     ios "type "; ios name; ios " ="; repr;
   ]
@@ -152,7 +152,7 @@ let gen_sep l =
   if l <> [] then ios "\n\n" else iol []
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   let l = List.map gen_def defs in
   iol [
     iod "\n\n" l; gen_sep l
@@ -246,7 +246,7 @@ let gen_extensions l =
 
 
 let gen_param name p =
-  let repr = gen_piqdef_repr p in
+  let repr = gen_typedef_repr p in
   iol [
     ios name; ios " ="; repr;
   ]
@@ -293,9 +293,9 @@ let gen_piqi ch (piqi:T.piqi) =
       gen_module piqi.modname;
       gen_imports piqi.import;
       gen_includes piqi.includ;
-      (* NOTE: can't use resolved or extended piqdef here, because we are
+      (* NOTE: can't use resolved or extended typedef here, because we are
        * printing inludes and extensions separately *)
-      gen_defs piqi.piqdef;
+      gen_defs piqi.typedef;
       gen_extensions piqi.extend;
       gen_functions piqi.resolved_func;
     ]

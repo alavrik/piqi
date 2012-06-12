@@ -29,7 +29,7 @@ module rec Types:
     type option = Option.t
     type any = Any.t
 
-    type piqdef =
+    type typedef =
       [ `record of record
       | `variant of variant
       | `enum of enum
@@ -37,7 +37,7 @@ module rec Types:
       | `list of list ]
 
     type obj =
-      [ piqdef
+      [ typedef
         (* built-in types *)
       | `int of int64 (* XXX: use big_int for internal representation? *)
       | `uint of int64

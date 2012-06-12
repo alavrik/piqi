@@ -47,10 +47,10 @@ let rec gen_parse_type erlang_type wire_type wire_packed x =
         if !Piqic_common.is_self_spec
         then ios "parse_" ^^ ios !any_erlname
         else ios "piqi_piqi:parse_any"
-    | (#T.piqdef as x) ->
+    | (#T.typedef as x) ->
         let modname = gen_parent x in
         iol [
-          modname; packed; ios "parse_"; ios (piqdef_erlname x)
+          modname; packed; ios "parse_"; ios (typedef_erlname x)
         ]
     | _ -> (* gen parsers for built-in types *)
         iol [
@@ -321,7 +321,7 @@ let gen_list l =
 
 let gen_spec x =
   iol [
-    ios "-spec parse_"; ios (piqdef_erlname x); ios "/1 :: (";
+    ios "-spec parse_"; ios (typedef_erlname x); ios "/1 :: (";
       ios "X :: "; ios "piqirun_buffer()"; ios ") -> ";
     ios_gen_in_piqtype (x :> T.piqtype);
     ios ".";
@@ -342,10 +342,10 @@ let gen_def x =
   ]
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   let defs = List.map gen_def defs in
   iod "\n" defs
 
 
 let gen_piqi (piqi:T.piqi) =
-  gen_defs piqi.P#resolved_piqdef
+  gen_defs piqi.P#resolved_typedef

@@ -169,9 +169,9 @@ let uniq l =
   List.rev (uniq (List.rev l))
 
 
-let get_parent (piqdef:T.piqdef) :T.namespace =
+let get_parent (typedef:T.typedef) :T.namespace =
   let parent =
-    match piqdef with
+    match typedef with
       | `record t -> t.R#parent
       | `variant t -> t.V#parent
       | `enum t -> t.V#parent
@@ -181,7 +181,7 @@ let get_parent (piqdef:T.piqdef) :T.namespace =
   some_of parent
 
 
-let set_parent (def:T.piqdef) (parent:T.namespace) =
+let set_parent (def:T.typedef) (parent:T.namespace) =
   let parent = Some parent in
   match def with
     | `record x -> x.R#parent <- parent
@@ -191,15 +191,15 @@ let set_parent (def:T.piqdef) (parent:T.namespace) =
     | `list x -> x.L#parent <- parent
 
 
-let get_parent_piqi (def:T.piqdef) :T.piqi =
+let get_parent_piqi (def:T.typedef) :T.piqi =
   let parent = get_parent def in
   match parent with
     | `import x -> some_of x.Import#piqi
     | `piqi x -> x
 
 
-let piqdef_name (piqdef:T.piqdef) =
-  match piqdef with
+let typedef_name (typedef:T.typedef) =
+  match typedef with
     | `record x -> x.R#name
     | `variant x -> x.V#name
     | `enum x -> x.E#name
@@ -219,13 +219,13 @@ let piqi_typename (t:T.piqtype) =
     | `word -> "piq-word"
     | `text -> "piq-text"
     | `any -> "piq-any"
-    | #T.piqdef as x -> piqdef_name x
+    | #T.typedef as x -> typedef_name x
 
 
 let full_piqi_typename x =
   let name = piqi_typename x in
   match x with
-    | #T.piqdef as def ->
+    | #T.typedef as def ->
         let piqi = get_parent_piqi def in
         if is_boot_piqi piqi
         then name
@@ -267,23 +267,23 @@ let rec unalias = function
   | t -> t
 
 
-let is_piqdef t =
+let is_typedef t =
   match unalias t with
-    | #T.piqdef -> true
+    | #T.typedef -> true
     | _ -> false
 
 
 let is_primitive_piqtype t =
   match unalias t with
     | `enum _ -> true
-    | #T.piqdef -> false
+    | #T.typedef -> false
     | _ -> true
 
 
 (* is record or list or alias of the two *)
 let is_container_type t =
   match unalias t with
-    | (#T.piqdef as t) ->
+    | (#T.typedef as t) ->
         (match t with
           | `record _ | `list _ -> true
           | _ -> false
@@ -315,7 +315,7 @@ let depends_on_piq_any (piqi: T.piqi) =
       | `enum _ -> false
       | `alias _ -> false (* don't check aliases, we do unalias instead *)
   in
-  List.exists aux piqi.P#resolved_piqdef
+  List.exists aux piqi.P#resolved_typedef
 
 
 (* 

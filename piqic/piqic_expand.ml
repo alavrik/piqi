@@ -36,7 +36,7 @@ let rec erlname_piqi (piqi:T.piqi) =
     Piqic_erlang.erlname_piqi piqi; (* run the original erlname procedure *)
 
     Piqic_erlang.erlname_functions piqi.P#func;
-    Piqic_erlang.erlname_defs piqi.P#piqdef;
+    Piqic_erlang.erlname_defs piqi.P#typedef;
   end
 
 
@@ -46,7 +46,7 @@ let rec mlname_piqi (piqi:T.piqi) =
     Piqic_ocaml.mlname_piqi piqi; (* run the original mlname procedure *)
 
     Piqic_ocaml.mlname_functions piqi.P#func;
-    Piqic_ocaml.mlname_defs piqi.P#piqdef;
+    Piqic_ocaml.mlname_defs piqi.P#typedef;
   end
 
 

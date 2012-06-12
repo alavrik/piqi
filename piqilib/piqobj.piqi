@@ -7,7 +7,7 @@
 
 
 .variant [
-    .name piqdef
+    .name typedef
 
     .option [ .type record ]
     .option [ .type variant ]
@@ -20,7 +20,7 @@
 .variant [
     .name obj
 
-    .option [ .type piqdef ]
+    .option [ .type typedef ]
 
     % built-in objects
     .option [

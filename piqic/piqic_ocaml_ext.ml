@@ -26,7 +26,7 @@ open C
 open Iolist
 
 
-let piqdef_mlname = Piqic_ocaml_types.piqdef_mlname
+let typedef_mlname = Piqic_ocaml_types.typedef_mlname
 
 
 let gen_init_piqi ocaml_mod =
@@ -40,7 +40,7 @@ let gen_init_piqi ocaml_mod =
 
 
 let gen_init_piqtype def =
-  let mlname = piqdef_mlname def in
+  let mlname = typedef_mlname def in
   let scoped_name = C.full_piqi_typename (def :> T.piqtype) in
   iod " " [
     ios "let _" ^^ ios mlname ^^ ios "_piqtype =";
@@ -58,7 +58,7 @@ let gen_convert mlname input_format output_format data =
 
 
 let gen_parse ocaml_mod def =
-  let mlname = piqdef_mlname def in
+  let mlname = typedef_mlname def in
   iod " " [
     ios "let parse_" ^^ ios mlname;
         ios "?opts"; ios "x (format :Piqirun_ext.input_format) =";
@@ -72,7 +72,7 @@ let gen_parse ocaml_mod def =
 
 
 let gen_gen ocaml_mod def =
-  let mlname = piqdef_mlname def in
+  let mlname = typedef_mlname def in
   iod " " [
     ios "let gen_" ^^ ios mlname;
         ios "?opts"; ios "x (format :Piqirun_ext.output_format) =";
@@ -86,7 +86,7 @@ let gen_gen ocaml_mod def =
 
 
 let gen_print def =
-  let mlname = piqdef_mlname def in
+  let mlname = typedef_mlname def in
   iod " " [
     ios "let print_" ^^ ios mlname; ios "x =";
       ios "Pervasives.print_endline (gen_" ^^ ios mlname; ios "x `piq)";
@@ -99,7 +99,7 @@ let gen_print def =
 
 let gen_code piqi =
   let ocaml_mod = some_of piqi.P#ocaml_module in
-  let defs = piqi.P#resolved_piqdef in
+  let defs = piqi.P#resolved_typedef in
 
   let type_initializers = List.map gen_init_piqtype defs in
   let parsers = List.map (gen_parse ocaml_mod) defs in
