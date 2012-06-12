@@ -108,6 +108,17 @@
 ]
 
 
+.variant [
+    .name piqtype
+
+    % user-defined types
+    .option [ .type piqdef ]
+
+    % built-in types
+    .option [ .type piqi-type ]
+]
+
+
 .extend [
     .typedef ast
 

@@ -28,38 +28,22 @@
 ]
 
 
-.variant [
-    .name piqtype
+.enum [
+    % built-in Piqi types
 
-    % user-defined types
-    .option [ .type piqdef ]
-
-    % built-in types
-    .option [ .name int ]
-    .option [ .name float ]
-    .option [ .name bool ]
-    .option [ .name string ]
-    .option [ .name binary ]
-    .option [ .name text ]
-
-    .option [ .name word ]
-    .option [ .name any ]
-]
-
-
-.variant [
     .name piqi-type
 
-    % built-in types
-    .option [ .name int ]
-    .option [ .name float ]
-    .option [ .name bool ]
-    .option [ .name string ]
-    .option [ .name binary ]
-    .option [ .name text ]
+    .option [ .name int     .proto-name "piqi_type_int" ]
+    .option [ .name float   .proto-name "piqi_type_float" ]
+    .option [ .name bool    .proto-name "piqi_type_bool" ]
+    .option [ .name string  .proto-name "piqi_type_string" ]
+    .option [ .name binary  .proto-name "piqi_type_binary" ]
+    .option [ .name any     .proto-name "piqi_type_any" ]
 
-    .option [ .name word ]
-    .option [ .name any ]
+    % TODO: move these to a separate piq-type category, because they only affect
+    % Piq representation and have nothing to do with fundamental types
+    .option [ .name word    .proto-name "piqi_type_word" ]
+    .option [ .name text    .proto-name "piqi_type_text" ]
 ]
 
 
@@ -108,7 +92,7 @@
 ]
 
 
-.variant [
+.enum [
     .name field-mode
     .option [ required ]
     .option [ optional ]
