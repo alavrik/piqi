@@ -9,30 +9,10 @@
 
 
 .variant [
-    .name piqdef
+    .name typedef
 
     .option [ .type record ]
     .option [ .type variant ]
-]
-
-
-.variant [
-    .name piqtype
-
-    .option [ .type piqdef ]
-    .option [ .name word ]
-]
-
-
-.variant [
-    .name type
-
-    .option [ .type piqtype ]
-
-    .option [
-        .name name
-        .type.word
-    ] 
 ]
 
 
@@ -40,7 +20,7 @@
     .name record 
     .field [
         .name name
-        .type.word
+        .type piq-word
         .required
     ]
     .field [
@@ -55,11 +35,12 @@
 
     .field [
         .name name
-        .type.word
+        .type piq-word
         .optional
     ]
     .field [
-        .type type
+        .name type
+        .type piq-word
         .optional
     ]
     .field [
@@ -83,7 +64,7 @@
 
     .field [
         .name name
-        .type.word
+        .type piq-word
         .required
     ]
     .field [
@@ -98,11 +79,12 @@
 
     .field [
         .name name
-        .type.word
+        .type piq-word
         .optional
     ]
     .field [
-        .type type
+        .name type
+        .type piq-word
         .optional
     ]
 ]

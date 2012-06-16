@@ -12,13 +12,14 @@ PIQI_FILES = \
 	piqi.piqi \
 	piqi-lang.piqi \
 	\
-	piqobj.piqi
+	piqobj.piqi \
+	piqtype-core.piqi
 
 
-BOOT_PIQI_FILES = piqi-boot.piqi #piqtype-core.piqi
+BOOT_PIQI_FILES = piqi-boot.piqi
 
 
-test: test_boot test_piqi test_piqi_piqi #test_piqtype_core
+test: test_boot test_piqi test_piqi_piqi test_piqtype_core
 
 
 test_boot:
@@ -56,9 +57,10 @@ test_piqi_piqi:
 	piqi convert --piqtype piqi p.piqi.xml >/dev/null
 
 
+# test that piqtype-core.piqi can parse itself
 test_piqtype_core:
-	cat piqtype-core.piqi | sed -e 's!\.module.*!:piqtype piqi.org/piqtype-core/piqdef!' >piqtype-core.piq
-	piqi check --noboot piqtype-core.piq
+	cat piqtype-core.piqi | sed -e 's!\.module.*!:piqtype piqi.org/piqtype-core/typedef!' >piqtype-core.piq
+	piqi check piqtype-core.piq
 
 
 clean:
