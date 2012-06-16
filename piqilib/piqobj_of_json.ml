@@ -126,7 +126,7 @@ and do_parse_record loc t l =
   (* issue warnings on unparsed fields *)
   List.iter handle_unknown_field rem;
   (* put required fields back at the top *)
-  R#{ piqtype = t; field = List.rev fields}
+  R#{ t = t; field = List.rev fields}
 
 
 and parse_field loc (accu, rem) t =
@@ -146,7 +146,7 @@ and do_parse_flag t l =
   match res with
     | [] -> [], rem
     | [x] ->
-        let res = F#{ piqtype = t; obj = None } in
+        let res = F#{ t = t; obj = None } in
         [res], rem
     | _::o::_ -> error_duplicate o name
 
@@ -169,7 +169,7 @@ and do_parse_field loc t l =
           parse_repeated_field name field_type l
   in
   let fields =
-    List.map (fun x -> F#{ piqtype = t; obj = Some x }) values
+    List.map (fun x -> F#{ t = t; obj = Some x }) values
   in
   fields, rem
   
@@ -242,7 +242,7 @@ and parse_variant t x =
           with Not_found ->
             error x ("unknown variant option: " ^ quote name)
         in
-        V#{ piqtype = t; option = option }
+        V#{ t = t; option = option }
     | `Assoc l ->
         let l = List.filter (fun (n, v) -> v <> `Null ()) l in
         (match l with
@@ -257,12 +257,12 @@ and parse_option t x =
   let open T.Option in
   match t.piqtype, x with
     | None, `Bool true ->
-        O#{ piqtype = t; obj = None }
+        O#{ t = t; obj = None }
     | None, _ ->
         error x "true value expected"
     | Some option_type, _ ->
         let obj = parse_obj option_type x in
-        O#{ piqtype = t; obj = Some obj }
+        O#{ t = t; obj = Some obj }
 
 
 and parse_enum t x =
@@ -273,11 +273,11 @@ and parse_enum t x =
         let option =
           try
             let o = List.find (fun o -> some_of o.T.Option#json_name = name) options in
-            O#{ piqtype = o; obj = None }
+            O#{ t = o; obj = None }
           with Not_found ->
             error x ("unknown enum option: " ^ quote name)
         in
-        V#{ piqtype = t; option = option }
+        V#{ t = t; option = option }
     | _ ->
         error x "string enum value expected"
 
@@ -288,7 +288,7 @@ and parse_list t x =
         debug "parse_list: %s\n" t.T.Piqi_list#name;
         let obj_type = some_of t.T.Piqi_list#piqtype in
         let contents = List.map (parse_obj obj_type) l in
-        L#{ piqtype = t; obj = contents }
+        L#{ t = t; obj = contents }
     | _ ->
         error x "array expected"
 
@@ -299,5 +299,5 @@ and parse_alias t x =
   let obj_type = some_of t.piqtype in
   debug "parse_alias: %s\n" t.T.Alias#name;
   let obj = parse_obj obj_type x in
-  A#{ piqtype = t; obj = obj }
+  A#{ t = t; obj = obj }
 

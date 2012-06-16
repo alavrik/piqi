@@ -3,7 +3,7 @@
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
 
-.import [ .module piqi.org/piqi .name piqtype ]
+.import [ .module piqi.org/piqi ]
 
 
 .variant [
@@ -54,9 +54,8 @@
 .record [
     .name record
     .field [
-        .name type
-        .type piqtype/record
-        .ocaml-name "piqtype"
+        .name t
+        .type piqi/record
     ]
     .field [
         .type field
@@ -68,9 +67,8 @@
 .record [
     .name field 
     .field [
-        .name type
-        .type piqtype/field
-        .ocaml-name "piqtype"
+        .name t
+        .type piqi/field
     ]
     .field [
         .type obj
@@ -82,9 +80,8 @@
 .record [
     .name variant
     .field [
-        .name type
-        .type piqtype/variant
-        .ocaml-name "piqtype"
+        .name t
+        .type piqi/variant
     ]
     .field [ .type option ]
 ]
@@ -93,9 +90,8 @@
 .record [
     .name option 
     .field [
-        .name type
-        .type piqtype/option
-        .ocaml-name "piqtype"
+        .name t
+        .type piqi/option
     ]
     .field [
         .type obj
@@ -107,9 +103,8 @@
 .record [
     .name list 
     .field [
-        .name type
-        .type piqtype/list
-        .ocaml-name "piqtype"
+        .name t
+        .type piqi/list
     ]
     .field [
         .type obj
@@ -121,9 +116,8 @@
 .record [
     .name alias 
     .field [
-        .name type
-        .type piqtype/alias
-        .ocaml-name "piqtype"
+        .name t
+        .type piqi/alias
     ]
     .field [ .type obj ]
 ]
@@ -132,9 +126,8 @@
 .record [
     .name any 
     .field [
-        .name type
-        .type piqtype/alias
-        .ocaml-name "piqtype"
+        .name t
+        .type piqi/alias
     ]
     .field [ .type obj .optional ]
 ]

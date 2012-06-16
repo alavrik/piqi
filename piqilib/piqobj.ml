@@ -55,7 +55,7 @@ and Record:
   sig
     type t =
       {
-        mutable piqtype : Piqi_piqi.record;
+        mutable t : Piqi_piqi.record;
         mutable field : Types.field list;
       }
   end = Record
@@ -64,7 +64,7 @@ and Field:
   sig
     type t =
       {
-        mutable piqtype : Piqi_piqi.field;
+        mutable t : Piqi_piqi.field;
         mutable obj: Types.obj option;
       }
   end = Field
@@ -73,7 +73,7 @@ and Variant:
   sig
     type t =
       {
-        mutable piqtype : Piqi_piqi.variant;
+        mutable t : Piqi_piqi.variant;
         mutable option : Types.option;
       }
   end = Variant
@@ -82,7 +82,7 @@ and Option:
   sig
     type t =
       {
-        mutable piqtype : Piqi_piqi.option;
+        mutable t : Piqi_piqi.option;
         mutable obj: Types.obj option; (* None for named options, i.e. constants *)
       }
   end = Option
@@ -91,7 +91,7 @@ and List:
   sig
     type t =
       {
-        mutable piqtype : Piqi_piqi.piqi_list;
+        mutable t : Piqi_piqi.piqi_list;
         mutable obj: Types.obj list;
       }
   end = List
@@ -100,7 +100,7 @@ and Alias:
   sig
     type t =
       {
-        mutable piqtype : Piqi_piqi.alias;
+        mutable t : Piqi_piqi.alias;
         mutable obj: Types.obj;
       }
   end = Alias

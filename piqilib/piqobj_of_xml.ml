@@ -153,7 +153,7 @@ and parse_record t xml_elem =
   (* issue warnings on unparsed fields *)
   List.iter handle_unknown_field rem;
   (* put required fields back at the top *)
-  R#{ piqtype = t; field = List.rev fields}
+  R#{ t = t; field = List.rev fields}
 
 
 and parse_field loc (accu, rem) t =
@@ -174,7 +174,7 @@ and do_parse_flag t l =
     | [] -> [], rem
     | x::tail ->
         check_duplicate name tail;
-        let res = F#{ piqtype = t; obj = None } in
+        let res = F#{ t = t; obj = None } in
         [res], rem
 
 
@@ -196,7 +196,7 @@ and do_parse_field loc t l =
           parse_repeated_field name field_type l
   in
   let fields =
-    List.map (fun x -> F#{ piqtype = t; obj = Some x }) values
+    List.map (fun x -> F#{ t = t; obj = Some x }) values
   in
   fields, rem
   
@@ -265,7 +265,7 @@ and parse_variant t xml_elem =
           with Not_found ->
             error xml_elem ("unknown variant option: " ^ quote name)
         in
-        V#{ piqtype = t; option = option }
+        V#{ t = t; option = option }
     | _ ->
         error xml_elem "exactly one XML element expected as a variant value"
 
@@ -275,12 +275,12 @@ and parse_option t xml_elem =
   let name, l = xml_elem in
   match t.piqtype, l with
     | None, [] ->
-        O#{ piqtype = t; obj = None }
+        O#{ t = t; obj = None }
     | None, _ ->
         error name ("no value expected for option flag " ^ quote name)
     | Some option_type, _ ->
         let obj = parse_obj option_type xml_elem in
-        O#{ piqtype = t; obj = Some obj }
+        O#{ t = t; obj = Some obj }
 
 
 and parse_enum t xml_elem =
@@ -292,11 +292,11 @@ and parse_enum t xml_elem =
   let option =
     try
       let o = List.find (fun o -> some_of o.T.Option#name = name) options in
-      O#{ piqtype = o; obj = None }
+      O#{ t = o; obj = None }
     with Not_found ->
       error name ("unknown enum option: " ^ quote name)
   in
-  V#{ piqtype = t; option = option }
+  V#{ t = t; option = option }
 
 
 and parse_list t xml_elem =
@@ -304,7 +304,7 @@ and parse_list t xml_elem =
   let obj_type = some_of t.T.Piqi_list#piqtype in
   let _name, l = xml_elem in
   let contents = List.map (parse_list_item obj_type) l in
-  L#{ piqtype = t; obj = contents }
+  L#{ t = t; obj = contents }
 
 
 and parse_list_item obj_type xml =
@@ -322,7 +322,7 @@ and parse_alias t x =
   let obj_type = some_of t.piqtype in
   debug "parse_alias: %s\n" t.T.Alias#name;
   let obj = parse_obj obj_type x in
-  A#{ piqtype = t; obj = obj }
+  A#{ t = t; obj = obj }
 
 
 (* parse top-level Piq object formatted as XML *)

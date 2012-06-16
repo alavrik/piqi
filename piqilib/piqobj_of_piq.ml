@@ -353,7 +353,7 @@ and do_parse_record loc t l =
   (* issue warnings on unparsed fields *)
   List.iter handle_unknown_field rem;
   (* put required fields back at the top *)
-  R#{ piqtype = t; field = List.rev fields}
+  R#{ t = t; field = List.rev fields}
 
 
 and is_required_field t = (t.T.Field#mode = `required)
@@ -377,7 +377,7 @@ and do_parse_flag t l =
     | [] -> [], rem
     | x::tail ->
         check_duplicate name tail;
-        let res = F#{ piqtype = t; obj = None } in
+        let res = F#{ t = t; obj = None } in
         Piqloc.addref x res;
         [res], rem
 
@@ -406,7 +406,7 @@ and do_parse_field loc t l =
   in
   let fields =
     List.map (fun x ->
-      let res = F#{ piqtype = t; obj = Some x } in
+      let res = F#{ t = t; obj = Some x } in
       Piqloc.addrefret x res) values
   in
   fields, rem
@@ -551,7 +551,7 @@ and parse_variant ~try_mode t x =
         | o -> error o "invalid option"
     in
     Piqloc.addref x value;
-    V#{ piqtype = t; option = value }
+    V#{ t = t; option = value }
   with Not_found ->
     (* recurse through included co-variants *)
     (* XXX: aliased variants are contra-variants? *)
@@ -577,7 +577,7 @@ and parse_variant ~try_mode t x =
     in
     let value = parse_covariants covariants x ~try_mode in
     Piqloc.addref x value;
-    V#{ piqtype = t; option = value }
+    V#{ t = t; option = value }
 
 
 and parse_covariants ~try_mode covariants x =
@@ -594,7 +594,7 @@ and parse_covariants ~try_mode covariants x =
 
 and parse_covariant ~try_mode (o, v) x =
   let value = reference (parse_variant ~try_mode v) x in
-  O#{ piqtype = o; obj = Some (`variant value) }
+  O#{ t = o; obj = Some (`variant value) }
 
 
 and parse_name_option options name =
@@ -608,7 +608,7 @@ and parse_name_option options name =
       | _, _ -> false
   in
   let option = List.find f options in
-  O#{ piqtype = option; obj = None }
+  O#{ t = option; obj = None }
 
 
 and parse_named_option options name x =
@@ -674,7 +674,7 @@ and parse_raw_word_option ~try_mode options x s =
         | _, _ -> false
     in
     let option = List.find f options in
-    O#{ piqtype = option; obj = None }
+    O#{ t = option; obj = None }
 
 
 and parse_string_option options x =
@@ -695,7 +695,7 @@ and parse_list_option options x =
 and parse_typed_option (options:T.Option.t list) f (x:T.ast) :Piqobj.Option.t =
   let option = List.find f options in
   let option_type = some_of option.T.Option#piqtype in
-  O#{ piqtype = option; obj = Some (parse_obj option_type x) }
+  O#{ t = option; obj = Some (parse_obj option_type x) }
 
 
 and parse_enum ~try_mode t x = parse_variant t x ~try_mode
@@ -713,14 +713,14 @@ and parse_list t = function
 and do_parse_list t l =
   let obj_type = some_of t.T.Piqi_list#piqtype in
   let contents = List.map (parse_obj obj_type) l in
-  L#{ piqtype = t; obj = contents }
+  L#{ t = t; obj = contents }
 
 
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t x =
   let obj_type = some_of t.T.Alias#piqtype in
   let obj = parse_obj obj_type x in
-  A#{ piqtype = t; obj = obj }
+  A#{ t = t; obj = obj }
 
 
 (* 

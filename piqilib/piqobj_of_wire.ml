@@ -165,7 +165,7 @@ and parse_record t x =
   let fields_spec = t.T.Record#wire_field in
   let fields, rem = List.fold_left parse_field ([], l) fields_spec in
   Piqirun.check_unparsed_fields rem;
-  R#{ piqtype = t; field = List.rev fields}
+  R#{ t = t; field = List.rev fields}
 
 
 and parse_field (accu, rem) t =
@@ -185,7 +185,7 @@ and do_parse_flag t l =
     | false -> [], rem
     | true ->
         begin
-          let res = F#{ piqtype = t; obj = None } in
+          let res = F#{ t = t; obj = None } in
 
           (* skip boolean used to encode empty flag value *)
           let count = next_count () in
@@ -216,7 +216,7 @@ and do_parse_field t l =
   in
   let fields =
     List.map (fun x ->
-      let res = F#{ piqtype = t; obj = Some x } in
+      let res = F#{ t = t; obj = Some x } in
       Piqloc.addrefret x res) values
   in
   fields, rem
@@ -263,7 +263,7 @@ and parse_variant t x =
     with Not_found ->
       Piqirun.error_variant x code
   in
-  V#{ piqtype = t; option = option }
+  V#{ t = t; option = option }
 
 
 and parse_option t x =
@@ -272,7 +272,7 @@ and parse_option t x =
     | None ->
         if Piqirun.parse_bool_field x = true
         then
-          let res = O#{ piqtype = t; obj = None } in
+          let res = O#{ t = t; obj = None } in
           (* skip boolean used to encode empty option value *)
           let count = next_count () in
           Piqloc.addrefret count res
@@ -280,7 +280,7 @@ and parse_option t x =
           piqi_error "invalid representation of untyped option"
     | Some option_type ->
         let obj = parse_obj option_type x in
-        let res = O#{ piqtype = t; obj = Some obj } in
+        let res = O#{ t = t; obj = Some obj } in
         Piqloc.addrefret obj res
 
 
@@ -293,7 +293,7 @@ and parse_enum t x =
   in
   (* add location reference which is equal to the enum location *)
   Piqloc.addref !Piqloc.icount option;
-  V#{ piqtype = t; option = option }
+  V#{ t = t; option = option }
 
 
 and parse_packed_enum t x =
@@ -303,13 +303,13 @@ and parse_packed_enum t x =
     with Not_found ->
       Piqirun.error_enum_const x
   in
-  V#{ piqtype = t; option = option }
+  V#{ t = t; option = option }
 
 
 and parse_enum_option t code32 =
   let options = t.T.Variant#option in
   let o = List.find (fun o -> some_of o.T.Option#code = code32) options in
-  O#{ piqtype = o; obj = None }
+  O#{ t = o; obj = None }
 
 
 and parse_list t x = 
@@ -320,7 +320,7 @@ and parse_list t x =
     else Piqirun.parse_packed_list
       (parse_packed_obj obj_type) (parse_obj obj_type) x
   in
-  L#{ piqtype = t; obj = contents }
+  L#{ t = t; obj = contents }
 
 
 and parse_alias0 t x =
@@ -338,7 +338,7 @@ and parse_alias t ?wire_type x =
       | `alias t -> `alias (parse_alias t x ?wire_type)
       | t -> parse_obj t x
   in
-  A#{ piqtype = t; obj = obj }
+  A#{ t = t; obj = obj }
 
 
 and parse_packed_alias t ?wire_type x =
@@ -351,7 +351,7 @@ and parse_packed_alias t ?wire_type x =
       | `alias t -> `alias (parse_packed_alias t x ?wire_type)
       | t -> parse_packed_obj t x
   in
-  A#{ piqtype = t; obj = obj }
+  A#{ t = t; obj = obj }
 
 
 (* TODO: move to piqi_wire.ml *)

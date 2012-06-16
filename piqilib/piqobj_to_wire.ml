@@ -130,7 +130,7 @@ let compare_field_type a b =
 
 let compare_field a b =
   let open F in
-  compare_field_type a.piqtype b.piqtype
+  compare_field_type a.t b.t
 
 
 (* preorder fields by their codes *)
@@ -219,7 +219,7 @@ and gen_fields fields =
   else List.map gen_field fields
 
 
-and is_packed_field x = x.F#piqtype.T.Field#wire_packed
+and is_packed_field x = x.F#t.T.Field#wire_packed
 
 
 (* generate fields but first group packed repeated fields together because they
@@ -245,14 +245,14 @@ and group_gen_fields fields =
 and gen_packed_fields first tail =
   let open F in
   let return accu rest =
-    let code = Int32.to_int (some_of first.piqtype.T.Field#code) in
+    let code = Int32.to_int (some_of first.t.T.Field#code) in
     let res = Piqirun.gen_record code (List.rev accu) in
     res, rest
   in
   let rec aux accu l =
     match l with
       | [] -> return accu l
-      | h::_ when h.piqtype != first.piqtype -> return accu l
+      | h::_ when h.t != first.t -> return accu l
       | h::t ->
           aux ((gen_packed_field h)::accu) t
   in
@@ -268,7 +268,7 @@ and gen_packed_field x =
 
 and gen_field x =
   let open F in
-  let code = Int32.to_int (some_of x.piqtype.T.Field#code) in
+  let code = Int32.to_int (some_of x.t.T.Field#code) in
   match x.obj with
     | None ->
         (* using true for encoding flags -- the same encoding as for options
@@ -286,7 +286,7 @@ and gen_variant code x =
 
 and gen_option x =
   let open O in
-  let code = Int32.to_int (some_of x.piqtype.T.Option#code) in
+  let code = Int32.to_int (some_of x.t.T.Option#code) in
   match x.obj with
     | None ->
         (* using true for encoding options w/o value *)
@@ -303,7 +303,7 @@ and gen_enum code x =
 
 and gen_enum_option code x =
   let open O in
-  let value = some_of x.piqtype.T.Option#code in
+  let value = some_of x.t.T.Option#code in
   Piqirun.int32_to_signed_varint code value
 
 
@@ -314,13 +314,13 @@ and gen_packed_enum x =
 
 and gen_packed_enum_option x =
   let open O in
-  let value = some_of x.piqtype.T.Option#code in
+  let value = some_of x.t.T.Option#code in
   Piqirun.int32_to_packed_signed_varint value
 
 
 and gen_list code x =
   let open L in
-  if not x.piqtype.T.Piqi_list.wire_packed
+  if not x.t.T.Piqi_list.wire_packed
   then Piqirun.gen_list gen_obj code x.obj
   else Piqirun.gen_packed_list gen_packed_obj code x.obj
 
@@ -347,7 +347,7 @@ and gen_packed_alias ?wire_type x =
 
 and resolve_wire_type ?wire_type x =
   let open A in
-  let this_wire_type = x.piqtype.T.Alias#wire_type in
+  let this_wire_type = x.t.T.Alias#wire_type in
   (* wire-type defined in this alias trumps wire-type passed by the upper
    * definition *)
   (* XXX: report a wire-type conflict rather than silently use the default? *)

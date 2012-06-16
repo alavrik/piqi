@@ -76,7 +76,7 @@ let make_name name =
 (* (re-)order fields according to their positions in the original piqi spec *)
 let order_record_fields t piqobj_fields =
   let find_fields ft l =
-    List.partition (fun x -> x.F.piqtype == ft) l
+    List.partition (fun x -> x.F.t == ft) l
   in
   let res, _rem =
     List.fold_left
@@ -149,13 +149,13 @@ and gen_any x =
 and gen_record x =
   let open R in
   (* TODO, XXX: doing ordering at every generation step is inefficient *)
-  let fields = order_record_fields x.piqtype x.field in
+  let fields = order_record_fields x.t x.field in
   `list (List.map gen_field fields)
 
 
 and gen_field x =
   let open F in
-  let name = name_of_field x.piqtype in
+  let name = name_of_field x.t in
   let res =
     match x.obj with
       | None -> make_name name
@@ -170,7 +170,7 @@ and gen_variant x =
 
 and gen_option x =
   let open O in
-  let name = name_of_option x.piqtype in
+  let name = name_of_option x.t in
   let res =
     match x.obj with
       | None -> make_name name

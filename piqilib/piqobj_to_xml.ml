@@ -90,7 +90,7 @@ and gen_any x =
 
 and gen_record x =
   let open R in
-  let field_types = x.piqtype.T.Record.field in
+  let field_types = x.t.T.Record.field in
   (* generate fields and order them according to the order of fields in the
    * original Piqi record specification *)
   flatmap (gen_field x.field) field_types
@@ -100,7 +100,7 @@ and gen_field fields t =
   let open F in
   let name = C.name_of_field t in
   (* find all fields of the given type *)
-  let fields = List.find_all (fun f -> f.piqtype == t) fields in
+  let fields = List.find_all (fun f -> f.t == t) fields in
   (* generate fields *)
   List.map (fun f -> gen_obj_element name f.obj) fields
 
@@ -118,7 +118,7 @@ and gen_variant x =
 
 and gen_option x =
   let open O in
-  let name = C.name_of_option x.piqtype in
+  let name = C.name_of_option x.t in
   gen_obj_element name x.obj
 
 
@@ -129,7 +129,7 @@ and gen_enum x =
 
 and gen_enum_option x =
   let open O in
-  let name = C.name_of_option x.piqtype in
+  let name = C.name_of_option x.t in
   name
 
 

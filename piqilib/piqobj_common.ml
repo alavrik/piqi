@@ -43,11 +43,11 @@ let type_of (x:Piqobj.obj) :T.piqtype =
     | `word _ -> `word
     | `any _ -> `any
     (* custom types *)
-    | `record x -> `record x.R#piqtype
-    | `variant x -> `variant x.V#piqtype
-    | `enum x -> `enum x.E#piqtype
-    | `list x -> `list x.L#piqtype
-    | `alias x -> `alias x.A#piqtype
+    | `record x -> `record x.R#t
+    | `variant x -> `variant x.V#t
+    | `enum x -> `enum x.E#t
+    | `list x -> `list x.L#t
+    | `alias x -> `alias x.A#t
 
 
 let full_typename x =
