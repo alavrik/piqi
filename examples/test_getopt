@@ -34,7 +34,7 @@ piqi getopt --piqtype string -- "привет"
 piqi getopt --piqtype binary -- '"\x00ab\tcd\xff\xfe"'
 
 piqi getopt --piqtype piq-word -- foo-bar
-piqi getopt --piqtype piq-any -- 10 -20 30.0 -0.inf 0.nan '"foo\r"' '"\xff"' --fum [ --foo bar [] ] --baz
+piqi getopt --piqtype piqi-any -- 10 -20 30.0 -0.inf 0.nan '"foo\r"' '"\xff"' --fum [ --foo bar [] ] --baz
 #NOTE: piq-text is not supported
 
 # complex types

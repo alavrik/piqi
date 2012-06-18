@@ -215,7 +215,7 @@ let rec gen_default_obj (x:Piqobj.obj) =
 let gen_default x =
   let open F in
   match x.default, x.piqtype with
-    | Some {T.Any.ast = Some ast }, Some piqtype ->
+    | Some {T.Any.piq_ast = Some ast }, Some piqtype ->
         let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
         gen_default_obj piqobj
     | _, _ -> iol [] (* there is no default *)
@@ -440,7 +440,7 @@ let gen_piqi (piqi:T.piqi) =
 
   let defs = gen_defs piqi.P#resolved_typedef in
   let piqi_import =
-    if C.depends_on_piq_any piqi && not !is_self_spec
+    if C.depends_on_piqi_any piqi && not !is_self_spec
     then
       iol [
         ios "import \"piqi.org/piqi.piqi.proto\";";

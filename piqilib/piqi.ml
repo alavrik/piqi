@@ -510,7 +510,7 @@ let resolve_field_default x =
     | Some {T.Any.binobj = Some _}, _ ->
         (* nothing to do -- object is already resolved *)
         ()
-    | Some ({T.Any.ast = Some ast} as default), Some piqtype ->
+    | Some ({T.Any.piq_ast = Some ast} as default), Some piqtype ->
         let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
         resolve_default_value default piqtype piqobj
 
@@ -520,7 +520,7 @@ let resolve_field_default x =
 
     | _, None -> () (* there is no default for a flag *)
     | _ ->
-        assert false (* either binobj or ast or textobj must be defined *)
+        assert false (* either binobj or ast or ref must be defined *)
 
 
 let resolve_defaults = function
@@ -915,7 +915,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
   (* Piqloc.trace := false; *)
   debug "apply_extensions(0)\n";
   let obj_ast = mlobj_to_ast obj_def obj_gen_f obj in
-  let extension_asts = List.map (fun x -> some_of x.Any#ast) extension_entries in
+  let extension_asts = List.map (fun x -> some_of x.Any#piq_ast) extension_entries in
   let extended_obj_ast =
     match obj_ast with
       | `named ({T.Named.value = ((`list l) as _ref)} as x) -> (* typedefs -- named containers *)

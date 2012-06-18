@@ -161,7 +161,7 @@ let print_ast (x:T.ast) =
     | `typed {T.Typed.typename = n; T.Typed.value = v} ->
         iol [
           ios ":" ^^ ios n;
-          gen_inner_ast (some_of v.T.Any#ast);
+          gen_inner_ast (some_of v.T.Any#piq_ast);
         ]
     | `list l ->
         let l = iod "\n" (List.map aux l) in
@@ -352,7 +352,7 @@ let format_ast (x:T.ast) =
         format_inner_ast label v
     | `typed {T.Typed.typename = n; T.Typed.value = v} ->
         let label = label ^ ":" ^ n in
-        format_inner_ast label (some_of v.T.Any#ast)
+        format_inner_ast label (some_of v.T.Any#piq_ast)
     | `list [] ->
         make_atom "[]"
     | `list l ->

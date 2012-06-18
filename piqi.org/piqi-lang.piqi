@@ -56,14 +56,14 @@
     .field [
         .name with
         .ocaml-name "piqi_with"
-        .type piq-any % an actual extension object
+        .type piqi-any % an actual extension object
         .repeated
     ]
 
     % this way of specifying extensions will be deprecated soon
     .field [
         .ocaml-name "quote"
-        .type piq-any % an actual extension object
+        .type piqi-any % an actual extension object
         .repeated
     ]
 ]

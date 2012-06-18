@@ -39,7 +39,7 @@ let gen_name_type name typename =
 
 let gen_default = function
   | None -> iol [] (* there is no default *)
-  | Some {T.Any.ast = Some ast} ->
+  | Some {T.Any.piq_ast = Some ast} ->
       let str = Piq_gen.to_string ast ~nl:false in
       if String.contains str '\n' (* multiline? *)
       then
@@ -202,7 +202,7 @@ let option_def =
 let gen_extension_item x =
   let ast =
     match x with
-      | {T.Any.ast = Some ast} -> ast
+      | {T.Any.piq_ast = Some ast} -> ast
       | _ -> assert false
   in
   (* NOTE: recognizing and printing only fields and options *)

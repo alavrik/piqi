@@ -80,7 +80,7 @@ let tokenize_name first_c s =
 
 
 let make_any ast =
-  let res = T.Any#{T.default_any () with ast = Some ast} in
+  let res = T.Any#{T.default_any () with piq_ast = Some ast} in
   Piqloc.addrefret ast res
 
 
@@ -184,7 +184,7 @@ let expand_obj_names (obj :T.ast) :T.ast =
     | `typed x -> 
         let n = x.T.Typed#typename in
         let v = x.T.Typed#value in
-        exp ":" n v.T.Any#ast
+        exp ":" n v.T.Any#piq_ast
     | x -> x
 
 
@@ -201,7 +201,7 @@ let expand_names (x: T.ast) :T.ast =
           then named.T.Named#value <- v';
           expand_obj_names obj
       | `typed ({T.Typed.typename = n; T.Typed.value = v} as typed) ->
-          let ast = some_of v.T.Any#ast in
+          let ast = some_of v.T.Any#piq_ast in
           let ast' = aux ast in
           if ast' != ast (* changed? *)
           then typed.T.Typed#value <- make_any ast';
@@ -282,7 +282,7 @@ let expand_control (x: T.ast) :T.ast =
            *)
           obj
       | `typed ({T.Typed.typename = n; T.Typed.value = v} as typed) ->
-          let ast = some_of v.T.Any#ast in
+          let ast = some_of v.T.Any#piq_ast in
           let ast' = aux ast in
           if ast' != ast (* changed? *)
           then typed.T.Typed#value <- make_any ast';

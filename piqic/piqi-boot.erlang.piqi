@@ -2,7 +2,7 @@
 .include [ .module piqi.org/piqi-boot ]
 
 
-.custom-field erlang-type
+(.custom-field erlang-type erlang-name)
 
 
 .extend [
@@ -20,5 +20,13 @@
     (.typedef uint64 uint64-fixed)
 
     .with.erlang-type "non_neg_integer"
+]
+
+
+.extend [
+    .typedef piqi-any
+
+    % piqi_any is already taken by "any" (#piqi_any{}) itself
+    .with.erlang-name "piqi_piqi_any"
 ]
 

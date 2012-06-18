@@ -122,13 +122,13 @@ and gen_obj ?piq_format x =
 
 and gen_typed_obj x =
   let name = Piqobj_common.full_typename x in
-  let any = T.Any#{T.default_any() with ast = Some (gen_obj x)} in
+  let any = T.Any#{T.default_any() with piq_ast = Some (gen_obj x)} in
   `typed T.Typed#{typename = name; value = any }
 
 
 and gen_any x =
   let open Any in
-  match x.any.T.Any.ast with
+  match x.any.T.Any.piq_ast with
     | Some ast -> ast
     | None ->
         (match x.any.T.Any#binobj, x.any.T.Any#typename with

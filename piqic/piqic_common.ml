@@ -45,8 +45,8 @@ let gen_builtin_default_value wire_type t =
   Piqirun.gen_binobj gen_obj t
 
 
-(* indication whether there is a defintion that uses "piq_any" type *)
-let depends_on_piq_any = ref false
+(* indication whether there is a defintion that uses "piqi-any" type *)
+let depends_on_piqi_any = ref false
 
 
 (* indication whether the module that is being processed is a Piqi self-spec,
@@ -98,9 +98,9 @@ let get_boot_dependencies piqi =
 
 
 let piqic_common piqi =
-  (* if no definition uses "piq_any" type, "piqtype" module not be included in
-   * order to avoid unnecessary dependency on Piqtype module *)
-  depends_on_piq_any := Piqi_common.depends_on_piq_any piqi;
+  (* if no definition uses "piqi-any" type, "piqi" module will not be included
+   * in order to avoid unnecessary dependency on Piqtype module *)
+  depends_on_piqi_any := Piqi_common.depends_on_piqi_any piqi;
 
   (* indication whether the module that is being processed is a Piqi self-spec,
    * i.e. it is "piqi.org/piqi" or includes it *)

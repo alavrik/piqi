@@ -47,6 +47,23 @@
 ]
 
 
+% representation of the built-in "piqi-any" type
+.record [
+    .name any
+
+    .field [
+        .name piq-ast
+        .type ast
+        .optional
+    ]
+    .field [
+        .name binobj
+        .type binary
+        .optional
+    ]
+]
+
+
 .record [
     .name function
     .ocaml-name "func"

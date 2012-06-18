@@ -104,22 +104,7 @@
     ]
     .field [
         .name value
-        .type any
-    ]
-]
-
-
-.record [
-    .name any
-
-    .field [
-        .type ast
-        .optional
-    ]
-    .field [
-        .name binobj
-        .type binary
-        .optional
+        .type piqi-any
     ]
 ]
 

@@ -276,7 +276,7 @@ let gen_import x =
 let gen_imports l =
   let l = List.map gen_import l in
   let piqtype_incl = 
-    if !Piqic_common.depends_on_piq_any && not !Piqic_common.is_self_spec
+    if !Piqic_common.depends_on_piqi_any && not !Piqic_common.is_self_spec
     then ios "-include(\"piqi_piqi.hrl\").\n\n"
     else iol []
   in

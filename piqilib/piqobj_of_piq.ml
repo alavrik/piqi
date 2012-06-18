@@ -269,13 +269,13 @@ and parse_typed_obj ?piqtype x =
   match piqtype, x with
     | None, `typed {T.Typed.typename = n; T.Typed.value = v} ->
         let t = find_piqtype n in
-        let ast = some_of v.T.Any#ast in
+        let ast = some_of v.T.Any#piq_ast in
         parse_obj t ast
     | Some t, `typed {T.Typed.value = v} ->
         (* XXX: if both piqtype and `typed are defined, supplied type overrides
          * object type *)
         (* XXX: produce warning if they are not equal? *)
-        let ast = some_of v.T.Any#ast in
+        let ast = some_of v.T.Any#piq_ast in
         parse_obj t ast
     | Some t, _ ->
         (* it is not a typed object, but we can use a supplied type *)
@@ -309,7 +309,7 @@ and parse_any x =
   (* NOTE: the object is not fully resolved during this stage; at least
    * "obj" should be obtained by parsing "piqtype.ast" at later stages (see
    * Piqi.resolve_defaults for example *)
-  let piq_any = T.Any#{T.default_any () with ast = Some x} in
+  let piq_any = T.Any#{T.default_any () with piq_ast = Some x} in
   Piqloc.addref x piq_any;
   Any#{ any = piq_any; obj = None }
 
@@ -478,7 +478,7 @@ and parse_optional_field f name field_type default l =
                 (* XXX: parsing the same default from ast each time is
                  * relatively expensive, we might think of just converting
                  * default to obj and picking it *)
-                let default_ast = some_of x.T.Any.ast in
+                let default_ast = some_of x.T.Any.piq_ast in
                 Piqloc.check_add_fake_loc default_ast ~label:"_piqobj_of_piq_default";
                 Some (parse_obj field_type default_ast), l (* parse default *)
             | _ -> res, rem

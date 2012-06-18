@@ -19,7 +19,7 @@
 .alias [ .name binary     .piqi-type.binary ]
 
 
-.alias [ .name piq-any    .piqi-type.any ]
+.alias [ .name piqi-any   .piqi-type.any ]
 
 
 .alias [

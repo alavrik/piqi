@@ -89,11 +89,11 @@ let simplify_piqi_ast (ast:T.ast) =
         | `named {T.Named.name = "mode"; T.Named.value = (`name _) as x} -> [x]
         | x -> [x]
     )
-  (* map extend/.piq-any x -> x *)
+  (* map extend/.piqi-any x -> x *)
   and tr_extend_piq_any =
     tr ["extend"] (
       function
-        | `named {T.Named.name = "piq-any"; T.Named.value = v} -> [v]
+        | `named {T.Named.name = "piqi-any"; T.Named.value = v} -> [v]
         | x -> [x]
     )
   (* map extend/.what x -> x *)

@@ -44,8 +44,8 @@ let map_words (x:T.ast) f =
     | `named ({T.Named.value = v} as x) ->
         `named {x with T.Named.value = aux v}
     | `typed ({T.Typed.value = v} as x) ->
-        let ast = some_of v.T.Any.ast in
-        let v = {v with T.Any.ast = Some (aux ast)} in
+        let ast = some_of v.T.Any.piq_ast in
+        let v = {v with T.Any.piq_ast = Some (aux ast)} in
        `typed {x with T.Typed.value = v}
     | `list l -> `list (List.map aux l)
     | `control l -> `control (List.map aux l)

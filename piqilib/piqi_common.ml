@@ -216,7 +216,7 @@ let piqi_typename (t:T.piqtype) =
     | `bool -> "bool"
     | `string -> "string"
     | `binary -> "binary"
-    | `any -> "piq-any"
+    | `any -> "piqi-any"
     | #T.typedef as x -> typedef_name x
 
 
@@ -292,8 +292,8 @@ let is_self_spec (piqi: T.piqi) =
     piqi.P#included_piqi
 
 
-(* check if any of the module's definitions depends on "piq_any" type *)
-let depends_on_piq_any (piqi: T.piqi) =
+(* check if any of the module's definitions depends on "piqi-any" type *)
+let depends_on_piqi_any (piqi: T.piqi) =
   let aux x =
     let is_any x =
       (unalias x) = `any
