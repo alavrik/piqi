@@ -216,8 +216,6 @@ let piqi_typename (t:T.piqtype) =
     | `bool -> "bool"
     | `string -> "string"
     | `binary -> "binary"
-    | `word -> "piq-word"
-    | `text -> "piq-text"
     | `any -> "piq-any"
     | #T.typedef as x -> typedef_name x
 

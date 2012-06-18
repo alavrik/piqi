@@ -45,9 +45,7 @@ module rec Types:
       | `bool of bool
       | `string of string
       | `binary of string
-      | `text of string
 
-      | `word of string
       | `any of any ]
   end = Types
 

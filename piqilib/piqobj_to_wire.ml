@@ -153,8 +153,6 @@ let rec gen_obj code (x:Piqobj.obj) =
     | `bool x -> gen_bool code x
     | `string x -> gen_string code x
     | `binary x -> gen_string code x
-    | `word x -> gen_string code x
-    | `text x -> gen_string code x
     | `any x -> gen_any code x
     (* custom types *)
     | `record x -> reference gen_record code x

@@ -89,8 +89,6 @@ let rec parse_obj (t:T.piqtype) (x:json) :Piqobj.obj =
     | `bool -> `bool (parse_bool x)
     | `string -> `string (parse_string x)
     | `binary -> `binary (parse_binary x)
-    | `word -> `word (parse_string x)
-    | `text -> `text (parse_string x)
     | `any -> `any (parse_any x)
     (* custom types *)
     | `record t -> `record (parse_record t x)

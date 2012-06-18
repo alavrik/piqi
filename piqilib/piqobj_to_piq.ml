@@ -48,12 +48,18 @@ let is_ascii_string s =
   aux 0
 
 
-let gen_string s =
-  if is_ascii_string s
-  then
-    `ascii_string s
-  else
-    `utf8_string s
+let gen_string ?piq_format s =
+  match piq_format with
+   | Some `text ->
+       `text s
+   | Some `word when Piq_lexer.is_valid_word s ->
+       `word s
+   | _ ->
+      if is_ascii_string s
+      then
+        `ascii_string s
+      else
+        `utf8_string s
 
 
 let gen_binary s =
@@ -91,28 +97,27 @@ let order_record_fields t piqobj_fields =
   List.rev res
 
 
-let rec gen_obj0 (x:Piqobj.obj) :T.ast =
+let rec gen_obj0 ?(piq_format: T.piq_format option) (x:Piqobj.obj) :T.ast =
   match x with
     (* built-in types *)
     | `int x -> `int x
     | `uint x -> `uint x
     | `float x -> gen_float x
     | `bool x -> `bool x
-    | `string x -> gen_string x
+    | `string x -> gen_string x ?piq_format
     | `binary x -> gen_binary x
-    | `word x -> `word x
-    | `text x -> `text x
     | `any x -> gen_any x
     (* custom types *)
     | `record x -> gen_record x
     | `variant x -> gen_variant x
     | `enum x -> gen_enum x
     | `list x -> gen_list x
-    | `alias x -> gen_alias x
+    | `alias x -> gen_alias x ?piq_format
 
 
 (* TODO: provide more precise locations for fields, options, etc *)
-and gen_obj x = Piq_parser.piq_reference gen_obj0 x
+and gen_obj ?piq_format x =
+  Piq_parser.piq_reference (fun x -> gen_obj0 x ?piq_format) x
 
 
 and gen_typed_obj x =
@@ -159,7 +164,7 @@ and gen_field x =
   let res =
     match x.obj with
       | None -> make_name name
-      | Some obj -> make_named name (gen_obj obj)
+      | Some obj -> make_named name (gen_obj obj ?piq_format:x.t.T.Field#piq_format)
   in Piq_parser.piq_addrefret x res
 
 
@@ -174,7 +179,7 @@ and gen_option x =
   let res =
     match x.obj with
       | None -> make_name name
-      | Some obj -> make_named name (gen_obj obj)
+      | Some obj -> make_named name (gen_obj obj ?piq_format:x.t.T.Option#piq_format)
   in Piq_parser.piq_addrefret x res
 
 
@@ -183,12 +188,21 @@ and gen_enum x = gen_variant x
 
 and gen_list x = 
   let open L in
-  `list (List.map gen_obj x.obj)
+  `list (List.map (fun obj -> gen_obj obj ?piq_format:x.t.T.Piqi_list#piq_format) x.obj)
 
 
-and gen_alias x =
+and gen_alias ?(piq_format: T.piq_format option) x =
   let open A in
+  (* upper-level setting overrides lower-level setting *)
+  let this_piq_format = x.t.T.Alias#piq_format in
+  let piq_format =
+    if this_piq_format <> None
+    then this_piq_format
+    else piq_format
+  in
   match x.obj with
-    | `alias x -> gen_alias x
-    | x -> gen_obj x
+    | `alias x ->
+        gen_alias x ?piq_format
+    | x ->
+        gen_obj x ?piq_format
 

@@ -132,6 +132,7 @@
 % standard extensions natively supported by Piqi
 %
 
+.include [ .module piqi.org/piqi.piq ]
 .include [ .module piqi.org/piqi.wire ]
 .include [ .module piqi.org/piqi.proto ]
 .include [ .module piqi.org/piqi.json ]

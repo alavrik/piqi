@@ -81,9 +81,7 @@ let rec typename ?parent (t:T.piqtype) =
     | `float -> "double"
     | `bool -> "bool"
     | `string -> "string"
-    | `word -> "string"
     | `binary -> "bytes"
-    | `text -> "string"
     | `record t -> gen_name t.R#parent t.R#proto_name
     | `variant t -> gen_name t.V#parent t.V#proto_name
     | `enum t -> gen_name t.E#parent t.E#proto_name
@@ -196,7 +194,7 @@ let rec gen_default_obj (x:Piqobj.obj) =
         make_default (Piq_gen.string_of_float x)
     | `bool true -> make_default "true"
     | `bool false -> make_default "false"
-    | `string x | `word x | `text x ->
+    | `string x ->
         (* NOTE: Piqi escapes is a subset of C escapes used by Protobuf *)
         make_default_io (ioq (Piq_lexer.escape_string x))
     | `binary x ->

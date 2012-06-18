@@ -85,7 +85,7 @@ let rec gen_piqtype t ocaml_type =
           | `int -> "int"
           | `float -> "float"
           | `bool -> "bool"
-          | `string | `word | `binary | `text -> "string"
+          | `string | `binary -> "string"
           | `any ->
               if !Piqic_common.is_self_spec
               then scoped_name "any"

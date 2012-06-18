@@ -30,7 +30,7 @@ module Any = Piqobj.Any
 module L = Piqobj.List
 
 
-let type_of (x:Piqobj.obj) :T.piqtype =
+let type_of (x: Piqobj.obj) :T.piqtype =
   (* XXX: built-in types should not be used at this point *)
   match x with
     | `int _ -> `int
@@ -39,8 +39,6 @@ let type_of (x:Piqobj.obj) :T.piqtype =
     | `bool _ -> `bool
     | `string _ -> `string
     | `binary _ -> `binary
-    | `text _ -> `text
-    | `word _ -> `word
     | `any _ -> `any
     (* custom types *)
     | `record x -> `record x.R#t

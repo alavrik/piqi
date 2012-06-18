@@ -19,8 +19,6 @@
 .alias [ .name binary     .piqi-type.binary ]
 
 
-.alias [ .name piq-word   .piqi-type.word ]
-.alias [ .name piq-text   .piqi-type.text ]
 .alias [ .name piq-any    .piqi-type.any ]
 
 
@@ -145,5 +143,24 @@
 
     .wire-type.fixed32
     .proto-type "float"
+]
+
+
+%
+% NOTE: these aliases can be deprecated in future versions
+%
+
+.alias [
+    .name piq-word
+    .type string
+
+    .piq-format.word
+]
+
+.alias [
+    .name piq-text
+    .type string
+
+    .piq-format.text
 ]
 

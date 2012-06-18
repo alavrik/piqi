@@ -11,7 +11,15 @@
 
 .alias [
     .name word
-    .type piq-word
+    .type string
+
+    .piq-format.word
+]
+
+
+.alias [
+    .name name
+    .type word
 ]
 
 
@@ -50,8 +58,9 @@
     ]
     .option [
         .name type
+        .type name
+
         .ocaml-name "typename"
-        .type word
     ]
     .option [
         .type typed
@@ -73,12 +82,6 @@
 ]
 
 
-.alias [
-    .name name
-    .type word
-]
-
-
 .record [
     .name named
 
@@ -95,8 +98,9 @@
 
     .field [
         .name type
+        .type name
+
         .ocaml-name "typename"
-        .type word
     ]
     .field [
         .name value

@@ -42,11 +42,6 @@
     .option [ .name string  .proto-name "piqi_type_string" ]
     .option [ .name binary  .proto-name "piqi_type_binary" ]
     .option [ .name any     .proto-name "piqi_type_any" ]
-
-    % TODO: move these to a separate piq-type category, because they only affect
-    % Piq representation and have nothing to do with fundamental types
-    .option [ .name word    .proto-name "piqi_type_word" ]
-    .option [ .name text    .proto-name "piqi_type_text" ]
 ]
 
 

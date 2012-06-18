@@ -103,8 +103,6 @@ let rec parse_obj0 (t:T.piqtype) x :Piqobj.obj =
     | `bool -> `bool (r0 Piqirun.parse_bool_field x)
     | `string -> `string (r0 Piqirun.parse_string_field x)
     | `binary -> `binary (r0 Piqirun.parse_binary_field x)
-    | `word -> `word (r0 Piqirun.parse_string_field x)
-    | `text -> `text (r0 Piqirun.parse_string_field x)
     | `any -> `any (parse_any x)
     (* custom types *)
     | `record t -> `record (r parse_record t x)

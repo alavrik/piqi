@@ -57,8 +57,6 @@ let rec gen_obj (x:Piqobj.obj) :json =
     | `bool x -> `Bool x
     | `string x -> `String x
     | `binary x -> `String (Piqi_base64.encode x)
-    | `word x -> `String x
-    | `text x -> `String x
     | `any x -> gen_any x
     (* custom types *)
     | `record x -> gen_record x

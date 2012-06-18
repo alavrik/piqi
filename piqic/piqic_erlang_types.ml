@@ -66,7 +66,7 @@ let rec gen_piqtype t erlang_type =
           | `int -> "integer"
           | `float -> "float"
           | `bool -> "boolean"
-          | `string | `word | `text -> "string"
+          | `string -> "string"
           | `binary -> "binary"
           | `any ->
               if !Piqic_common.is_self_spec

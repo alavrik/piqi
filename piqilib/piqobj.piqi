@@ -33,16 +33,6 @@
         .type uint64
     ]
 
-    .option [
-        .name word
-        .type piq-word
-    ]
-
-    .option [
-        .name text
-        .type piq-text
-    ]
-
     .option [ .type float ]
     .option [ .type bool ]
     .option [ .type string ]

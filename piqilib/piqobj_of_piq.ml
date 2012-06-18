@@ -161,7 +161,7 @@ let parse_string (x:T.ast) =
       error s "string contains non-unicode binary data"
   in
   match x with
-    | `ascii_string s | `utf8_string s | `text s -> s
+    | `ascii_string s | `utf8_string s | `text s | `word s -> s
     | `raw_binary s ->
         if Piq_lexer.is_utf8_string s
         then s
@@ -177,16 +177,6 @@ let parse_binary (x:T.ast) = match x with
       error s "binary contains unicode characters or code points"
   | `raw_word s -> s
   | o -> error o "binary expected"
-
-
-let parse_text (x:T.ast) = match x with
-  | `text x -> x
-  | o -> error o "text expected"
-
-
-let parse_word (x:T.ast) = match x with
-  | `word x | `raw_word x -> x
-  | o -> error o "word expected"
 
 
 (* some common errors *)
@@ -264,8 +254,6 @@ let rec parse_obj0 ~try_mode (t: T.piqtype) (x: T.ast) :Piqobj.obj =
     | `bool -> `bool (r parse_bool x)
     | `string -> `string (r parse_string x)
     | `binary -> `binary (r parse_binary x)
-    | `text -> `text (r parse_text x)
-    | `word -> `word (r parse_word x)
     | `any -> `any (r parse_any x)
     (* custom types *)
     | `record t -> `record (rr parse_record t x)
@@ -647,7 +635,7 @@ and parse_float_option options x =
 
 
 and parse_word_option options x =
-  let f = make_option_finder ((=) `word) in
+  let f = make_option_finder ((=) `string) in
   parse_typed_option options f x
 
 
@@ -655,7 +643,7 @@ and parse_raw_word_option ~try_mode options x s =
   let len = String.length s in
   let test_f = function
     (* all of these type can have values represented as a raw (unparsed) word *)
-    | `word | `string | `binary -> true
+    | `string | `binary -> true
     | `bool when s = "true" || s = "false" -> true
     | `int when s.[0] >= '0' && s.[0] <= '9' -> true
     | `int when len > 1 && s.[0] = '-' && s.[1] >= '0' && s.[1] <= '9' -> true
@@ -683,7 +671,7 @@ and parse_string_option options x =
 
 
 and parse_text_option options x =
-  let f = make_option_finder (function `string | `text -> true | _ -> false) in
+  let f = make_option_finder (function `string -> true | _ -> false) in
   parse_typed_option options f x
 
 
@@ -718,8 +706,8 @@ and do_parse_list t l =
 
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t x =
-  let obj_type = some_of t.T.Alias#piqtype in
-  let obj = parse_obj obj_type x in
+  let piqtype = some_of t.T.Alias#piqtype in
+  let obj = parse_obj piqtype x in
   A#{ t = t; obj = obj }
 
 

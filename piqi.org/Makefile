@@ -4,6 +4,7 @@ PIQI_FILES = \
 	piqast.piqi \
 	piqtype.piqi \
 	\
+	piqi.piq.piqi \
 	piqi.proto.piqi \
 	piqi.wire.piqi \
 	piqi.json.piqi \

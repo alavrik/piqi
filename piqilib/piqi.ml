@@ -156,7 +156,7 @@ let resolve_option_typename map o =
         o.piqtype <- Some (resolve_typename map name)
 
 
-let resolve_typenames map = function
+let resolve_def_typenames map = function
   | `record r ->
       List.iter (resolve_field_typename map) r.R#field
   | `variant v ->
@@ -170,7 +170,73 @@ let resolve_typenames map = function
       )
   | `list l ->
       l.L#piqtype <- Some (resolve_typename map l.L#typename)
-  | _ -> ()
+  | `enum _ ->
+      ()
+
+
+(* check correspondent between primitive Piqi type and Piq representation format
+ *)
+let check_piq_format obj piq_format piqtype =
+  let piqtype = C.unalias piqtype in
+  match piq_format, piqtype with
+    | `word, `string -> ()
+    | `text, `string -> ()
+    | _ when C.is_typedef piqtype ->
+        error obj
+          ("piq-format can not be defined for non-primitive type " ^ quote (C.piqi_typename piqtype))
+    | _ ->
+        error obj
+          ("invalid piq-format for type " ^ quote (C.piqi_typename piqtype))
+
+
+let rec resolve_piq_format (piqtype: T.piqtype) =
+  (* upper-level setting overrides lower-level setting *)
+  match piqtype with
+    | `alias x ->
+        let piq_format = x.A#piq_format in
+        if piq_format <> None
+        then piq_format
+        else
+          (* try looking in lower-level aliases *)
+          resolve_piq_format (some_of x.A#piqtype)
+    | _ ->
+        None (* piq format can not be defined for non-primitive types *)
+
+
+let check_resolve_piq_format obj piq_format piqtype =
+  match piq_format, piqtype with
+    | Some f, Some t -> (* already defined, just check *)
+        check_piq_format obj f t;
+        piq_format
+    | None, Some t ->
+        resolve_piq_format t
+    | Some t, None ->
+        error obj "piq-format can not be defined when there is no type"
+    | None, None ->
+        None
+
+
+let resolve_field_piq_format x =
+  let open F in
+  x.piq_format <- check_resolve_piq_format x x.piq_format x.piqtype
+
+
+let resolve_option_piq_format x =
+  let open O in
+  x.piq_format <- check_resolve_piq_format x x.piq_format x.piqtype
+
+
+let resolve_def_piq_format = function
+  | `record r ->
+      List.iter resolve_field_piq_format r.R#field
+  | `variant v ->
+      List.iter resolve_option_piq_format v.V#option
+  | `alias a ->
+      a.A#piq_format <- check_resolve_piq_format a a.A#piq_format a.A#piqtype
+  | `list l ->
+      l.L#piq_format <- check_resolve_piq_format l l.L#piq_format l.L#piqtype
+  | `enum _ ->
+      ()
 
 
 let check_name x =
@@ -516,7 +582,10 @@ let resolve_defs ?piqi idtable (defs:T.typedef list) =
   let idtable = add_typedefs idtable defs in
 
   (* resolve type names using the map *)
-  List.iter (resolve_typenames idtable) defs;
+  List.iter (resolve_def_typenames idtable) defs;
+
+  (* resolve Piq representation format settings *)
+  List.iter resolve_def_piq_format defs;
 
   (* check records, variants, enums for duplicate field/option names; check wire
    * types in aliases *)

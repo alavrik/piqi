@@ -20,7 +20,7 @@
     .name record 
     .field [
         .name name
-        .type piq-word
+        .type string
         .required
     ]
     .field [
@@ -35,12 +35,12 @@
 
     .field [
         .name name
-        .type piq-word
+        .type string
         .optional
     ]
     .field [
         .name type
-        .type piq-word
+        .type string
         .optional
     ]
     .field [
@@ -64,7 +64,7 @@
 
     .field [
         .name name
-        .type piq-word
+        .type string
         .required
     ]
     .field [
@@ -79,12 +79,12 @@
 
     .field [
         .name name
-        .type piq-word
+        .type string
         .optional
     ]
     .field [
         .name type
-        .type piq-word
+        .type string
         .optional
     ]
 ]

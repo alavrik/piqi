@@ -70,7 +70,7 @@ let rec gen_obj (x:Piqobj.obj) :xml list =
     | `float x -> gen_scalar xml_string_of_float x
     | `bool x -> gen_scalar Pervasives.string_of_bool x (* "true" | "false" *)
     | `binary x -> gen_scalar Piqi_base64.encode x
-    | `string x | `word x | `text x  -> gen_scalar escape_xml_text x
+    | `string x -> gen_scalar escape_xml_text x
     | `any x -> gen_any x
     (* custom types *)
     | `record x -> gen_record x
