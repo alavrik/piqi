@@ -41,7 +41,7 @@ piqi_piqi.ml: boot/piqi_piqi.ml
 
 reboot:
 	./piqicc $(PIQICC_FLAGS) -o piqi_piqi.tmp.ml \
-		--boot piqi-boot.piqi --lang piqi-lang.piqi --impl piqi-impl.piqi
+		--boot piqi-boot.piqi --spec piqi.piqi --lang piqi-lang.piqi --impl piqi-impl.piqi
 	$(CAMLP4_O) -o boot/piqi_piqi.ml piqi_piqi.tmp.ml
 	rm -f piqi_piqi.tmp.ml
 

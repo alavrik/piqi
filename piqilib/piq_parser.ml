@@ -120,6 +120,7 @@ let piq_addrefret dst (src:T.ast) =
     | `control x -> f x
     | `raw_word x -> f x
     | `raw_binary x -> f x
+    | `piqi_any x -> f x
   
 
 let piq_reference f x =

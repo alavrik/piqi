@@ -52,10 +52,20 @@
     .name any
 
     .field [
+        % type could be optional or not fully resolved at all times
+        .name type
+        .type string
+        .optional
+
+        .ocaml-name "typename"
+    ]
+
+    .field [
         .name piq-ast
         .type ast
         .optional
     ]
+
     .field [
         .name binobj
         .type binary

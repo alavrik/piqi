@@ -515,6 +515,7 @@ let resolve_field_default x =
         resolve_default_value default piqtype piqobj
 
     | Some ({T.Any.ref = Some ref} as default), Some piqtype ->
+        debug "resolve_field_default JSON or XML: %s\n" (C.name_of_field x);
         let piqobj = !piqobj_of_ref piqtype ref in
         resolve_default_value default piqtype piqobj
 

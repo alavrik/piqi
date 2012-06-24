@@ -79,6 +79,12 @@ let make_name name =
   `name name
 
 
+let make_typed typename ast :T.ast =
+  let res = T.Typed#{typename = typename; value = Piq_parser.make_any ast} in
+  Piqloc.addref ast res;
+  `typed res
+
+
 (* (re-)order fields according to their positions in the original piqi spec *)
 let order_record_fields t piqobj_fields =
   let find_fields ft l =
@@ -128,26 +134,28 @@ and gen_typed_obj x =
 
 and gen_any x =
   let open Any in
-  match x.any.T.Any.piq_ast with
-    | Some ast -> ast
-    | None ->
+  match x.any.T.Any.piq_ast, x.any.T.Any#typename with
+    | Some ast, Some typename ->
+        make_typed typename ast
+    | Some ast, None ->
+        ast
+    | None, _ ->
         (match x.any.T.Any#binobj, x.any.T.Any#typename with
-          | Some x, Some n ->
+          | Some bin, Some n ->
               (* generate the ast representation from the binary object if the
                * type is known *)
               (match Piqi_db.try_find_piqtype n with
                 | Some t ->
                     Piqloc.pause ();
-                    let piqobj = Piqobj_of_wire.parse_binobj t x in
+                    let piqobj = Piqobj_of_wire.parse_binobj t bin in
                     let res = gen_obj piqobj in
                     Piqloc.resume ();
                     res
                 | None ->
-                    assert false
+                    `piqi_any x.any
               )
           | _ ->
-              (* XXX: are they always defined? *)
-              assert false
+              `piqi_any x.any
         )
 
 

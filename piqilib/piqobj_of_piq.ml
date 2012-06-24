@@ -309,9 +309,43 @@ and parse_any x =
   (* NOTE: the object is not fully resolved during this stage; at least
    * "obj" should be obtained by parsing "piqtype.ast" at later stages (see
    * Piqi.resolve_defaults for example *)
-  let piq_any = T.Any#{T.default_any () with piq_ast = Some x} in
-  Piqloc.addref x piq_any;
-  Any#{ any = piq_any; obj = None }
+
+  (* TODO, XXX, FIXME: duplication of typename in typed and any *)
+  match x with
+    | `piqi_any any ->
+        (* XXX: try parsing obj from various representations? *)
+        (* XXX: instead of converting it here, do it lazily when the object is
+         * actually consumed *)
+        let obj =
+          match any.T.Any#piq_ast, any.T.Any#typename with
+            | Some ast, Some n ->
+                (* parse piq ast if the type is known *)
+                (match Piqi_db.try_find_piqtype n with
+                  | Some t ->
+                      Some (parse_obj t ast)
+                  | None ->
+                      None
+                )
+            | _ ->
+                None
+        in
+        Any#{ any = any; obj = obj }
+
+    | `typed {T.Typed.typename = typename; T.Typed.value = any} ->
+        (* generate the obj representation from the ast if the type is known *)
+        (match Piqi_db.try_find_piqtype typename with
+          | Some t ->
+              let ast = some_of any.T.Any#piq_ast in
+              let piqobj = parse_obj t ast in
+              Any#{ any = any; obj = Some piqobj }
+          | None ->
+              Any#{ any = any; obj = None }
+        )
+
+    | ast ->
+        let any = T.Any#{T.default_any () with piq_ast = Some ast} in
+        Piqloc.addref x any;
+        Any#{ any = any; obj = None }
 
 
 and parse_record t x =

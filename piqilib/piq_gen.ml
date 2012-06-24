@@ -359,11 +359,18 @@ let format_ast (x:T.ast) =
         make_list (List.map aux l)
     | `control l ->
         make_control (List.map aux l)
+    | `piqi_any _ ->
+        (* FIXME, XXX: this shouldn't happen *)
+        make_atom "FIXME"
   and format_inner_ast label x =
     match x with
-      | `named _ | `name _ | `typed _ ->
+      | `named _ | `name _ ->
           (* continue building label *)
           aux ~label x
+      | `typed _ ->
+          (* finshed building label and wrap typed in parenthesis*)
+          let typed = aux x in
+          make_label (make_atom label) (make_control [typed])
       | _ ->
           (* finshed building label *)
           make_label (make_atom label) (aux x)

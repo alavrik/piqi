@@ -144,20 +144,22 @@
 .extend [
     .typedef any
 
-    % These fields are used for processing default values represented as JSON or
+    % this field is used for processing default values represented as JSON or
     % XML data structures
-
-    .with.field [
-        .name type
-        .ocaml-name "typename"
-        .type word
-        .optional
-    ]
 
     .with.field [
         .name ref % reference to JSON or XML value/parse tree
         .type int
         .optional
+    ]
+]
+
+
+.extend [
+    .typedef ast
+
+    .with.option [
+        .type piqi-any
     ]
 ]
 
