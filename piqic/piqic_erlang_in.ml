@@ -67,7 +67,7 @@ let gen_parse_piqtype ?erlang_type ?wire_type ?(wire_packed=false) (t :T.piqtype
 let gen_erlang_binary x =
   let codes =
     List.map (fun x ->
-      ios (string_of_int (Char.code x))) (list_of_string x)
+      ios (string_of_int (Char.code x))) (U.list_of_string x)
   in
   iol [ ios "<<"; iod "," codes; ios ">>" ]
 

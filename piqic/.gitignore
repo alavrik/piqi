@@ -12,6 +12,7 @@ piqi_graph.ml
 piqi_common.ml
 piqobj_to_piq.ml
 piqi_c.mli
+piqi_util.ml
 piqi_name.ml
 piqi_file.ml
 piqobj_common.ml

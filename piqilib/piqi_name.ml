@@ -14,8 +14,7 @@
    limitations under the License.
 *)
 
-
-open Piqi_common
+module U = Piqi_util
 
 
 let has_parent name =
@@ -136,5 +135,5 @@ let is_normal_name s =
 let normalize_name s =
   if is_normal_name s
   then s
-  else string_of_list (normalize_list (list_of_string s))
+  else U.string_of_list (normalize_list (U.list_of_string s))
 

@@ -286,36 +286,18 @@ let hashcode' x =
   Some res
 
 
-let name_of_field f =
-  let open T.Field in
-  match f.name, f.piqtype with
-    | None, None -> (* not resolved yet *)
-        some_of f.typename
-    | _ ->
-        C.name_of_field f
-
-
-let name_of_option o =
-  let open T.Option in
-  match o.name, o.piqtype with
-    | None, None -> (* not resolved yet *)
-        some_of o.typename
-    | _ ->
-        C.name_of_option o
-
-
 let add_hashcodes_field f =
   let open T.Field in
   if f.code = None
   then
-    f.code <- hashcode' (name_of_field f)
+    f.code <- hashcode' (C.name_of_field f)
 
 
 let add_hashcodes_option o =
   let open T.Option in
   if o.code = None
   then
-    o.code <- hashcode' (name_of_option o)
+    o.code <- hashcode' (C.name_of_option o)
 
 
 let add_hashcodes_record r =

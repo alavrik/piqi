@@ -40,7 +40,7 @@ let erlang_name n =
     then Piqi_name.normalize_name n
     else String.uncapitalize n
   in
-  dashes_to_underscores n
+  U.dashes_to_underscores n
 
 
 let erlname n =

@@ -128,7 +128,7 @@ let make_proto_name path =
 let format_name n =
   if !flag_normalize
   then Piqi_name.normalize_name n
-  else underscores_to_dashes n
+  else U.underscores_to_dashes n
 
 
 let make_piqi_name path =
@@ -146,7 +146,7 @@ let gen_enum_value path x =
       | _ ->
           (* after formatting and probably normalizing name we need to convert
            * dashes back to underscores *)
-          let n = dashes_to_underscores (make_piqi_name (name :: path)) in
+          let n = U.dashes_to_underscores (make_piqi_name (name :: path)) in
           ios ".proto-name " ^^ ioq n
   in
   iod " " [
@@ -433,7 +433,7 @@ let rec gen_message idtable ?(path=[]) x =
 
 let gen_modname filename =
   (* XXX: revert slashes just in case *)
-  let filename = string_subst_char filename '\\' '/' in
+  let filename = U.string_subst_char filename '\\' '/' in
   let modname = Piqi_file.chop_all_extensions filename in
   modname
 

@@ -27,7 +27,7 @@ open Piqi_common
 
 (* json name of piqi name *)
 let json_name' n =
-  dashes_to_underscores n
+  U.dashes_to_underscores n
 
 
 let json_name n =

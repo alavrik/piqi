@@ -939,7 +939,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
            * typedefs are named containers *)
           assert false
   in
-  let context_str = "while applying extensions to this definition ..." in
+  let context_str = "while applying extensions to this element ..." in
   debug "apply_extensions(1)\n";
   let extended_obj =
     try
@@ -1526,9 +1526,9 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option
     )
     resolved_defs;
 
-  (* remove function defs from the list of extended typedefs *)
-  let extended_defs = List.filter
-    (fun def -> not (Idtable.mem func_defs_map (typedef_name def)))
+  (* move out function defs from the list of extended typedefs *)
+  let extended_func_defs, extended_defs = List.partition
+    (fun def -> Idtable.mem func_defs_map (typedef_name def))
     extended_defs
   in
 
@@ -1550,6 +1550,10 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option
   let idtable = resolve_defs ~piqi idtable resolved_defs in
 
   piqi.P#extended_typedef <- extended_defs;
+  (*
+  piqi.P#extended_func_typedef <- extended_func_defs;
+  *)
+
   piqi.P#resolved_typedef <- resolved_defs;
 
   (* run registered processing hooks *)

@@ -47,6 +47,9 @@ module Config = Piqi_config
 module Iolist = Piqi_iolist
 
 
+module U = Piqi_util
+
+
 (*
  * common global variables
  *)
@@ -80,6 +83,8 @@ let is_boot_piqi p =
     | Some x -> p == x
 
 
+(* TODO: move more of this stuff to piqi_util.ml and leave only Piqi-specific
+ * functions here *)
 let some_of = function
   | Some x -> x
   | None -> assert false
@@ -100,47 +105,6 @@ let find_dups l =
 
 
 let quote s = "\"" ^ s ^ "\""
-
-
-(* substitute character [x] with [y] in string [s] *)
-let string_subst_char s x y =
-  if not (String.contains s x)
-  then s
-  else
-    (* preserve the original string *)
-    let s = String.copy s in
-    for i = 0 to (String.length s) - 1
-    do
-      if s.[i] = x
-      then s.[i] <- y
-    done; s
-
-
-let dashes_to_underscores s =
-  string_subst_char s '-' '_'
-
-
-let underscores_to_dashes s =
-  string_subst_char s '_' '-'
-
-
-let list_of_string s =
-  let n = String.length s in
-  let rec aux i =
-    if i < n
-    then s.[i] :: (aux (i+1))
-    else []
-  in aux 0
-
-
-let string_of_list l =
-  let s = String.create (List.length l) in
-  let rec aux i = function
-    | [] -> ()
-    | h::t ->
-        s.[i] <- h; aux (i+1) t
-  in
-  aux 0 l; s
 
 
 (* NOTE: naive, non-tail recursive. Remove duplicates from the list using
@@ -241,6 +205,8 @@ let name_of_field f =
   match f.name, f.piqtype with
     | Some n, _ -> n
     | None, Some t -> piqi_typename t
+    | _ when f.typename <> None -> (* field type hasn't been resolved yet *)
+        Piqi_name.get_local_name (some_of f.typename)
     | _ -> assert false
 
 
@@ -249,6 +215,8 @@ let name_of_option o =
   match o.name, o.piqtype with
     | Some n, _ -> n
     | None, Some t -> piqi_typename t
+    | _ when o.typename <> None -> (* option type hasn't been resolved yet *)
+        Piqi_name.get_local_name (some_of o.typename)
     | _ -> assert false
 
 

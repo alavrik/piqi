@@ -469,7 +469,7 @@ let gen_piqi (piqi:T.piqi) =
 (* proto name of piqi name *)
 let proto_name n =
   let n = Piqi_name.get_local_name n in (* cut module path *)
-  dashes_to_underscores n
+  U.dashes_to_underscores n
 
 
 let protoname n =

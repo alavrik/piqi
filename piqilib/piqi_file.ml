@@ -67,7 +67,7 @@ let get_extension s =
 let make_os_path name =
   match Sys.os_type with
     | "Win32" ->
-        string_subst_char name '/' '\\'
+        U.string_subst_char name '/' '\\'
     | _ -> name
 
 
