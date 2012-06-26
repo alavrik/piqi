@@ -180,19 +180,13 @@ let sort_piqi_items (ast:T.ast) =
     | _ -> assert false
 
 
-let piqi_to_ast ?(simplify=false) piqi =
-  (* removing custom-field specifications as Piqi doesn't contain any
-   * custom-fields at this stage *)
-  let piqi = P#{piqi with custom_field = []} in
-  (* XXX, TODO: move this call to Piqi.gen_piqi? *)
-  let ast = Piqi.mlobj_to_ast !Piqi.piqi_lang_def T.gen__piqi piqi in
+let piqi_to_ast piqi =
+  let ast = Piqi.piqi_to_ast piqi in
   let ast = sort_piqi_items ast in
-  if simplify
-  then simplify_piqi_ast ast
-  else ast
+  simplify_piqi_ast ast
 
 
 let prettyprint_piqi ch (piqi:T.piqi) =
-  let ast = piqi_to_ast piqi ~simplify:true in
+  let ast = piqi_to_ast piqi in
   prettyprint_piqi_ast ch ast
 

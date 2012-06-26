@@ -110,7 +110,7 @@ let init_piqi_common data =
   let piqi_list =
       List.map (fun x ->
           let buf = Piqirun.init_from_string x in
-          let piqi = Piq.piqi_of_wire buf in
+          let piqi = Piqi.piqi_of_pb buf in
           Piqi_db.add_piqi piqi;
           piqi
         ) bin_piqi_list

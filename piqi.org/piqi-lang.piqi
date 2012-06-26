@@ -44,6 +44,71 @@
 ]
 
 
+.extend [
+    % TODO: implement support for .override
+    % .override
+
+    (.field function.input function.output function.error)
+
+    .with.type function-param
+]
+
+
+.variant [
+    .name function-param
+    .option [ .type name ]
+    .option [
+        .name record
+        .type anonymous-record
+    ]
+    .option [
+        .name variant
+        .type anonymous-variant
+    ]
+    .option [
+        .name enum
+        .type anonymous-enum
+    ]
+    .option [
+        .name list
+        .type anonymous-list
+    ]
+    % note: obviously, there's no anonymous alias. at the same time, the "name"
+    % option will turn into <function-name>-input|output|error alias
+]
+
+
+% "anonymous-record" is a "record" without a name
+.record [
+    .name anonymous-record
+
+    .field [
+        .type field
+        .repeated
+    ]
+]
+
+.record [
+    .name anonymous-variant
+
+    .field [
+        .type option
+        .repeated
+    ]
+]
+
+.alias [
+    .name anonymous-enum
+    .type anonymous-variant
+]
+
+.record [
+    .name anonymous-list
+
+    .field [ .type type ]
+]
+
+
 .record [
     .name extend
 

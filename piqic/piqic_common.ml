@@ -138,12 +138,7 @@ let rec get_piqi_deps piqi =
 
 
 let encode_embedded_piqi piqi =
-  (* XXX: or just use piqi.orig_piqi and also get includes in get_piqi_deps? *)
-  let res_piqi = Piqi.expand_piqi piqi in
-  (* add the Module's name even if it wasn't set *)
-  res_piqi.P#modname <- piqi.P#modname;
-  (* generate embedded object (i.e. without field header) *)
-  let iodata = T.gen_piqi res_piqi in
+  let iodata = Piqi.piqi_to_pb piqi in
   Piqirun.to_string iodata
 
 

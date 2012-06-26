@@ -48,3 +48,13 @@ piqi convert -t pb $f.piqi
 # convert it back to .piq and print to stdout
 piqi convert --piqtype piqi $f.piqi.pb
 
+
+# do the same for json format
+piqi convert -t json $f.piqi
+piqi convert --piqtype piqi $f.piqi.json
+
+
+# do the same for xml format
+piqi convert -t xml $f.piqi
+piqi convert --piqtype piqi $f.piqi.xml
+

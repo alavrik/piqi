@@ -911,16 +911,49 @@ let replace_option v o option_name =
   new_variant
 
 
-let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_fields =
+let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries ?(override=false) custom_fields =
   let trace' = !Piqloc.trace in
   (* Piqloc.trace := false; *)
   debug "apply_extensions(0)\n";
   let obj_ast = mlobj_to_ast obj_def obj_gen_f obj in
   let extension_asts = List.map (fun x -> some_of x.Any#piq_ast) extension_entries in
+
+  let override l =
+    if not override
+    then l
+    else
+      let extension_labels =
+        flatmap (function
+          | `named x -> [x.T.Named#name]
+          | `name name -> [name]
+          | _ -> []
+        ) extension_asts
+      in
+      (*
+      List.iter (Printf.eprintf "extesion label: %s\n") extension_labels;
+      *)
+      let is_overridden = function
+          | `named x ->
+              let res = List.mem x.T.Named#name extension_labels in
+              (*
+              if res then Printf.eprintf "overridden: %s\n" x.T.Named#name;
+              *)
+              res
+          | `name name ->
+              let res = List.mem name extension_labels in
+              (*
+              if res then Printf.eprintf "overridden: %s\n" name;
+              *)
+              res
+          | _ -> false
+      in
+      List.filter (fun x -> not (is_overridden x)) l
+  in
+
   let extended_obj_ast =
     match obj_ast with
       | `named ({T.Named.value = ((`list l) as _ref)} as x) -> (* typedefs -- named containers *)
-          let v = `list (l @ extension_asts) in
+          let v = `list (override l @ extension_asts) in
 
           let v = Piq_parser.piq_addrefret _ref v in
 
@@ -931,7 +964,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
           res
 
       | (`list l) as _ref -> (* fields and options -- plain containers *)
-          let v = `list (l @ extension_asts) in
+          let v = `list (override l @ extension_asts) in
           Piq_parser.piq_addrefret _ref v
 
       | _ ->
@@ -988,9 +1021,11 @@ let apply_field_extensions idtable scoped_name extension_entries custom_fields =
   match find_def idtable def_name with
     | `record r ->
         let field = find_field r field_name scoped_name in
+        (* FIXME: temporary hack *)
+        let override = (r.R#name = "function") && ((field_name = "input") || (field_name = "output") || (field_name = "error")) in
         let extended_field =
           apply_extensions field !field_def T.parse_field T.gen__field
-          extension_entries custom_fields
+          extension_entries custom_fields ~override
         in
         let extended_record = replace_field r extended_field field_name in
         let extended_typedef = `record extended_record in
@@ -1166,8 +1201,7 @@ let make_param_name func param_name =
    * -input|output|error *)
   let func_name = func.T.Func#name in
   let type_name = func_name ^ "-" ^ param_name in
-  (* create a location reference for the newly constructed type name *)
-  Piqloc.addrefret func_name type_name
+  type_name
 
 
 let make_param_alias name x =
@@ -1232,6 +1266,8 @@ let make_param_list name x =
  *)
 let resolve_param func param_name param =
   let type_name = make_param_name func param_name in
+  (* create a location reference for the newly constructed type name *)
+  Piqloc.addref param type_name;
   let def =
     match param with
       | `name x ->
@@ -1281,7 +1317,7 @@ let process_func f =
   (input @ output @ error)
 
 
-let get_function_defs resolved_funs =
+let get_function_defs (non_func_defs: T.typedef list) resolved_funs =
   (* get definitions derived from function parameters *)
   let defs_pairs = List.map process_func resolved_funs in
 
@@ -1293,6 +1329,21 @@ let get_function_defs resolved_funs =
     (fun t (name, setter) -> Idtable.add t name setter)
     Idtable.empty
     name_setter_assoc_l
+  in
+  (* exclude duplicate aliases (duplicates can be created as a result of double
+   * conversion involving external Piqi self-spec; for example, when converting:
+   *   .piqi -> .json -> .piqi *)
+  let is_existing_def name =
+    List.exists
+      (fun def -> name = C.typedef_name def)
+      non_func_defs
+  in
+  let defs = List.filter
+    (function
+      | `alias x -> not (is_existing_def x.A#name)
+      | _ -> true
+    )
+    defs
   in
   (* returned definitions derived from function parameters and a map that will
    * be used to set definitions, once resolved, to their appropirate slots in
@@ -1493,7 +1544,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option
   piqi.P#extended_func <- extended_funs;
 
   (* get definitions derived from function parameters *)
-  let func_defs, func_defs_map = get_function_defs resolved_funs in
+  let func_defs, func_defs_map = get_function_defs piqi.P#typedef resolved_funs in
 
   (* add function type definitions to Piqi defs *)
   let defs = piqi.P#typedef @ func_defs in
@@ -1550,9 +1601,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option
   let idtable = resolve_defs ~piqi idtable resolved_defs in
 
   piqi.P#extended_typedef <- extended_defs;
-  (*
   piqi.P#extended_func_typedef <- extended_func_defs;
-  *)
 
   piqi.P#resolved_typedef <- resolved_defs;
 
@@ -1961,18 +2010,178 @@ let expand_piqi ?(includes_only=false) piqi =
  * such instead of leaving this value out and assuming the are required by
  * default.
  *)
+let transform_func f =
+  let open T.Func in
+  let transform_param param_name param =
+    match param with
+      | None ->
+          None
+      | Some (`name _) ->
+          param
+      | Some _ ->
+          let type_name = make_param_name f param_name in
+          Some (`name type_name)
+  in
+  let input = transform_param "input" f.input in
+  let output = transform_param "output" f.output in
+  let error = transform_param "error" f.error in
+  {f with input; output; error}
+
+
 let lang_to_spec piqi =
   let open P in
+  (* transform functions to remove embedded type definitions and add them at top
+   * level *)
+  let extended_func = List.map transform_func piqi.extended_func in
+  let extended_typedef = piqi.extended_typedef @ piqi.extended_func_typedef in
+  let piqi =
+    {
+      piqi with
+      extended_typedef = extended_typedef;
+      extended_func = extended_func;
+    }
+  in
   (* expand includes and apply all extensions *)
   let piqi = expand_piqi piqi in
-  (* remove custom fields handle embedded typedefs in functions *)
+
+  (* remove custom fields *)
   let res_piqi =
     {
       piqi with
       custom_field = [];
-      (* TODO: transform functions to remove embedded type definitions and add
-       * them at top-level *)
     }
   in
   res_piqi
+
+
+let piqi_to_ast piqi =
+  debug "piqi_to_ast(0)\n";
+  (* XXX: removing custom-field specifications as Piqi doesn't contain any
+   * custom-fields at this stage *)
+  let piqi = P#{piqi with custom_field = []} in
+  let ast = mlobj_to_ast !piqi_lang_def T.gen__piqi piqi in
+  debug "piqi_to_ast(1)\n";
+  ast
+
+
+(* FIXME: get rid of this copy-pasted duplicate piece from piqi_pp.ml after
+ * Piqi-lang and Piqi-spec become unified *)
+let transform_ast path f (ast:T.ast) =
+  let rec aux p = function
+    | `list l when p = [] -> (* leaf node *)
+        (* f replaces, removes element, or splices elements of the list *)
+        let res = flatmap f l in
+        `list res
+    | x when p = [] -> (* leaf node *)
+        (* expecting f to replace the existing value, no other modifications
+         * such as removal or splicing is allowed in this context *)
+        (match f x with [res] -> res | _ -> assert false)
+    | `list l ->
+        (* haven't reached the leaf node => continue tree traversal *)
+        let res = List.map (aux p) l in
+        `list res
+    | `named {T.Named.name = n; T.Named.value = v} when List.hd p = n ->
+        (* found path element => continue tree traversal *)
+        let res = T.Named#{name = n; value = aux (List.tl p) v} in
+        `named res
+    | x -> x
+  in
+  aux path ast
+
+
+(* transform piqi ast so that type definitions embedded in function definitions
+ * get compatible with Piqi-spec *)
+let transform_piqi_ast (ast: T.ast) =
+  let tr = transform_ast in
+  (* map ../name.x -> x *)
+  let rm_param_extra path =
+    tr path (
+      function
+        | `named {T.Named.name = "name"; T.Named.value = v} -> [v]
+        | x -> [x]
+    )
+  in
+  let (|>) a f = f a in
+  ast
+  |> rm_param_extra ["function"; "input"]
+  |> rm_param_extra ["function"; "output"]
+  |> rm_param_extra ["function"; "error"]
+
+
+let piqi_to_piqobj piqi =
+  debug "piqi_to_piqobj(0)\n";
+  let lang_to_spec piqi =
+    let piqi_spec = lang_to_spec piqi in
+
+    (* make sure we include all automatically assigned hash-based wire code for
+     * fiels and options *)
+    (* XXX: why do we need to do it here? *)
+    if C.is_self_spec piqi
+    then Piqi_wire.add_hashcodes piqi_spec.P#typedef;
+
+    (* make sure that the module's name is set *)
+    P#{piqi_spec with modname = piqi.P#modname}
+  in
+  Piqloc.pause ();
+  let piqi = lang_to_spec piqi in
+  let ast = piqi_to_ast piqi in
+  let ast = transform_piqi_ast ast in
+
+  if !Config.debug_level > 0
+  then (
+    debug "BEGIN piqi_to_piqobj ast:\n\n";
+    Piq_gen.to_channel stderr ast;
+    debug "\n\nEND piqi_to_piqobj ast\n";
+  );
+
+  (* XXX: discard unknown fields -- they don't matter because we are
+   * transforming the spec that has been validated already *)
+  Piqobj_of_piq.delay_unknown_warnings := true;
+
+  let piqobj = Piqobj_of_piq.parse_obj !piqi_spec_def ast in
+
+  ignore (Piqobj_of_piq.get_unknown_fields ());
+  Piqobj_of_piq.delay_unknown_warnings := false;
+
+  Piqloc.resume ();
+  debug "piqi_to_piqobj(1)\n";
+  piqobj
+
+
+let piqi_of_piqobj piqobj =
+  let piqi_ast = Piqobj_to_piq.gen_obj piqobj in
+  let piqi = parse_piqi piqi_ast in
+  let piqi = process_piqi piqi ~cache:false in
+  piqi
+
+
+(* -1 means don't generate field header *)
+let piqi_to_pb ?(code = -1) piqi =
+  debug "piqi_to_pb(0)\n";
+  let piqobj = piqi_to_piqobj piqi in
+  (* don't produce location references as don't care about it in general when
+   * generating data *)
+  Piqloc.pause ();
+  let res = Piqobj_to_wire.gen_obj code piqobj in
+  Piqloc.resume ();
+  debug "piqi_to_pb(1)\n";
+  res
+
+
+let piqi_of_pb buf =
+  debug "piqi_of_pb(0)\n";
+  (* don't store location references as we're loading from the binary object *)
+  Piqloc.pause ();
+
+  let piqtype = !piqi_spec_def in
+
+  (* don't resolve defaults *)
+  let piqobj =
+    C.with_resolve_defaults false (Piqobj_of_wire.parse_obj piqtype) buf
+  in
+  let piqi = piqi_of_piqobj piqobj in
+
+  Piqloc.resume ();
+  debug "piqi_of_pb(1)\n";
+  piqi
 

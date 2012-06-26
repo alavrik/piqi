@@ -1,7 +1,6 @@
 % The current Piqi self-specification
 %
-% This file contains specification for piqi as it is supported by "piqi"
-% command-line utility.
+% This file contains defintion of the Piqi self-specification
 % 
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
@@ -82,76 +81,21 @@
 
     .field [
         .name input
-        .type function-param
+        .type type
         .optional
     ]
 
     .field [
         .name output
-        .type function-param
+        .type type
         .optional
     ]
 
     .field [
         .name error
-        .type function-param
+        .type type
         .optional
     ]
-]
-
-
-.variant [
-    .name function-param
-    .option [ .type name ]
-    .option [
-        .name record
-        .type anonymous-record
-    ]
-    .option [
-        .name variant
-        .type anonymous-variant
-    ]
-    .option [
-        .name enum
-        .type anonymous-enum
-    ]
-    .option [
-        .name list
-        .type anonymous-list
-    ]
-    % NOTE: obviously, there's no anonymous alias. At the same time, the "name"
-    % option will turn into <function-name>-input|output|error alias
-]
-
-
-% "anonymous-record" is a "record" without a name
-.record [
-    .name anonymous-record
-
-    .field [
-        .type field
-        .repeated
-    ]
-]
-
-.record [
-    .name anonymous-variant
-
-    .field [
-        .type option
-        .repeated
-    ]
-]
-
-.alias [
-    .name anonymous-enum
-    .type anonymous-variant
-]
-
-.record [
-    .name anonymous-list
-
-    .field [ .type type ]
 ]
 
 

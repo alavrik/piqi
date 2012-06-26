@@ -131,20 +131,19 @@ let piqicc ch boot_fname spec_fname lang_fname impl_fname =
      Piqirun.gen_binobj T.gen__piqi piqi
      *)
     Piqloc.pause ();
-    let piqi_ast = Piqi_pp.piqi_to_ast piqi ~simplify:true in
+    let piqi_ast = Piqi_pp.piqi_to_ast piqi in
 
     (* useful for debugging:
     Piqi_pp.prettyprint_piqi stdout piqi;
     *)
 
-    (* XXX: setting this option in order to delay, and then ignore all parsing
-     * warnings *)
+    (* discard unknown fields -- they don't matter because we are transforming the
+     * spec that has been validated already *)
     Piqobj_of_piq.delay_unknown_warnings := true;
 
     let piqobj = Piqobj_of_piq.parse_obj piqi_type piqi_ast in
 
-    let unknown_fields = Piqobj_of_piq.get_unknown_fields () in
-    Piqi.check_unknown_fields unknown_fields ["ocaml-name"; "ocaml-type"];
+    ignore (Piqobj_of_piq.get_unknown_fields ());
 
     let res = Piqobj_to_wire.gen_binobj piqobj in
     Piqloc.resume ();

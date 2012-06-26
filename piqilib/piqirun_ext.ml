@@ -39,7 +39,7 @@ let _ =
 
 let add_piqi (piqi_bin: string) =
   let buf = Piqirun.init_from_string piqi_bin in
-  let piqi = Piq.piqi_of_wire buf in
+  let piqi = Piqi.piqi_of_pb buf in
   Piqi_db.add_piqi piqi;
   ()
 
