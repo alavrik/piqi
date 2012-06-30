@@ -72,6 +72,9 @@ let mlname_field x =
     if x.ocaml_array && x.mode <> `repeated
     then C.error x ".ocaml-array flag can be used only with repeated fields";
 
+    if x.ocaml_optional && x.mode <> `optional
+    then C.error x ".ocaml-optional flag can be used only with optional fields";
+
     if x.ocaml_name = None then x.ocaml_name <- mlname' x.name
   )
 

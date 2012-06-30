@@ -46,3 +46,14 @@
     ]
 ]
 
+
+% flag for representing optional fields with defaults as 'a option instead of 'a
+.extend [
+    .typedef field
+
+    .with.field [
+        .name ocaml-optional
+        .optional
+    ]
+]
+

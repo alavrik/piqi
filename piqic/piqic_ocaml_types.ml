@@ -118,7 +118,8 @@ let gen_field_type f =
       let deftype = ios_gen_piqtype t in
       match f.mode with
         | `required -> deftype
-        | `optional when f.default <> None -> deftype (* optional + default *)
+        | `optional when f.default <> None && (not f.ocaml_optional) ->
+            deftype (* optional + default *)
         | `optional -> deftype ^^ ios " option"
         | `repeated ->
             deftype ^^

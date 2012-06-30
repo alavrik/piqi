@@ -50,6 +50,8 @@
         .type erlang-string-type
         .optional
         .default.binary
+
+        .ocaml-optional
     ]
 ]
 

@@ -98,7 +98,8 @@ let gen_mode f =
   let open F in
   match f.mode with
     | `required -> "required"
-    | `optional when f.default <> None -> "required" (* optional + default *)
+    | `optional when f.default <> None && (not f.ocaml_optional) ->
+        "required" (* optional + default *)
     | `optional -> "optional"
     | `repeated ->
         let mode =
