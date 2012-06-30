@@ -36,10 +36,10 @@ module rec Piqtype :
                type function_param =
                  [
                    | `name of Piqtype.name
-                   | `record of Piqtype.anonymous_record
-                   | `variant of Piqtype.anonymous_variant
-                   | `enum of Piqtype.anonymous_enum
-                   | `list of Piqtype.anonymous_list
+                   | `record of Piqtype.record
+                   | `variant of Piqtype.variant
+                   | `enum of Piqtype.enum
+                   | `list of Piqtype.piqi_list
                  ]
                
                type field_mode = [ | `required | `optional | `repeated ]
@@ -118,14 +118,6 @@ module rec Piqtype :
                
                type any = Any.t
                
-               type anonymous_variant = Anonymous_variant.t
-               
-               type anonymous_record = Anonymous_record.t
-               
-               type anonymous_list = Anonymous_list.t
-               
-               type anonymous_enum = Piqtype.anonymous_variant
-               
                type alias = Alias.t
                
              end = Piqtype
@@ -133,7 +125,8 @@ and
   Variant :
     sig
       type t =
-        { mutable name : Piqtype.name; mutable option : Piqtype.option list;
+        { mutable name : Piqtype.name option;
+          mutable option : Piqtype.option list;
           mutable proto_name : string option;
           mutable proto_custom : string list;
           mutable json_name : string option;
@@ -154,7 +147,8 @@ and
   Record :
     sig
       type t =
-        { mutable name : Piqtype.name; mutable field : Piqtype.field list;
+        { mutable name : Piqtype.name option;
+          mutable field : Piqtype.field list;
           mutable proto_name : string option;
           mutable proto_custom : string list;
           mutable json_name : string option;
@@ -219,7 +213,8 @@ and
   Piqi_list :
     sig
       type t =
-        { mutable name : Piqtype.name; mutable typename : Piqtype.typename;
+        { mutable name : Piqtype.name option;
+          mutable typename : Piqtype.typename;
           mutable piq_repr : Piqtype.piq_format option;
           mutable piq_format : Piqtype.piq_format option;
           mutable wire_packed : bool; mutable proto_name : string option;
@@ -276,7 +271,8 @@ and
           mutable getopt_doc : string option;
           mutable piqtype : Piqtype.piqtype option;
           mutable alt_name : Piqtype.word option;
-          mutable ocaml_name : string option; mutable ocaml_array : bool
+          mutable ocaml_name : string option; mutable ocaml_array : bool;
+          mutable ocaml_optional : bool
         }
       
     end = Field
@@ -284,7 +280,7 @@ and
   Extend :
     sig
       type t =
-        { mutable what : Piqtype.extend_target list;
+        { mutable what : Piqtype.extend_target list; mutable override : bool;
           mutable piqi_with : Piqtype.piqi_any list;
           mutable quote : Piqtype.piqi_any list
         }
@@ -301,24 +297,10 @@ and
       
     end = Any
 and
-  Anonymous_variant :
-    sig type t = { mutable option : Piqtype.option list }
-         end =
-    Anonymous_variant
-and
-  Anonymous_record :
-    sig type t = { mutable field : Piqtype.field list }
-         end =
-    Anonymous_record
-and
-  Anonymous_list : sig type t = { mutable typename : Piqtype.typename }
-                        end =
-    Anonymous_list
-and
   Alias :
     sig
       type t =
-        { mutable name : Piqtype.name;
+        { mutable name : Piqtype.name option;
           mutable typename : Piqtype.typename option;
           mutable piqi_type : Piqtype.piqi_type option;
           mutable piq_repr : Piqtype.piq_format option;
@@ -451,7 +433,7 @@ and parse_variant x =
       (let (_proto_name, x) =
          Piqirun.parse_optional_field 139663632 parse_string x in
        let (_name, x) =
-         Piqirun.parse_required_field 150958667 parse_name x in
+         Piqirun.parse_optional_field 150958667 parse_name x in
        let (_option, x) =
          Piqirun.parse_repeated_field 192598901 parse_option x in
        let (_parent, x) =
@@ -526,7 +508,7 @@ and parse_record x =
        let (_proto_name, x) =
          Piqirun.parse_optional_field 139663632 parse_string x in
        let (_name, x) =
-         Piqirun.parse_required_field 150958667 parse_name x in
+         Piqirun.parse_optional_field 150958667 parse_name x in
        let (_parent, x) =
          Piqirun.parse_optional_field 226362666 parse_namespace x in
        let (_ocaml_name, x) =
@@ -744,7 +726,7 @@ and parse_piqi_list x =
       (let (_proto_name, x) =
          Piqirun.parse_optional_field 139663632 parse_string x in
        let (_name, x) =
-         Piqirun.parse_required_field 150958667 parse_name x in
+         Piqirun.parse_optional_field 150958667 parse_name x in
        let (_piqtype, x) =
          Piqirun.parse_optional_field 170743570 parse_piqtype x in
        let (_typename, x) =
@@ -823,23 +805,18 @@ and parse_function_param x =
            in `name res
        | 502036113 ->
            let res =
-             let count = curr_count ()
-             in refer count (parse_anonymous_record x)
+             let count = curr_count () in refer count (parse_record x)
            in `record res
        | 484589701 ->
            let res =
-             let count = curr_count ()
-             in refer count (parse_anonymous_variant x)
+             let count = curr_count () in refer count (parse_variant x)
            in `variant res
        | 51800833 ->
-           let res =
-             let count = curr_count ()
-             in refer count (parse_anonymous_enum x)
+           let res = let count = curr_count () in refer count (parse_enum x)
            in `enum res
        | 129178718 ->
            let res =
-             let count = curr_count ()
-             in refer count (parse_anonymous_list x)
+             let count = curr_count () in refer count (parse_piqi_list x)
            in `list res
        | _ -> Piqirun.error_variant x code)
 and parse_func x =
@@ -929,6 +906,8 @@ and parse_field x =
          Piqirun.parse_optional_field 442330184 parse_string x in
        let (_default, x) =
          Piqirun.parse_optional_field 465819841 parse_piqi_any x in
+       let (_ocaml_optional, x) =
+         incr_count_if_true (Piqirun.parse_flag 488413665 x) in
        let (_json_name, x) =
          Piqirun.parse_optional_field 515275216 parse_string x
        in
@@ -949,6 +928,7 @@ and parse_field x =
             Field.wire_packed = _wire_packed;
             Field.getopt_doc = _getopt_doc;
             Field.default = _default;
+            Field.ocaml_optional = _ocaml_optional;
             Field.json_name = _json_name;
           }))
 and parse_extend_target x =
@@ -981,7 +961,9 @@ and parse_extend x =
   let count = next_count ()
   in
     refer count
-      (let (_what, x) =
+      (let (_override, x) =
+         incr_count_if_true (Piqirun.parse_flag 153625164 x) in
+       let (_what, x) =
          Piqirun.parse_repeated_field 251110212 parse_extend_target x in
        let (_piqi_with, x) =
          Piqirun.parse_repeated_field 251164166 parse_piqi_any x in
@@ -990,6 +972,7 @@ and parse_extend x =
        in
          (Piqirun.check_unparsed_fields x;
           {
+            Extend.override = _override;
             Extend.what = _what;
             Extend.piqi_with = _piqi_with;
             Extend.quote = _quote;
@@ -1086,36 +1069,6 @@ and parse_any x =
             Any.binobj = _binobj;
             Any.piq_ast = _piq_ast;
           }))
-and parse_anonymous_variant x =
-  let x = Piqirun.parse_record x in
-  let count = next_count ()
-  in
-    refer count
-      (let (_option, x) =
-         Piqirun.parse_repeated_field 192598901 parse_option x
-       in
-         (Piqirun.check_unparsed_fields x;
-          { Anonymous_variant.option = _option; }))
-and parse_anonymous_record x =
-  let x = Piqirun.parse_record x in
-  let count = next_count ()
-  in
-    refer count
-      (let (_field, x) = Piqirun.parse_repeated_field 9671866 parse_field x
-       in
-         (Piqirun.check_unparsed_fields x;
-          { Anonymous_record.field = _field; }))
-and parse_anonymous_list x =
-  let x = Piqirun.parse_record x in
-  let count = next_count ()
-  in
-    refer count
-      (let (_typename, x) =
-         Piqirun.parse_required_field 218690234 parse_typename x
-       in
-         (Piqirun.check_unparsed_fields x;
-          { Anonymous_list.typename = _typename; }))
-and parse_anonymous_enum x = parse_anonymous_variant x
 and parse_alias x =
   let x = Piqirun.parse_record x in
   let count = next_count ()
@@ -1126,7 +1079,7 @@ and parse_alias x =
        let (_proto_name, x) =
          Piqirun.parse_optional_field 139663632 parse_string x in
        let (_name, x) =
-         Piqirun.parse_required_field 150958667 parse_name x in
+         Piqirun.parse_optional_field 150958667 parse_name x in
        let (_piqtype, x) =
          Piqirun.parse_optional_field 170743570 parse_piqtype x in
        let (_piqi_type, x) =
@@ -1225,7 +1178,7 @@ and gen__variant code x =
    let _proto_name =
      Piqirun.gen_optional_field 139663632 gen__string x.Variant.proto_name in
    let _name =
-     Piqirun.gen_required_field 150958667 gen__name x.Variant.name in
+     Piqirun.gen_optional_field 150958667 gen__name x.Variant.name in
    let _option =
      Piqirun.gen_repeated_field 192598901 gen__option x.Variant.option in
    let _parent =
@@ -1268,7 +1221,7 @@ and gen__record code x =
    let _proto_name =
      Piqirun.gen_optional_field 139663632 gen__string x.Record.proto_name in
    let _name =
-     Piqirun.gen_required_field 150958667 gen__name x.Record.name in
+     Piqirun.gen_optional_field 150958667 gen__name x.Record.name in
    let _parent =
      Piqirun.gen_optional_field 226362666 gen__namespace x.Record.parent in
    let _ocaml_name =
@@ -1415,7 +1368,7 @@ and gen__piqi_list code x =
    let _proto_name =
      Piqirun.gen_optional_field 139663632 gen__string x.Piqi_list.proto_name in
    let _name =
-     Piqirun.gen_required_field 150958667 gen__name x.Piqi_list.name in
+     Piqirun.gen_optional_field 150958667 gen__name x.Piqi_list.name in
    let _piqtype =
      Piqirun.gen_optional_field 170743570 gen__piqtype x.Piqi_list.piqtype in
    let _typename =
@@ -1467,10 +1420,10 @@ and gen__function_param code (x : Piqtype.function_param) =
    Piqirun.gen_record code
      [ (match x with
         | `name x -> gen__name 150958667 x
-        | `record x -> gen__anonymous_record 502036113 x
-        | `variant x -> gen__anonymous_variant 484589701 x
-        | `enum x -> gen__anonymous_enum 51800833 x
-        | `list x -> gen__anonymous_list 129178718 x) ])
+        | `record x -> gen__record 502036113 x
+        | `variant x -> gen__variant 484589701 x
+        | `enum x -> gen__enum 51800833 x
+        | `list x -> gen__piqi_list 129178718 x) ])
 and gen__func code x =
   (refer x;
    let _resolved_input =
@@ -1536,13 +1489,16 @@ and gen__field code x =
      Piqirun.gen_optional_field 442330184 gen__string x.Field.getopt_doc in
    let _default =
      Piqirun.gen_optional_field 465819841 gen__piqi_any x.Field.default in
+   let _ocaml_optional =
+     reference_if_true Piqirun.gen_flag 488413665 x.Field.ocaml_optional in
    let _json_name =
      Piqirun.gen_optional_field 515275216 gen__string x.Field.json_name
    in
      Piqirun.gen_record code
        [ _code; _proto_name; _mode; _name; _piqtype; _alt_name;
          _getopt_letter; _typename; _piq_format; _ocaml_array; _ocaml_name;
-         _piq_repr; _wire_packed; _getopt_doc; _default; _json_name ])
+         _piq_repr; _wire_packed; _getopt_doc; _default; _ocaml_optional;
+         _json_name ])
 and gen__extend_target code (x : Piqtype.extend_target) =
   (refer x;
    Piqirun.gen_record code
@@ -1555,13 +1511,15 @@ and gen__extend_target code (x : Piqtype.extend_target) =
         | `func x -> gen__name 340962072 x) ])
 and gen__extend code x =
   (refer x;
+   let _override =
+     reference_if_true Piqirun.gen_flag 153625164 x.Extend.override in
    let _what =
      Piqirun.gen_repeated_field 251110212 gen__extend_target x.Extend.what in
    let _piqi_with =
      Piqirun.gen_repeated_field 251164166 gen__piqi_any x.Extend.piqi_with in
    let _quote =
      Piqirun.gen_repeated_field 365880944 gen__piqi_any x.Extend.quote
-   in Piqirun.gen_record code [ _what; _piqi_with; _quote ])
+   in Piqirun.gen_record code [ _override; _what; _piqi_with; _quote ])
 and gen__enum code x = gen__variant code x
 and gen__ast_list code x = reference (Piqirun.gen_list gen__ast) code x
 and gen__ast code (x : Piqtype.ast) =
@@ -1595,31 +1553,13 @@ and gen__any code x =
      Piqirun.gen_optional_field 219565456 gen__binary x.Any.binobj in
    let _piq_ast = Piqirun.gen_optional_field 455933325 gen__ast x.Any.piq_ast
    in Piqirun.gen_record code [ _ref; _typename; _binobj; _piq_ast ])
-and gen__anonymous_variant code x =
-  (refer x;
-   let _option =
-     Piqirun.gen_repeated_field 192598901 gen__option
-       x.Anonymous_variant.option
-   in Piqirun.gen_record code [ _option ])
-and gen__anonymous_record code x =
-  (refer x;
-   let _field =
-     Piqirun.gen_repeated_field 9671866 gen__field x.Anonymous_record.field
-   in Piqirun.gen_record code [ _field ])
-and gen__anonymous_list code x =
-  (refer x;
-   let _typename =
-     Piqirun.gen_required_field 218690234 gen__typename
-       x.Anonymous_list.typename
-   in Piqirun.gen_record code [ _typename ])
-and gen__anonymous_enum code x = gen__anonymous_variant code x
 and gen__alias code x =
   (refer x;
    let _wire_type =
      Piqirun.gen_optional_field 9699074 gen__wire_type x.Alias.wire_type in
    let _proto_name =
      Piqirun.gen_optional_field 139663632 gen__string x.Alias.proto_name in
-   let _name = Piqirun.gen_required_field 150958667 gen__name x.Alias.name in
+   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Alias.name in
    let _piqtype =
      Piqirun.gen_optional_field 170743570 gen__piqtype x.Alias.piqtype in
    let _piqi_type =
@@ -1722,14 +1662,6 @@ let gen_ast x = gen__ast (-1) x
   
 let gen_any x = gen__any (-1) x
   
-let gen_anonymous_variant x = gen__anonymous_variant (-1) x
-  
-let gen_anonymous_record x = gen__anonymous_record (-1) x
-  
-let gen_anonymous_list x = gen__anonymous_list (-1) x
-  
-let gen_anonymous_enum x = gen__anonymous_enum (-1) x
-  
 let gen_alias x = gen__alias (-1) x
   
 let rec default_string () =
@@ -1754,7 +1686,7 @@ and default_wire_type () = `varint
 and default_variant () =
   {
     Variant.proto_name = None;
-    Variant.name = default_name ();
+    Variant.name = None;
     Variant.option = [];
     Variant.parent = None;
     Variant.ocaml_name = None;
@@ -1771,7 +1703,7 @@ and default_record () =
     Record.field = [];
     Record.wire_field = [];
     Record.proto_name = None;
-    Record.name = default_name ();
+    Record.name = None;
     Record.parent = None;
     Record.ocaml_name = None;
     Record.is_func_param = false;
@@ -1827,7 +1759,7 @@ and default_name () = default_word ()
 and default_piqi_list () =
   {
     Piqi_list.proto_name = None;
-    Piqi_list.name = default_name ();
+    Piqi_list.name = None;
     Piqi_list.piqtype = None;
     Piqi_list.typename = default_typename ();
     Piqi_list.parent = None;
@@ -1879,11 +1811,17 @@ and default_field () =
     Field.wire_packed = false;
     Field.getopt_doc = None;
     Field.default = None;
+    Field.ocaml_optional = false;
     Field.json_name = None;
   }
 and default_extend_target () = `typedef (default_name ())
 and default_extend () =
-  { Extend.what = []; Extend.piqi_with = []; Extend.quote = []; }
+  {
+    Extend.override = false;
+    Extend.what = [];
+    Extend.piqi_with = [];
+    Extend.quote = [];
+  }
 and default_enum () = default_variant ()
 and default_ast_list () = []
 and default_ast () = `int (default_int64 ())
@@ -1894,16 +1832,11 @@ and default_any () =
     Any.binobj = None;
     Any.piq_ast = None;
   }
-and default_anonymous_variant () = { Anonymous_variant.option = []; }
-and default_anonymous_record () = { Anonymous_record.field = []; }
-and default_anonymous_list () =
-  { Anonymous_list.typename = default_typename (); }
-and default_anonymous_enum () = default_anonymous_variant ()
 and default_alias () =
   {
     Alias.wire_type = None;
     Alias.proto_name = None;
-    Alias.name = default_name ();
+    Alias.name = None;
     Alias.piqtype = None;
     Alias.piqi_type = None;
     Alias.proto_type = None;
@@ -1921,7 +1854,7 @@ let parse_piqi_binobj x = Piqirun.parse_binobj parse_piqi x
   
 let piqi_lang =
   let piqi_lang_binobj =
-    "\226\202\2304\tpiqi-lang\218\244\134\182\012'\130\153\170d\"\218\164\238\191\004\004word\210\171\158\194\006\006string\226\156\170\236\b\006\208\156\160\191\007\001\218\244\134\182\012\140\002\138\176\205\197\001\133\002\218\164\238\191\004\twire-type\170\183\218\222\005\021\232\146\150q\208\225\169\186\002\218\164\238\191\004\006varint\170\183\218\222\005\027\232\146\150q\154\229\206^\218\164\238\191\004\rzigzag-varint\170\183\218\222\005\022\232\146\150q\166\172\211\130\001\218\164\238\191\004\007fixed32\170\183\218\222\005\022\232\146\150q\228\182\211\130\001\218\164\238\191\004\007fixed64\170\183\218\222\005\028\232\146\150q\242\231\184\165\003\218\164\238\191\004\rsigned-varint\170\183\218\222\005\029\232\146\150q\196\161\239\209\003\218\164\238\191\004\014signed-fixed32\170\183\218\222\005\029\232\146\150q\130\172\239\209\003\218\164\238\191\004\014signed-fixed64\170\183\218\222\005\020\232\146\150q\154\213\227\207\002\218\164\238\191\004\005block\218\244\134\182\012\161\002\138\233\142\251\014\154\002\210\203\242$\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\210\203\242$\031\232\146\150q\234\205\214\183\001\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\006option\210\203\242$/\232\146\150q\160\228\152\133\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-name\210\171\158\194\006\006string\210\203\242$1\232\146\150q\236\166\137\131\003\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\012proto-custom\210\171\158\194\006\006string\210\203\242$.\232\146\150q\160\231\179\235\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\tjson-name\210\171\158\194\006\006string\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\218\164\238\191\004\007variant\218\244\134\182\012\176\001\170\136\200\184\014\169\001\130\145\227\148\004\012piqi_typedef\218\164\238\191\004\007typedef\170\183\218\222\005\021\232\146\150q\162\218\227\222\003\210\171\158\194\006\006record\170\183\218\222\005\022\232\146\150q\138\130\146\206\003\210\171\158\194\006\007variant\170\183\218\222\005\018\232\146\150q\130\172\1791\210\171\158\194\006\004enum\170\183\218\222\005\019\232\146\150q\160\198\138\025\210\171\158\194\006\005alias\170\183\218\222\005\028\232\146\150q\188\241\152{\210\171\158\194\006\004list\226\128\157\190\n\004list\218\244\134\182\012h\138\233\142\251\014b\210\203\242$+\232\146\150q\244\202\199\208\001\218\164\238\191\004\004type\210\171\158\194\006\004name\226\128\157\190\n\btypename\210\203\242$\"\232\146\150q\226\253\195\155\002\218\164\238\191\004\005value\210\171\158\194\006\bpiqi-any\218\164\238\191\004\005typed\218\244\134\182\012'\130\153\170d\"\218\164\238\191\004\004type\210\171\158\194\006\004name\226\128\157\190\n\btypename\218\244\134\182\012\158\002\138\233\142\251\014\151\002\210\203\242$\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\210\203\242$\029\232\146\150q\244\210\156\t\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\005field\210\203\242$/\232\146\150q\160\228\152\133\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-name\210\171\158\194\006\006string\210\203\242$1\232\146\150q\236\166\137\131\003\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\012proto-custom\210\171\158\194\006\006string\210\203\242$.\232\146\150q\160\231\179\235\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\tjson-name\210\171\158\194\006\006string\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\218\164\238\191\004\006record\218\244\134\182\012\166\002\138\176\205\197\001\159\002\218\164\238\191\004\tpiqi-type\170\183\218\222\005$\232\146\150q\222\179\128\005\130\145\227\148\004\rpiqi_type_int\218\164\238\191\004\003int\170\183\218\222\005(\232\146\150q\184\150\182)\130\145\227\148\004\015piqi_type_float\218\164\238\191\004\005float\170\183\218\222\005&\232\146\150q\212\144\220\017\130\145\227\148\004\014piqi_type_bool\218\164\238\191\004\004bool\170\183\218\222\005+\232\146\150q\162\163\129\147\002\130\145\227\148\004\016piqi_type_string\218\164\238\191\004\006string\170\183\218\222\005+\232\146\150q\130\240\221\208\001\130\145\227\148\004\016piqi_type_binary\218\164\238\191\004\006binary\170\183\218\222\005$\232\146\150q\216\235\207\004\130\145\227\148\004\rpiqi_type_any\218\164\238\191\004\003any\218\244\134\182\012\217\003\138\233\142\251\014\210\003\210\203\242$5\232\146\150q\216\210\153\r\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\006module\210\171\158\194\006\004word\226\128\157\190\n\007modname\210\203\242$ \232\146\150q\150\221\193\141\003\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\007typedef\210\203\242$\031\232\146\150q\202\133\149\136\001\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\006import\210\203\242$!\232\146\150q\176\172\149\197\002\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\bfunction\210\203\242$2\232\146\150q\194\183\130\190\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\rproto-package\210\171\158\194\006\006string\210\203\242$1\232\146\150q\236\166\137\131\003\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\012proto-custom\210\171\158\194\006\006string\210\203\242$/\232\146\150q\188\207\221\154\001\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\012custom-field\210\171\158\194\006\004word\210\203\242$ \232\146\150q\208\248\183\159\002\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\007include\210\203\242$\030\232\146\150q\180\199\214q\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\006extend\210\203\242$1\232\146\150q\218\242\178\230\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\012ocaml-module\210\171\158\194\006\006string\218\164\238\191\004\004piqi\218\244\134\182\012H\170\136\200\184\014B\218\164\238\191\004\npiq-format\170\183\218\222\005\019\232\146\150q\148\135\232\239\001\218\164\238\191\004\004word\170\183\218\222\005\019\232\146\150q\218\178\206\207\001\218\164\238\191\004\004text\218\244\134\182\012\229\003\138\233\142\251\014\222\003\210\203\242$\029\232\146\150q\150\201\251\143\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004name\210\203\242$\029\232\146\150q\244\202\199\208\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004type\210\203\242$1\232\146\150q\148\239\150\246\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\bpiq-repr\210\171\158\194\006\npiq-format\210\203\242$#\232\146\150q\152\199\138\155\002\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\npiq-format\210\203\242$'\232\146\150q\218\196\165\028\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\004code\210\171\158\194\006\005int32\210\203\242$/\232\146\150q\160\228\152\133\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-name\210\171\158\194\006\006string\210\203\242$.\232\146\150q\160\231\179\235\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\tjson-name\210\171\158\194\006\006string\210\203\242$0\232\146\150q\172\148\156\205\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\rgetopt-letter\210\171\158\194\006\004word\210\203\242$/\232\146\150q\144\177\235\165\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\ngetopt-doc\210\171\158\194\006\006string\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\218\164\238\191\004\006option\218\244\134\182\012K\138\233\142\251\014E\210\203\242$\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\210\203\242$\029\232\146\150q\226\253\195\155\002\218\164\238\191\004\005value\210\171\158\194\006\003ast\218\164\238\191\004\005named\218\244\134\182\012\025\130\153\170d\020\218\164\238\191\004\004name\210\171\158\194\006\004word\218\244\134\182\012\209\003\138\233\142\251\014\202\003\210\203\242$\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\210\203\242$\019\232\146\150q\244\202\199\208\001\210\171\158\194\006\004type\210\203\242$1\232\146\150q\148\239\150\246\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\bpiq-repr\210\171\158\194\006\npiq-format\210\203\242$#\232\146\150q\152\199\138\155\002\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\npiq-format\210\203\242$$\232\146\150q\128\151\168\147\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\011wire-packed\210\203\242$/\232\146\150q\160\228\152\133\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-name\210\171\158\194\006\006string\210\203\242$1\232\146\150q\236\166\137\131\003\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\012proto-custom\210\171\158\194\006\006string\210\203\242$.\232\146\150q\160\231\179\235\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\tjson-name\210\171\158\194\006\006string\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\210\203\242$$\232\146\150q\240\130\232\189\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\011ocaml-array\218\164\238\191\004\004list\226\128\157\190\n\tpiqi_list\218\244\134\182\012O\138\233\142\251\014I\210\203\242$+\232\146\150q\216\210\153\r\218\164\238\191\004\006module\210\171\158\194\006\004word\226\128\157\190\n\007modname\218\164\238\191\004\007include\226\128\157\190\n\006includ\218\244\134\182\012\153\001\138\233\142\251\014\146\001\210\203\242$+\232\146\150q\216\210\153\r\218\164\238\191\004\006module\210\171\158\194\006\004word\226\128\157\190\n\007modname\210\203\242$\029\232\146\150q\150\201\251\143\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004name\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\218\164\238\191\004\006import\218\244\134\182\012\240\001\170\136\200\184\014\233\001\218\164\238\191\004\014function-param\170\183\218\222\005\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\170\183\218\222\005+\232\146\150q\162\218\227\222\003\218\164\238\191\004\006record\210\171\158\194\006\016anonymous-record\170\183\218\222\005-\232\146\150q\138\130\146\206\003\218\164\238\191\004\007variant\210\171\158\194\006\017anonymous-variant\170\183\218\222\005&\232\146\150q\130\172\1791\218\164\238\191\004\004enum\210\171\158\194\006\014anonymous-enum\170\183\218\222\005&\232\146\150q\188\241\152{\218\164\238\191\004\004list\210\171\158\194\006\014anonymous-list\218\244\134\182\012\145\002\138\233\142\251\014\138\002\210\203\242$\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\210\203\242$2\232\146\150q\148\144\238\225\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\005input\210\171\158\194\006\014function-param\210\203\242$3\232\146\150q\130\188\136\200\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\006output\210\171\158\194\006\014function-param\210\203\242$2\232\146\150q\144\175\206\178\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\005error\210\171\158\194\006\014function-param\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\218\164\238\191\004\bfunction\226\128\157\190\n\004func\218\244\134\182\012m\138\176\205\197\001g\218\164\238\191\004\nfield-mode\170\183\218\222\005\023\232\146\150q\190\197\148\166\002\218\164\238\191\004\brequired\170\183\218\222\005\023\232\146\150q\192\190\245\230\003\218\164\238\191\004\boptional\170\183\218\222\005\023\232\146\150q\244\241\173\133\002\218\164\238\191\004\brepeated\218\244\134\182\012\193\005\138\233\142\251\014\186\005\210\203\242$\029\232\146\150q\150\201\251\143\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004name\210\203\242$\029\232\146\150q\244\202\199\208\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004type\210\203\242$S\232\146\150q\198\205\134\134\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\004mode\210\171\158\194\006\nfield-mode\138\140\251\240\r \130\217\201\197\006\006\b\223\162\138\147\001\234\216\159\203\r\014\218\164\238\191\004\brequired\210\203\242$.\232\146\150q\130\227\158\188\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\007default\210\171\158\194\006\bpiqi-any\210\203\242$1\232\146\150q\148\239\150\246\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\bpiq-repr\210\171\158\194\006\npiq-format\210\203\242$#\232\146\150q\152\199\138\155\002\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\npiq-format\210\203\242$'\232\146\150q\218\196\165\028\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\004code\210\171\158\194\006\005int32\210\203\242$$\232\146\150q\128\151\168\147\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\011wire-packed\210\203\242$/\232\146\150q\160\228\152\133\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-name\210\171\158\194\006\006string\210\203\242$.\232\146\150q\160\231\179\235\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\tjson-name\210\171\158\194\006\006string\210\203\242$0\232\146\150q\172\148\156\205\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\rgetopt-letter\210\171\158\194\006\004word\210\203\242$/\232\146\150q\144\177\235\165\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\ngetopt-doc\210\171\158\194\006\006string\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\210\203\242$$\232\146\150q\240\130\232\189\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\011ocaml-array\218\164\238\191\004\005field\218\244\134\182\012\247\001\170\136\200\184\014\240\001\218\164\238\191\004\rextend-target\170\183\218\222\005 \232\146\150q\150\221\193\141\003\218\164\238\191\004\007typedef\210\171\158\194\006\004name\170\183\218\222\005\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\170\183\218\222\005\029\232\146\150q\244\210\156\t\218\164\238\191\004\005field\210\171\158\194\006\004name\170\183\218\222\005\031\232\146\150q\234\205\214\183\001\218\164\238\191\004\006option\210\171\158\194\006\004name\170\183\218\222\005\031\232\146\150q\202\133\149\136\001\218\164\238\191\004\006import\210\171\158\194\006\004name\170\183\218\222\005+\232\146\150q\176\172\149\197\002\218\164\238\191\004\bfunction\210\171\158\194\006\004name\226\128\157\190\n\004func\218\244\134\182\012\184\001\138\233\142\251\014\177\001\210\203\242$0\232\146\150q\136\141\189\239\001\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\004what\210\171\158\194\006\rextend-target\210\203\242$:\232\146\150q\140\216\195\239\001\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\004with\210\171\158\194\006\bpiqi-any\226\128\157\190\n\tpiqi_with\210\203\242$,\232\146\150q\224\153\247\220\002\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\bpiqi-any\226\128\157\190\n\005quote\218\164\238\191\004\006extend\218\244\134\182\012+\130\153\170d&\130\145\227\148\004\tpiqi_enum\218\164\238\191\004\004enum\210\171\158\194\006\007variant\218\244\134\182\012\029\242\197\227\236\003\023\218\164\238\191\004\bast-list\210\171\158\194\006\003ast\218\244\134\182\012\135\004\170\136\200\184\014\128\004\218\164\238\191\004\003ast\170\183\218\222\005\028\232\146\150q\222\179\128\005\218\164\238\191\004\003int\210\171\158\194\006\005int64\170\183\218\222\005\031\232\146\150q\180\142\176\218\001\218\164\238\191\004\004uint\210\171\158\194\006\006uint64\170\183\218\222\005\019\232\146\150q\184\150\182)\210\171\158\194\006\005float\170\183\218\222\005\018\232\146\150q\212\144\220\017\210\171\158\194\006\004bool\170\183\218\222\005\019\232\146\150q\148\135\232\239\001\210\171\158\194\006\004word\170\183\218\222\005&\232\146\150q\154\238\207V\218\164\238\191\004\012ascii-string\210\171\158\194\006\006string\170\183\218\222\005&\232\146\150q\218\174\161\241\002\218\164\238\191\004\011utf8-string\210\171\158\194\006\006string\170\183\218\222\005\021\232\146\150q\130\240\221\208\001\210\171\158\194\006\006binary\170\183\218\222\005\031\232\146\150q\218\178\206\207\001\218\164\238\191\004\004text\210\171\158\194\006\006string\170\183\218\222\005\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\170\183\218\222\005\020\232\146\150q\242\190\164\232\002\210\171\158\194\006\005named\170\183\218\222\005+\232\146\150q\244\202\199\208\001\218\164\238\191\004\004type\210\171\158\194\006\004name\226\128\157\190\n\btypename\170\183\218\222\005\020\232\146\150q\212\193\219\172\003\210\171\158\194\006\005typed\170\183\218\222\005 \232\146\150q\188\241\152{\218\164\238\191\004\004list\210\171\158\194\006\bast-list\170\183\218\222\005$\232\146\150q\186\173\139\152\003\218\164\238\191\004\007control\210\171\158\194\006\bast-list\218\244\134\182\012\170\001\138\233\142\251\014\163\001\210\203\242$7\232\146\150q\244\202\199\208\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\004type\210\171\158\194\006\006string\226\128\157\190\n\btypename\210\203\242$)\232\146\150q\154\246\231\178\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\007piq-ast\210\171\158\194\006\003ast\210\203\242$+\232\146\150q\160\182\178\209\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\006binobj\210\171\158\194\006\006binary\218\164\238\191\004\003any\218\244\134\182\012A\138\233\142\251\014;\210\203\242$\031\232\146\150q\234\205\214\183\001\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\006option\218\164\238\191\004\017anonymous-variant\218\244\134\182\012>\138\233\142\251\0148\210\203\242$\029\232\146\150q\244\210\156\t\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\005field\218\164\238\191\004\016anonymous-record\218\244\134\182\0122\138\233\142\251\014,\210\203\242$\019\232\146\150q\244\202\199\208\001\210\171\158\194\006\004type\218\164\238\191\004\014anonymous-list\218\244\134\182\0120\130\153\170d+\218\164\238\191\004\014anonymous-enum\210\171\158\194\006\017anonymous-variant\218\244\134\182\012\250\003\138\233\142\251\014\243\003\210\203\242$\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\210\203\242$\029\232\146\150q\244\202\199\208\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004type\210\203\242$\"\232\146\150q\236\234\144\189\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\tpiqi-type\210\203\242$1\232\146\150q\148\239\150\246\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\bpiq-repr\210\171\158\194\006\npiq-format\210\203\242$#\232\146\150q\152\199\138\155\002\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\npiq-format\210\203\242$!\232\146\150q\132\252\159\t\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\twire-type\210\203\242$/\232\146\150q\160\228\152\133\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-name\210\171\158\194\006\006string\210\203\242$/\232\146\150q\254\229\228\197\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-type\210\171\158\194\006\006string\210\203\242$.\232\146\150q\160\231\179\235\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\tjson-name\210\171\158\194\006\006string\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\210\203\242$/\232\146\150q\246\161\147\144\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-type\210\171\158\194\006\006string\218\164\238\191\004\005alias"
+    "\226\202\2304\tpiqi-lang\218\244\134\182\012'\130\153\170d\"\218\164\238\191\004\004word\210\171\158\194\006\006string\226\156\170\236\b\006\208\156\160\191\007\001\218\244\134\182\012\140\002\138\176\205\197\001\133\002\218\164\238\191\004\twire-type\170\183\218\222\005\021\232\146\150q\208\225\169\186\002\218\164\238\191\004\006varint\170\183\218\222\005\027\232\146\150q\154\229\206^\218\164\238\191\004\rzigzag-varint\170\183\218\222\005\022\232\146\150q\166\172\211\130\001\218\164\238\191\004\007fixed32\170\183\218\222\005\022\232\146\150q\228\182\211\130\001\218\164\238\191\004\007fixed64\170\183\218\222\005\028\232\146\150q\242\231\184\165\003\218\164\238\191\004\rsigned-varint\170\183\218\222\005\029\232\146\150q\196\161\239\209\003\218\164\238\191\004\014signed-fixed32\170\183\218\222\005\029\232\146\150q\130\172\239\209\003\218\164\238\191\004\014signed-fixed64\170\183\218\222\005\020\232\146\150q\154\213\227\207\002\218\164\238\191\004\005block\218\244\134\182\012\177\002\138\233\142\251\014\170\002\210\203\242$#\232\146\150q\150\201\251\143\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004name\136\158\147\199\014\001\210\203\242$\031\232\146\150q\234\205\214\183\001\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\006option\210\203\242$/\232\146\150q\160\228\152\133\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-name\210\171\158\194\006\006string\210\203\242$1\232\146\150q\236\166\137\131\003\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\012proto-custom\210\171\158\194\006\006string\210\203\242$.\232\146\150q\160\231\179\235\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\tjson-name\210\171\158\194\006\006string\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\218\164\238\191\004\007variant\218\244\134\182\012\176\001\170\136\200\184\014\169\001\130\145\227\148\004\012piqi_typedef\218\164\238\191\004\007typedef\170\183\218\222\005\021\232\146\150q\162\218\227\222\003\210\171\158\194\006\006record\170\183\218\222\005\022\232\146\150q\138\130\146\206\003\210\171\158\194\006\007variant\170\183\218\222\005\018\232\146\150q\130\172\1791\210\171\158\194\006\004enum\170\183\218\222\005\019\232\146\150q\160\198\138\025\210\171\158\194\006\005alias\170\183\218\222\005\028\232\146\150q\188\241\152{\210\171\158\194\006\004list\226\128\157\190\n\004list\218\244\134\182\012h\138\233\142\251\014b\210\203\242$+\232\146\150q\244\202\199\208\001\218\164\238\191\004\004type\210\171\158\194\006\004name\226\128\157\190\n\btypename\210\203\242$\"\232\146\150q\226\253\195\155\002\218\164\238\191\004\005value\210\171\158\194\006\bpiqi-any\218\164\238\191\004\005typed\218\244\134\182\012'\130\153\170d\"\218\164\238\191\004\004type\210\171\158\194\006\004name\226\128\157\190\n\btypename\218\244\134\182\012\174\002\138\233\142\251\014\167\002\210\203\242$#\232\146\150q\150\201\251\143\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004name\136\158\147\199\014\001\210\203\242$\029\232\146\150q\244\210\156\t\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\005field\210\203\242$/\232\146\150q\160\228\152\133\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-name\210\171\158\194\006\006string\210\203\242$1\232\146\150q\236\166\137\131\003\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\012proto-custom\210\171\158\194\006\006string\210\203\242$.\232\146\150q\160\231\179\235\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\tjson-name\210\171\158\194\006\006string\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\218\164\238\191\004\006record\218\244\134\182\012\166\002\138\176\205\197\001\159\002\218\164\238\191\004\tpiqi-type\170\183\218\222\005$\232\146\150q\222\179\128\005\130\145\227\148\004\rpiqi_type_int\218\164\238\191\004\003int\170\183\218\222\005(\232\146\150q\184\150\182)\130\145\227\148\004\015piqi_type_float\218\164\238\191\004\005float\170\183\218\222\005&\232\146\150q\212\144\220\017\130\145\227\148\004\014piqi_type_bool\218\164\238\191\004\004bool\170\183\218\222\005+\232\146\150q\162\163\129\147\002\130\145\227\148\004\016piqi_type_string\218\164\238\191\004\006string\170\183\218\222\005+\232\146\150q\130\240\221\208\001\130\145\227\148\004\016piqi_type_binary\218\164\238\191\004\006binary\170\183\218\222\005$\232\146\150q\216\235\207\004\130\145\227\148\004\rpiqi_type_any\218\164\238\191\004\003any\218\244\134\182\012\217\003\138\233\142\251\014\210\003\210\203\242$5\232\146\150q\216\210\153\r\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\006module\210\171\158\194\006\004word\226\128\157\190\n\007modname\210\203\242$ \232\146\150q\150\221\193\141\003\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\007typedef\210\203\242$\031\232\146\150q\202\133\149\136\001\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\006import\210\203\242$!\232\146\150q\176\172\149\197\002\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\bfunction\210\203\242$2\232\146\150q\194\183\130\190\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\rproto-package\210\171\158\194\006\006string\210\203\242$1\232\146\150q\236\166\137\131\003\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\012proto-custom\210\171\158\194\006\006string\210\203\242$/\232\146\150q\188\207\221\154\001\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\012custom-field\210\171\158\194\006\004word\210\203\242$ \232\146\150q\208\248\183\159\002\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\007include\210\203\242$\030\232\146\150q\180\199\214q\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\006extend\210\203\242$1\232\146\150q\218\242\178\230\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\012ocaml-module\210\171\158\194\006\006string\218\164\238\191\004\004piqi\218\244\134\182\012H\170\136\200\184\014B\218\164\238\191\004\npiq-format\170\183\218\222\005\019\232\146\150q\148\135\232\239\001\218\164\238\191\004\004word\170\183\218\222\005\019\232\146\150q\218\178\206\207\001\218\164\238\191\004\004text\218\244\134\182\012\229\003\138\233\142\251\014\222\003\210\203\242$\029\232\146\150q\150\201\251\143\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004name\210\203\242$\029\232\146\150q\244\202\199\208\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004type\210\203\242$1\232\146\150q\148\239\150\246\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\bpiq-repr\210\171\158\194\006\npiq-format\210\203\242$#\232\146\150q\152\199\138\155\002\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\npiq-format\210\203\242$'\232\146\150q\218\196\165\028\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\004code\210\171\158\194\006\005int32\210\203\242$/\232\146\150q\160\228\152\133\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-name\210\171\158\194\006\006string\210\203\242$.\232\146\150q\160\231\179\235\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\tjson-name\210\171\158\194\006\006string\210\203\242$0\232\146\150q\172\148\156\205\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\rgetopt-letter\210\171\158\194\006\004word\210\203\242$/\232\146\150q\144\177\235\165\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\ngetopt-doc\210\171\158\194\006\006string\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\218\164\238\191\004\006option\218\244\134\182\012K\138\233\142\251\014E\210\203\242$\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\210\203\242$\029\232\146\150q\226\253\195\155\002\218\164\238\191\004\005value\210\171\158\194\006\003ast\218\164\238\191\004\005named\218\244\134\182\012\025\130\153\170d\020\218\164\238\191\004\004name\210\171\158\194\006\004word\218\244\134\182\012\225\003\138\233\142\251\014\218\003\210\203\242$#\232\146\150q\150\201\251\143\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004name\136\158\147\199\014\001\210\203\242$\019\232\146\150q\244\202\199\208\001\210\171\158\194\006\004type\210\203\242$1\232\146\150q\148\239\150\246\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\bpiq-repr\210\171\158\194\006\npiq-format\210\203\242$#\232\146\150q\152\199\138\155\002\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\npiq-format\210\203\242$$\232\146\150q\128\151\168\147\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\011wire-packed\210\203\242$/\232\146\150q\160\228\152\133\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-name\210\171\158\194\006\006string\210\203\242$1\232\146\150q\236\166\137\131\003\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\012proto-custom\210\171\158\194\006\006string\210\203\242$.\232\146\150q\160\231\179\235\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\tjson-name\210\171\158\194\006\006string\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\210\203\242$$\232\146\150q\240\130\232\189\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\011ocaml-array\218\164\238\191\004\004list\226\128\157\190\n\tpiqi_list\218\244\134\182\012O\138\233\142\251\014I\210\203\242$+\232\146\150q\216\210\153\r\218\164\238\191\004\006module\210\171\158\194\006\004word\226\128\157\190\n\007modname\218\164\238\191\004\007include\226\128\157\190\n\006includ\218\244\134\182\012\153\001\138\233\142\251\014\146\001\210\203\242$+\232\146\150q\216\210\153\r\218\164\238\191\004\006module\210\171\158\194\006\004word\226\128\157\190\n\007modname\210\203\242$\029\232\146\150q\150\201\251\143\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004name\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\218\164\238\191\004\006import\218\244\134\182\012\165\001\170\136\200\184\014\158\001\218\164\238\191\004\014function-param\170\183\218\222\005\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\170\183\218\222\005\021\232\146\150q\162\218\227\222\003\210\171\158\194\006\006record\170\183\218\222\005\022\232\146\150q\138\130\146\206\003\210\171\158\194\006\007variant\170\183\218\222\005\018\232\146\150q\130\172\1791\210\171\158\194\006\004enum\170\183\218\222\005\028\232\146\150q\188\241\152{\210\171\158\194\006\004list\226\128\157\190\n\004list\218\244\134\182\012\145\002\138\233\142\251\014\138\002\210\203\242$\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\210\203\242$2\232\146\150q\148\144\238\225\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\005input\210\171\158\194\006\014function-param\210\203\242$3\232\146\150q\130\188\136\200\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\006output\210\171\158\194\006\014function-param\210\203\242$2\232\146\150q\144\175\206\178\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\005error\210\171\158\194\006\014function-param\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\218\164\238\191\004\bfunction\226\128\157\190\n\004func\218\244\134\182\012m\138\176\205\197\001g\218\164\238\191\004\nfield-mode\170\183\218\222\005\023\232\146\150q\190\197\148\166\002\218\164\238\191\004\brequired\170\183\218\222\005\023\232\146\150q\192\190\245\230\003\218\164\238\191\004\boptional\170\183\218\222\005\023\232\146\150q\244\241\173\133\002\218\164\238\191\004\brepeated\218\244\134\182\012\237\005\138\233\142\251\014\230\005\210\203\242$\029\232\146\150q\150\201\251\143\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004name\210\203\242$\029\232\146\150q\244\202\199\208\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004type\210\203\242$S\232\146\150q\198\205\134\134\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\004mode\210\171\158\194\006\nfield-mode\138\140\251\240\r \130\217\201\197\006\006\b\223\162\138\147\001\234\216\159\203\r\014\218\164\238\191\004\brequired\210\203\242$.\232\146\150q\130\227\158\188\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\007default\210\171\158\194\006\bpiqi-any\210\203\242$1\232\146\150q\148\239\150\246\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\bpiq-repr\210\171\158\194\006\npiq-format\210\203\242$#\232\146\150q\152\199\138\155\002\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\npiq-format\210\203\242$'\232\146\150q\218\196\165\028\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\004code\210\171\158\194\006\005int32\210\203\242$$\232\146\150q\128\151\168\147\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\011wire-packed\210\203\242$/\232\146\150q\160\228\152\133\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-name\210\171\158\194\006\006string\210\203\242$.\232\146\150q\160\231\179\235\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\tjson-name\210\171\158\194\006\006string\210\203\242$0\232\146\150q\172\148\156\205\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\rgetopt-letter\210\171\158\194\006\004word\210\203\242$/\232\146\150q\144\177\235\165\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\ngetopt-doc\210\171\158\194\006\006string\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\210\203\242$$\232\146\150q\240\130\232\189\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\011ocaml-array\210\203\242$'\232\146\150q\194\231\228\209\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\014ocaml-optional\218\164\238\191\004\005field\218\244\134\182\012\247\001\170\136\200\184\014\240\001\218\164\238\191\004\rextend-target\170\183\218\222\005 \232\146\150q\150\221\193\141\003\218\164\238\191\004\007typedef\210\171\158\194\006\004name\170\183\218\222\005\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\170\183\218\222\005\029\232\146\150q\244\210\156\t\218\164\238\191\004\005field\210\171\158\194\006\004name\170\183\218\222\005\031\232\146\150q\234\205\214\183\001\218\164\238\191\004\006option\210\171\158\194\006\004name\170\183\218\222\005\031\232\146\150q\202\133\149\136\001\218\164\238\191\004\006import\210\171\158\194\006\004name\170\183\218\222\005+\232\146\150q\176\172\149\197\002\218\164\238\191\004\bfunction\210\171\158\194\006\004name\226\128\157\190\n\004func\218\244\134\182\012\222\001\138\233\142\251\014\215\001\210\203\242$0\232\146\150q\136\141\189\239\001\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\004what\210\171\158\194\006\rextend-target\210\203\242$!\232\146\150q\152\137\193\146\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\boverride\210\203\242$:\232\146\150q\140\216\195\239\001\152\182\154\152\004\250\248\214\130\001\218\164\238\191\004\004with\210\171\158\194\006\bpiqi-any\226\128\157\190\n\tpiqi_with\210\203\242$,\232\146\150q\224\153\247\220\002\152\182\154\152\004\250\248\214\130\001\210\171\158\194\006\bpiqi-any\226\128\157\190\n\005quote\218\164\238\191\004\006extend\218\244\134\182\012+\130\153\170d&\130\145\227\148\004\tpiqi_enum\218\164\238\191\004\004enum\210\171\158\194\006\007variant\218\244\134\182\012\029\242\197\227\236\003\023\218\164\238\191\004\bast-list\210\171\158\194\006\003ast\218\244\134\182\012\135\004\170\136\200\184\014\128\004\218\164\238\191\004\003ast\170\183\218\222\005\028\232\146\150q\222\179\128\005\218\164\238\191\004\003int\210\171\158\194\006\005int64\170\183\218\222\005\031\232\146\150q\180\142\176\218\001\218\164\238\191\004\004uint\210\171\158\194\006\006uint64\170\183\218\222\005\019\232\146\150q\184\150\182)\210\171\158\194\006\005float\170\183\218\222\005\018\232\146\150q\212\144\220\017\210\171\158\194\006\004bool\170\183\218\222\005\019\232\146\150q\148\135\232\239\001\210\171\158\194\006\004word\170\183\218\222\005&\232\146\150q\154\238\207V\218\164\238\191\004\012ascii-string\210\171\158\194\006\006string\170\183\218\222\005&\232\146\150q\218\174\161\241\002\218\164\238\191\004\011utf8-string\210\171\158\194\006\006string\170\183\218\222\005\021\232\146\150q\130\240\221\208\001\210\171\158\194\006\006binary\170\183\218\222\005\031\232\146\150q\218\178\206\207\001\218\164\238\191\004\004text\210\171\158\194\006\006string\170\183\218\222\005\019\232\146\150q\150\201\251\143\001\210\171\158\194\006\004name\170\183\218\222\005\020\232\146\150q\242\190\164\232\002\210\171\158\194\006\005named\170\183\218\222\005+\232\146\150q\244\202\199\208\001\218\164\238\191\004\004type\210\171\158\194\006\004name\226\128\157\190\n\btypename\170\183\218\222\005\020\232\146\150q\212\193\219\172\003\210\171\158\194\006\005typed\170\183\218\222\005 \232\146\150q\188\241\152{\218\164\238\191\004\004list\210\171\158\194\006\bast-list\170\183\218\222\005$\232\146\150q\186\173\139\152\003\218\164\238\191\004\007control\210\171\158\194\006\bast-list\218\244\134\182\012\170\001\138\233\142\251\014\163\001\210\203\242$7\232\146\150q\244\202\199\208\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\004type\210\171\158\194\006\006string\226\128\157\190\n\btypename\210\203\242$)\232\146\150q\154\246\231\178\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\007piq-ast\210\171\158\194\006\003ast\210\203\242$+\232\146\150q\160\182\178\209\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\006binobj\210\171\158\194\006\006binary\218\164\238\191\004\003any\218\244\134\182\012\138\004\138\233\142\251\014\131\004\210\203\242$#\232\146\150q\150\201\251\143\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004name\136\158\147\199\014\001\210\203\242$\029\232\146\150q\244\202\199\208\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\004type\210\203\242$\"\232\146\150q\236\234\144\189\001\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\tpiqi-type\210\203\242$1\232\146\150q\148\239\150\246\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\bpiq-repr\210\171\158\194\006\npiq-format\210\203\242$#\232\146\150q\152\199\138\155\002\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\npiq-format\210\203\242$!\232\146\150q\132\252\159\t\152\182\154\152\004\160\223\186\243\001\210\171\158\194\006\twire-type\210\203\242$/\232\146\150q\160\228\152\133\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-name\210\171\158\194\006\006string\210\203\242$/\232\146\150q\254\229\228\197\001\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nproto-type\210\171\158\194\006\006string\210\203\242$.\232\146\150q\160\231\179\235\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\tjson-name\210\171\158\194\006\006string\210\203\242$/\232\146\150q\152\160\199\207\002\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-name\210\171\158\194\006\006string\210\203\242$/\232\146\150q\246\161\147\144\003\152\182\154\152\004\160\223\186\243\001\218\164\238\191\004\nocaml-type\210\171\158\194\006\006string\218\164\238\191\004\005alias"
   in parse_piqi_binobj piqi_lang_binobj
   
 let piqi_spec =

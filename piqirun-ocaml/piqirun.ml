@@ -751,16 +751,19 @@ let parse_required_field code parse_value ?default l =
   match res with
     | None ->
         (match default with
-           | Some x -> parse_value (parse_default x), rem
+           | Some x -> parse_value (parse_default x), l
            | None -> error_missing l code)
     | Some x ->
         parse_value x, rem
 
 
-let parse_optional_field code parse_value l =
+let parse_optional_field code parse_value ?default l =
   let res, rem = find_field code l in
   match res with
-    | None -> None, l
+    | None ->
+        (match default with
+           | Some x -> Some (parse_value (parse_default x)), l
+           | None -> None, l)
     | Some x ->
         Some (parse_value x), rem
 

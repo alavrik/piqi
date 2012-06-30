@@ -163,12 +163,15 @@ let get_parent_piqi (def:T.typedef) :T.piqi =
 
 
 let typedef_name (typedef:T.typedef) =
-  match typedef with
-    | `record x -> x.R#name
-    | `variant x -> x.V#name
-    | `enum x -> x.E#name
-    | `alias x -> x.A#name
-    | `list x -> x.L#name
+  let res =
+    match typedef with
+      | `record x -> x.R#name
+      | `variant x -> x.V#name
+      | `enum x -> x.E#name
+      | `alias x -> x.A#name
+      | `list x -> x.L#name
+  in
+  some_of res
 
 
 let piqi_typename (t:T.piqtype) =

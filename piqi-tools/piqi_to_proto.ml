@@ -490,7 +490,7 @@ let protoname_field x =
 
 let protoname_record x =
   let open Record in
-  (if x.proto_name = None then x.proto_name <- protoname x.name;
+  (if x.proto_name = None then x.proto_name <- protoname (some_of x.name);
    List.iter protoname_field x.field)
 
 
@@ -501,24 +501,24 @@ let protoname_option x =
 
 let protoname_variant x =
   let open Variant in
-  (if x.proto_name = None then x.proto_name <- protoname x.name;
+  (if x.proto_name = None then x.proto_name <- protoname (some_of x.name);
    List.iter protoname_option x.option)
 
 
 let protoname_enum x =
   let open Enum in
-  (if x.proto_name = None then x.proto_name <- protoname x.name;
+  (if x.proto_name = None then x.proto_name <- protoname (some_of x.name);
    List.iter protoname_option x.option)
 
 
 let protoname_alias x =
   let open Alias in
-  if x.proto_name = None then x.proto_name <- protoname x.name
+  if x.proto_name = None then x.proto_name <- protoname (some_of x.name)
 
 
 let protoname_list x =
   let open L in
-  if x.proto_name = None then x.proto_name <- protoname x.name
+  if x.proto_name = None then x.proto_name <- protoname (some_of x.name)
 
 
 let protoname_typedef = function

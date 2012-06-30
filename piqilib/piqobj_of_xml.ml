@@ -131,7 +131,7 @@ and parse_any x =
 
 
 and parse_record t xml_elem =
-  debug "do_parse_record: %s\n" t.T.Record#name;
+  debug "do_parse_record: %s\n" (some_of t.T.Record#name);
   (* get the list of XML elements from the node *)
   let _name, l = xml_elem in
   let l = List.map (fun xml ->
@@ -251,7 +251,7 @@ and parse_repeated_field name field_type l =
 
 
 and parse_variant t xml_elem =
-  debug "parse_variant: %s\n" t.T.Variant#name;
+  debug "parse_variant: %s\n" (some_of t.T.Variant#name);
   let _name, l = xml_elem in
   match l with
     | [`Elem ((name, _) as xml_elem)] ->
@@ -282,7 +282,7 @@ and parse_option t xml_elem =
 
 
 and parse_enum t xml_elem =
-  debug "parse_enum: %s\n" t.T.Variant#name;
+  debug "parse_enum: %s\n" (some_of t.T.Variant#name);
   let name =
     parse_scalar xml_elem "exactly one XML CDATA expected as an enum value"
   in
@@ -298,7 +298,7 @@ and parse_enum t xml_elem =
 
 
 and parse_list t xml_elem =
-  debug "parse_list: %s\n" t.T.Piqi_list#name;
+  debug "parse_list: %s\n" (some_of t.T.Piqi_list#name);
   let obj_type = some_of t.T.Piqi_list#piqtype in
   let _name, l = xml_elem in
   let contents = List.map (parse_list_item obj_type) l in
@@ -318,7 +318,7 @@ and parse_list_item obj_type xml =
 and parse_alias t x =
   let open T.Alias in
   let obj_type = some_of t.piqtype in
-  debug "parse_alias: %s\n" t.T.Alias#name;
+  debug "parse_alias: %s\n" (some_of t.T.Alias#name);
   let obj = parse_obj obj_type x in
   A#{ t = t; obj = obj }
 

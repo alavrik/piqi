@@ -3,7 +3,8 @@
 % This file contains specificaiton for the Piqi language which is an extension
 % of Piqi-spec (piqi.piqi).
 %
-% Basically, Piqi-lang = Piqi-spec + includes and extensions.
+% Basically, Piqi-lang = Piqi-spec + includes, extensions and typedefs embeeded
+% in function parameters.
 % 
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
@@ -12,9 +13,6 @@
 
 
 .include [ .module piqi.org/piqi ]
-
-
-.custom-field ocaml-name
 
 
 % The Piqi language, in addition to the Piqi-spec, has includes and extensions
@@ -45,12 +43,18 @@
 
 
 .extend [
-    % TODO: implement support for .override
-    % .override
-
     (.field function.input function.output function.error)
+    .override
 
     .with.type function-param
+]
+
+
+.extend [
+    (.field record.name variant.name list.name alias.name)
+    .override
+
+    .with (.mode.optional)
 ]
 
 
@@ -58,54 +62,20 @@
     .name function-param
     .option [ .type name ]
     .option [
-        .name record
-        .type anonymous-record
+        .type record
     ]
     .option [
-        .name variant
-        .type anonymous-variant
+        .type variant
     ]
     .option [
-        .name enum
-        .type anonymous-enum
+        .type enum
     ]
     .option [
-        .name list
-        .type anonymous-list
+        .type list
+        .ocaml-name "list"
     ]
     % note: obviously, there's no anonymous alias. at the same time, the "name"
     % option will turn into <function-name>-input|output|error alias
-]
-
-
-% "anonymous-record" is a "record" without a name
-.record [
-    .name anonymous-record
-
-    .field [
-        .type field
-        .repeated
-    ]
-]
-
-.record [
-    .name anonymous-variant
-
-    .field [
-        .type option
-        .repeated
-    ]
-]
-
-.alias [
-    .name anonymous-enum
-    .type anonymous-variant
-]
-
-.record [
-    .name anonymous-list
-
-    .field [ .type type ]
 ]
 
 
@@ -116,6 +86,13 @@
         .name what
         .type extend-target
         .repeated % several typedefs can be specified as an extension
+    ]
+
+    .field [
+        % whether specified extensions override existing elements
+
+        .name override
+        .optional
     ]
 
     .field [
@@ -149,4 +126,7 @@
     .option [ .name import .type name ]
     .option [ .name function .type name .ocaml-name "func" ]
 ]
+
+
+(.custom-field ocaml-name ocaml-optional)
 

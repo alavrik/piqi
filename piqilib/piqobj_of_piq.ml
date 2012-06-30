@@ -545,7 +545,7 @@ and parse_repeated_field f name field_type l =
 
 
 and parse_variant ~try_mode t x =
-  debug "parse_variant: %s\n" t.T.Variant#name;
+  debug "parse_variant: %s\n" (some_of t.T.Variant#name);
   let options = t.T.Variant#option in
   try
     let value =

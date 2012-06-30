@@ -61,7 +61,7 @@ let erlname_field x =
 
 let erlname_record x =
   let open Record in
-  (if x.erlang_name = None then x.erlang_name <- erlname x.name;
+  (if x.erlang_name = None then x.erlang_name <- erlname (some_of x.name);
    List.iter erlname_field x.field)
 
 
@@ -72,24 +72,24 @@ let erlname_option x =
 
 let erlname_variant x =
   let open Variant in
-  (if x.erlang_name = None then x.erlang_name <- erlname x.name;
+  (if x.erlang_name = None then x.erlang_name <- erlname (some_of x.name);
    List.iter erlname_option x.option)
 
 
 let erlname_enum x =
   let open Enum in
-  (if x.erlang_name = None then x.erlang_name <- erlname x.name;
+  (if x.erlang_name = None then x.erlang_name <- erlname (some_of x.name);
    List.iter erlname_option x.option)
 
 
 let erlname_alias x =
   let open Alias in
-  if x.erlang_name = None then x.erlang_name <- erlname x.name
+  if x.erlang_name = None then x.erlang_name <- erlname (some_of x.name)
 
 
 let erlname_list x =
   let open L in
-  if x.erlang_name = None then x.erlang_name <- erlname x.name
+  if x.erlang_name = None then x.erlang_name <- erlname (some_of x.name)
 
 
 let erlname_typedef = function
@@ -269,7 +269,7 @@ let piqic (piqi: T.piqi) =
   let modname = some_of piqi.P#erlang_module in
   Piqic_erlang_types.top_modname := some_of piqi.P#erlang_module;
   Piqic_erlang_types.type_prefix := some_of piqi.P#erlang_type_prefix;
-  Piqic_erlang_types.string_type := piqi.P#erlang_string_type;
+  Piqic_erlang_types.string_type := some_of piqi.P#erlang_string_type;
 
   (* set Erlang name for the type "any" *)
   if !Piqic_common.is_self_spec

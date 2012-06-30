@@ -117,7 +117,7 @@ and parse_record t = function
 
 
 and do_parse_record loc t l =
-  debug "do_parse_record: %s\n" t.T.Record#name;
+  debug "do_parse_record: %s\n" (some_of t.T.Record#name);
   let fields_spec = t.T.Record#field in
   let fields, rem =
     List.fold_left (parse_field loc) ([], l) fields_spec in
@@ -226,7 +226,7 @@ and parse_repeated_field name field_type l =
 
 
 and parse_variant t x =
-  debug "parse_variant: %s\n" t.T.Variant#name;
+  debug "parse_variant: %s\n" (some_of t.T.Variant#name);
   match x with
     | `Assoc [name, value] ->
         let options = t.T.Variant#option in
@@ -264,7 +264,7 @@ and parse_option t x =
 
 
 and parse_enum t x =
-  debug "parse_enum: %s\n" t.T.Variant#name;
+  debug "parse_enum: %s\n" (some_of t.T.Variant#name);
   match x with
     | `String name ->
         let options = t.T.Variant#option in
@@ -283,7 +283,7 @@ and parse_enum t x =
 and parse_list t x =
   match x with
     | `List l ->
-        debug "parse_list: %s\n" t.T.Piqi_list#name;
+        debug "parse_list: %s\n" (some_of t.T.Piqi_list#name);
         let obj_type = some_of t.T.Piqi_list#piqtype in
         let contents = List.map (parse_obj obj_type) l in
         L#{ t = t; obj = contents }
@@ -295,7 +295,7 @@ and parse_list t x =
 and parse_alias t x =
   let open T.Alias in
   let obj_type = some_of t.piqtype in
-  debug "parse_alias: %s\n" t.T.Alias#name;
+  debug "parse_alias: %s\n" (some_of t.T.Alias#name);
   let obj = parse_obj obj_type x in
   A#{ t = t; obj = obj }
 

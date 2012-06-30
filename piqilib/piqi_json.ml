@@ -86,7 +86,7 @@ let json_name_field x =
 let json_name_record x =
   let open Record in
   (match x.json_name with
-     | None -> x.json_name <- json_name x.name
+     | None -> x.json_name <- json_name (some_of x.name)
      | Some n -> check_json_name n
   )
 
@@ -101,7 +101,7 @@ let json_name_option x =
 let json_name_variant x =
   let open Variant in
   (match x.json_name with
-     | None -> x.json_name <- json_name x.name
+     | None -> x.json_name <- json_name (some_of x.name)
      | Some n -> check_json_name n
   )
 
@@ -109,14 +109,14 @@ let json_name_variant x =
 let json_name_alias x =
   let open Alias in
   match x.json_name with
-    | None -> x.json_name <- json_name x.name
+    | None -> x.json_name <- json_name (some_of x.name)
     | Some n -> check_json_name n
 
 
 let json_name_list x =
   let open L in
   match x.json_name with
-    | None -> x.json_name <- json_name x.name
+    | None -> x.json_name <- json_name (some_of x.name)
     | Some n -> check_json_name n
 
 

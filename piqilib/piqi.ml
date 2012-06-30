@@ -292,7 +292,14 @@ let check_field f =
   end
 
 
+let check_def_name obj = function
+  | Some x -> check_name x
+  | None ->
+      error obj "name is missing"
+
+
 let check_record r =
+  check_def_name r r.R#name;
   let fields = r.R#field in
   (* XXX: Protobuf doesn't print any warnings on records with no fields *)
   (*
@@ -314,8 +321,9 @@ let check_option o =
 
 
 let check_variant v =
+  check_def_name v v.V#name;
   (* TODO: check for co-variant loops *)
-  let name = v.V#name in
+  let name = some_of v.V#name in
   let options = v.V#option in
   if options = []
   then error v ("variant " ^ quote name ^ " doesn't specify any options");
@@ -337,7 +345,8 @@ let check_enum_option x =
 
 
 let check_enum e =
-  let name = e.E#name in
+  check_def_name e e.E#name;
+  let name = some_of e.E#name in
   let options = e.E#option in
   if options = []
   then error e ("enum " ^ quote name ^ " doesn't specify any options");
@@ -364,10 +373,12 @@ let error_noboot obj s =
 let check_alias a =
   let open A in
   begin
+    check_def_name a a.name;
     (* TODO: this check is incomplete *)
+    let name = some_of a.name in
     if a.typename = None && a.piqi_type = None
     then
-      error a ("alias " ^ quote a.name ^ " must specify either piqi-type or type");
+      error a ("alias " ^ quote name ^ " must specify either piqi-type or type");
 
     (* TODO, XXX:
     if a.piqi_type <> None
@@ -380,11 +391,11 @@ let check_alias a =
 let check_list l =
   let open L in
   begin
+    check_def_name l l.name;
   end
 
 
 let check_def def =
-  check_name (typedef_name def);
   match def with
     | `record x -> check_record x
     | `variant x -> check_variant x
@@ -804,32 +815,6 @@ let check_unknown_fields ?prepend unknown_fields custom_fields =
   List.iter warn unknown_fields
 
 
-(* From (key, value) list extract values for the specified key, and return the
- * list of extracted values and the remaining tuples; the order of both values
- * and remaining items is preserved *)
-(* NOTE: not tail recursive *)
-let takeout key l =
-  let rec aux values rem = function
-    | [] -> List.rev values, List.rev rem
-    | (key', value)::t when key' = key ->
-        aux (value::values) rem t
-    | h::t ->
-        aux values (h::rem) t
-  in aux [] [] l
-    
-
-(* group unsorted (key, [value]) pairs by their first element (key) and return
- * the list of groups containing (key, [values]) for each group *)
-let group_pairs l =
-  let rec aux groups = function
-    | [] -> List.rev groups
-    | (key, value)::t ->
-        let values, rem = takeout key t in
-        let flatten_values = List.concat (value :: values) in
-        aux ((key, flatten_values)::groups) rem
-  in aux [] l
-
-
 let parse_scoped_name name =
   match Piq_parser.tokenize name '.' with
     | [def_name; nested_name] -> def_name, nested_name
@@ -911,7 +896,7 @@ let replace_option v o option_name =
   new_variant
 
 
-let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries ?(override=false) custom_fields =
+let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_fields ~override =
   let trace' = !Piqloc.trace in
   (* Piqloc.trace := false; *)
   debug "apply_extensions(0)\n";
@@ -997,14 +982,14 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries ?(overr
   extended_obj
 
 
-let apply_option_extensions idtable scoped_name extension_entries custom_fields =
+let apply_option_extensions idtable scoped_name extension_entries custom_fields ~override =
   let def_name, option_name = parse_scoped_name scoped_name in
   match find_def idtable def_name with
     | `variant v ->
         let option = find_option v option_name scoped_name in
         let extended_option =
           apply_extensions option !option_def T.parse_option T.gen__option
-          extension_entries custom_fields
+          extension_entries custom_fields ~override
         in
         let extended_variant = replace_option v extended_option option_name in
         let extended_typedef = `variant extended_variant in
@@ -1016,13 +1001,11 @@ let apply_option_extensions idtable scoped_name extension_entries custom_fields 
           ("can't apply option extensions no non-variant definition " ^ quote def_name)
 
 
-let apply_field_extensions idtable scoped_name extension_entries custom_fields =
+let apply_field_extensions idtable scoped_name extension_entries custom_fields ~override =
   let def_name, field_name = parse_scoped_name scoped_name in
   match find_def idtable def_name with
     | `record r ->
         let field = find_field r field_name scoped_name in
-        (* FIXME: temporary hack *)
-        let override = (r.R#name = "function") && ((field_name = "input") || (field_name = "output") || (field_name = "error")) in
         let extended_field =
           apply_extensions field !field_def T.parse_field T.gen__field
           extension_entries custom_fields ~override
@@ -1037,125 +1020,115 @@ let apply_field_extensions idtable scoped_name extension_entries custom_fields =
           ("can't apply field extensions no non-record definition " ^ quote def_name)
 
 
-let extend_import idtable name extension_entries custom_fields =
+let extend_import idtable name extension_entries custom_fields ~override =
   let import = 
     try Idtable.find idtable name
     with Not_found -> error name ("unknown import " ^ quote name)
   in
   let extended_import =
     apply_extensions import !import_def T.parse_import T.gen__import
-    extension_entries custom_fields
+    extension_entries custom_fields ~override
   in
   (* replace the original import with the extended one *)
   Idtable.add idtable name extended_import
 
 
 let extend_imports imports extensions custom_fields =
-  (* group the list of extensions by definition obtaining the list of
-   * (spec, [extension]) pairs *)
-  let extensions_groups = group_pairs extensions in
   (* apply extensions to each import *)
   let idtable = idtable_of_imports imports in
   let idtable =
     List.fold_left
-      (fun idtable (spec, extension_items) ->
+      (fun idtable (spec, override, extension_items) ->
         let name =
           match spec with
             | `import name -> name
             | _ -> assert false (* typedef and function extensions are already filtered out *)
         in
-        extend_import idtable name extension_items custom_fields
+        extend_import idtable name extension_items custom_fields ~override
       )
       idtable
-      extensions_groups
+      extensions
   in
   (* convert the updated idtable to the list of resulting imports *)
   list_of_idtable idtable
 
 
-let extend_function idtable name extension_entries custom_fields =
+let extend_function idtable name extension_entries custom_fields ~override =
   let func =
     try Idtable.find idtable name
     with Not_found -> error name ("unknown function " ^ quote name)
   in
   let extended_func =
     apply_extensions func !function_def T.parse_func T.gen__func
-    extension_entries custom_fields
+    extension_entries custom_fields ~override
   in
   (* replace the original function with the extended one *)
   Idtable.add idtable name extended_func
 
 
 let extend_functions funs extensions custom_fields =
-  (* group the list of extensions by definition obtaining the list of
-   * (spec, [extension]) pairs *)
-  let extensions_groups = group_pairs extensions in
   (* apply extensions to each function *)
   let idtable = idtable_of_functions funs in
   let idtable =
     List.fold_left
-      (fun idtable (spec, extension_items) ->
+      (fun idtable (spec, override, extension_items) ->
         let name =
           match spec with
             | `func name -> name
             | _ -> assert false (* typedef and import extensions are already filtered out *)
         in
-        extend_function idtable name extension_items custom_fields
+        extend_function idtable name extension_items custom_fields ~override
       )
       idtable
-      extensions_groups
+      extensions
   in
   (* convert the updated idtable to the list of resulting functions *)
   list_of_idtable idtable
 
 
 (* apply field and option extensions *)
-let apply_def_extensions idtable spec extension_entries custom_fields =
+let apply_def_extensions idtable spec extension_entries custom_fields ~override =
   match spec with
     | `name name | `typedef name ->
         let typedef = find_def idtable name in
         let extended_typedef =
           apply_extensions typedef !typedef_def T.parse_typedef T.gen__typedef
-          extension_entries custom_fields
+          extension_entries custom_fields ~override
         in
         (* replace the original typedef with the extended one *)
         Idtable.add idtable name extended_typedef
     | `field x ->
-        apply_field_extensions idtable x extension_entries custom_fields
+        apply_field_extensions idtable x extension_entries custom_fields ~override
     | `option x ->
-        apply_option_extensions idtable x extension_entries custom_fields
+        apply_option_extensions idtable x extension_entries custom_fields ~override
     | _ ->
         assert false (* import and function extensions are already filtered out *)
 
 
 (* apply extensions to type defininitions *)
 let apply_defs_extensions defs extensions custom_fields =
-  (* group the list of extensions by definition obtaining the list of
-   * (spec, [extension]) pairs *)
-  let extensions_groups = group_pairs extensions in
-
   (* defs extensions must be applied before field and option extensions;
    * therefore partition partition extensions into typedef, and the other types
    * of extensions; and then append them back together *)
-  let defs_extension_groups, other_extension_groups =
-    List.partition (fun (spec, _) ->
+  let defs_extensions, other_extensions =
+    List.partition (fun (spec, _, _) ->
       match spec with
         | `name _ | `typedef _ -> true (* these are the same, but `name is depreceated *)
         | _ -> false
-    ) extensions_groups
+    ) extensions
   in
-  let extensions_groups = defs_extension_groups @ other_extension_groups in
+  let extensions = defs_extensions @ other_extensions in
 
   (* create a new idtable from the list of definitions *)
   let idtable = idtable_of_defs defs in
 
-  (* iterate through groups and apply extensions to correspondent definitions *)
+  (* iterate through extensions and apply them to correspondent definitions *)
   let idtable =
     List.fold_left
-      (fun idtable (spec, extension_items) ->
-        apply_def_extensions idtable spec extension_items custom_fields
+      (fun idtable (spec, override, extension_items) ->
+        apply_def_extensions idtable spec extension_items custom_fields ~override
       )
-      idtable extensions_groups
+      idtable extensions
   in
   (* convert the updated idtable to the list of resulting defs *)
   list_of_idtable idtable
@@ -1167,12 +1140,12 @@ let partition_extensions extensions =
   let open Extend in
   (* get a list of (what, [extension]) pairs from all extensions *)
   let l = flatmap
-    (fun x -> List.map (fun what -> what, (x.piqi_with @ x.quote)) x.what)
+    (fun x -> List.map (fun what -> what, x.override, (x.piqi_with @ x.quote)) x.what)
     extensions
   in
   let d, f, i =
     List.fold_left
-      (fun (d, f, i) ((spec, _) as x) ->
+      (fun (d, f, i) ((spec, _, _) as x) ->
         match spec with
           | `func _ -> (d, x::f, i)
           | `import _ -> (d, f, x::i)
@@ -1209,7 +1182,7 @@ let make_param_alias name x =
     A#{
       T.default_alias () with
 
-      name = name;
+      name = Some name;
       typename = Some x;
     }
   in
@@ -1217,44 +1190,19 @@ let make_param_alias name x =
 
 
 let make_param_record name x =
-  let res =
-    R#{
-      T.default_record () with
-
-      name = name;
-      field = x.T.Anonymous_record.field;
-    }
-  in
+  let res = R#{x with name = Some name} in
   let res = copy_record res in (* preserve the original fields *)
   Piqloc.addrefret x res
 
 
 let make_param_variant name x =
-  let res =
-    V#{
-      T.default_variant () with
-
-      name = name;
-      option = x.T.Anonymous_variant.option;
-    }
-  in
+  let res = V#{x with name = Some name} in
   let res = copy_variant res in (* preserve the original options *)
   Piqloc.addrefret x res
 
 
 let make_param_list name x =
-  let res =
-    L#{
-      T.default_piqi_list () with
-
-      name = name;
-      typename = x.T.Anonymous_list.typename;
-      (* XXX: what about wire-packed property? -- it is not defined for
-       * anonymous list:
-       * wire_packed = x.T.Anonymous_list.wire_packed;
-       *)
-    }
-  in
+  let res = L#{x with name = Some name} in
   Piqloc.addrefret x res
 
 
@@ -1340,7 +1288,7 @@ let get_function_defs (non_func_defs: T.typedef list) resolved_funs =
   in
   let defs = List.filter
     (function
-      | `alias x -> not (is_existing_def x.A#name)
+      | `alias x -> not (is_existing_def (some_of x.A#name))
       | _ -> true
     )
     defs

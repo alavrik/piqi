@@ -78,7 +78,7 @@ let mlname_field x =
 
 let mlname_record x =
   let open Record in
-  (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
+  (if x.ocaml_name = None then x.ocaml_name <- mlname (some_of x.name);
    List.iter mlname_field x.field)
 
 
@@ -89,24 +89,24 @@ let mlname_option x =
 
 let mlname_variant x =
   let open Variant in
-  (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
+  (if x.ocaml_name = None then x.ocaml_name <- mlname (some_of x.name);
    List.iter mlname_option x.option)
 
 
 let mlname_enum x =
   let open Enum in
-  (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
+  (if x.ocaml_name = None then x.ocaml_name <- mlname (some_of x.name);
    List.iter mlname_option x.option)
 
 
 let mlname_alias x =
   let open Alias in
-  if x.ocaml_name = None then x.ocaml_name <- mlname x.name
+  if x.ocaml_name = None then x.ocaml_name <- mlname (some_of x.name)
 
 
 let mlname_list x =
   let open L in
-  if x.ocaml_name = None then x.ocaml_name <- mlname x.name
+  if x.ocaml_name = None then x.ocaml_name <- mlname (some_of x.name)
 
 
 let mlname_typedef = function
