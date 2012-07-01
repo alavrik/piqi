@@ -126,10 +126,16 @@
 ]
 
 
-.alias [
-    % restriction: enum options shouldn't specify type and must specify name
+.record [
     .name enum
-    .type variant
+
+    .field [ .type name ]
+
+    % note that enum options shouldn't specify type and must specify name
+    .field [
+        .type option
+        .repeated % > 1
+    ]
 
     .proto-name "piqi_enum"
 ]

@@ -20,7 +20,7 @@
 
 
 .extend [
-    (.typedef record variant alias list)
+    (.typedef record variant enum alias list)
 
     .with.field [
         .name parent
@@ -88,7 +88,7 @@
 
 
 .extend [
-    (.typedef alias record variant list)
+    (.typedef alias record variant enum list)
 
     % if type definition is a function parameter, i.e. was defined inside
     % function definition

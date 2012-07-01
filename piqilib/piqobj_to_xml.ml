@@ -19,15 +19,7 @@
 module C = Piqi_common
 open C
 
-
-module R = Piqobj.Record
-module F = Piqobj.Field
-module V = Piqobj.Variant
-module E = Piqobj.Variant
-module O = Piqobj.Option
-module A = Piqobj.Alias
-module Any = Piqobj.Any
-module L = Piqobj.List
+open Piqobj_common
 
 
 type xml = Piqi_xml.xml
@@ -123,7 +115,7 @@ and gen_option x =
 
 
 and gen_enum x =
-  let open V in
+  let open E in
   gen_scalar gen_enum_option x.option
 
 

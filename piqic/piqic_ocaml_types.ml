@@ -201,12 +201,16 @@ let is_local_def def =
 let gen_option o =
   let open Option in
   match o.ocaml_name, o.piqtype with
-    | None, Some ((`variant v) as def) | None, Some ((`enum v) as def) ->
+    | None, Some ((`variant v) as def) ->
         (* NOTE: for some reason, ocaml complains about fully qualified
          * polymorphic variants in recursive modules, so we need to use
          * non-qualified names in this case *)
         if is_local_def def
         then ios (some_of v.V#ocaml_name)
+        else ios_gen_piqtype def
+    | None, Some ((`enum e) as def) ->
+        if is_local_def def
+        then ios (some_of e.E#ocaml_name)
         else ios_gen_piqtype def
     | _, Some t ->
         let n = gen_pvar_name (mlname_of_option o) in
@@ -233,14 +237,28 @@ let gen_list l =
   ]
 
 
+let gen_options options =
+  let var_defs =
+    iod "|" (List.map gen_option options)
+  in
+  iol [ios "["; var_defs; ios "]"]
+
+
 let gen_variant v =
   let open Variant in
-  let var_defs =
-    iod "|" (List.map gen_option v.option)
-  in iol [
+  iol [
     ios (some_of v.ocaml_name);
     ios " = ";
-    iol [ios "["; var_defs; ios "]"]
+    gen_options v.option;
+  ]
+
+
+let gen_enum e =
+  let open Enum in
+  iol [
+    ios (some_of e.ocaml_name);
+    ios " = ";
+    gen_options e.option;
   ]
 
 
@@ -252,7 +270,8 @@ let gen_record r =
 
 let gen_def = function
   | `record t -> gen_record t
-  | `variant t | `enum t -> gen_variant t
+  | `variant t -> gen_variant t
+  | `enum t -> gen_enum t
   | `list t -> gen_list t
   | _ -> assert false
 
@@ -344,7 +363,7 @@ let order_defs defs =
    * for the options *)
   let variants, rest =
     List.partition (function
-      | `variant x | `enum x -> true
+      | `variant _ | `enum _ -> true
       | _ -> false)
     defs
   in

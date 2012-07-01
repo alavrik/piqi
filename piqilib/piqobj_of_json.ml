@@ -22,15 +22,7 @@ open Piqi_json_common
 module C = Piqi_common
 open C
 
-
-module R = Piqobj.Record
-module F = Piqobj.Field
-module V = Piqobj.Variant
-module E = Piqobj.Variant
-module O = Piqobj.Option
-module A = Piqobj.Alias
-module Any = Piqobj.Any
-module L = Piqobj.List
+open Piqobj_common
 
 
 let error_duplicate obj name =
@@ -264,10 +256,10 @@ and parse_option t x =
 
 
 and parse_enum t x =
-  debug "parse_enum: %s\n" (some_of t.T.Variant#name);
+  debug "parse_enum: %s\n" (some_of t.T.Enum#name);
   match x with
     | `String name ->
-        let options = t.T.Variant#option in
+        let options = t.T.Enum#option in
         let option =
           try
             let o = List.find (fun o -> some_of o.T.Option#json_name = name) options in
@@ -275,7 +267,7 @@ and parse_enum t x =
           with Not_found ->
             error x ("unknown enum option: " ^ quote name)
         in
-        V#{ t = t; option = option }
+        E#{ t = t; option = option }
     | _ ->
         error x "string enum value expected"
 

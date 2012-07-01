@@ -51,7 +51,7 @@
 
 
 .extend [
-    (.field record.name variant.name list.name alias.name)
+    (.field record.name variant.name enum.name list.name alias.name)
     .override
 
     .with (.mode.optional)

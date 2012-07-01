@@ -205,6 +205,12 @@ let gen_inner_option pattern outer_option =
 
 let rec gen_option outer_option o =
   let open Option in
+  (* recursively generate cases from "included" variants *)
+  let gen_options options =
+        if outer_option <> None
+        then flatmap (gen_option outer_option) options
+        else flatmap (gen_option (Some o)) options
+  in
   match o.erlang_name, o.piqtype with
     | Some ename, None -> (* gen true *)
         if outer_option <> None
@@ -216,11 +222,12 @@ let rec gen_option outer_option o =
                 ios "piqirun:gen_bool_field("; gen_code o.code; ios ", true)";
             ]
           in [res]
-    | None, Some (`variant v) | None, Some (`enum v) ->
+    | None, Some (`variant v) ->
         (* recursively generate cases from "included" variants *)
-        if outer_option <> None
-        then flatmap (gen_option outer_option) v.V.option
-        else flatmap (gen_option (Some o)) v.V.option
+        gen_options v.V#option
+    | None, Some (`enum e) ->
+        (* recursively generate cases from "included" enums *)
+        gen_options e.E#option
     | _, Some t ->
         let ename = erlname_of_option o in
         if outer_option <> None

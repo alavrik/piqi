@@ -203,15 +203,25 @@ let gen_option o =
     | None, None -> assert false
 
 
+let gen_options options =
+  iol [
+    indent; ios "  ";
+    iod "\n    | " (List.map gen_option options);
+    unindent; eol;
+  ]
+
+
 let gen_variant v =
   let open Variant in
   let name = some_of v.erlang_name in
-  let type_expr = iol [
-    indent; ios "  ";
-    iod "\n    | " (List.map gen_option v.option);
-    unindent; eol;
-  ]
-  in
+  let type_expr = gen_options v.option in
+  gen_type name type_expr
+
+
+let gen_enum e =
+  let open Enum in
+  let name = some_of e.erlang_name in
+  let type_expr = gen_options e.option in
   gen_type name type_expr
 
 
@@ -235,7 +245,8 @@ let gen_list l =
 
 let gen_def = function
   | `record t -> gen_record t
-  | `variant t | `enum t -> gen_variant t
+  | `variant t -> gen_variant t
+  | `enum t -> gen_enum t
   | `list t -> gen_list t
   | `alias t -> gen_alias t
 

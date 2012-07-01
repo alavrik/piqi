@@ -19,15 +19,7 @@
 module C = Piqi_common
 open C
 
-
-module R = Piqobj.Record
-module F = Piqobj.Field
-module V = Piqobj.Variant
-module E = Piqobj.Variant
-module O = Piqobj.Option
-module A = Piqobj.Alias
-module Any = Piqobj.Any
-module L = Piqobj.List
+open Piqobj_common
 
 
 (*
@@ -546,7 +538,11 @@ and parse_repeated_field f name field_type l =
 
 and parse_variant ~try_mode t x =
   debug "parse_variant: %s\n" (some_of t.T.Variant#name);
-  let options = t.T.Variant#option in
+  let value = parse_option t.T.Variant#option x ~try_mode in
+  V#{ t = t; option = value }
+
+
+and parse_option ~try_mode options x =
   try
     let value =
       match x with
@@ -572,34 +568,23 @@ and parse_variant ~try_mode t x =
             parse_list_option options x
         | o -> error o "invalid option"
     in
-    Piqloc.addref x value;
-    V#{ t = t; option = value }
+    Piqloc.addrefret x value
   with Not_found ->
     (* recurse through included co-variants *)
     (* XXX: aliased variants are contra-variants? *)
-    let is_covariant o =
+    let get_covariants o =
       let open T.Option in
       match o.name, o.piqtype with
-        | None, Some (`variant _) -> true (* co-variant *)
-        | None, Some (`enum _) -> true (* co-variant *)
-        | _ -> false (* contra-variant *)
+        | None, Some ((`variant _) as x) ->  (* co-variant *)
+            [(o, x)]
+        | None, Some ((`enum _) as x) -> (* co-variant *)
+            [(o, x)]
+        | _ -> (* contra-variant *)
+            []
     in
-    let get_covariant o =
-      let open T.Option in
-      let v =
-        match o.piqtype with
-          | Some (`variant v) -> v
-          | Some (`enum v) -> v
-          | _ -> assert false
-      in (o, v)
-    in
-    let covariants =
-      (List.map get_covariant
-        (List.filter is_covariant options))
-    in
+    let covariants = C.flatmap get_covariants options in
     let value = parse_covariants covariants x ~try_mode in
-    Piqloc.addref x value;
-    V#{ t = t; option = value }
+    Piqloc.addrefret x value
 
 
 and parse_covariants ~try_mode covariants x =
@@ -615,8 +600,16 @@ and parse_covariants ~try_mode covariants x =
 
 
 and parse_covariant ~try_mode (o, v) x =
-  let value = reference (parse_variant ~try_mode v) x in
-  O#{ t = o; obj = Some (`variant value) }
+  let obj =
+    match v with
+      | `variant v ->
+          let value = reference (parse_variant ~try_mode v) x in
+          `variant value
+      | `enum e ->
+          let value = reference (parse_enum ~try_mode e) x in
+          `enum value
+  in
+  O#{ t = o; obj = Some obj }
 
 
 and parse_name_option options name =
@@ -720,7 +713,10 @@ and parse_typed_option (options:T.Option.t list) f (x:T.ast) :Piqobj.Option.t =
   O#{ t = option; obj = Some (parse_obj option_type x) }
 
 
-and parse_enum ~try_mode t x = parse_variant t x ~try_mode
+and parse_enum ~try_mode t x =
+  debug "parse_enum: %s\n" (some_of t.T.Enum#name);
+  let value = parse_option t.T.Enum#option x ~try_mode in
+  E#{ t = t; option = value }
 
 
 and parse_list t = function

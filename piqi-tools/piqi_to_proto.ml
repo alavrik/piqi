@@ -200,7 +200,7 @@ let rec gen_default_obj (x:Piqobj.obj) =
     | `binary x ->
         make_default_io (ioq (Piq_lexer.escape_binary x))
     | `enum x ->
-        let o = x.Piqobj.Variant#option in
+        let o = x.Piqobj.Enum#option in
         let o = o.Piqobj.Option#t in
         make_default (some_of o.O#proto_name)
     | `alias x ->

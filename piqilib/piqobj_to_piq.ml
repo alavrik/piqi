@@ -19,15 +19,7 @@
 module C = Piqi_common
 open C
 
-
-module R = Piqobj.Record
-module F = Piqobj.Field
-module V = Piqobj.Variant
-module E = Piqobj.Variant
-module O = Piqobj.Option
-module A = Piqobj.Alias
-module Any = Piqobj.Any
-module L = Piqobj.List
+open Piqobj_common
 
 
 (* NOTE: loosing precision here, in future we will support encoding floats as
@@ -191,7 +183,9 @@ and gen_option x =
   in Piq_parser.piq_addrefret x res
 
 
-and gen_enum x = gen_variant x
+and gen_enum x =
+  let open E in
+  gen_option x.option
 
 
 and gen_list x = 

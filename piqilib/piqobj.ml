@@ -21,7 +21,7 @@ module rec Types:
   sig
     type record = Record.t
     type variant = Variant.t
-    type enum = Variant.t
+    type enum = Enum.t
     type alias = Alias.t
     type list = List.t
 
@@ -75,6 +75,15 @@ and Variant:
         mutable option : Types.option;
       }
   end = Variant
+
+and Enum:
+  sig
+    type t =
+      {
+        mutable t : Piqi_piqi.enum;
+        mutable option : Types.option;
+      }
+  end = Enum
 
 and Option:
   sig

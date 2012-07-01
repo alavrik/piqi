@@ -13,7 +13,7 @@
 
 
 .extend [
-    (.typedef record field variant option alias list)
+    (.typedef record field variant option enum alias list)
 
     .with.field [
         .name proto-name
@@ -24,7 +24,7 @@
 
 
 .extend [
-    (.typedef record variant list)
+    (.typedef record variant list enum)
 
     % arbitrary string that will be included in .proto message and enum
     % definitions as a result of .piqi -> .proto conversion

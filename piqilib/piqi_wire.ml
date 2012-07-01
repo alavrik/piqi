@@ -197,7 +197,7 @@ let addcodes_variant v =
 
 
 let addcodes_enum v =
-  let open T.Variant in
+  let open T.Enum in
   let options = v.option in
   if List.exists (fun x -> x.T.Option#code <> None) options
   then (
@@ -312,14 +312,20 @@ let add_hashcodes_variant v =
   List.iter add_hashcodes_option v.option
 
 
+let add_hashcodes_enum e =
+  let open T.Enum in
+  (* XXX: override existing hashcodes? *)
+  (* NOTE: we don't bother creating hashcodes for enum options separately,
+   * althought the range for enum options is wider -- 32 bits as opposed to
+   * 29 bits for field and enum options' codes *)
+  List.iter add_hashcodes_option e.option
+
+
 let add_hashcodes_def def =
   match def with
     | `record x -> add_hashcodes_record x
-    | `variant x | `enum x ->
-        (* NOTE: we don't bother creating hashcodes for enum options separately,
-         * althought the range for enum options is wider -- 32 bits as opposed to
-         * 29 bits for field and enum options' codes *)
-        add_hashcodes_variant x
+    | `variant x -> add_hashcodes_variant x
+    | `enum x -> add_hashcodes_enum x
     | _ -> ()
 
 

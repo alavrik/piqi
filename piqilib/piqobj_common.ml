@@ -23,7 +23,7 @@ open C
 module R = Piqobj.Record
 module F = Piqobj.Field
 module V = Piqobj.Variant
-module E = Piqobj.Variant
+module E = Piqobj.Enum
 module O = Piqobj.Option
 module A = Piqobj.Alias
 module Any = Piqobj.Any

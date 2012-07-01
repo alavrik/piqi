@@ -23,7 +23,7 @@ module Record = T.Record
 module Field = T.Field
 module Variant = T.Variant
 module Option = T.Option
-module Enum = Variant
+module Enum = T.Enum
 module Alias = T.Alias
 
 
@@ -138,7 +138,7 @@ let get_parent (typedef:T.typedef) :T.namespace =
     match typedef with
       | `record t -> t.R#parent
       | `variant t -> t.V#parent
-      | `enum t -> t.V#parent
+      | `enum t -> t.E#parent
       | `alias t -> t.A#parent
       | `list t -> t.L#parent
   in

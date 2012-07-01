@@ -148,9 +148,13 @@ let getopt_name_record x =
 let getopt_name_variant x =
    List.iter getopt_name_option x.V#option
 
+let getopt_name_enum x =
+   List.iter getopt_name_option x.E#option
+
 let getopt_name_typedef = function
   | `record x -> getopt_name_record x
-  | `variant x | `enum x -> getopt_name_variant x
+  | `variant x -> getopt_name_variant x
+  | `enum x -> getopt_name_enum x
   | _ -> ()
 
 

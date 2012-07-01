@@ -118,7 +118,8 @@ let find_def idtable name =
 let is_func_param def =
   match def with
     | `record x -> x.R#is_func_param
-    | `enum x | `variant x -> x.V#is_func_param
+    | `variant x -> x.V#is_func_param
+    | `enum x -> x.E#is_func_param
     | `alias x -> x.A#is_func_param
     | `list x -> x.L#is_func_param
 
@@ -127,7 +128,8 @@ let is_func_param def =
 let set_is_func_param_flag def =
   match def with
     | `record x -> x.R#is_func_param <- true
-    | `enum x | `variant x -> x.V#is_func_param <- true
+    | `variant x -> x.V#is_func_param <- true
+    | `enum x -> x.E#is_func_param <- true
     | `alias x -> x.A#is_func_param <- true
     | `list x -> x.L#is_func_param <- true
 
@@ -423,9 +425,12 @@ let check_resolved_def def =
     | `record x ->
         let names = List.map (fun x -> name_of_field x) x.R#field in
         check_dup_names "field" names
-    | `variant x | `enum x ->
+    | `variant x ->
         let names = List.map (fun x -> name_of_option x) x.V#option in
         check_dup_names "option" names
+    | `enum x ->
+        let names = List.map (fun x -> name_of_option x) x.E#option in
+        check_dup_names "enum option" names
     | `alias x ->
         check_resolved_alias x
     | _ -> ()
@@ -556,6 +561,12 @@ let copy_variant ?(copy_parts=true) x =
   else copy_obj x
 
 
+let copy_enum ?(copy_parts=true) x =
+  if copy_parts
+  then Piqloc.addrefret x E#{ x with option = copy_obj_list x.option }
+  else copy_obj x
+
+
 let copy_record ?(copy_parts=true) x =
   if copy_parts
   then Piqloc.addrefret x R#{ x with field = copy_obj_list x.field }
@@ -567,7 +578,7 @@ let copy_def ~copy_parts (x:T.typedef) =
     match x with
       | `record x -> `record (copy_record ~copy_parts x)
       | `variant x -> `variant (copy_variant ~copy_parts x)
-      | `enum x -> `enum (copy_variant ~copy_parts x)
+      | `enum x -> `enum (copy_enum ~copy_parts x)
       | `alias x -> `alias (copy_obj x)
       | `list x -> `list (copy_obj x)
   in
@@ -1201,6 +1212,12 @@ let make_param_variant name x =
   Piqloc.addrefret x res
 
 
+let make_param_enum name x =
+  let res = E#{x with name = Some name} in
+  let res = copy_enum res in (* preserve the original options *)
+  Piqloc.addrefret x res
+
+
 let make_param_list name x =
   let res = L#{x with name = Some name} in
   Piqloc.addrefret x res
@@ -1226,7 +1243,7 @@ let resolve_param func param_name param =
       | `variant x ->
           `variant (make_param_variant type_name x)
       | `enum x ->
-          `enum (make_param_variant type_name x)
+          `enum (make_param_enum type_name x)
       | `list x ->
           `list (make_param_list type_name x)
   in

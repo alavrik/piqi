@@ -4,7 +4,7 @@
 
 
 .extend [
-    (.typedef record field variant option alias list function)
+    (.typedef record field variant enum option alias list function)
 
     .with.field [
         .name erlang-name

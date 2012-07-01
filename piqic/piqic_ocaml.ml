@@ -139,8 +139,10 @@ let mlname_func_param func_name param_name param =
        x.A#ocaml_name <- make_name ()
    | Some (`record x) ->
        x.R#ocaml_name <- make_name ()
-   | Some (`variant x) | Some (`enum x) ->
+   | Some (`variant x) ->
        x.V#ocaml_name <- make_name ()
+   | Some (`enum x) ->
+       x.E#ocaml_name <- make_name ()
    | Some (`list x) ->
        x.L#ocaml_name <- make_name ()
 

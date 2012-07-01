@@ -440,14 +440,13 @@ let gen_option x =
   ]
 
 
-let gen_variant_options x =
-  let open V in
+let gen_options options =
   (* first run is to calculate padding *)
   let _ =
     reset_padding ();
-    List.map gen_option x.option
+    List.map gen_option options
   in
-  let options = List.map gen_option x.option in
+  let options = List.map gen_option options in
   iol [
     ios "\n\n";
     iod "\n" options;
@@ -459,11 +458,17 @@ let gen_variant name x =
   iol [
     gen_typename name;
     ios ", which is one of:";
-    gen_variant_options x;
+    gen_options x.option;
   ]
 
 
-let gen_enum = gen_variant
+let gen_enum name x =
+  let open E in
+  iol [
+    gen_typename name;
+    ios ", which is one of:";
+    gen_options x.option;
+  ]
 
 
 let gen_list x =
@@ -472,10 +477,15 @@ let gen_list x =
   iol [
     ios "["; typename; ios " ...]";
     match unalias (some_of x.piqtype) with
-      | `variant x | `enum x ->
+      | `variant x ->
           iol [
             ios ", where "; typename; ios " is one of:";
-            gen_variant_options x;
+            gen_options x.V#option;
+          ]
+      | `enum x ->
+          iol [
+            ios ", where "; typename; ios " is one of:";
+            gen_options x.E#option;
           ]
       | _ ->
           iol []

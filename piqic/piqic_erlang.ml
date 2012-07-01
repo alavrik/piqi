@@ -114,8 +114,10 @@ let erlname_func_param func_name param_name param =
        x.A#erlang_name <- make_name ()
    | Some (`record x) ->
        x.R#erlang_name <- make_name ()
-   | Some (`variant x) | Some (`enum x) ->
+   | Some (`variant x) ->
        x.V#erlang_name <- make_name ()
+   | Some (`enum x) ->
+       x.E#erlang_name <- make_name ()
    | Some (`list x) ->
        x.L#erlang_name <- make_name ()
 

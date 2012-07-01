@@ -19,15 +19,7 @@
 module C = Piqi_common
 open C
 
-
-module R = Piqobj.Record
-module F = Piqobj.Field
-module V = Piqobj.Variant
-module E = Piqobj.Variant
-module O = Piqobj.Option
-module A = Piqobj.Alias
-module Any = Piqobj.Any
-module L = Piqobj.List
+open Piqobj_common
 
 
 type xml = Piqi_xml.xml
@@ -282,11 +274,11 @@ and parse_option t xml_elem =
 
 
 and parse_enum t xml_elem =
-  debug "parse_enum: %s\n" (some_of t.T.Variant#name);
+  debug "parse_enum: %s\n" (some_of t.T.Enum#name);
   let name =
     parse_scalar xml_elem "exactly one XML CDATA expected as an enum value"
   in
-  let options = t.T.Variant#option in
+  let options = t.T.Enum#option in
   let option =
     try
       let o = List.find (fun o -> some_of o.T.Option#name = name) options in
@@ -294,7 +286,7 @@ and parse_enum t xml_elem =
     with Not_found ->
       error name ("unknown enum option: " ^ quote name)
   in
-  V#{ t = t; option = option }
+  E#{ t = t; option = option }
 
 
 and parse_list t xml_elem =

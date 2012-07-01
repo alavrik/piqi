@@ -106,6 +106,14 @@ let json_name_variant x =
   )
 
 
+let json_name_enum x =
+  let open Enum in
+  (match x.json_name with
+     | None -> x.json_name <- json_name (some_of x.name)
+     | Some n -> check_json_name n
+  )
+
+
 let json_name_alias x =
   let open Alias in
   match x.json_name with
@@ -122,7 +130,8 @@ let json_name_list x =
 
 let json_name_typedef = function
   | `record x -> json_name_record x
-  | `variant x | `enum x -> json_name_variant x
+  | `variant x -> json_name_variant x
+  | `enum x -> json_name_enum x
   | `alias x -> json_name_alias x
   | `list x -> json_name_list x
 
@@ -134,9 +143,13 @@ let json_name_record' x =
 let json_name_variant' x =
    List.iter json_name_option x.V#option
 
+let json_name_enum' x =
+   List.iter json_name_option x.E#option
+
 let json_name_typedef' = function
   | `record x -> json_name_record' x
-  | `variant x | `enum x -> json_name_variant' x
+  | `variant x -> json_name_variant' x
+  | `enum x -> json_name_enum' x
   | _ -> ()
 
 
