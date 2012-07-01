@@ -38,9 +38,14 @@
 .extend [
     (.typedef field option)
 
-    % unique integer field id to be used to encode field in wire format
     .with.field [
-        .name code % XXX: rename to wire-code?
+        % for fields and variant options: unique integer field id
+        % from (1 -- (2^29-1)) range used for identifying individual fields and
+        % options encoded in wire format
+        %
+        % for enum options: non-unique integer constant from a full int32 range
+
+        .name code
         .type int32
         .optional
     ]
