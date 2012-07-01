@@ -61,11 +61,13 @@ let gen_field_cons f =
     match f.mode with
       | `required -> gen_default_piqtype (some_of f.piqtype)
       | `optional when f.piqtype = None -> ios "false" (* flag *)
-      (* XXX: generate default value? (see piqic_ocaml_defaults.ml)
       | `optional when f.default <> None ->
-      *)
-      (* XXX: don't generate such field as it will be set to 'undefined' by
-       * default? *)
+          let default = some_of f.default in
+          let default_expr = Piqic_erlang_in.gen_erlang_binary (some_of default.T.Any.binobj) in
+          iol [
+            Piqic_erlang_in.gen_parse_piqtype (some_of f.piqtype);
+              ios "("; default_expr; ios ")";
+          ]
       | `optional -> ios "'undefined'"
       | `repeated -> ios "[]"
   in
