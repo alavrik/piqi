@@ -181,7 +181,10 @@ let sort_piqi_items (ast:T.ast) =
 
 
 let piqi_to_ast piqi =
-  let ast = Piqi.piqi_to_ast piqi in
+  let ast =
+    U.with_bool Piqobj_to_piq.is_external_mode true
+    (fun () -> Piqi.piqi_to_ast piqi)
+  in
   let ast = sort_piqi_items ast in
   simplify_piqi_ast ast
 

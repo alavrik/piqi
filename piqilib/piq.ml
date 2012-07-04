@@ -163,7 +163,7 @@ let piqi_to_piq piqi =
 
 let gen_piq (obj :obj) =
   Piqloc.pause (); (* no need to preserve location information here *)
-  let res =
+  let f () =
     match obj with
       | Piqtype typename ->
           make_piqtype typename
@@ -174,6 +174,7 @@ let gen_piq (obj :obj) =
       | Piqobj obj ->
           Piqobj_to_piq.gen_obj obj
   in
+  let res = U.with_bool Piqobj_to_piq.is_external_mode true f in
   Piqloc.resume ();
   res
 

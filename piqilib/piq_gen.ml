@@ -360,8 +360,7 @@ let format_ast (x:T.ast) =
     | `control l ->
         make_control (List.map aux l)
     | `piqi_any _ ->
-        (* FIXME, XXX: this shouldn't happen *)
-        make_atom "FIXME"
+        assert false
   and format_inner_ast label x =
     match x with
       | `named _ | `name _ ->

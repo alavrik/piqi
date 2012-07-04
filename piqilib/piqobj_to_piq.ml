@@ -22,6 +22,12 @@ open C
 open Piqobj_common
 
 
+(* whether to generate piqi-any as :typed or leave it as piqi-any (this depends
+ * on whether we are going to pretty-print the ast or not)
+ *)
+let is_external_mode = ref false
+
+
 (* NOTE: loosing precision here, in future we will support encoding floats as
  * string literals containing binary representation of 64-bit IEEE float *)
 let gen_float x = `float x
@@ -124,31 +130,38 @@ and gen_typed_obj x =
   `typed T.Typed#{typename = name; value = any }
 
 
+(* TODO: optimize by storing pioqbj in T.Any *)
+and ast_of_any = function
+  | {T.Any.piq_ast = Some ast} -> ast
+  | {T.Any.typename = Some typename; binobj = Some binobj} ->
+      (* generate ast representation from the binary object if the type is known
+       *)
+      (match Piqi_db.try_find_piqtype typename with
+        | Some t ->
+            Piqloc.pause ();
+            let obj = Piqobj_of_wire.parse_binobj t binobj in
+            let ast = gen_obj obj in
+            Piqloc.resume ();
+            ast
+        | None ->
+            assert false
+      )
+  | _ ->
+      assert false
+
+
 and gen_any x =
   let open Any in
-  match x.any.T.Any.piq_ast, x.any.T.Any#typename with
-    | Some ast, Some typename ->
-        make_typed typename ast
-    | Some ast, None ->
-        ast
-    | None, _ ->
-        (match x.any.T.Any#binobj, x.any.T.Any#typename with
-          | Some bin, Some typename ->
-              (* generate the ast representation from the binary object if the
-               * type is known *)
-              (match Piqi_db.try_find_piqtype typename with
-                | Some t ->
-                    Piqloc.pause ();
-                    let piqobj = Piqobj_of_wire.parse_binobj t bin in
-                    let ast = gen_obj piqobj in
-                    Piqloc.resume ();
-                    make_typed typename ast
-                | None ->
-                    `piqi_any x.any
-              )
-          | _ ->
-              `piqi_any x.any
-        )
+  if not !is_external_mode
+  then
+    `piqi_any x.any (* for internal use, just passing it around as is *)
+  else
+    let ast = ast_of_any x.any in
+    match x.any.T.Any#typename with
+      | Some typename ->
+          make_typed typename ast
+      | None ->
+          ast
 
 
 and gen_record x =

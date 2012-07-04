@@ -128,25 +128,32 @@ and parse_binobj piqtype binobj =
   Piqirun.parse_binobj (parse_obj piqtype) binobj
 
 
-and parse_any x =
-  let piq_any = T.parse_any x in
+and parse_piqi_any any =
   let obj =
     (* XXX: instead of converting it here, do it lazily when the object is
      * actually consumed *)
-    match piq_any.T.Any#binobj, piq_any.T.Any#typename with
-      | Some x, Some n ->
+    match any.T.Any#binobj, any.T.Any#typename with
+      | Some binobj, Some typename ->
           (* parse binobj if the type is known *)
-          (match Piqi_db.try_find_piqtype n with
+          (match Piqi_db.try_find_piqtype typename with
             | Some t ->
+                (* parse binobj while ignoring location information *)
+                (* XXX: handle exceptions? *)
                 Piqloc.pause ();
-                let res = Some (parse_binobj t x) in
+                let res = parse_binobj t binobj in
                 Piqloc.resume ();
-                res
-            | None -> None
+                Some res
+            | None ->
+                None
           )
       | _ -> None
   in
-  Any#{ any = piq_any; obj = obj }
+  Any#{ any = any; obj = obj }
+
+
+and parse_any x =
+  let any = T.parse_any x in
+  parse_piqi_any any
 
 
 and parse_record t x =

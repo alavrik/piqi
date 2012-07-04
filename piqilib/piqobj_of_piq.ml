@@ -22,24 +22,6 @@ open C
 open Piqobj_common
 
 
-(* TODO: we actually need obj of default, not ast *)
-let ast_of_default = function
-  | {T.Any.piq_ast = Some ast} -> ast
-  | {T.Any.typename = Some typename; binobj = Some binobj} ->
-      (* parse binobj if the type is known *)
-      (match Piqi_db.try_find_piqtype typename with
-        | Some t ->
-            Piqloc.pause ();
-            let obj = Piqobj_of_wire.parse_binobj t binobj in
-            let ast = Piqobj_to_piq.gen_obj obj in
-            Piqloc.resume ();
-            ast
-        | None ->
-            assert false
-      )
-  | _ ->
-      assert false
-
 (*
 (* "unknown field" warnings will not be printed for the fields from this list *)
 let ignored_fields = ref []
@@ -323,23 +305,7 @@ and parse_any x =
   (* TODO, XXX, FIXME: duplication of typename in typed and any *)
   match x with
     | `piqi_any any ->
-        (* XXX: try parsing obj from various representations? *)
-        (* XXX: instead of converting it here, do it lazily when the object is
-         * actually consumed *)
-        let obj =
-          match any.T.Any#piq_ast, any.T.Any#typename with
-            | Some ast, Some n ->
-                (* parse piq ast if the type is known *)
-                (match Piqi_db.try_find_piqtype n with
-                  | Some t ->
-                      Some (parse_obj t ast)
-                  | None ->
-                      None
-                )
-            | _ ->
-                None
-        in
-        Any#{ any = any; obj = obj }
+        Piqobj_of_wire.parse_piqi_any any
 
     | `typed {T.Typed.typename = typename; T.Typed.value = any} ->
         (* generate the obj representation from the ast if the type is known *)
@@ -519,10 +485,11 @@ and parse_optional_field f name field_type default l =
           let res, rem = find_first_parsed f field_type l in
           match res, default with
             | None, Some x ->
-                (* XXX: parsing the same default from ast each time is
-                 * relatively expensive, we might think of just converting
-                 * default to obj and picking it *)
-                let default_ast = ast_of_default x in
+                (* XXX, TODO: we actually need obj of default, not ast: parsing
+                 * the same default from ast each time is relatively expensive,
+                 * we might think of just converting default to obj and picking
+                 * it *)
+                let default_ast = Piqobj_to_piq.ast_of_any x in
                 Piqloc.check_add_fake_loc default_ast ~label:"_piqobj_of_piq_default";
                 Some (parse_obj field_type default_ast), l (* parse default *)
             | _ -> res, rem
