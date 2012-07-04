@@ -78,7 +78,7 @@ let make_name name =
 
 
 let make_typed typename ast :T.ast =
-  let res = T.Typed#{typename = typename; value = Piq_parser.make_any ast} in
+  let res = T.Typed#{typename = typename; value = ast} in
   Piqloc.addref ast res;
   `typed res
 
@@ -126,8 +126,7 @@ and gen_obj ?piq_format x =
 
 and gen_typed_obj x =
   let name = Piqobj_common.full_typename x in
-  let any = T.Any#{T.default_any() with piq_ast = Some (gen_obj x)} in
-  `typed T.Typed#{typename = name; value = any }
+  `typed T.Typed#{typename = name; value = gen_obj x}
 
 
 (* TODO: optimize by storing pioqbj in T.Any *)

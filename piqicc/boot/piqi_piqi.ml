@@ -143,8 +143,7 @@ and
   Typed :
     sig
       type t =
-        { mutable typename : Piqtype.ast_name;
-          mutable value : Piqtype.piqi_any
+        { mutable typename : Piqtype.ast_name; mutable value : Piqtype.ast
         }
       
     end = Typed
@@ -356,7 +355,6 @@ let rec parse_string x =
   (fun x ->
      let count = next_count () in refer count (Piqirun.string_of_block x))
     x
-and parse_piqi_any x = parse_any x
 and parse_int32 x =
   (fun x ->
      let count = next_count ()
@@ -367,6 +365,7 @@ and packed_parse_int32 x =
      let count = next_count ()
      in refer count (Piqirun.int32_of_packed_zigzag_varint x))
     x
+and parse_piqi_any x = parse_any x
 and parse_int64 x =
   (fun x ->
      let count = next_count ()
@@ -512,8 +511,7 @@ and parse_typed x =
     refer count
       (let (_typename, x) =
          Piqirun.parse_required_field 218690234 parse_ast_name x in
-       let (_value, x) =
-         Piqirun.parse_required_field 297303921 parse_piqi_any x
+       let (_value, x) = Piqirun.parse_required_field 297303921 parse_ast x
        in
          (Piqirun.check_unparsed_fields x;
           { Typed.typename = _typename; Typed.value = _value; }))
@@ -1193,9 +1191,9 @@ let reference1 f x = (refer x; f x)
 let reference_if_true f code x = if x then reference f code x else f code x
   
 let rec gen__string code x = reference Piqirun.string_to_block code x
-and gen__piqi_any code x = (fun code x -> gen__any code x) code x
 and gen__int32 code x = reference Piqirun.int32_to_zigzag_varint code x
 and packed_gen__int32 x = reference1 Piqirun.int32_to_packed_zigzag_varint x
+and gen__piqi_any code x = (fun code x -> gen__any code x) code x
 and gen__int64 code x = reference Piqirun.int64_to_zigzag_varint code x
 and packed_gen__int64 x = reference1 Piqirun.int64_to_packed_zigzag_varint x
 and gen__uint64 code x = reference Piqirun.int64_to_varint code x
@@ -1267,8 +1265,7 @@ and gen__typed code x =
   (refer x;
    let _typename =
      Piqirun.gen_required_field 218690234 gen__ast_name x.Typed.typename in
-   let _value =
-     Piqirun.gen_required_field 297303921 gen__piqi_any x.Typed.value
+   let _value = Piqirun.gen_required_field 297303921 gen__ast x.Typed.value
    in Piqirun.gen_record code [ _typename; _value ])
 and gen__typename code x = gen__name code x
 and gen__record code x =
@@ -1672,9 +1669,9 @@ and gen__alias code x =
   
 let gen_string x = gen__string (-1) x
   
-let gen_piqi_any x = gen__piqi_any (-1) x
-  
 let gen_int32 x = gen__int32 (-1) x
+  
+let gen_piqi_any x = gen__piqi_any (-1) x
   
 let gen_int64 x = gen__int64 (-1) x
   
@@ -1752,9 +1749,9 @@ let gen_alias x = gen__alias (-1) x
   
 let rec default_string () =
   Piqirun.string_of_block (Piqirun.parse_default "\n\000")
-and default_piqi_any () = default_any ()
 and default_int32 () =
   Piqirun.int32_of_zigzag_varint (Piqirun.parse_default "\b\000")
+and default_piqi_any () = default_any ()
 and default_int64 () =
   Piqirun.int64_of_zigzag_varint (Piqirun.parse_default "\b\000")
 and default_uint64 () =
@@ -1782,8 +1779,7 @@ and default_variant () =
   }
 and default_typedef () = `record (default_record ())
 and default_typed () =
-  { Typed.typename = default_ast_name (); Typed.value = default_piqi_any ();
-  }
+  { Typed.typename = default_ast_name (); Typed.value = default_ast (); }
 and default_typename () = default_name ()
 and default_record () =
   {

@@ -92,14 +92,14 @@ let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
   let fname, _ = piq_parser in (* TODO: improve getting a filename from parser *)
   match ast with
     | `typed {T.Typed.typename = "piqtype";
-              T.Typed.value = {T.Any.piq_ast = Some (`word typename)}} ->
+              T.Typed.value = `word typename} ->
         (* :piqtype <typename> *)
         process_default_piqtype typename;
         Piqtype typename
     | `typed {T.Typed.typename = "piqtype"} ->
         error ast "invalid piqtype specification"
     | `typed {T.Typed.typename = "piqi";
-              T.Typed.value = {T.Any.piq_ast = Some ((`list _) as ast)}} ->
+              T.Typed.value = ((`list _) as ast)} ->
         (* :piqi <piqi-spec> *)
         let piqi = piqi_of_piq fname ast in
         Piqi piqi
@@ -119,10 +119,7 @@ let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
 let make_piqtype typename =
   `typed {
     T.Typed.typename = "piqtype";
-    T.Typed.value = {
-      T.default_any () with
-      T.Any.piq_ast = Some (`word typename);
-    }
+    T.Typed.value = `word typename;
   }
 
 
@@ -154,10 +151,7 @@ let piqi_to_piq piqi =
 
   `typed {
     T.Typed.typename = "piqi";
-    T.Typed.value = {
-      T.default_any () with
-      T.Any.piq_ast = Some piqi_ast;
-    }
+    T.Typed.value = piqi_ast;
   }
 
 

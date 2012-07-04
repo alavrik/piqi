@@ -79,11 +79,6 @@ let tokenize_name first_c s =
     | _ -> assert false
 
 
-let make_any ast =
-  let res = T.Any#{T.default_any () with piq_ast = Some ast} in
-  Piqloc.addrefret ast res
-
-
 let check_name n =
   (* XXX: this should refer to piq rather than piqi name *)
   if Piqi_name.is_valid_name n ~allow:"."
@@ -145,7 +140,7 @@ let make_typed n v :T.ast =
   match v with
     | None -> `typename n
     | Some v ->
-        let res = T.Typed#{typename = n; value = make_any v} in
+        let res = T.Typed#{typename = n; value = v} in
         Piqloc.addref n res;
         `typed res
 
@@ -183,9 +178,7 @@ let expand_obj_names (obj :T.ast) :T.ast =
     | `typename x -> exp ":" x None
     | `named x -> exp "." x.T.Named#name (Some x.T.Named#value)
     | `typed x -> 
-        let n = x.T.Typed#typename in
-        let v = x.T.Typed#value in
-        exp ":" n v.T.Any#piq_ast
+        exp ":" x.T.Typed#typename (Some x.T.Typed#value)
     | x -> x
 
 
@@ -201,11 +194,10 @@ let expand_names (x: T.ast) :T.ast =
           if v' != v
           then named.T.Named#value <- v';
           expand_obj_names obj
-      | `typed ({T.Typed.typename = n; T.Typed.value = v} as typed) ->
-          let ast = some_of v.T.Any#piq_ast in
+      | `typed ({T.Typed.typename = n; T.Typed.value = ast} as typed) ->
           let ast' = aux ast in
           if ast' != ast (* changed? *)
-          then typed.T.Typed#value <- make_any ast';
+          then typed.T.Typed#value <- ast';
           expand_obj_names obj
       | `list l ->
           `list (List.map aux l)
@@ -236,7 +228,6 @@ let cons_named n v =
 
 
 let cons_typed n v =
-  let v = make_any v in
   let res = `typed {T.Typed.typename = n; T.Typed.value = v} in
   piq_addrefret v res
 
@@ -282,11 +273,10 @@ let expand_control (x: T.ast) :T.ast =
           (* return the original object taking advantage of object being mutable
            *)
           obj
-      | `typed ({T.Typed.typename = n; T.Typed.value = v} as typed) ->
-          let ast = some_of v.T.Any#piq_ast in
+      | `typed ({T.Typed.typename = n; T.Typed.value = ast} as typed) ->
           let ast' = aux ast in
           if ast' != ast (* changed? *)
-          then typed.T.Typed#value <- make_any ast';
+          then typed.T.Typed#value <- ast';
           (* return the original object taking advantage of object being mutable
            *)
           obj
