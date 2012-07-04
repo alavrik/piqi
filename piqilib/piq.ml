@@ -397,7 +397,7 @@ let piqi_of_json json =
   let piqtype = !Piqi.piqi_spec_def in
   (* don't resolve defaults when reading Json *)
   let piqobj =
-    C.with_resolve_defaults false (Piqobj_of_json.parse_obj piqtype) json
+    C.with_resolve_defaults false (fun () -> Piqobj_of_json.parse_obj piqtype json)
   in
 
   (* set the default field resolver to json *)
@@ -546,7 +546,7 @@ let piqi_of_xml xml =
   let piqtype = !Piqi.piqi_spec_def in
   (* don't resolve defaults when reading xml *)
   let piqobj =
-    C.with_resolve_defaults false (Piqobj_of_xml.parse_obj piqtype) xml
+    C.with_resolve_defaults false (fun () -> Piqobj_of_xml.parse_obj piqtype xml)
   in
 
   (* set the default field resolver to xml *)

@@ -60,12 +60,6 @@
     ]
 
     .field [
-        .name piq-ast
-        .type ast
-        .optional
-    ]
-
-    .field [
         .name binobj
         .type binary
         .optional

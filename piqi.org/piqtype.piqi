@@ -7,10 +7,22 @@
 
 .module piqi.org/piqtype
 
-.include [ .module piqi.org/piqast ]
-
 
 (.custom-field ocaml-module ocaml-name erlang-name proto-name)
+
+
+.alias [
+    .name word
+    .type string
+
+    .piq-format.word
+]
+
+
+.alias [
+    .name name
+    .type word
+]
 
 
 .variant [

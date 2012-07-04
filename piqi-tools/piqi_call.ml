@@ -378,15 +378,14 @@ let gen_option_help piqtype name getopt_letter getopt_doc =
 
 let gen_default = function
   | None -> iol [] (* there is no default *)
-  | Some {T.Any.piq_ast = Some ast} ->
+  | Some default ->
+      let ast = Piqi_light.ast_of_default default in
       let str = Piq_gen.to_string ast ~nl:false in
       if String.contains str '\n' (* multiline? *)
       then
         ios " (default = ...)"
       else
         iol [ ios " (default = "; ios str; ios ")" ]
-  | _ ->
-      assert false
 
 
 let gen_field_mode = function

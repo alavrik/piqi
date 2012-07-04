@@ -523,9 +523,14 @@ let resolve_field_default x =
   let open F in
   match x.default, x.piqtype with
     | None, _ -> () (* no default *)
-    | Some {T.Any.binobj = Some _}, _ ->
+    | Some {T.Any.binobj = Some _; typename = Some _}, _ ->
         (* nothing to do -- object is already resolved *)
         ()
+    | Some ({T.Any.binobj = Some _} as default), Some piqtype ->
+        (* TODO, XXX: this is a temporary workaround for something that should
+         * never happen: typename should always be present next to binobj *)
+        default.T.Any.typename <- Some (C.full_piqi_typename piqtype)
+
     | Some ({T.Any.piq_ast = Some ast} as default), Some piqtype ->
         let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
         resolve_default_value default piqtype piqobj
@@ -736,7 +741,7 @@ let mlobj_to_piqobj piqtype wire_generator mlobj =
 
   (* dont' resolve defaults when reading wire *)
   let piqobj =
-    C.with_resolve_defaults false (Piqobj_of_wire.parse_binobj piqtype) binobj
+    C.with_resolve_defaults false (fun () -> Piqobj_of_wire.parse_binobj piqtype binobj)
   in
   debug_loc "mlobj_to_piqobj(1)";
   assert_loc ();
@@ -770,19 +775,17 @@ let mlobj_of_ast piqtype wire_parser ast =
   T.ocount := max_count;
   *)
 
-  (* XXX: find a better way to set this option *)
-  Piqobj_of_piq.delay_unknown_warnings := true;
-
   (* We have to resolve defaults while reading piqi in order to provide correct
    * location bindings. It is not possible to "fix" skewed location bindings
    * in piqtype.ml after default values get parsed. We rather decided to fix
    * location bindings here -- see resolve_defaults function for details *)
   let piqobj =
-    C.with_resolve_defaults true (Piqobj_of_piq.parse_obj piqtype) ast
+    U.with_bool Piqobj_of_piq.delay_unknown_warnings true
+    (fun () ->
+      C.with_resolve_defaults true (fun () -> Piqobj_of_piq.parse_obj piqtype ast)
+    )
   in
   debug_loc "mlobj_of_ast(1.5)";
-
-  Piqobj_of_piq.delay_unknown_warnings := false;
 
   let mlobj = mlobj_of_piqobj wire_parser piqobj in
   debug_loc "mlobj_of_ast(1)";
@@ -2101,12 +2104,12 @@ let piqi_to_piqobj piqi =
 
   (* XXX: discard unknown fields -- they don't matter because we are
    * transforming the spec that has been validated already *)
-  Piqobj_of_piq.delay_unknown_warnings := true;
-
-  let piqobj = Piqobj_of_piq.parse_obj !piqi_spec_def ast in
+  let piqobj =
+    U.with_bool Piqobj_of_piq.delay_unknown_warnings true
+    (fun () -> Piqobj_of_piq.parse_obj !piqi_spec_def ast)
+  in
 
   ignore (Piqobj_of_piq.get_unknown_fields ());
-  Piqobj_of_piq.delay_unknown_warnings := false;
 
   Piqloc.resume ();
   debug "piqi_to_piqobj(1)\n";
@@ -2127,7 +2130,10 @@ let piqi_to_pb ?(code = -1) piqi =
   (* don't produce location references as don't care about it in general when
    * generating data *)
   Piqloc.pause ();
-  let res = Piqobj_to_wire.gen_obj code piqobj in
+  let res =
+    U.with_bool Piqobj_to_wire.is_external_mode true
+    (fun () -> Piqobj_to_wire.gen_obj code piqobj)
+  in
   Piqloc.resume ();
   debug "piqi_to_pb(1)\n";
   res
@@ -2142,7 +2148,7 @@ let piqi_of_pb buf =
 
   (* don't resolve defaults *)
   let piqobj =
-    C.with_resolve_defaults false (Piqobj_of_wire.parse_obj piqtype) buf
+    C.with_resolve_defaults false (fun () -> Piqobj_of_wire.parse_obj piqtype buf)
   in
   let piqi = piqi_of_piqobj piqobj in
 

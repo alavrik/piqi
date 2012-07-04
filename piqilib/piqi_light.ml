@@ -37,23 +37,44 @@ let gen_name_type name typename =
     | _ -> assert false
 
 
-let gen_default = function
-  | None -> iol [] (* there is no default *)
-  | Some {T.Any.piq_ast = Some ast} ->
-      let str = Piq_gen.to_string ast ~nl:false in
-      if String.contains str '\n' (* multiline? *)
-      then
-        let lines = Piq_gen.split_text str in
-        let lines = List.map ios lines in
-        iol [
-          ios " ="; indent;
-            iod "\n" lines;
-          unindent;
-        ]
-      else
-        iol [ ios " = "; ios str; ]
+let ast_of_default = function
+  | {T.Any.piq_ast = Some ast} -> ast
+  | {T.Any.typename = Some typename; binobj = Some binobj} ->
+      (* parse binobj if the type is known *)
+      (match Piqi_db.try_find_piqtype typename with
+        | Some t ->
+            Piqloc.pause ();
+            let obj = Piqobj_of_wire.parse_binobj t binobj in
+            let ast = Piqobj_to_piq.gen_obj obj in
+            Piqloc.resume ();
+            ast
+        | None ->
+            assert false
+      )
   | _ ->
       assert false
+
+
+let gen_default_ast ast =
+  let str = Piq_gen.to_string ast ~nl:false in
+  if String.contains str '\n' (* multiline? *)
+  then
+    let lines = Piq_gen.split_text str in
+    let lines = List.map ios lines in
+    iol [
+      ios " ="; indent;
+        iod "\n" lines;
+      unindent;
+    ]
+  else
+    iol [ ios " = "; ios str; ]
+
+
+let gen_default = function
+  | None -> iol []
+  | Some default ->
+      let ast = ast_of_default default in
+      gen_default_ast ast
 
 
 let gen_field_mode = function

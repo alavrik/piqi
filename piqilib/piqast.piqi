@@ -3,14 +3,14 @@
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
 
-.module piqi.org/piqast
+%.module piqi.org/piqast
 
 
 .custom-field ocaml-name
 
 
 .alias [
-    .name word
+    .name ast-word
     .type string
 
     .piq-format.word
@@ -18,8 +18,8 @@
 
 
 .alias [
-    .name name
-    .type word
+    .name ast-name
+    .type ast-word
 ]
 
 
@@ -36,7 +36,7 @@
     ]
     .option [ .type float ]
     .option [ .type bool ]
-    .option [ .type word ]
+    .option [ .name word .type ast-word ]
     .option [
         .name ascii-string
         .type string
@@ -51,14 +51,15 @@
         .type string
     ]
     .option [
-        .type name
+        .name name
+        .type ast-name
     ]
     .option [
         .type named
     ]
     .option [
         .name type
-        .type name
+        .type ast-name
 
         .ocaml-name "typename"
     ]
@@ -85,7 +86,7 @@
 .record [
     .name named
 
-    .field [ .type name ]
+    .field [ .name name .type ast-name ]
     .field [
         .name value
         .type ast
@@ -98,7 +99,7 @@
 
     .field [
         .name type
-        .type name
+        .type ast-name
 
         .ocaml-name "typename"
     ]

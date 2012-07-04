@@ -133,16 +133,16 @@ and gen_any x =
         ast
     | None, _ ->
         (match x.any.T.Any#binobj, x.any.T.Any#typename with
-          | Some bin, Some n ->
+          | Some bin, Some typename ->
               (* generate the ast representation from the binary object if the
                * type is known *)
-              (match Piqi_db.try_find_piqtype n with
+              (match Piqi_db.try_find_piqtype typename with
                 | Some t ->
                     Piqloc.pause ();
                     let piqobj = Piqobj_of_wire.parse_binobj t bin in
-                    let res = gen_obj piqobj in
+                    let ast = gen_obj piqobj in
                     Piqloc.resume ();
-                    res
+                    make_typed typename ast
                 | None ->
                     `piqi_any x.any
               )

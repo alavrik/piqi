@@ -34,8 +34,8 @@ PIQI_SOURCES_TAIL = \
 	piqobj_common.ml \
 	piqobj_to_wire.ml \
 	piqobj_of_wire.ml \
-	piqobj_of_piq.ml \
 	piqobj_to_piq.ml \
+	piqobj_of_piq.ml \
 	\
 	piqi.ml \
 	\

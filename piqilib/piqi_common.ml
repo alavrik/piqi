@@ -69,12 +69,8 @@ let piqi_boot :T.piqi option ref = ref None
 
 (* Run a function with a specific resolve_defauls setting. The global
  * "resolve_defaults" variable is preserved *)
-let with_resolve_defaults new_resolve_defaults f x =
-   let saved = !resolve_defaults in
-   resolve_defaults := new_resolve_defaults;
-   let res = f x in
-   resolve_defaults := saved;
-   res
+let with_resolve_defaults new_resolve_defaults f =
+  U.with_bool resolve_defaults new_resolve_defaults f
 
 
 let is_boot_piqi p =

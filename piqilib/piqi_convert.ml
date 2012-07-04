@@ -189,7 +189,6 @@ let convert_piqtype ~opts piqtype input_format output_format data =
     C.with_resolve_defaults
       (output_format = `json || output_format = `xml)
       (fun () -> parse_obj piqtype input_format data)
-      ()
   in
   (* reset location db to allow GC to collect previously read objects *)
   Piqloc.reset ();

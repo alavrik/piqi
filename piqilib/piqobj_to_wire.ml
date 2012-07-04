@@ -25,6 +25,12 @@ open Piqobj_common
 module W = Piqi_wire
 
 
+(* whether to generate piqi-any in external mode, i.e. only including fields
+ * defined for it by piqi.piqi (and not piqi-impl.piqi)
+ *)
+let is_external_mode = ref false
+
+
 (* providing special handling for boxed objects, since they are not
  * actual references and can not be uniquely identified. Moreover they can
  * mask integers which are used for enumerating objects *)
@@ -188,9 +194,23 @@ and gen_any code x =
       x.any.T.Any.binobj <- Some binobj
     );
 
-    (* generate "Piqtype.any" record *)
+    (* generate "Piqi_piqi.any" record *)
     Piqloc.check_add_fake_loc x.any ~label:"_any";
-    T.gen__any code x.any
+
+    let any =
+      if not !is_external_mode
+      then x.any
+      else
+        (* in external mode, leave only fields defined by piqi.piqi: binobj and
+         * typename *)
+        let any = x.any in
+        T.Any#{
+          T.default_any () with
+          typename = any.typename;
+          binobj = any.binobj;
+        }
+    in
+    T.gen__any code any
   end
 
 

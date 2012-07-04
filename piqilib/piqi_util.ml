@@ -58,3 +58,18 @@ let dashes_to_underscores s =
 let underscores_to_dashes s =
   string_subst_char s '_' '-'
 
+
+(* run (unit -> 'a) function with some boolean reference set to the specified
+ * value before than and have the value restored back to its original value
+ * after that *)
+let with_bool bool_ref value f =
+   let saved_value = !bool_ref in
+   bool_ref := value;
+   try
+     let res = f () in
+     bool_ref := saved_value;
+     res
+   with exn ->
+     bool_ref := saved_value;
+     raise exn
+
