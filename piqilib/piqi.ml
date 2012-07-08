@@ -521,7 +521,7 @@ let resolve_default_value default piqtype piqobj =
 let resolve_field_default x =
   (* debug "resolve_field_default: %s\n" (C.name_of_field x); *)
   let open F in
-  match x.default, x.piqtype with
+  (match x.default, x.piqtype with
     | None, _ -> () (* no default *)
     | Some {T.Any.binobj = Some _; typename = Some _}, _ ->
         (* nothing to do -- object is already resolved *)
@@ -531,7 +531,15 @@ let resolve_field_default x =
          * never happen: typename should always be present next to binobj *)
         default.T.Any.typename <- Some (C.full_piqi_typename piqtype)
 
-    | Some ({T.Any.piq_ast = Some ast} as default), Some piqtype ->
+    | Some ({T.Any.cached_piq_ast = Some ast} as default), Some piqtype ->
+        let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
+        resolve_default_value default piqtype piqobj
+
+    | Some ({T.Any.piq_ast_ref = Some piq_ast_ref} as default), Some piqtype ->
+        (* FIXME: potential leak *)
+        debug "resolve_field_default piq_ast_ref : %s\n" (C.name_of_field x);
+        let ast = Piqi_objstore.get piq_ast_ref in
+        default.T.Any.cached_piq_ast <- Some ast; (* XXX: cache the ast value *)
         let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
         resolve_default_value default piqtype piqobj
 
@@ -543,6 +551,17 @@ let resolve_field_default x =
     | _, None -> () (* there is no default for a flag *)
     | _ ->
         assert false (* either binobj or ast or ref must be defined *)
+  );
+  (* TODO: this is temporary: make sure piq_ast is always present; otherwise,
+   * Piqobj_of_piq will break on parsing Piqi while resolving default value for
+   * field mode *)
+  if !is_boot_mode
+  then (
+    match x.default with
+      | None -> ()
+      | Some any ->
+          ignore (Piqobj_to_piq.ast_of_any any)
+  )
 
 
 let resolve_defaults = function
@@ -638,7 +657,7 @@ let check_defs idtable defs =
   ignore (resolve_defs idtable (copy_defs defs))
 
 
-let read_piqi_common fname piq_parser :T.ast =
+let read_piqi_common fname piq_parser :piq_ast =
   (* don't expand abbreviations until we construct the containing object *)
   let res = Piq_parser.read_all piq_parser ~expand_abbr:false in
 
@@ -653,13 +672,13 @@ let read_piqi_common fname piq_parser :T.ast =
   Piq_parser.expand ast
 
 
-let read_piqi_channel fname ch :T.ast =
+let read_piqi_channel fname ch :piq_ast =
   (* XXX: handle read errors *)
   let piq_parser = Piq_parser.init_from_channel fname ch in
   read_piqi_common fname piq_parser
 
 
-let read_piqi_string fname content :T.ast =
+let read_piqi_string fname content :piq_ast =
   let piq_parser = Piq_parser.init_from_string fname content in
   read_piqi_common fname piq_parser
 
@@ -670,7 +689,7 @@ let open_piqi fname =
     piqi_error ("error opening piqi file: " ^ s)
 
 
-let read_piqi_file fname :T.ast =
+let read_piqi_file fname :piq_ast =
   let ch = open_piqi fname in
   let res =
     try read_piqi_channel fname ch
@@ -805,7 +824,7 @@ let parse_piqi ast =
 
 let is_unknown_field custom_fields x =
   match x with
-    | `named {T.Named.name = name} | `name name ->
+    | `named {Piq_ast.Named.name = name} | `name name ->
         if List.mem name custom_fields
         then false (* field is a custom field, i.e. "known" *)
         else true
@@ -915,7 +934,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
   (* Piqloc.trace := false; *)
   debug "apply_extensions(0)\n";
   let obj_ast = mlobj_to_ast obj_def obj_gen_f obj in
-  let extension_asts = List.map (fun x -> some_of x.Any#piq_ast) extension_entries in
+  let extension_asts = List.map Piqobj_to_piq.ast_of_any extension_entries in
 
   let override l =
     if not override
@@ -923,7 +942,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
     else
       let extension_labels =
         flatmap (function
-          | `named x -> [x.T.Named#name]
+          | `named x -> [x.Piq_ast.Named#name]
           | `name name -> [name]
           | _ -> []
         ) extension_asts
@@ -933,7 +952,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
       *)
       let is_overridden = function
           | `named x ->
-              let res = List.mem x.T.Named#name extension_labels in
+              let res = List.mem x.Piq_ast.Named#name extension_labels in
               (*
               if res then Printf.eprintf "overridden: %s\n" x.T.Named#name;
               *)
@@ -951,12 +970,12 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
 
   let extended_obj_ast =
     match obj_ast with
-      | `named ({T.Named.value = ((`list l) as _ref)} as x) -> (* typedefs -- named containers *)
+      | `named ({Piq_ast.Named.value = ((`list l) as _ref)} as x) -> (* typedefs -- named containers *)
           let v = `list (override l @ extension_asts) in
 
           let v = Piq_parser.piq_addrefret _ref v in
 
-          let res = `named {x with T.Named.value = v} in
+          let res = `named {x with Piq_ast.Named.value = v} in
 
           ignore (Piq_parser.piq_addrefret x res);
 
@@ -1326,8 +1345,8 @@ let prepare_included_piqi_ast ast =
     | `list l ->
         List.filter
           (function
-            | `named {T.Named.name = "module"} -> false
-            | `named {T.Named.name = "include"} -> false
+            | `named {Piq_ast.Named.name = "module"} -> false
+            | `named {Piq_ast.Named.name = "include"} -> false
             | _ -> true
           )
           l
@@ -1383,7 +1402,7 @@ let find_extensions modname =
 
 (* do include & extension expansion for the loaded piqi using extensions from
  * all included piqi modules *)
-let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: T.ast option) ~cache (orig_piqi: T.piqi) =
+let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast option) ~cache (orig_piqi: T.piqi) =
 
   (* report unparsed fields before we load dependencies (this is meaningless if
    * Piqi is not parsed from Piq)
@@ -1613,7 +1632,7 @@ and load_piqi_string fname content =
   load_piqi_ast fname ast ~cache:false
 
 
-and load_piqi_ast ?modname ?(include_path=[]) ~cache fname (ast :T.ast) =
+and load_piqi_ast ?modname ?(include_path=[]) ~cache fname (ast :piq_ast) =
   let piqi = parse_piqi ast in
   process_piqi piqi ?modname ~include_path ~cache ~fname ~ast
 
@@ -1775,15 +1794,21 @@ let boot () =
   (* don't cache them as we are adding the spec to the DB explicitly below *)
 
   trace "boot(1)\n";
-  let boot = process_piqi T.piqi_boot ~cache:false in
+  let boot = process_piqi T.piqi_boot ~cache:true in
+  let modname = some_of T.piqi_boot.P#modname in
+  Piqi_db.remove_piqi modname;
   piqi_boot := Some boot;
 
   trace "boot(2)\n";
-  let lang = process_piqi T.piqi_lang ~cache:false in
+  let lang = process_piqi T.piqi_lang ~cache:true in
+  let modname = some_of T.piqi_lang.P#modname in
+  Piqi_db.remove_piqi modname;
   piqi_lang := Some lang;
 
   trace "boot(3)\n";
-  let spec = process_piqi T.piqi_spec ~cache:false in
+  let spec = process_piqi T.piqi_spec ~cache:true in
+  let modname = some_of T.piqi_spec.P#modname in
+  Piqi_db.remove_piqi modname;
   piqi_spec := Some spec;
 
   (* add the boot spec to the DB under a special name *)
@@ -1902,6 +1927,7 @@ let load_boot_piqi boot_file  =
 let init () =
   if not !is_initialized
   then (
+    (* XXX *)
     if !Config.debug_level > 0 || !Config.flag_trace
     then load_embedded_boot_piqi ();
 
@@ -1910,7 +1936,7 @@ let init () =
 
 
 (* public interface: read piqi file *)
-let read_piqi fname :T.ast =
+let read_piqi fname :piq_ast =
   let ch = Piqi_main.open_input fname in
   read_piqi_channel fname ch
 
@@ -2034,7 +2060,7 @@ let piqi_to_ast piqi =
 
 (* FIXME: get rid of this copy-pasted duplicate piece from piqi_pp.ml after
  * Piqi-lang and Piqi-spec become unified *)
-let transform_ast path f (ast:T.ast) =
+let transform_ast path f (ast:piq_ast) =
   let rec aux p = function
     | `list l when p = [] -> (* leaf node *)
         (* f replaces, removes element, or splices elements of the list *)
@@ -2048,9 +2074,9 @@ let transform_ast path f (ast:T.ast) =
         (* haven't reached the leaf node => continue tree traversal *)
         let res = List.map (aux p) l in
         `list res
-    | `named {T.Named.name = n; T.Named.value = v} when List.hd p = n ->
+    | `named {Piq_ast.Named.name = n; value = v} when List.hd p = n ->
         (* found path element => continue tree traversal *)
-        let res = T.Named#{name = n; value = aux (List.tl p) v} in
+        let res = Piq_ast.Named#{name = n; value = aux (List.tl p) v} in
         `named res
     | x -> x
   in
@@ -2059,13 +2085,13 @@ let transform_ast path f (ast:T.ast) =
 
 (* transform piqi ast so that type definitions embedded in function definitions
  * get compatible with Piqi-spec *)
-let transform_piqi_ast (ast: T.ast) =
+let transform_piqi_ast (ast: piq_ast) =
   let tr = transform_ast in
   (* map ../name.x -> x *)
   let rm_param_extra path =
     tr path (
       function
-        | `named {T.Named.name = "name"; T.Named.value = v} -> [v]
+        | `named {Piq_ast.Named.name = "name"; value = v} -> [v]
         | x -> [x]
     )
   in

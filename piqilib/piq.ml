@@ -39,7 +39,7 @@ let open_piq fname =
   piq_parser
 
 
-let read_piq_ast piq_parser :T.ast = 
+let read_piq_ast piq_parser :piq_ast =
   let res = Piq_parser.read_next piq_parser in
   match res with
     | Some ast -> ast
@@ -91,19 +91,19 @@ let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
   let ast = read_piq_ast piq_parser in
   let fname, _ = piq_parser in (* TODO: improve getting a filename from parser *)
   match ast with
-    | `typed {T.Typed.typename = "piqtype";
-              T.Typed.value = `word typename} ->
+    | `typed {Piq_ast.Typed.typename = "piqtype";
+              Piq_ast.Typed.value = `word typename} ->
         (* :piqtype <typename> *)
         process_default_piqtype typename;
         Piqtype typename
-    | `typed {T.Typed.typename = "piqtype"} ->
+    | `typed {Piq_ast.Typed.typename = "piqtype"} ->
         error ast "invalid piqtype specification"
-    | `typed {T.Typed.typename = "piqi";
-              T.Typed.value = ((`list _) as ast)} ->
+    | `typed {Piq_ast.Typed.typename = "piqi";
+              Piq_ast.Typed.value = ((`list _) as ast)} ->
         (* :piqi <piqi-spec> *)
         let piqi = piqi_of_piq fname ast in
         Piqi piqi
-    | `typed {T.Typed.typename = "piqi"} ->
+    | `typed {Piq_ast.Typed.typename = "piqi"} ->
         error ast "invalid piqi specification"
     | `typename x ->
         error x "invalid piq object"
@@ -118,8 +118,8 @@ let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
 
 let make_piqtype typename =
   `typed {
-    T.Typed.typename = "piqtype";
-    T.Typed.value = `word typename;
+    Piq_ast.Typed.typename = "piqtype";
+    Piq_ast.Typed.value = `word typename;
   }
 
 
@@ -150,8 +150,8 @@ let piqi_to_piq piqi =
   );
 
   `typed {
-    T.Typed.typename = "piqi";
-    T.Typed.value = piqi_ast;
+    Piq_ast.Typed.typename = "piqi";
+    Piq_ast.Typed.value = piqi_ast;
   }
 
 

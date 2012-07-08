@@ -50,6 +50,9 @@ module Iolist = Piqi_iolist
 module U = Piqi_util
 
 
+type piq_ast = Piq_ast.ast
+
+
 (*
  * common global variables
  *)

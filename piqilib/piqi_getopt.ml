@@ -363,7 +363,7 @@ let arg__rest =
     "separator between piqi command-line arguments and data arguments"
 
 
-let getopt_piq () :T.ast list =
+let getopt_piq () :piq_ast list =
   let start =
     if !argv_start_index = 0 (* "--" is not present in the list of arguments *)
     then Array.length Sys.argv
@@ -375,7 +375,7 @@ let getopt_piq () :T.ast list =
   piq_ast_list
 
 
-let parse_args (piqtype: T.piqtype) (args: T.ast list) :Piqobj.obj =
+let parse_args (piqtype: T.piqtype) (args: piq_ast list) :Piqobj.obj =
   let is_scalar_type = not (C.is_container_type piqtype) in
   let is_piqany_type = (unalias piqtype = `any) in
   let ast =

@@ -92,7 +92,7 @@ let check_typename n =
   else error n ("invalid type name: " ^ quote n)
 
 
-let piq_addrefret dst (src:T.ast) =
+let piq_addrefret dst (src :piq_ast) =
   let f iner_src =
     Piqloc.addref dst iner_src;
     Piqloc.addrefret dst src;
@@ -115,7 +115,8 @@ let piq_addrefret dst (src:T.ast) =
     | `control x -> f x
     | `raw_word x -> f x
     | `raw_binary x -> f x
-    | `piqi_any x -> f x
+    | `piqi_any x ->
+        assert false
   
 
 let piq_reference f x =
@@ -125,22 +126,22 @@ let piq_reference f x =
   else piq_addrefret x res
 
 
-let make_named n v :T.ast =
+let make_named n v :piq_ast =
   check_name n;
   match v with
     | None -> `name n
     | Some v ->
-        let res = T.Named#{name = n; value = v} in
+        let res = Piq_ast.Named#{name = n; value = v} in
         Piqloc.addref n res;
         `named res
 
 
-let make_typed n v :T.ast =
+let make_typed n v :piq_ast =
   check_typename n;
   match v with
     | None -> `typename n
     | Some v ->
-        let res = T.Typed#{typename = n; value = v} in
+        let res = Piq_ast.Typed#{typename = n; value = v} in
         Piqloc.addref n res;
         `typed res
 
@@ -171,14 +172,14 @@ let expand_name obj c name value =
     aux (tokenize_name c name)
 
 
-let expand_obj_names (obj :T.ast) :T.ast =
+let expand_obj_names (obj :piq_ast) :piq_ast =
   let exp = expand_name obj in
   match obj with
     | `name x -> exp "." x None
     | `typename x -> exp ":" x None
-    | `named x -> exp "." x.T.Named#name (Some x.T.Named#value)
+    | `named x -> exp "." x.Piq_ast.Named#name (Some x.Piq_ast.Named#value)
     | `typed x -> 
-        exp ":" x.T.Typed#typename (Some x.T.Typed#value)
+        exp ":" x.Piq_ast.Typed#typename (Some x.Piq_ast.Typed#value)
     | x -> x
 
 
@@ -186,18 +187,18 @@ let expand_obj_names = piq_reference expand_obj_names
 
 
 (* XXX: don't create new objects if included objects are not modified *)
-let expand_names (x: T.ast) :T.ast =
+let expand_names (x: piq_ast) :piq_ast =
   let rec aux0 obj =
     match obj with
-      | `named ({T.Named.name = n; T.Named.value = v} as named) ->
+      | `named ({Piq_ast.Named.name = n; Piq_ast.Named.value = v} as named) ->
           let v' = aux v in
           if v' != v
-          then named.T.Named#value <- v';
+          then named.Piq_ast.Named#value <- v';
           expand_obj_names obj
-      | `typed ({T.Typed.typename = n; T.Typed.value = ast} as typed) ->
+      | `typed ({Piq_ast.Typed.typename = n; Piq_ast.Typed.value = ast} as typed) ->
           let ast' = aux ast in
           if ast' != ast (* changed? *)
-          then typed.T.Typed#value <- ast';
+          then typed.Piq_ast.Typed#value <- ast';
           expand_obj_names obj
       | `list l ->
           `list (List.map aux l)
@@ -223,12 +224,12 @@ let expand_names (x: T.ast) :T.ast =
 *)
 
 let cons_named n v =
-  let res = `named {T.Named.name = n; T.Named.value = v} in
+  let res = `named {Piq_ast.Named.name = n; Piq_ast.Named.value = v} in
   piq_addrefret v res
 
 
 let cons_typed n v =
-  let res = `typed {T.Typed.typename = n; T.Typed.value = v} in
+  let res = `typed {Piq_ast.Typed.typename = n; Piq_ast.Typed.value = v} in
   piq_addrefret v res
 
 
@@ -247,17 +248,17 @@ let expand_control_list l =
               List.map (cons_named n) t
           | `typename n ->
               List.map (cons_typed n) t
-          | `named {T.Named.name = n} ->
+          | `named {Piq_ast.Named.name = n} ->
               let t = List.map (cons_named n) t in
               h::t
-          | `typed {T.Typed.typename = n} ->
+          | `typed {Piq_ast.Typed.typename = n} ->
               let t = List.map (cons_typed n) t in
               h::t
           | _ ->
               error l "unsupported format of control block"
 
 
-let expand_control (x: T.ast) :T.ast =
+let expand_control (x: piq_ast) :piq_ast =
   let rec aux0 obj =
     match obj with
       | `control l -> 
@@ -266,17 +267,17 @@ let expand_control (x: T.ast) :T.ast =
               | [x] -> aux x (* XXX: a single element enclosed in parenthesis *)
               | _ -> error l "control expansion is allowed only in lists"
           end
-      | `named ({T.Named.name = n; T.Named.value = v} as named) ->
+      | `named ({Piq_ast.Named.name = n; Piq_ast.Named.value = v} as named) ->
           let v' = aux v in
           if v' != v
-          then named.T.Named#value <- v';
+          then named.Piq_ast.Named#value <- v';
           (* return the original object taking advantage of object being mutable
            *)
           obj
-      | `typed ({T.Typed.typename = n; T.Typed.value = ast} as typed) ->
+      | `typed ({Piq_ast.Typed.typename = n; Piq_ast.Typed.value = ast} as typed) ->
           let ast' = aux ast in
           if ast' != ast (* changed? *)
-          then typed.T.Typed#value <- ast';
+          then typed.Piq_ast.Typed#value <- ast';
           (* return the original object taking advantage of object being mutable
            *)
           obj

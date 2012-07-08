@@ -37,15 +37,15 @@ let read_piq_obj piq_parser =
   res
 
 
-let map_words (x:T.ast) f =
+let map_words (x:piq_ast) f =
   let rec aux = function
     | `word s -> `word (f s)
     | `name s -> `name (f s)
-    | `named ({T.Named.value = v} as x) ->
-        `named {x with T.Named.value = aux v}
-    | `typed ({T.Typed.value = ast} as x) ->
+    | `named ({Piq_ast.Named.value = v} as x) ->
+        `named {x with Piq_ast.Named.value = aux v}
+    | `typed ({Piq_ast.Typed.value = ast} as x) ->
         let ast = aux ast in
-       `typed {x with T.Typed.value = ast}
+       `typed {x with Piq_ast.Typed.value = ast}
     | `list l -> `list (List.map aux l)
     | `control l -> `control (List.map aux l)
     | x -> x

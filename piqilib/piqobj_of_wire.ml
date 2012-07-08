@@ -153,6 +153,8 @@ and parse_piqi_any any =
 
 and parse_any x =
   let any = T.parse_any x in
+  (* XXX: get rid of cached piq_ast if it somehow got serialized *)
+  any.T.Any#cached_piq_ast <- None;
   parse_piqi_any any
 
 

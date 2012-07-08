@@ -31,7 +31,7 @@ let add_ignored_field x =
   ignored_fields := x :: !ignored_fields
 
 
-let is_ignored_field (ast :T.ast) =
+let is_ignored_field (ast :piq_ast) =
   match ast with
     | `name x | `named {T.Named.name = x} -> (* field or flag *)
         List.mem x !ignored_fields
@@ -45,7 +45,7 @@ let load_piq_ignore_field = function
       error x "invalid .piq-ignore entry"
 
 
-let load_piq_ignore_node (l :T.ast list) =
+let load_piq_ignore_node (l :piq_ast list) =
   try
     let ignore_node = List.find
       (function
@@ -61,7 +61,7 @@ let load_piq_ignore_node (l :T.ast list) =
     Not_found -> ()
 
 
-let load_piq_ignore (ast : T.ast) =
+let load_piq_ignore (ast : piq_ast) =
   ignored_fields := []; (* reset ignored fields *)
   match ast with
     | `list l -> load_piq_ignore_node l
@@ -107,7 +107,7 @@ let error obj s =
 
 
 (* TODO, XXX: handle integer overflows *)
-let rec parse_int (obj:T.ast) =
+let rec parse_int (obj: piq_ast) =
   match obj with
     | `int x -> `int (Piqloc.addrefret obj x)
     | `uint x -> `uint (Piqloc.addrefret obj x)
@@ -128,7 +128,7 @@ let uint64_to_float x =
     Int64.to_float x
 
 
-let rec parse_float (obj:T.ast) =
+let rec parse_float (obj: piq_ast) =
   match obj with
     | `int x -> Int64.to_float x
     | `uint x -> uint64_to_float x
@@ -141,14 +141,14 @@ let rec parse_float (obj:T.ast) =
     | o -> error o "float constant expected"
 
 
-let parse_bool (x:T.ast) = match x with
+let parse_bool (x :piq_ast) = match x with
   | `bool x -> x
   | `raw_word "true" -> true
   | `raw_word "false" -> false
   | o -> error o "boolean constant expected"
 
 
-let parse_string (x:T.ast) =
+let parse_string (x :piq_ast) =
   let unicode_error s =
       error s "string contains non-unicode binary data"
   in
@@ -163,7 +163,7 @@ let parse_string (x:T.ast) =
     | o -> error o "string expected"
 
 
-let parse_binary (x:T.ast) = match x with
+let parse_binary (x :piq_ast) = match x with
   | `ascii_string s | `binary s | `raw_binary s -> s
   | `utf8_string s ->
       error s "binary contains unicode characters or code points"
@@ -172,7 +172,7 @@ let parse_binary (x:T.ast) = match x with
 
 
 (* some common errors *)
-let error_exp_list obj = error obj "list expected"
+let error_exp_list obj = assert false (* error obj "list expected" *)
 
 let check_duplicate name tail =
   match tail with
@@ -203,7 +203,7 @@ let truncate_string s max_len =
 let string_of_piqast x =
   match x with
     | `name s -> s
-    | `named {T.Named.name = n} -> n
+    | `named {Piq_ast.Named.name = n} -> n
     | _ ->
         let s = Piq_gen.to_string x in
         truncate_string s 50
@@ -213,7 +213,7 @@ let warn_unknown_field x =
   warning x ("unknown field: " ^ string_of_piqast x)
 
 
-let handle_unknown_field (x:T.ast) =
+let handle_unknown_field (x: piq_ast) =
   if !Config.flag_strict
   then
     error x ("unknown field: " ^ string_of_piqast x)
@@ -223,7 +223,7 @@ let handle_unknown_field (x:T.ast) =
     else warn_unknown_field x
 
 
-let handle_unknown_variant (x:T.ast) =
+let handle_unknown_variant (x: piq_ast) =
   error x ("unknown variant: " ^ string_of_piqast x)
 
 
@@ -235,7 +235,7 @@ let find_piqtype name =
 
 
 (* idtable implemented as map: string -> 'a *)
-let rec parse_obj0 ~try_mode (t: T.piqtype) (x: T.ast) :Piqobj.obj =
+let rec parse_obj0 ~try_mode (t: T.piqtype) (x: piq_ast) :Piqobj.obj =
   (* fill the location DB *)
   let r f x = reference f x in
   let rr f t x = reference (f t) x in
@@ -259,10 +259,10 @@ and parse_obj ?(try_mode=false) t x = reference (parse_obj0 ~try_mode t) x
 
 and parse_typed_obj ?piqtype x = 
   match piqtype, x with
-    | None, `typed {T.Typed.typename = n; T.Typed.value = ast} ->
+    | None, `typed {Piq_ast.Typed.typename = n; value = ast} ->
         let t = find_piqtype n in
         parse_obj t ast
-    | Some t, `typed {T.Typed.value = ast} ->
+    | Some t, `typed {Piq_ast.Typed.value = ast} ->
         (* XXX: if both piqtype and `typed are defined, supplied type overrides
          * object type *)
         (* XXX: produce warning if they are not equal? *)
@@ -300,15 +300,18 @@ and parse_any x =
    * "obj" should be obtained by parsing "piqtype.ast" at later stages (see
    * Piqi.resolve_defaults for example *)
   match x with
-    | `piqi_any any ->
-        Piqobj_of_wire.parse_piqi_any any
+    | `piqi_any key ->
+        Piqobj_of_wire.parse_piqi_any (Piqi_objstore.get key)
 
-    | `typed {T.Typed.typename = typename; T.Typed.value = ast} ->
+    | `typed {Piq_ast.Typed.typename = typename; value = ast} ->
         (* TODO: unify Piqobj.any and Piqast.any *)
         let any = T.Any#{
           T.default_any () with
           typename = Some typename;
-          piq_ast = Some ast;
+
+          (* XXX: is this correct? in this case, it is not cached, it is the
+           * actual ast *)
+          cached_piq_ast = Some ast;
         }
         in
         (* generate the obj representation from the ast if the type is known *)
@@ -321,7 +324,7 @@ and parse_any x =
         )
 
     | ast ->
-        let any = T.Any#{T.default_any () with piq_ast = Some ast} in
+        let any = T.Any#{T.default_any () with cached_piq_ast = Some ast} in
         Piqloc.addref x any;
         Any#{ any = any; obj = None }
 
@@ -442,11 +445,11 @@ and equals_name name alt_name x =
  * together and avoid code duplication *)
 
 (* find field by name, return found fields and remaining fields *)
-and find_fields (name:string) (alt_name:string option) (l:T.ast list) :(T.ast list * T.ast list) =
+and find_fields (name:string) (alt_name:string option) (l:piq_ast list) :(piq_ast list * piq_ast list) =
   let equals_name = equals_name name alt_name in
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
-    | (`named n)::t when equals_name n.T.Named#name -> aux (n.T.Named#value::accu) rem t
+    | (`named n)::t when equals_name n.Piq_ast.Named#name -> aux (n.Piq_ast.Named#value::accu) rem t
     | (`name n)::t when equals_name n ->
         error n ("value must be specified for field " ^ quote n)
     | h::t -> aux accu (h::rem) t
@@ -455,13 +458,13 @@ and find_fields (name:string) (alt_name:string option) (l:T.ast list) :(T.ast li
 
 
 (* find flags by name, return found flags and remaining fields *)
-and find_flags (name:string) (alt_name:string option) (l:T.ast list) :(string list * T.ast list) =
+and find_flags (name:string) (alt_name:string option) (l:piq_ast list) :(string list * piq_ast list) =
   let equals_name = equals_name name alt_name in
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
     | (`name n)::t when equals_name n -> aux (n::accu) rem t
-    | (`named n)::t when equals_name n.T.Named#name ->
-        error n ("value can not be specified for flag " ^ quote n.T.Named#name)
+    | (`named n)::t when equals_name n.Piq_ast.Named#name ->
+        error n ("value can not be specified for flag " ^ quote n.Piq_ast.Named#name)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
@@ -549,7 +552,7 @@ and parse_option ~try_mode options x =
             parse_string_option options x
         | `text _ ->
             parse_text_option options x
-        | `named {T.Named.name = n; T.Named.value = x} ->
+        | `named {Piq_ast.Named.name = n; value = x} ->
             parse_named_option options n x
         | `list _ ->
             parse_list_option options x
@@ -694,7 +697,7 @@ and parse_list_option options x =
   parse_typed_option options f x
 
 
-and parse_typed_option (options:T.Option.t list) f (x:T.ast) :Piqobj.Option.t =
+and parse_typed_option (options:T.Option.t list) f (x:piq_ast) :Piqobj.Option.t =
   let option = List.find f options in
   let option_type = some_of option.T.Option#piqtype in
   O#{ t = option; obj = Some (parse_obj option_type x) }

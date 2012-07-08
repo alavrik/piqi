@@ -69,16 +69,15 @@ let gen_binary s =
 
 
 let make_named name value =
-  let open T in
-  `named Named#{name = name; value = value}
+  `named Piq_ast.Named#{name = name; value = value}
 
 
 let make_name name =
   `name name
 
 
-let make_typed typename ast :T.ast =
-  let res = T.Typed#{typename = typename; value = ast} in
+let make_typed typename ast :piq_ast =
+  let res = Piq_ast.Typed#{typename = typename; value = ast} in
   Piqloc.addref ast res;
   `typed res
 
@@ -101,7 +100,7 @@ let order_record_fields t piqobj_fields =
   List.rev res
 
 
-let rec gen_obj0 ?(piq_format: T.piq_format option) (x:Piqobj.obj) :T.ast =
+let rec gen_obj0 ?(piq_format: T.piq_format option) (x:Piqobj.obj) :piq_ast =
   match x with
     (* built-in types *)
     | `int x -> `int x
@@ -121,39 +120,53 @@ let rec gen_obj0 ?(piq_format: T.piq_format option) (x:Piqobj.obj) :T.ast =
 
 (* TODO: provide more precise locations for fields, options, etc *)
 and gen_obj ?piq_format x =
-  Piq_parser.piq_reference (fun x -> gen_obj0 x ?piq_format) x
+  let res = gen_obj0 x ?piq_format in
+  match res with
+    | `piqi_any any ->
+        Piqloc.addrefret x res
+    | _ ->
+        Piq_parser.piq_addrefret x res
 
 
 and gen_typed_obj x =
   let name = Piqobj_common.full_typename x in
-  `typed T.Typed#{typename = name; value = gen_obj x}
+  `typed Piq_ast.Typed#{typename = name; value = gen_obj x}
 
 
-(* TODO: optimize by storing pioqbj in T.Any *)
-and ast_of_any = function
-  | {T.Any.piq_ast = Some ast} -> ast
-  | {T.Any.typename = Some typename; binobj = Some binobj} ->
-      (* generate ast representation from the binary object if the type is known
-       *)
-      (match Piqi_db.try_find_piqtype typename with
-        | Some t ->
-            Piqloc.pause ();
-            let obj = Piqobj_of_wire.parse_binobj t binobj in
-            let ast = gen_obj obj in
-            Piqloc.resume ();
-            ast
-        | None ->
-            assert false
-      )
-  | _ ->
-      assert false
+(* TODO: optimize by storing piqobj in T.Any *)
+and ast_of_any any :piq_ast =
+  match any with
+    | {T.Any.cached_piq_ast = Some ast} -> ast
+    | {T.Any.piq_ast_ref = Some piq_ast_ref} ->
+        let ast = Piqi_objstore.get piq_ast_ref in
+        any.T.Any#cached_piq_ast <- Some ast; (* cache the result *)
+        ast
+    | {T.Any.typename = Some typename; binobj = Some binobj} ->
+        (* generate ast representation from the binary object if the type is known
+         *)
+        (match Piqi_db.try_find_piqtype typename with
+          | Some t ->
+              Piqloc.pause ();
+              let obj = Piqobj_of_wire.parse_binobj t binobj in
+              let ast = gen_obj obj in
+              Piqloc.resume ();
+              any.T.Any#cached_piq_ast <- Some ast; (* cache the result *)
+              ast
+          | None ->
+              assert false
+        )
+    | _ ->
+        assert false
 
 
 and gen_any x =
   let open Any in
   if not !is_external_mode
   then
-    `piqi_any x.any (* for internal use, just passing it around as is *)
+    (* FIXME: memory leak by allocating elements in objstore and never freeing
+     * them *)
+    (* for internal use, just passing it around as is *)
+    `piqi_any (Piqi_objstore.put x.any)
   else
     let ast = ast_of_any x.any in
     match x.any.T.Any#typename with
@@ -175,9 +188,12 @@ and gen_field x =
   let name = name_of_field x.t in
   let res =
     match x.obj with
-      | None -> make_name name
-      | Some obj -> make_named name (gen_obj obj ?piq_format:x.t.T.Field#piq_format)
-  in Piq_parser.piq_addrefret x res
+      | None ->
+          make_name name
+      | Some obj ->
+          make_named name (gen_obj obj ?piq_format:x.t.T.Field#piq_format)
+  in
+  Piq_parser.piq_addrefret x res
 
 
 and gen_variant x =

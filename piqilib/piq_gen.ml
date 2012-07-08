@@ -321,7 +321,7 @@ let format_text ?(top=false) l =
   make_raw_list (List.map format_text_line l) ~top
 
 
-let format_ast (x:T.ast) =
+let format_ast (x :piq_ast) =
   let rec aux ?(label="") ?(top=false) = function
     | `int x -> make_atom (Int64.to_string x)
     | `uint x -> make_atom (uint64_to_string x)
@@ -347,10 +347,10 @@ let format_ast (x:T.ast) =
     | `text s -> format_text (split_text s) ~top
     | `name s -> make_atom (label ^ "." ^ s)
     | `typename s -> make_atom (label ^ ":" ^ s)
-    | `named {T.Named.name = n; T.Named.value = v} ->
+    | `named {Piq_ast.Named.name = n; Piq_ast.Named.value = v} ->
         let label = label ^ "." ^ n in
         format_inner_ast label v
-    | `typed {T.Typed.typename = n; T.Typed.value = v} ->
+    | `typed {Piq_ast.Typed.typename = n; Piq_ast.Typed.value = v} ->
         let label = label ^ ":" ^ n in
         format_inner_ast label v
     | `list [] ->

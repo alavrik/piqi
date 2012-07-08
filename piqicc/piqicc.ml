@@ -145,7 +145,10 @@ let piqicc ch boot_fname spec_fname lang_fname impl_fname =
 
     ignore (Piqobj_of_piq.get_unknown_fields ());
 
-    let res = Piqobj_to_wire.gen_binobj piqobj in
+    let res =
+      U.with_bool Piqobj_to_wire.is_external_mode true
+      (fun () -> Piqobj_to_wire.gen_binobj piqobj)
+    in
     Piqloc.resume ();
     res
   in

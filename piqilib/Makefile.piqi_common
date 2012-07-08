@@ -9,6 +9,7 @@ all:
 
 PIQI_SOURCES_HEAD = \
 	piqloc.ml \
+	piq_ast.ml \
 
 
 PIQI_SOURCES_TAIL = \
@@ -30,6 +31,7 @@ PIQI_SOURCES_TAIL = \
 	piq_parser.ml \
 	piq_gen.ml \
 	\
+	piqi_objstore.ml \
 	piqobj.ml \
 	piqobj_common.ml \
 	piqobj_to_wire.ml \

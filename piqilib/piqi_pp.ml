@@ -47,7 +47,7 @@ let prettyprint_piqi_ast ch ast =
     | _ -> assert false
 
 
-let transform_ast path f (ast:T.ast) =
+let transform_ast path f (ast:piq_ast) =
   let rec aux p = function
     | `list l when p = [] -> (* leaf node *)
         (* f replaces, removes element, or splices elements of the list *)
@@ -61,9 +61,9 @@ let transform_ast path f (ast:T.ast) =
         (* haven't reached the leaf node => continue tree traversal *)
         let res = List.map (aux p) l in
         `list res
-    | `named {T.Named.name = n; T.Named.value = v} when List.hd p = n ->
+    | `named {Piq_ast.Named.name = n; Piq_ast.Named.value = v} when List.hd p = n ->
         (* found path element => continue tree traversal *)
-        let res = T.Named#{name = n; value = aux (List.tl p) v} in
+        let res = Piq_ast.Named#{name = n; value = aux (List.tl p) v} in
         `named res
     | x -> x
   in
@@ -71,13 +71,13 @@ let transform_ast path f (ast:T.ast) =
 
 
 (* simplify piqi ast: *)
-let simplify_piqi_ast (ast:T.ast) =
+let simplify_piqi_ast (ast:piq_ast) =
   let tr = transform_ast in
   (* map typedef.x -> x *)
   let rm_typedef =
     tr [] (
       function
-        | `named {T.Named.name = "typedef"; T.Named.value = v} -> [v]
+        | `named {Piq_ast.Named.name = "typedef"; Piq_ast.Named.value = v} -> [v]
         | x -> [x]
     )
   (* del .../mode.required *)
@@ -85,30 +85,30 @@ let simplify_piqi_ast (ast:T.ast) =
   and tr_field_mode path =
     tr path (
       function
-        | `named {T.Named.name = "mode"; T.Named.value = `name "required"} -> []
-        | `named {T.Named.name = "mode"; T.Named.value = (`name _) as x} -> [x]
+        | `named {Piq_ast.Named.name = "mode"; Piq_ast.Named.value = `name "required"} -> []
+        | `named {Piq_ast.Named.name = "mode"; Piq_ast.Named.value = (`name _) as x} -> [x]
         | x -> [x]
     )
   (* map extend/.piqi-any x -> x *)
   and tr_extend_piq_any =
     tr ["extend"] (
       function
-        | `named {T.Named.name = "piqi-any"; T.Named.value = v} -> [v]
+        | `named {Piq_ast.Named.name = "piqi-any"; Piq_ast.Named.value = v} -> [v]
         | x -> [x]
     )
   (* map extend/.what x -> x *)
   and tr_extend_what =
     tr ["extend"] (
       function
-        | `named {T.Named.name = "what"; T.Named.value = v} -> [v]
+        | `named {Piq_ast.Named.name = "what"; Piq_ast.Named.value = v} -> [v]
         | x -> [x]
     )
   (* .../type.name x -> type.x *)
   and tr_type_name_common path =
     tr path (
       function
-        | `named ({T.Named.name = "type"; T.Named.value = `named {T.Named.name = "name"; T.Named.value = v}} as x) ->
-            let res = `named T.Named#{x with value = v} in
+        | `named ({Piq_ast.Named.name = "type"; Piq_ast.Named.value = `named {Piq_ast.Named.name = "name"; Piq_ast.Named.value = v}} as x) ->
+            let res = `named Piq_ast.Named#{x with value = v} in
             [res]
         | x -> [x]
     )
@@ -117,8 +117,8 @@ let simplify_piqi_ast (ast:T.ast) =
   and rm_param_extra path =
     tr path (
       function
-        | `named {T.Named.name = "record"; T.Named.value = v} -> [v]
-        | `named {T.Named.name = "name"; T.Named.value = v} -> [v]
+        | `named {Piq_ast.Named.name = "record"; Piq_ast.Named.value = v} -> [v]
+        | `named {Piq_ast.Named.name = "name"; Piq_ast.Named.value = v} -> [v]
         | x -> [x]
     )
   in
@@ -151,9 +151,9 @@ let simplify_piqi_ast (ast:T.ast) =
 let compare_piqi_items a b =
   let name_of = function
     | `name x -> x
-    | `named x -> x.T.Named#name
+    | `named x -> x.Piq_ast.Named#name
     | `typename x -> x
-    | `typed x -> x.T.Typed#typename
+    | `typed x -> x.Piq_ast.Typed#typename
     | _ -> assert false
   in
   let rank x =
@@ -172,7 +172,7 @@ let compare_piqi_items a b =
   rank a - rank b
 
 
-let sort_piqi_items (ast:T.ast) =
+let sort_piqi_items (ast:piq_ast) =
   match ast with
     | `list l ->
         let l = List.stable_sort compare_piqi_items l in

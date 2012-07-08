@@ -203,18 +203,14 @@ let option_def =
 
 
 let gen_extension_item x =
-  let ast =
-    match x with
-      | {T.Any.piq_ast = Some ast} -> ast
-      | _ -> assert false
-  in
+  let ast = Piqobj_to_piq.ast_of_any x in
   (* NOTE: recognizing and printing only fields and options *)
   match ast with
-  | `named {T.Named.name = "field"; T.Named.value = ast} ->
+  | `named {Piq_ast.Named.name = "field"; Piq_ast.Named.value = ast} ->
       let x = Piqi.mlobj_of_ast field_def T.parse_field ast in
       let res = gen_field x in
       [res]
-  | `named {T.Named.name = "option"; T.Named.value = ast} ->
+  | `named {Piq_ast.Named.name = "option"; Piq_ast.Named.value = ast} ->
       let x = Piqi.mlobj_of_ast option_def T.parse_option ast in
       let res = gen_option x in
       [res]

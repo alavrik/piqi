@@ -1,6 +1,5 @@
 
 .include [ .module piqi.org/piqi-lang ]
-.include [ .module piqilib/piqast ]
 
 
 .extend [
@@ -61,7 +60,7 @@
     .with.field [ .name included-piqi .type piqi .repeated ]
 
     .with.field [ .name original-piqi .type piqi .optional ]
-    .with.field [ .name ast .type ast .optional ]
+    .with.field [ .name ast .type piq-ast .optional ]
 ]
 
 
@@ -121,26 +120,15 @@
 ]
 
 
-.extend [
-    .typedef ast
+.alias [
+    .name piq-ast
 
-    % These two token types are used only in several special cases, and can't be
-    % represented in Piq text format directly.
+    % type doesn't matter, because, this field is never represented in other
+    % formats
+    .type bool
 
-    .with.option [
-        % Raw word -- a valid utf8 Piq word: may be parsed as either of these:
-        % word, bool, number, string, binary
-
-        .name raw-word
-        .type word
-    ]
-    .with.option [
-        % Raw binary -- just a sequence of bytes: may be parsed as either binary
-        % or utf8 string
-
-        .name raw-binary
-        .type binary
-    ]
+    % associating this type with OCaml's type
+    .ocaml-type "Piq_ast.ast"
 ]
 
 
@@ -157,18 +145,15 @@
     ]
 
     .with.field [
-        .name piq-ast
-        .type ast
+        .name cached-piq-ast
+        .type piq-ast
         .optional
     ]
-]
 
-
-.extend [
-    .typedef ast
-
-    .with.option [
-        .type piqi-any
+    .with.field [
+        .name piq-ast-ref % integer reference to Piq-ast
+        .type int
+        .optional
     ]
 ]
 

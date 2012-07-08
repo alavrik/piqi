@@ -199,7 +199,18 @@ and gen_any code x =
 
     let any =
       if not !is_external_mode
-      then x.any
+      then (
+        let any = x.any in
+
+        if any.T.Any#cached_piq_ast <> None && any.T.Any#piq_ast_ref = None
+        then any.T.Any#piq_ast_ref <- Some (Piqi_objstore.put (some_of any.T.Any#cached_piq_ast));
+
+        (* don't serialize a locally cached piq_ast *)
+        if any.T.Any#cached_piq_ast <> None
+        then any.T.Any#cached_piq_ast <- None;
+
+        any
+      )
       else
         (* in external mode, leave only fields defined by piqi.piqi: binobj and
          * typename *)
