@@ -1,11 +1,10 @@
-% The minimal self-describing piq type specification
+% The minimal self-describing Piqi type specification
 %
-% NOTE: this piqi file is an example. It is not used in piqi implementation yet.
+% NOTE: this piqi file is an example. It is not used in piqi implementation.
 %
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
-
-.module piqi.org/piqtype-core
+.module piqtype-core
 
 
 .variant [

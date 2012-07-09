@@ -1,8 +1,6 @@
 
 
 PIQI_FILES = \
-	piqtype.piqi \
-	\
 	piqi.piq.piqi \
 	piqi.proto.piqi \
 	piqi.wire.piqi \
@@ -10,15 +8,13 @@ PIQI_FILES = \
 	piqi.getopt.piqi \
 	\
 	piqi.piqi \
-	piqi-lang.piqi \
-	\
-	piqtype-core.piqi
+	piqi-lang.piqi
 
 
 BOOT_PIQI_FILES = piqi-boot.piqi
 
 
-test: test_boot test_piqi test_piqi_piqi test_piqtype_core
+test: test_boot test_piqi test_piqi_piqi
 
 
 test_boot:
@@ -40,7 +36,6 @@ test_piqi:
 
 test_piqi_piqi:
 	piqi to-proto piqi.piqi
-	piqi to-proto piqtype.piqi
 	piqi expand piqi.piqi > p.piqi
 	piqi check p.piqi
 	piqi expand --includes-only piqi.piqi > pp.piqi
@@ -55,12 +50,6 @@ test_piqi_piqi:
 	piqi convert --piqtype piqi p.piqi.xml >/dev/null
 
 
-# test that piqtype-core.piqi can parse itself
-test_piqtype_core:
-	cat piqtype-core.piqi | sed -e 's!\.module.*!:piqtype piqi.org/piqtype-core/typedef!' >piqtype-core.piq
-	piqi check piqtype-core.piq
-
-
 clean:
-	rm -f p.piqi pp.piqi p.piqi.text *.proto *.wire *.pb *.json *.xml piqtype-core.piq
+	rm -f p.piqi pp.piqi p.piqi.text *.proto *.wire *.pb *.json *.xml
 

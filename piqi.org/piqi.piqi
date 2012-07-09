@@ -10,7 +10,178 @@
 .proto-package "piqi_org.piqi"
 
 
-.include [ .module piqi.org/piqtype ]
+.alias [
+    .name word
+    .type string
+
+    .piq-format.word
+]
+
+
+.alias [
+    .name name
+    .type word
+]
+
+
+.variant [
+    % user-defined types
+
+    .name typedef
+
+    .option [ .type record ]
+    .option [ .type variant ]
+    .option [ .type enum ]
+    .option [ .type alias ]
+    .option [
+        .type list
+        .ocaml-name "list"
+    ]
+
+    .proto-name "piqi_typedef"
+]
+
+
+.enum [
+    % built-in Piqi types
+
+    .name piqi-type
+
+    .option [ .name int     .proto-name "piqi_type_int" ]
+    .option [ .name float   .proto-name "piqi_type_float" ]
+    .option [ .name bool    .proto-name "piqi_type_bool" ]
+    .option [ .name string  .proto-name "piqi_type_string" ]
+    .option [ .name binary  .proto-name "piqi_type_binary" ]
+    .option [ .name any     .proto-name "piqi_type_any" ]
+]
+
+
+.alias [
+    .name type
+    .type name
+
+    .ocaml-name "typename"
+]
+
+
+.record [
+    .name record 
+
+    .field [ .type name ]
+    .field [
+        .type field
+        .repeated
+    ]
+
+    .erlang-name "piqi_record"
+]
+
+
+.record [
+    .name field
+
+    .field [
+        .type name
+        .optional
+    ]
+    .field [
+        .type type
+        .optional
+    ]
+    .field [
+        .name mode
+        .type field-mode
+        .optional
+        .default.required
+    ]
+
+    .field [
+        .name default
+        .type piqi-any
+        .optional
+    ]
+]
+
+
+.enum [
+    .name field-mode
+
+    .option [ required ]
+    .option [ optional ]
+    .option [ repeated ]
+]
+
+
+.record [
+    .name variant
+    .field [ .type name ]
+    .field [
+        .type option
+        .repeated % > 1
+    ]
+]
+
+
+.record [
+    .name option
+
+    % NOTE: either name or type have to be present
+    .field [
+        .type name
+        .optional
+    ]
+    .field [
+        .type type
+        .optional
+    ]
+]
+
+
+.record [
+    .name enum
+
+    .field [ .type name ]
+
+    % note that enum options shouldn't specify type and must specify name
+    .field [
+        .type option
+        .repeated % > 1
+    ]
+
+    .proto-name "piqi_enum"
+]
+
+
+.record [
+    .name alias
+
+    .field [ .type name ]
+
+    % either type or piqi-type fields must be present; we don't use variant here
+    % in order to simplify external representation which is going to be flat in
+    % such case, as opposed to nested if we used variant
+    .field [
+        .type type
+        .optional
+    ]
+
+    .field [
+        .type piqi-type
+        .optional
+    ]
+]
+
+
+.record [
+    .name list
+
+    .field [ .type name ]
+    .field [ .type type ]
+
+    .ocaml-name "piqi_list"
+    .erlang-name "piqi_list"
+]
+
 
 
 .record [
@@ -104,5 +275,5 @@
 .include [ .module piqi.org/piqi.getopt ]
 
 
-.custom-field ocaml-name
+(.custom-field ocaml-name erlang-name proto-name)
 
