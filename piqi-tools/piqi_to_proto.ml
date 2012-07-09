@@ -216,7 +216,7 @@ let gen_default x =
   let open F in
   match x.default, x.piqtype with
     | Some any, Some piqtype ->
-        let ast = Piqobj_to_piq.ast_of_any any in
+        let ast = Piqobj.piq_of_piqi_any any in
         let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
         gen_default_obj piqobj
     | _, _ -> iol [] (* there is no default *)

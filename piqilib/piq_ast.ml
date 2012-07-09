@@ -50,8 +50,8 @@ type ast =
     * utf8 string *)
    | `raw_binary of string
 
-   (* reference to a Piqi_piqi.any object in Piqi_objstore *)
-   | `piqi_any of int
+   (* reference to Piqobj.any object in Piqi_objstore *)
+   | `any of int
  ]
 
     end = Piq_ast

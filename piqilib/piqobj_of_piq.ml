@@ -295,38 +295,32 @@ and try_parse_obj f t x =
             (depth := depth'; None) (* restore the original depth *)
 
 
-and parse_any x =
+and parse_any x :Piqobj.any =
   (* NOTE: the object is not fully resolved during this stage; at least
    * "obj" should be obtained by parsing "piqtype.ast" at later stages (see
    * Piqi.resolve_defaults for example *)
   match x with
-    | `piqi_any key ->
-        Piqobj_of_wire.parse_piqi_any (Piqi_objstore.get key)
+    | `any ref ->
+        (* in internal mode, returning the exact Piqobj.any object passed via a
+         * reference *)
+        Piqobj.get_any ref
 
     | `typed {Piq_ast.Typed.typename = typename; value = ast} ->
-        (* TODO: unify Piqobj.any and Piqast.any *)
-        let any = T.Any#{
-          T.default_any () with
+        let any = Any#{
+          Piqobj.default_any with
           typename = Some typename;
-
-          (* XXX: is this correct? in this case, it is not cached, it is the
-           * actual ast *)
-          cached_piq_ast = Some ast;
+          piq_ast = Some ast;
         }
         in
-        (* generate the obj representation from the ast if the type is known *)
-        (match Piqi_db.try_find_piqtype typename with
-          | Some t ->
-              let piqobj = parse_obj t ast in
-              Any#{ any = any; obj = Some piqobj }
-          | None ->
-              Any#{ any = any; obj = None }
-        )
+        Piqloc.addrefret ast any
 
     | ast ->
-        let any = T.Any#{T.default_any () with cached_piq_ast = Some ast} in
-        Piqloc.addref x any;
-        Any#{ any = any; obj = None }
+        let any = Any#{
+          Piqobj.default_any with
+          piq_ast = Some ast;
+        }
+        in
+        Piqloc.addrefret ast any
 
 
 and parse_record t x =
@@ -396,12 +390,7 @@ and do_parse_field loc t l =
           let x, rem = parse_required_field t loc name field_type l in
           [x], rem
       | `optional ->
-          let default =
-            if !C.resolve_defaults
-            then t.default
-            else None
-          in
-          let x, rem = parse_optional_field t name field_type default l in
+          let x, rem = parse_optional_field t name field_type t.default l in
           let res = (match x with Some x -> [x] | None -> []) in
           res, rem
       | `repeated ->
@@ -488,16 +477,11 @@ and parse_optional_field f name field_type default l =
          * 'parse_obj for a given field_type' *)
         begin
           let res, rem = find_first_parsed f field_type l in
-          match res, default with
-            | None, Some x ->
-                (* XXX, TODO: we actually need obj of default, not ast: parsing
-                 * the same default from ast each time is relatively expensive,
-                 * we might think of just converting default to obj and picking
-                 * it *)
-                let default_ast = Piqobj_to_piq.ast_of_any x in
-                Piqloc.check_add_fake_loc default_ast ~label:"_piqobj_of_piq_default";
-                Some (parse_obj field_type default_ast), l (* parse default *)
-            | _ -> res, rem
+          match res with
+            | Some _ ->
+                res, rem
+            | None ->
+                Piqobj_common.parse_default field_type default, l
         end
     | x::tail ->
         check_duplicate name tail;
@@ -753,4 +737,8 @@ let parse_obj t x =
 
 let parse_typed_obj ?piqtype x =
   wrap (parse_typed_obj ?piqtype) x
+
+
+let _ =
+  Piqobj.of_piq := parse_obj
 

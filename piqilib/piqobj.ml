@@ -1,3 +1,4 @@
+(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
@@ -14,10 +15,8 @@
    limitations under the License.
 *)
 
-(* XXX: replace this handwritten file by "piqobj.piqi" after boostrap stage. *)
 
-
-module rec Types:
+module rec Piqobj:
   sig
     type record = Record.t
     type variant = Variant.t
@@ -47,14 +46,14 @@ module rec Types:
       | `binary of string
 
       | `any of any ]
-  end = Types
+  end = Piqobj
 
 and Record:
   sig
     type t =
       {
         mutable t : Piqi_piqi.record;
-        mutable field : Types.field list;
+        mutable field : Piqobj.field list;
       }
   end = Record
 
@@ -63,7 +62,7 @@ and Field:
     type t =
       {
         mutable t : Piqi_piqi.field;
-        mutable obj: Types.obj option;
+        mutable obj: Piqobj.obj option;
       }
   end = Field
 
@@ -72,7 +71,7 @@ and Variant:
     type t =
       {
         mutable t : Piqi_piqi.variant;
-        mutable option : Types.option;
+        mutable option : Piqobj.option;
       }
   end = Variant
 
@@ -81,7 +80,7 @@ and Enum:
     type t =
       {
         mutable t : Piqi_piqi.enum;
-        mutable option : Types.option;
+        mutable option : Piqobj.option;
       }
   end = Enum
 
@@ -90,7 +89,7 @@ and Option:
     type t =
       {
         mutable t : Piqi_piqi.option;
-        mutable obj: Types.obj option; (* None for named options, i.e. constants *)
+        mutable obj: Piqobj.obj option; (* None for named options, i.e. constants *)
       }
   end = Option
 
@@ -99,7 +98,7 @@ and List:
     type t =
       {
         mutable t : Piqi_piqi.piqi_list;
-        mutable obj: Types.obj list;
+        mutable obj: Piqobj.obj list;
       }
   end = List
 
@@ -108,7 +107,7 @@ and Alias:
     type t =
       {
         mutable t : Piqi_piqi.alias;
-        mutable obj: Types.obj;
+        mutable obj: Piqobj.obj;
       }
   end = Alias
 
@@ -116,14 +115,188 @@ and Any:
   sig
     type t =
       {
-        mutable any : Piqi_piqi.any;
-        (* it is not possible to convert "any" to object at any given time, some
-           typing hints may be required to do that which causes the delay, hence
-           defining it as "optional" *)
-        mutable obj: Types.obj option;
+        (* type of the object, when the type is known (NOTE: object can be
+         * untyped *)
+        mutable typename : string option;
+
+        (* internal representation of a typed data object *)
+        mutable obj: Piqobj.obj option;
+
+        (* external representation in various formats *)
+        mutable pb : string option; (* protocol buffers binary *)
+        mutable piq_ast : Piq_ast.ast option;
+        mutable json_ast : Piqi_json_type.json option;
+        mutable xml_ast : Piqi_xml_type.xml option;
+
+        (* unique reference to self in Piqi_objstore *)
+        mutable ref: int option;
       }
   end = Any
 
 
-include Types
+module C = Piqi_common
+
+
+let default_any =
+  Any#{
+    obj = None;
+    typename = None;
+    pb = None;
+    piq_ast = None;
+    json_ast = None;
+    xml_ast = None;
+    ref = None;
+  }
+
+
+(* store Piqobj.any and return reference of the stored object in Piqi_objstore
+ *)
+let put_any (any: Piqobj.any) :int =
+  let open Any in
+  match any.ref with
+    | Some ref -> ref
+    | None ->
+        (* FIXME: memory leak by allocating elements in objstore and never
+         * freeing them *)
+        let ref = Piqi_objstore.put any in
+        any.ref <- Some ref;
+        ref
+
+
+(* find Piqobj.any by reference in Piqi_objstore *)
+let get_any (ref: int) :Piqobj.any =
+  Piqi_objstore.get ref
+
+
+let any_of_piqi_any (piqi_any: Piqi_piqi.any) :Piqobj.any =
+  match piqi_any.Piqi_piqi.Any.ref with
+    | Some ref ->
+        (* recover internally passed Piqobj.any from an integer reference *)
+        C.debug "Piqobj.any_of_piqi_any: recovering any from existing ref %d\n" ref;
+        get_any ref
+    | None ->
+        (* external mode *)
+        let any = Any#{
+          default_any with
+          typename = piqi_any.Piqi_piqi.Any.typename;
+          pb = piqi_any.Piqi_piqi.Any.binobj;
+        }
+        in
+        (* cache the value in objstore and in the piqi_any intself *)
+        let ref = put_any any in
+        C.debug "Piqobj.any_of_piqi_any: creating new any with ref %d\n" ref;
+        piqi_any.Piqi_piqi.Any.ref <- Some ref;
+        any
+
+
+(* these functions will be properly set by piqobj_to* modules *)
+let to_pb   (obj: Piqobj.obj) :string = assert false
+let to_piq  (obj: Piqobj.obj) :Piq_ast.ast = assert false
+let to_json (obj: Piqobj.obj) :Piqi_json_type.json = assert false
+let to_xml  (obj: Piqobj.obj) :Piqi_xml_type.xml = assert false
+
+let of_pb   (piqtype: Piqi_piqi.piqtype) (x :string) :Piqobj.obj = assert false
+let of_piq  (piqtype: Piqi_piqi.piqtype) (x :Piq_ast.ast) :Piqobj.obj = assert false
+let of_json (piqtype: Piqi_piqi.piqtype) (x :Piqi_json_type.json) :Piqobj.obj = assert false
+let of_xml  (piqtype: Piqi_piqi.piqtype) (x :Piqi_xml_type.xml) :Piqobj.obj = assert false
+
+let to_pb = ref to_pb
+let to_piq = ref to_piq
+let to_json = ref to_json
+let to_xml = ref to_xml
+
+let of_pb = ref of_pb
+let of_piq = ref of_piq
+let of_json = ref of_json
+let of_xml = ref of_xml
+
+
+let of_any (piqtype: Piqi_piqi.piqtype) (any :Piqobj.any) :Piqobj.obj option =
+  let open Any in
+  if any.pb <> None (* try parsing from Protobuf *)
+  then
+    let obj = !of_pb piqtype (C.some_of any.pb) in
+    Some obj
+  else if any.piq_ast <> None
+  then
+    let obj = !of_piq piqtype (C.some_of any.piq_ast) in
+    Some obj
+  else if any.json_ast <> None
+  then
+    let obj = !of_json piqtype (C.some_of any.json_ast) in
+    Some obj
+  else if any.xml_ast <> None
+  then
+    let obj = !of_xml piqtype (C.some_of any.xml_ast) in
+    Some obj
+  else
+    None
+
+
+(* resolve obj from any given, possibly given its type *)
+let resolve_obj ?(piqtype: Piqi_piqi.piqtype option) (any :Piqobj.any) :unit =
+  let open Any in
+  if any.obj <> None
+  then () (* already resolved *)
+  else (
+    let piqtype =
+      match piqtype, any.typename with
+        | Some t, _ ->
+            (* XXX: when both are present, check their correspondence? *)
+            C.debug "Piqobj.resolve_obj using known type\n";
+            t
+        | None, Some typename ->
+            C.debug "Piqobj.resolve_obj using type %s\n" typename;
+            Piqi_db.find_piqtype typename
+        | _ ->
+            assert false (* can't resolve, because type is unknown *)
+    in
+
+    (* cache typename
+     * XXX: do not use fully qualified names for locally defined types? *)
+    if any.typename = None
+    then any.typename <- Some (Piqi_common.full_piqi_typename piqtype);
+
+    let obj = of_any piqtype any in
+    any.obj <- obj
+  )
+
+
+let piq_of_any (any: Piqobj.any) :Piq_ast.ast =
+  let open Any in
+  match any.piq_ast with
+    | Some ast -> ast
+    | _ ->
+        (* XXX: resolve obj just in case it wasn't resolved before *)
+        resolve_obj any;
+        let ast = !to_piq (C.some_of any.obj) in
+        any.piq_ast <- Some ast; (* XXX: cache the result *)
+        ast
+
+
+let pb_of_any (any: Piqobj.any) :string =
+  let open Any in
+  match any.pb with
+    | Some pb -> pb
+    | _ ->
+        (* XXX: resolve obj just in case it wasn't resolved before *)
+        resolve_obj any;
+        Piqloc.pause ();
+        let pb = !to_pb (C.some_of any.obj) in
+        Piqloc.resume ();
+        any.pb <- Some pb; (* XXX: cache the result *)
+        pb
+
+
+let piq_of_piqi_any piqi_any =
+  let any = any_of_piqi_any piqi_any in
+  piq_of_any any
+
+
+let pb_of_piqi_any piqi_any =
+  let any = any_of_piqi_any piqi_any in
+  pb_of_any any
+
+
+include Piqobj
 

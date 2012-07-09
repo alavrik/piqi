@@ -122,7 +122,7 @@ let rec gen_obj0 ?(piq_format: T.piq_format option) (x:Piqobj.obj) :piq_ast =
 and gen_obj ?piq_format x =
   let res = gen_obj0 x ?piq_format in
   match res with
-    | `piqi_any any ->
+    | `any any ->
         Piqloc.addrefret x res
     | _ ->
         Piq_parser.piq_addrefret x res
@@ -133,43 +133,16 @@ and gen_typed_obj x =
   `typed Piq_ast.Typed#{typename = name; value = gen_obj x}
 
 
-(* TODO: optimize by storing piqobj in T.Any *)
-and ast_of_any any :piq_ast =
-  match any with
-    | {T.Any.cached_piq_ast = Some ast} -> ast
-    | {T.Any.piq_ast_ref = Some piq_ast_ref} ->
-        let ast = Piqi_objstore.get piq_ast_ref in
-        any.T.Any#cached_piq_ast <- Some ast; (* cache the result *)
-        ast
-    | {T.Any.typename = Some typename; binobj = Some binobj} ->
-        (* generate ast representation from the binary object if the type is known
-         *)
-        (match Piqi_db.try_find_piqtype typename with
-          | Some t ->
-              Piqloc.pause ();
-              let obj = Piqobj_of_wire.parse_binobj t binobj in
-              let ast = gen_obj obj in
-              Piqloc.resume ();
-              any.T.Any#cached_piq_ast <- Some ast; (* cache the result *)
-              ast
-          | None ->
-              assert false
-        )
-    | _ ->
-        assert false
-
-
 and gen_any x =
   let open Any in
   if not !is_external_mode
   then
-    (* FIXME: memory leak by allocating elements in objstore and never freeing
-     * them *)
-    (* for internal use, just passing it around as is *)
-    `piqi_any (Piqi_objstore.put x.any)
+    (* in internal mode, passing a reference to intermediate Any prepresentation
+     * registered using Piqi_objstore *)
+    `any (Piqobj.put_any x)
   else
-    let ast = ast_of_any x.any in
-    match x.any.T.Any#typename with
+    let ast = Piqobj.piq_of_any x in
+    match x.typename with
       | Some typename ->
           make_typed typename ast
       | None ->
@@ -235,4 +208,11 @@ and gen_alias ?(piq_format: T.piq_format option) x =
         gen_alias x ?piq_format
     | x ->
         gen_obj x ?piq_format
+
+
+let gen_obj obj = gen_obj obj
+
+
+let _ =
+  Piqobj.to_piq := gen_obj
 

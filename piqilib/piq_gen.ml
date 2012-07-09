@@ -359,8 +359,8 @@ let format_ast (x :piq_ast) =
         make_list (List.map aux l)
     | `control l ->
         make_control (List.map aux l)
-    | `piqi_any _ ->
-        assert false
+    | `any _ ->
+        make_atom "FIXME" (* shouldn't happen except when C.debug_level > 0 *)
   and format_inner_ast label x =
     match x with
       | `named _ | `name _ ->

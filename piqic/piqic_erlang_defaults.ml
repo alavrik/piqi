@@ -62,8 +62,8 @@ let gen_field_cons f =
       | `required -> gen_default_piqtype (some_of f.piqtype)
       | `optional when f.piqtype = None -> ios "false" (* flag *)
       | `optional when f.default <> None ->
-          let default = some_of f.default in
-          let default_expr = Piqic_erlang_in.gen_erlang_binary (some_of default.T.Any.binobj) in
+          let pb = Piqobj.pb_of_piqi_any (some_of f.default) in
+          let default_expr = Piqic_erlang_in.gen_erlang_binary pb in
           iol [
             Piqic_erlang_in.gen_parse_piqtype (some_of f.piqtype);
               ios "("; default_expr; ios ")";

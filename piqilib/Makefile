@@ -26,8 +26,6 @@ PACKS += xmlm
 STATIC = 1 # force creation of static library (don't create dlls)
 
 PIQI_SOURCES_LIB = \
-	\
-	piqi_json_common.ml \
 	piqi_json_parser.mll \
 	piqi_json_gen.ml \
 	piqi_json.ml \

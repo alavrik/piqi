@@ -135,23 +135,12 @@
 .extend [
     .typedef any
 
-    % this field is used for processing default values represented as JSON or
-    % XML data structures
-
     .with.field [
-        .name ref % reference to JSON or XML value/parse tree
-        .type int
-        .optional
-    ]
+        % this field is here to avoid serialization of Piqobj intermediate
+        % representation; basically it is a reference to Piqobj.any object in
+        % the Piqi_objstore
 
-    .with.field [
-        .name cached-piq-ast
-        .type piq-ast
-        .optional
-    ]
-
-    .with.field [
-        .name piq-ast-ref % integer reference to Piq-ast
+        .name ref
         .type int
         .optional
     ]

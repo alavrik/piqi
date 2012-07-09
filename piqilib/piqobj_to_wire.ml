@@ -177,52 +177,31 @@ and gen_binobj x =
   Piqirun.gen_binobj gen_obj x
 
 
+(* generate "Piqi_piqi.any" record from Piqobj.any *)
 and gen_any code x =
   let open Any in
-  begin
-    (* don't generate if x.any.bin already exists *)
-    if x.any.T.Any.binobj = None &&
-        (* normally x.obj is defined, but sometimes, for example, during
-         * bootstrap for field's default ANY it is unknown *)
-        x.obj <> None
-    then (
-      (* generate "x.any.binobj" from "x.obj" *)
-      Piqloc.pause ();
-      let binobj = gen_binobj (some_of x.obj) in
-      Piqloc.resume ();
-      Piqloc.add_fake_loc binobj ~label:"_binobj";
-      x.any.T.Any.binobj <- Some binobj
-    );
-
-    (* generate "Piqi_piqi.any" record *)
-    Piqloc.check_add_fake_loc x.any ~label:"_any";
-
-    let any =
-      if not !is_external_mode
-      then (
-        let any = x.any in
-
-        if any.T.Any#cached_piq_ast <> None && any.T.Any#piq_ast_ref = None
-        then any.T.Any#piq_ast_ref <- Some (Piqi_objstore.put (some_of any.T.Any#cached_piq_ast));
-
-        (* don't serialize a locally cached piq_ast *)
-        if any.T.Any#cached_piq_ast <> None
-        then any.T.Any#cached_piq_ast <- None;
-
-        any
-      )
-      else
-        (* in external mode, leave only fields defined by piqi.piqi: binobj and
-         * typename *)
-        let any = x.any in
-        T.Any#{
-          T.default_any () with
-          typename = any.typename;
-          binobj = any.binobj;
-        }
-    in
-    T.gen__any code any
-  end
+  let piqi_any =
+    if not !is_external_mode
+    then
+      (* in internal mode, passing a reference to intermediate Any
+       * prepresentation registered using Piqi_objstore *)
+      T.Any#{
+        T.default_any () with
+        ref = Some (Piqobj.put_any x);
+      }
+    else
+      (* in external mode, leave only fields defined by piqi.piqi: binobj and
+       * typename *)
+      let typename = x.typename in
+      let binobj = Piqobj.pb_of_any x in
+      T.Any#{
+        T.default_any () with
+        typename = typename;
+        binobj = Some binobj;
+      }
+  in
+  Piqloc.check_add_fake_loc x ~label:"_any";
+  T.gen__any code piqi_any
 
 
 and gen_record code x =
@@ -375,4 +354,8 @@ and resolve_wire_type ?wire_type x =
   match wire_type, this_wire_type with
     | _, Some _ -> this_wire_type
     | _ -> wire_type
+
+
+let _ =
+  Piqobj.to_pb := gen_binobj
 

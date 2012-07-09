@@ -76,13 +76,12 @@ let gen_erlang_binary x =
  * parse a field *)
 let gen_default = function
   | None -> iol []
-  | Some {T.Any.binobj = Some x} ->
+  | Some piqi_any ->
+      let pb = Piqobj.pb_of_piqi_any piqi_any in
       iol [
         ios ", "; (* separate Default from the previous parameter *)
-        gen_erlang_binary x;
+        gen_erlang_binary pb;
       ]
-  | _ ->
-      assert false (* binobj should be defined by that time *)
 
 
 let esc x = ios "_" ^^ ios (String.capitalize x)

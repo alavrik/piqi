@@ -16,13 +16,13 @@
 *)
 
 
-open Piqi_json_common
-
-
 module C = Piqi_common
 open C
 
 open Piqobj_common
+
+
+type json = Piqi_json_type.json
 
 
 let error_duplicate obj name =
@@ -91,11 +91,10 @@ let rec parse_obj (t:T.piqtype) (x:json) :Piqobj.obj =
 
 
 and parse_any x =
-  (* store JSON parse tree in the object store; it will be retrieved later when
-   * needed by the referece *)
-  let ref = Piqi_objstore.put x in
-  let piq_any = T.Any#{T.default_any() with ref = Some ref} in
-  Any#{ any = piq_any; obj = None }
+  Any#{
+    Piqobj.default_any with
+    json_ast = Some x;
+  }
 
 
 and parse_record t = function
@@ -198,7 +197,7 @@ and find_flags (name:string) (l:(string*json) list) :(string list * (string*json
 and parse_optional_field name field_type default l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> Piqobj_of_wire.parse_default field_type default, rem
+    | [] -> Piqobj_common.parse_default field_type default, rem
     | [`Null ()] -> None, rem
     | [x] -> Some (parse_obj field_type x), rem
     | _::o::_ -> error_duplicate o name
@@ -290,4 +289,8 @@ and parse_alias t x =
   debug "parse_alias: %s\n" (some_of t.T.Alias#name);
   let obj = parse_obj obj_type x in
   A#{ t = t; obj = obj }
+
+
+let _ =
+  Piqobj.of_json := parse_obj
 

@@ -52,3 +52,11 @@ let full_typename x =
   C.full_piqi_typename (type_of x)
 
 
+let parse_default piqtype (default :T.any option) :Piqobj.obj option =
+  match default with
+    | _ when not !C.resolve_defaults -> None
+    | None -> None
+    | Some piqi_any ->
+        let any = Piqobj.any_of_piqi_any piqi_any in
+        Some (some_of any.Any#obj) (* obj must be resolved already *)
+

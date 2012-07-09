@@ -10,7 +10,7 @@
 
 
 .alias [
-    .name ast-word
+    .name word
     .type string
 
     .piq-format.word
@@ -18,8 +18,8 @@
 
 
 .alias [
-    .name ast-name
-    .type ast-word
+    .name name
+    .type word
 ]
 
 
@@ -36,7 +36,7 @@
     ]
     .option [ .type float ]
     .option [ .type bool ]
-    .option [ .name word .type ast-word ]
+    .option [ .type word ]
     .option [
         .name ascii-string
         .type string
@@ -51,15 +51,14 @@
         .type string
     ]
     .option [
-        .name name
-        .type ast-name
+        .type name
     ]
     .option [
         .type named
     ]
     .option [
         .name type
-        .type ast-name
+        .type name
 
         .ocaml-name "typename"
     ]
@@ -86,7 +85,7 @@
 .record [
     .name named
 
-    .field [ .name name .type ast-name ]
+    .field [ .type name ]
     .field [
         .name value
         .type ast
@@ -99,7 +98,7 @@
 
     .field [
         .name type
-        .type ast-name
+        .type name
 
         .ocaml-name "typename"
     ]

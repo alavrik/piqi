@@ -494,74 +494,26 @@ let assert_loc () =
     piqi_warning s
 
 
-(* convert textobj, i.e. JSON or XML to piqobj -- this function will be set by
- * either Piqi_json or Piqi_xml, depending on which format we are dealing with
- * at the moment *)
-let piqobj_of_ref_init (piqtype: T.piqtype) (text: int) :Piqobj.obj =
-  assert false
-
-let piqobj_of_ref = ref piqobj_of_ref_init
-
-
-let resolve_default_value default piqtype piqobj =
-    assert_loc ();
-    debug_loc "resolve_default_value(0)";
-    let binobj = Piqobj_to_wire.gen_binobj piqobj in
-
-    (* NOTE: fixing (preserving) location counters which get skewed during
-     * parsing defaults *)
-    Piqloc.icount := !Piqloc.ocount;
-    debug_loc "resolve_default_value(1)";
-
-    default.T.Any.binobj <- Some binobj;
-    default.T.Any.typename <- Some (C.full_piqi_typename piqtype);
-    ()
-
-
 let resolve_field_default x =
-  (* debug "resolve_field_default: %s\n" (C.name_of_field x); *)
   let open F in
-  (match x.default, x.piqtype with
+  match x.default, x.piqtype with
     | None, _ -> () (* no default *)
-    | Some {T.Any.binobj = Some _; typename = Some _}, _ ->
-        (* nothing to do -- object is already resolved *)
+    | Some piqi_any, Some piqtype ->
+        assert_loc ();
+        debug_loc "resolve_default_value(0)";
+
+        let any = Piqobj.any_of_piqi_any piqi_any in
+
+        debug "resolve_field_default: %s\n" (C.name_of_field x);
+        Piqobj.resolve_obj any ~piqtype;
+
+        (* NOTE: fixing (preserving) location counters which get skewed during
+         * parsing defaults *)
+        Piqloc.icount := !Piqloc.ocount;
+        debug_loc "resolve_default_value(1)";
         ()
-    | Some ({T.Any.binobj = Some _} as default), Some piqtype ->
-        (* TODO, XXX: this is a temporary workaround for something that should
-         * never happen: typename should always be present next to binobj *)
-        default.T.Any.typename <- Some (C.full_piqi_typename piqtype)
-
-    | Some ({T.Any.cached_piq_ast = Some ast} as default), Some piqtype ->
-        let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
-        resolve_default_value default piqtype piqobj
-
-    | Some ({T.Any.piq_ast_ref = Some piq_ast_ref} as default), Some piqtype ->
-        (* FIXME: potential leak *)
-        debug "resolve_field_default piq_ast_ref : %s\n" (C.name_of_field x);
-        let ast = Piqi_objstore.get piq_ast_ref in
-        default.T.Any.cached_piq_ast <- Some ast; (* XXX: cache the ast value *)
-        let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
-        resolve_default_value default piqtype piqobj
-
-    | Some ({T.Any.ref = Some ref} as default), Some piqtype ->
-        debug "resolve_field_default JSON or XML: %s\n" (C.name_of_field x);
-        let piqobj = !piqobj_of_ref piqtype ref in
-        resolve_default_value default piqtype piqobj
-
-    | _, None -> () (* there is no default for a flag *)
     | _ ->
-        assert false (* either binobj or ast or ref must be defined *)
-  );
-  (* TODO: this is temporary: make sure piq_ast is always present; otherwise,
-   * Piqobj_of_piq will break on parsing Piqi while resolving default value for
-   * field mode *)
-  if !is_boot_mode
-  then (
-    match x.default with
-      | None -> ()
-      | Some any ->
-          ignore (Piqobj_to_piq.ast_of_any any)
-  )
+        assert false
 
 
 let resolve_defaults = function
@@ -934,7 +886,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
   (* Piqloc.trace := false; *)
   debug "apply_extensions(0)\n";
   let obj_ast = mlobj_to_ast obj_def obj_gen_f obj in
-  let extension_asts = List.map Piqobj_to_piq.ast_of_any extension_entries in
+  let extension_asts = List.map Piqobj.piq_of_piqi_any extension_entries in
 
   let override l =
     if not override
@@ -1794,21 +1746,15 @@ let boot () =
   (* don't cache them as we are adding the spec to the DB explicitly below *)
 
   trace "boot(1)\n";
-  let boot = process_piqi T.piqi_boot ~cache:true in
-  let modname = some_of T.piqi_boot.P#modname in
-  Piqi_db.remove_piqi modname;
+  let boot = process_piqi T.piqi_boot ~cache:false in
   piqi_boot := Some boot;
 
   trace "boot(2)\n";
-  let lang = process_piqi T.piqi_lang ~cache:true in
-  let modname = some_of T.piqi_lang.P#modname in
-  Piqi_db.remove_piqi modname;
+  let lang = process_piqi T.piqi_lang ~cache:false in
   piqi_lang := Some lang;
 
   trace "boot(3)\n";
-  let spec = process_piqi T.piqi_spec ~cache:true in
-  let modname = some_of T.piqi_spec.P#modname in
-  Piqi_db.remove_piqi modname;
+  let spec = process_piqi T.piqi_spec ~cache:false in
   piqi_spec := Some spec;
 
   (* add the boot spec to the DB under a special name *)
@@ -1928,8 +1874,10 @@ let init () =
   if not !is_initialized
   then (
     (* XXX *)
+    (*
     if !Config.debug_level > 0 || !Config.flag_trace
     then load_embedded_boot_piqi ();
+    *)
 
     is_initialized := true
   )

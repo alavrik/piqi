@@ -35,3 +35,5 @@ piqic_ocaml_defaults.ml
 piqi_pp.ml
 piq_ast.ml
 piqi_objstore.ml
+piqi_xml_type.mli
+piqi_json_type.mli

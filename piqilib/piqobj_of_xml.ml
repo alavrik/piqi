@@ -22,8 +22,8 @@ open C
 open Piqobj_common
 
 
-type xml = Piqi_xml.xml
-type xml_elem = Piqi_xml.xml_elem
+type xml = Piqi_xml_type.xml
+type xml_elem = Piqi_xml_type.xml_elem
 
 
 let handle_unknown_field = Piqobj_of_json.handle_unknown_field
@@ -50,18 +50,14 @@ let parse_string_scalar xml_elem err_string =
 
 let parse_int xml_elem = 
   let s = parse_scalar xml_elem "int constant expected" in
-  let i =
-    try 
-      (* XXX: move this function to a common module *)
-      Piqi_json_parser.parse_int64 s
-    with Failure _ ->
-      (* NOTE: actually, there can be two errors here: invalid integer literal
-       * and integer overflow *)
-      error xml_elem "invalid int constant"
-  in
-  match i with
-    | `Int x -> `int x
-    | `Uint x -> `uint x
+  try
+    match s.[0] with
+      | '-' -> `int (Int64.of_string s) (* negative integer *)
+      | _ -> `uint (Piq_parser.parse_uint s)
+  with Failure _ ->
+    (* NOTE: actually, there can be two errors here: invalid integer literal
+     * and integer overflow *)
+    error xml_elem "invalid int constant"
 
 
 let parse_float xml_elem =
@@ -115,11 +111,10 @@ let rec parse_obj (t: T.piqtype) (x: xml_elem) :Piqobj.obj =
 
 
 and parse_any x =
-  (* store JSON parse tree in the object store; it will be retrieved later when
-   * needed by the referece *)
-  let ref = Piqi_objstore.put (`Elem x) in
-  let piq_any = T.Any#{T.default_any() with ref = Some ref} in
-  Any#{ any = piq_any; obj = None }
+  Any#{
+    Piqobj.default_any with
+    xml_ast = Some (`Elem x);
+  }
 
 
 and parse_record t xml_elem =
@@ -225,7 +220,7 @@ and find_flags (name:string) (l:xml_elem list) :(string list * xml_elem list) =
 and parse_optional_field name field_type default l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> Piqobj_of_wire.parse_default field_type default, rem
+    | [] -> Piqobj_common.parse_default field_type default, rem
     | x::tail ->
         check_duplicate name tail;
         Some (parse_obj field_type x), rem
@@ -335,4 +330,8 @@ let parse_obj t xml =
         parse_obj t xml_elem
     | _ ->
         error xml "XML root element expected"
+
+
+let _ =
+  Piqobj.of_xml := parse_obj
 

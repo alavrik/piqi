@@ -264,9 +264,7 @@ and
     sig
       type t =
         { mutable typename : string option;
-          mutable binobj : Piqtype.binary option; mutable ref : int option;
-          mutable cached_piq_ast : Piqtype.piq_ast option;
-          mutable piq_ast_ref : int option
+          mutable binobj : Piqtype.binary option; mutable ref : int option
         }
       
     end = Any
@@ -942,23 +940,13 @@ and parse_any x =
   in
     refer count
       (let (_ref, x) = Piqirun.parse_optional_field 5691731 parse_int x in
-       let (_cached_piq_ast, x) =
-         Piqirun.parse_optional_field 185802466 parse_piq_ast x in
        let (_typename, x) =
          Piqirun.parse_optional_field 218690234 parse_string x in
        let (_binobj, x) =
-         Piqirun.parse_optional_field 219565456 parse_binary x in
-       let (_piq_ast_ref, x) =
-         Piqirun.parse_optional_field 260356947 parse_int x
+         Piqirun.parse_optional_field 219565456 parse_binary x
        in
          (Piqirun.check_unparsed_fields x;
-          {
-            Any.ref = _ref;
-            Any.cached_piq_ast = _cached_piq_ast;
-            Any.typename = _typename;
-            Any.binobj = _binobj;
-            Any.piq_ast_ref = _piq_ast_ref;
-          }))
+          { Any.ref = _ref; Any.typename = _typename; Any.binobj = _binobj; }))
 and parse_alias x =
   let x = Piqirun.parse_record x in
   let count = next_count ()
@@ -1418,17 +1406,11 @@ and gen__enum code x =
 and gen__any code x =
   (refer x;
    let _ref = Piqirun.gen_optional_field 5691731 gen__int x.Any.ref in
-   let _cached_piq_ast =
-     Piqirun.gen_optional_field 185802466 gen__piq_ast x.Any.cached_piq_ast in
    let _typename =
      Piqirun.gen_optional_field 218690234 gen__string x.Any.typename in
    let _binobj =
-     Piqirun.gen_optional_field 219565456 gen__binary x.Any.binobj in
-   let _piq_ast_ref =
-     Piqirun.gen_optional_field 260356947 gen__int x.Any.piq_ast_ref
-   in
-     Piqirun.gen_record code
-       [ _ref; _cached_piq_ast; _typename; _binobj; _piq_ast_ref ])
+     Piqirun.gen_optional_field 219565456 gen__binary x.Any.binobj
+   in Piqirun.gen_record code [ _ref; _typename; _binobj ])
 and gen__alias code x =
   (refer x;
    let _wire_type =
@@ -1688,13 +1670,7 @@ and default_enum () =
     Enum.json_name = None;
   }
 and default_any () =
-  {
-    Any.ref = None;
-    Any.cached_piq_ast = None;
-    Any.typename = None;
-    Any.binobj = None;
-    Any.piq_ast_ref = None;
-  }
+  { Any.ref = None; Any.typename = None; Any.binobj = None; }
 and default_alias () =
   {
     Alias.wire_type = None;

@@ -15,13 +15,14 @@
    limitations under the License.
 *)
 
-open Piqi_json_common
-
 
 module C = Piqi_common
 open C
 
 open Piqobj_common
+
+
+type json = Piqi_json_type.json
 
 
 (* configuration/command-line option:
@@ -69,10 +70,11 @@ and gen_typed_obj x =
 
 and gen_any x =
   let open Any in
-  (* NOTE: converting only typed and fully resolved piq objects to json *)
-  match x.obj with
-    | None -> `Null () (* XXX: will it be always present? *)
-    | Some obj -> gen_obj obj
+  if x.json_ast <> None
+  then some_of x.json_ast
+  else if x.obj <> None
+  then gen_obj (some_of x.obj)
+  else `Null ()
 
 
 and gen_record x =
@@ -143,4 +145,8 @@ and gen_alias x =
   match x.obj with
     | `alias x -> gen_alias x
     | x -> gen_obj x
+
+
+let _ =
+  Piqobj.to_json := gen_obj
 

@@ -55,7 +55,7 @@ let gen_default_ast ast =
 let gen_default = function
   | None -> iol []
   | Some default ->
-      let ast = Piqobj_to_piq.ast_of_any default in
+      let ast = Piqobj.piq_of_piqi_any default in
       gen_default_ast ast
 
 
@@ -203,7 +203,7 @@ let option_def =
 
 
 let gen_extension_item x =
-  let ast = Piqobj_to_piq.ast_of_any x in
+  let ast = Piqobj.piq_of_piqi_any x in
   (* NOTE: recognizing and printing only fields and options *)
   match ast with
   | `named {Piq_ast.Named.name = "field"; Piq_ast.Named.value = ast} ->

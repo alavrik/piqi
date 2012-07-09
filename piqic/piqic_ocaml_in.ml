@@ -63,10 +63,9 @@ let gen_parse_piqtype ?ocaml_type ?wire_type ?(wire_packed=false) (t:T.piqtype) 
  * parse a field *)
 let gen_default = function
   | None -> iol []
-  | Some {T.Any.binobj = Some x} ->
-      iol [ios "~default:"; ioq (String.escaped x) ]
-  | _ ->
-      assert false (* binobj should be defined by that time *)
+  | Some piqi_any ->
+      let pb = Piqobj.pb_of_piqi_any piqi_any in
+      iol [ios "~default:"; ioq (String.escaped pb) ]
 
 
 let esc x = ios "_" ^^ ios x

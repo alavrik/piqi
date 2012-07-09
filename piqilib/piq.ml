@@ -130,25 +130,7 @@ let original_piqi piqi =
 
 
 let piqi_to_piq piqi =
-  (* FIXME: this is pretty ugly: *)
-  (* we need to cache piqi, because otherwise Piqi_db.try_find_piqtype will fail
-   * in Piqobj_to_piq.gen_any *)
-  let modname = some_of piqi.P#modname in
-  let prev_piqi = Piqi_db.try_find_piqi modname in
-  (match prev_piqi with
-    | None -> ()
-    | Some piqi -> Piqi_db.remove_piqi modname
-  );
-  Piqi_db.add_piqi piqi;
-
   let piqi_ast = Piqi_pp.piqi_to_ast (original_piqi piqi) in
-
-  Piqi_db.remove_piqi modname;
-  (match prev_piqi with
-    | None -> ()
-    | Some piqi -> Piqi_db.add_piqi piqi
-  );
-
   `typed {
     Piq_ast.Typed.typename = "piqi";
     Piq_ast.Typed.value = piqi_ast;
@@ -383,21 +365,12 @@ let piqobj_of_json piqtype json :Piqobj.obj =
   Piqobj_of_json.parse_obj piqtype json
 
 
-let piqobj_of_json_ref piqtype ref =
-  let json = Piqi_objstore.get ref in
-  piqobj_of_json piqtype json
-
-
 let piqi_of_json json =
   let piqtype = !Piqi.piqi_spec_def in
   (* don't resolve defaults when reading Json *)
   let piqobj =
     C.with_resolve_defaults false (fun () -> Piqobj_of_json.parse_obj piqtype json)
   in
-
-  (* set the default field resolver to json *)
-  Piqi.piqobj_of_ref := piqobj_of_json_ref;
-
   Piqi.piqi_of_piqobj piqobj
 
 
@@ -458,7 +431,7 @@ let write_json ch (obj:obj) =
   write_json_obj ch json
 
 
-let read_json_ast json_parser :Piqi_json_common.json =
+let read_json_ast json_parser :Piqi_json_type.json =
   let res = Piqi_json.read_json_obj json_parser in
   match res with
     | Some ast -> ast
@@ -532,21 +505,12 @@ let load_json_obj (piqtype: T.piqtype) json_parser :obj =
  * XML reading and writing
  *)
 
-let piqobj_of_xml_ref piqtype ref =
-  let xml = Piqi_objstore.get ref in
-  Piqobj_of_xml.parse_obj piqtype xml
-
-
 let piqi_of_xml xml =
   let piqtype = !Piqi.piqi_spec_def in
   (* don't resolve defaults when reading xml *)
   let piqobj =
     C.with_resolve_defaults false (fun () -> Piqobj_of_xml.parse_obj piqtype xml)
   in
-
-  (* set the default field resolver to xml *)
-  Piqi.piqobj_of_ref := piqobj_of_xml_ref;
-
   Piqi.piqi_of_piqobj piqobj
 
 

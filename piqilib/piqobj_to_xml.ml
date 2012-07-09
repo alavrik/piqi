@@ -22,8 +22,8 @@ open C
 open Piqobj_common
 
 
-type xml = Piqi_xml.xml
-type xml_elem = Piqi_xml.xml_elem
+type xml = Piqi_xml_type.xml
+type xml_elem = Piqi_xml_type.xml_elem
 
 
 let uint64_to_string x =
@@ -74,10 +74,11 @@ let rec gen_obj (x:Piqobj.obj) :xml list =
 
 and gen_any x =
   let open Any in
-  (* NOTE: converting only typed and fully resolved piq objects to xml *)
-  match x.obj with
-    | None -> [`Elem ("undefined", [])] (* XXX: will it be always present? *)
-    | Some obj -> gen_obj obj
+  if x.xml_ast <> None
+  then [some_of x.xml_ast]
+  else if x.obj <> None
+  then gen_obj (some_of x.obj)
+  else [`Elem ("undefined", [])]
 
 
 and gen_record x =
@@ -142,4 +143,8 @@ let gen_obj (obj: Piqobj.obj) :xml =
   let piqtype = Piqobj_common.type_of obj in
   let name = C.piqi_typename piqtype in
   make_element name (gen_obj obj)
+
+
+let _ =
+  Piqobj.to_xml := gen_obj
 

@@ -42,7 +42,10 @@ let gen_builtin_default_value wire_type t =
       | `string | `binary | `text | `word ->
           Piqobj_to_wire.gen_string code ""
   in
-  Piqirun.gen_binobj gen_obj t
+  Piqloc.pause ();
+  let res = Piqirun.gen_binobj gen_obj t in
+  Piqloc.resume ();
+  res
 
 
 (* indication whether there is a defintion that uses "piqi-any" type *)

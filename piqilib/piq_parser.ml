@@ -115,7 +115,7 @@ let piq_addrefret dst (src :piq_ast) =
     | `control x -> f x
     | `raw_word x -> f x
     | `raw_binary x -> f x
-    | `piqi_any x ->
+    | `any _ ->
         assert false
   
 
@@ -325,14 +325,7 @@ let make_string loc str_type s =
 
 
 let retry_parse_uint s =
-  (*
-  try
-  *)
-    Piqi_c.piqi_strtoull s
-  (* XXX: can return a more precise error description:
-  with Failure _ ->
-      error ("invalid decimal integer literal: " ^ quote s)
-  *)
+  Piqi_c.piqi_strtoull s
 
 
 let parse_uint s =
@@ -350,10 +343,8 @@ let parse_uint s =
    * -- we're using if OCaml's conversion function fails on decimal integer.
    *)
   try Int64.of_string s
-  with (Failure _) as e ->
-    match s.[0] with
-      | '0'..'9' -> retry_parse_uint s
-      | _ -> raise e
+  with Failure _ ->
+    retry_parse_uint s
 
 
 let parse_int s =

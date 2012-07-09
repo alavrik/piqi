@@ -1,4 +1,3 @@
-(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
@@ -27,14 +26,10 @@
 
 
 module C = Piqi_common
-open C
 
 
-type xml =
-  [ `Elem of xml_elem
-  | `Data of string
-  ]
-and xml_elem = string * xml list (* (name, [xml]) *)
+type xml = Piqi_xml_type.xml
+type xml_elem = Piqi_xml_type.xml_elem
 
 
 type xml_parser =
@@ -128,7 +123,7 @@ let do_read_xml_obj xml_parser :xml =
     match Xmlm.input i with
      | `Dtd d -> d, input_tree ~el ~data i
      | _ ->
-         error_at (make_loc pos) "invalid XML header"
+         C.error_at (make_loc pos) "invalid XML header"
   in
   let el pos tag contents =
     let (ns, name), attr = tag in
@@ -137,10 +132,10 @@ let do_read_xml_obj xml_parser :xml =
 
     (* check that there is no namespace and no attributes *)
     if ns <> ""
-    then error_at loc "namespaces are not allowed in XML element names";
+    then C.error_at loc "namespaces are not allowed in XML element names";
 
     if attr <> []
-    then error_at loc "attributes are not allowed in XML elements";
+    then C.error_at loc "attributes are not allowed in XML elements";
 
     let xml_elem = (name, contents) in
     let res = `Elem xml_elem in
@@ -168,7 +163,7 @@ let do_read_xml_obj xml_parser :xml =
     Xmlm.Error (pos, err) ->
       let loc = make_loc pos in
       let errstr = Xmlm.error_message err in
-      error_at loc errstr
+      C.error_at loc errstr
 
 
 let read_xml_obj (xml_parser :xml_parser) :xml option =
@@ -181,7 +176,7 @@ let read_xml_obj (xml_parser :xml_parser) :xml option =
       | Xmlm.Error ((line, col), err) ->
           let loc = xml_parser.fname, line, col in
           let errstr = Xmlm.error_message err in
-          error_at loc errstr
+          C.error_at loc errstr
   in
   if is_eoi
   then None

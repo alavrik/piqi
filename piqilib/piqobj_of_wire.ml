@@ -128,34 +128,9 @@ and parse_binobj piqtype binobj =
   Piqirun.parse_binobj (parse_obj piqtype) binobj
 
 
-and parse_piqi_any any =
-  let obj =
-    (* XXX: instead of converting it here, do it lazily when the object is
-     * actually consumed *)
-    match any.T.Any#binobj, any.T.Any#typename with
-      | Some binobj, Some typename ->
-          (* parse binobj if the type is known *)
-          (match Piqi_db.try_find_piqtype typename with
-            | Some t ->
-                (* parse binobj while ignoring location information *)
-                (* XXX: handle exceptions? *)
-                Piqloc.pause ();
-                let res = parse_binobj t binobj in
-                Piqloc.resume ();
-                Some res
-            | None ->
-                None
-          )
-      | _ -> None
-  in
-  Any#{ any = any; obj = obj }
-
-
 and parse_any x =
-  let any = T.parse_any x in
-  (* XXX: get rid of cached piq_ast if it somehow got serialized *)
-  any.T.Any#cached_piq_ast <- None;
-  parse_piqi_any any
+  let piqi_any = T.parse_any x in
+  Piqobj.any_of_piqi_any piqi_any
 
 
 and parse_record t x =
@@ -229,17 +204,8 @@ and parse_optional_field code field_type default l =
   let res = Piqirun.parse_optional_field code (parse_obj field_type) l in
   match res with
     | Some _, _ -> res
-    | None, rem -> parse_default field_type default, rem
-
-
-and parse_default piqtype default =
-  match default with
-    | _ when not !C.resolve_defaults -> None
-    | None -> None
-    | Some x ->
-        let binobj = some_of x.T.Any.binobj in
-        let res = parse_binobj piqtype binobj in
-        Some res
+    | None, rem ->
+        Piqobj_common.parse_default field_type default, rem
 
 
 and parse_repeated_field code field_type l =
@@ -365,10 +331,6 @@ and resolve_wire_type ?wire_type t =
     | _ -> wire_type
 
 
-(* This function is used from piqobj_of_json & piqobj_of_xml *)
-let parse_default piqtype default =
-  Piqloc.pause ();
-  let obj = parse_default piqtype default in
-  Piqloc.resume ();
-  obj
+let _ =
+  Piqobj.of_pb := parse_binobj
 
