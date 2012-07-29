@@ -19,6 +19,7 @@ DIRS_ERLANG = \
 	erlang_perf \
 	erlang_packed \
 	erlang_misc \
+	erlang_import \
 
 
 DIRS_OCAML = \

@@ -190,8 +190,8 @@ let gen_record_type r =
 let gen_option o =
   let open Option in
   match o.erlang_name, o.typeref with
-    | None, Some (`variant v) | None, Some (`enum v) ->
-        ios (scoped_name (some_of v.V#erlang_name)) ^^ ios "()"
+    | None, Some ((`variant v) as def) | None, Some ((`enum v) as def) ->
+        ios_gen_out_typeref def
     | _, Some t ->
         let n = erlname_of_option o in
         iol [
