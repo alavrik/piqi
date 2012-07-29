@@ -46,11 +46,6 @@ let split_name x =
   get_module_name x, get_local_name x
 
 
-let make_local_name modname =
-  let name = get_local_name modname in
-  underscores_to_dashes name
-
-
 let is_valid_char allow = function
   | 'a'..'z'
   | 'A'..'Z'

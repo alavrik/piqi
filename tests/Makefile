@@ -31,6 +31,7 @@ DIRS_OCAML = \
        ocaml_misc \
        ocaml_custom_types \
        ocaml_piq_config \
+       ocaml_riak_pb \
 
 
 DIRS = \

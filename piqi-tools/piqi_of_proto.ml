@@ -97,7 +97,7 @@ module Idtable =
                 (* basename + chop all extensions + underscores to dashes *)
                 let basename = Filename.basename file in
                 let basename = Piqi_file.chop_all_extensions basename in
-                Piqi_name.make_local_name basename
+                underscores_to_dashes basename
         in
         import_name ^ "/" ^ piqi_name
   end
@@ -495,14 +495,10 @@ let process_proto idtable (x:ProtoFile.t) =
 
 let gen_local_modname filename = 
   let modname = gen_modname filename in
-  let name = Piqi_name.make_local_name modname in
-  let path_name = Piqi_name.get_local_name modname in
-  let is_optional =
-    (* import name is mandatory when modname doesn't contain a valid local name
-     *)
-    (name = path_name)
-  in
-  name, is_optional
+  let name = Piqi_name.get_local_name modname in
+  (* import name is mandatory when modname contain underscores *)
+  let is_optional = not (String.contains name '_') in
+  underscores_to_dashes name, is_optional
 
 
 let name_imports idtable filenames =

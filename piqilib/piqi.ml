@@ -178,6 +178,7 @@ let check_name x =
   else ()
 
 
+(* TODO, XXX: this function is not used *)
 let check_scoped_name x =
   if not (Piqi_name.is_valid_scoped_name x)
   then error x ("invalid scoped name: " ^ quote x)
@@ -618,12 +619,10 @@ let check_assign_module_name ?modname fname (piqi:T.piqi) =
     | None, Some x -> 
         piqi.modname <- modname
     | None, None ->
-        (* basename + chop .piqi and .proto.piqi extensions + underscores to
-         * dashes *)
+        (* basename + chop .piqi and .proto.piqi extensions *)
         let basename = Piqi_file.basename fname in
-        let name = Piqi_name.make_local_name basename in
-        if Piqi_name.is_valid_modname name
-        then piqi.modname <- Some name
+        if Piqi_name.is_valid_modname basename
+        then piqi.modname <- Some basename
         else error piqi "piqi module name can not be derived from the file name"
 
 
