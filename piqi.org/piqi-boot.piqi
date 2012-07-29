@@ -125,7 +125,7 @@
 
 
 .alias [
-    .name float
+    .name float64
     .piqi-type.float
 
     .wire-type.fixed64
@@ -133,8 +133,8 @@
 ]
 
 .alias [
-    .name float64
-    .type float
+    .name float
+    .type float64
 ]
 
 .alias [

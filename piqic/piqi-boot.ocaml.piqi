@@ -23,3 +23,9 @@
     .with.ocaml-type "int64"
 ]
 
+
+.extend [
+    (.typedef float64 float32)
+    .with.ocaml-type "float"
+]
+

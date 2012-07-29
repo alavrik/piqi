@@ -20,7 +20,8 @@
  * generation of Ocaml type declarations
  *)
 
-open Piqi_common
+module C = Piqi_common
+open C
 open Iolist
 
 
@@ -357,16 +358,7 @@ let gen_imports l =
  * variants in recursive modules, so instead of relying on OCaml, we need to
  * preorder variants ourselves without relying on OCaml to figure out the order
  * automatically *)
-let order_defs defs =
-  (* we apply this specific ordering only to variants, to be more specific --
-   * only to those variants that include other variants by not specifying tags
-   * for the options *)
-  let variants, rest =
-    List.partition (function
-      | `variant _ | `enum _ -> true
-      | _ -> false)
-    defs
-  in
+let order_variant_defs variants =
   (* topologically sort local variant defintions *)
   let cycle_visit def =
     Piqi_common.error def
@@ -387,9 +379,52 @@ let order_defs defs =
         ) v.V#option
     | _ -> []
   in
-  let variants = Piqi_graph.tsort variants get_adjacent_vertixes ~cycle_visit in
-  (* return the updated list of definitions with sorted variants *)
-  variants @ rest
+  Piqi_graph.tsort variants get_adjacent_vertixes ~cycle_visit
+
+
+(* make sure we define aliases for built-in ocaml types first; some aliases
+ * (e.g. float) can override the default OCaml type names which results in
+ * cyclic type definitions without such ordering *)
+let order_alias_defs alias_defs =
+  let is_boot_alias x =
+    match x.A#parent with
+      | Some (`piqi p) -> C.is_boot_piqi p
+      | _ -> false
+  in
+  let rank = function
+    | `alias x ->
+        if is_boot_alias x
+        then
+          (* aliases of built-in OCaml types go first *)
+          if x.A#ocaml_type <> None then 1 else 2
+        else 100
+    | _ ->
+        assert false
+  in
+  let compare_alias_defs a b =
+    rank a - rank b
+  in
+  List.stable_sort compare_alias_defs alias_defs
+
+
+let order_defs defs =
+  (* we apply this specific ordering only to variants, to be more specific --
+   * only to those variants that include other variants by not specifying tags
+   * for the options *)
+  let variants, rest =
+    List.partition (function
+      | `variant _ | `enum _ -> true
+      | _ -> false)
+    defs
+  in
+  let aliases, rest =
+    List.partition (function
+      | `alias _ -> true
+      | _ -> false)
+    rest
+  in
+  (* return the updated list of definitions with sorted variants and aliases *)
+  (order_alias_defs aliases) @ (order_variant_defs variants) @ rest
 
 
 let gen_piqi (piqi:T.piqi) =
