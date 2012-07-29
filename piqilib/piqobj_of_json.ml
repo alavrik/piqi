@@ -273,7 +273,7 @@ and parse_enum t x =
         let options = t.T.Variant#option in
         let option =
           try
-            let o = List.find (fun o -> some_of o.T.Option#name = name) options in
+            let o = List.find (fun o -> some_of o.T.Option#json_name = name) options in
             O#{ piqtype = o; obj = None }
           with Not_found ->
             error x ("unknown enum option: " ^ quote name)
