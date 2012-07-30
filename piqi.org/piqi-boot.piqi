@@ -145,22 +145,3 @@
     .proto-type "float"
 ]
 
-
-%
-% NOTE: these aliases can be deprecated in future versions
-%
-
-.alias [
-    .name piq-word
-    .type string
-
-    .piq-format.word
-]
-
-.alias [
-    .name piq-text
-    .type string
-
-    .piq-format.text
-]
-

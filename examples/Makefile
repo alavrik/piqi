@@ -4,7 +4,7 @@ all: test_builtin test_complex
 
 test_builtin:
 	set -e; \
-	for i in comment bool int float string piq-text piq-word empty; \
+	for i in comment bool int float string empty; \
 	do \
 		./test_piq $$i; \
 	done
@@ -13,6 +13,10 @@ test_builtin:
 test_complex:
 	./test_piqi empty
 	./test_piqi_proto empty
+
+	./test_piqi piq-format
+	./test_piq piq-word
+	./test_piq piq-text
 
 	./test_piq complex
 	./test_piqi complex

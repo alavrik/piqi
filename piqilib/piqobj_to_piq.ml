@@ -49,6 +49,8 @@ let is_ascii_string s =
 let gen_string ?piq_format s =
   match piq_format with
    | Some `text ->
+       (* TODO: check if we can actually represent it as verbatim text; make
+        * sure there are no non-printable characters *)
        `text s
    | Some `word when Piq_lexer.is_valid_word s ->
        `word s
