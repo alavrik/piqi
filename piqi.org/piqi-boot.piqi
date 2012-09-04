@@ -135,6 +135,10 @@
 .alias [
     .name float
     .type float64
+
+    % adding it so that this type is treated as one of built-in types and
+    % automatically included in every loaded module
+    .piqi-type.float
 ]
 
 .alias [

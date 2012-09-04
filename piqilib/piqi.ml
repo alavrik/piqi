@@ -78,11 +78,19 @@ let add_typedef idtable (typedef:T.typedef) =
   let name = typedef_name typedef in
   debug "add_typedef: %s\n" name;
   if Idtable.mem idtable name
-  then
+  then (
     let prev_def = Idtable.find idtable name in
-    error typedef
-      ("duplicate type definition " ^ quote name ^ "\n" ^
-       error_string prev_def "first defined here")
+    if C.is_builtin_def prev_def
+    then (
+      (* allowing to override a boot def *)
+      C.warning typedef ("override of built-in type definition " ^ quote name);
+      Idtable.add idtable name typedef
+    )
+    else
+      C.error typedef
+        ("duplicate type definition " ^ quote name ^ "\n" ^
+         error_string prev_def "first defined here")
+  )
   else
     Idtable.add idtable name typedef
 
@@ -1337,15 +1345,27 @@ let is_extension modname =
 
 
 (* find all applicable extensions for a given module *)
-let find_extensions modname =
+let find_extensions modname filename =
   let find_extension ext_name =
     let modname = modname ^ "." ^ ext_name in
-    try
-      ignore (Piqi_file.find_piqi modname);
-      trace "found extension: %s\n" modname;
-      [modname]
-    with
-      Not_found -> []
+    let modname_based =
+      try
+        ignore (Piqi_file.find_piqi modname);
+        trace "found modname-based extension: %s\n" modname;
+        [modname]
+      with
+        Not_found -> []
+    in
+    let filename_based =
+      let modname = Piqi_file.chop_piqi_extensions filename ^ "." ^ ext_name in
+      if Sys.file_exists (modname ^ ".piqi")
+      then (
+        trace "found filename-based extension: %s\n" modname;
+        [modname]
+      )
+      else []
+    in
+    modname_based @ filename_based
   in
   if is_extension modname
   then [] (* extensions are not appliable to extensions *)
@@ -1387,7 +1407,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
       []
     else
       List.map (fun x -> Includ#{modname = x})
-      (find_extensions (some_of piqi.P#modname))
+      (find_extensions (some_of piqi.P#modname) fname)
   in
   let includes = piqi.P#includ @ extension_includes in
   let included_piqi = load_includes piqi includes  ~include_path in
@@ -1451,7 +1471,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   (* add defintions from the boot module to the idtable *)
   let boot_defs =
     match !piqi_boot with
-      | Some x when !Config.noboot = false ->
+      | Some x when !Config.noboot = false && not !is_boot_mode && not (C.is_self_spec piqi) ->
           (* NOTE: boot defs should be already extended *)
           x.P#resolved_typedef
       | _ ->

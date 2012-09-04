@@ -20,7 +20,8 @@
  * generation of Erlang -record(...) and -type(...) definitions
  *)
 
-open Piqi_common
+module C = Piqi_common
+open C
 open Iolist
 
 
@@ -81,11 +82,9 @@ let rec gen_piqtype t erlang_type =
 
 and gen_aliastype a =
   let open Alias in
-  match some_of a.parent with
-    | `piqi p when is_boot_piqi p ->
-        gen_piqtype (some_of a.piqtype) a.erlang_type
-    | _ ->
-        gen_deftype a.parent a.erlang_name
+  if C.is_builtin_def (`alias a)
+  then gen_piqtype (some_of a.piqtype) a.erlang_type
+  else gen_deftype a.parent a.erlang_name
 
 
 let ios_gen_in_piqtype t =
@@ -255,11 +254,10 @@ let gen_def x =
   let open Alias in
   match x with
     | `alias a ->
-        (* skip generation of aliases from the boot module *)
-        (match some_of a.parent with
-          | `piqi p when is_boot_piqi p -> []
-          | _ -> [gen_def x]
-        )
+        (* skip generation of aliases of built-in types *)
+        if C.is_builtin_def x
+        then []
+        else [gen_def x]
     | _ ->
         [gen_def x]
 

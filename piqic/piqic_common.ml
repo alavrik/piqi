@@ -57,45 +57,42 @@ let depends_on_piqi_any = ref false
 let is_self_spec = ref false
 
 
-let is_boot_def def =
-  match get_parent def with
-    | `piqi p -> is_boot_piqi p
-    | _ -> false
-
-
-let get_boot_defs seen_defs def =
-  let get_boot_def = function
-    | #T.typedef as x when is_boot_def x ->
-        if List.memq x seen_defs (* previously seen boot def? *)
-        then []
-        else [x]
-    | _ -> []
+let get_builtin_defs piqi seen_defs def =
+  let is_local_def def = (C.get_parent_piqi def == piqi) in
+  let get_builtin_def = function
+    | #T.typedef as x when  (* previously unseen built-in local def? *)
+          C.is_builtin_def x &&
+          not (is_local_def x) &&
+          not (List.memq x seen_defs) ->
+        [x]
+    | _ ->
+        []
   in
-  let get_boot_def_opt = function
-    | Some x -> get_boot_def x
+  let get_builtin_def_opt = function
+    | Some x -> get_builtin_def x
     | None -> []
   in
   match def with
-    | `record x -> flatmap (fun x -> get_boot_def_opt x.F#piqtype) x.R#field
-    | `variant x -> flatmap (fun x -> get_boot_def_opt x.O#piqtype) x.V#option
-    | `list x -> get_boot_def (some_of x.L#piqtype)
+    | `record x -> flatmap (fun x -> get_builtin_def_opt x.F#piqtype) x.R#field
+    | `variant x -> flatmap (fun x -> get_builtin_def_opt x.O#piqtype) x.V#option
+    | `list x -> get_builtin_def (some_of x.L#piqtype)
     | `enum _ -> []
-    | `alias a -> get_boot_def (some_of a.A#piqtype)
+    | `alias a -> get_builtin_def (some_of a.A#piqtype)
 
 
-(* get all boot defintions used by (i.e. reacheable from) the module's
+(* get all built-in defintions used by (i.e. reacheable from) the module's
  * definitions *)
-let get_boot_dependencies piqi =
+let get_builtin_dependencies piqi =
   if !C.piqi_boot = None
   then []
   else
     let rec aux accu root_defs =
-      let new_boot_defs = flatmap (get_boot_defs accu) root_defs in
-      if new_boot_defs = []
+      let new_builtin_defs = flatmap (get_builtin_defs piqi accu) root_defs in
+      if new_builtin_defs = []
       then accu
       else
-        let accu = uniqq (new_boot_defs @ accu) in
-        aux accu new_boot_defs
+        let accu = uniqq (new_builtin_defs @ accu) in
+        aux accu new_builtin_defs
     in
     aux [] piqi.P#resolved_typedef
 
@@ -110,15 +107,10 @@ let piqic_common piqi =
   if not !is_self_spec
   then is_self_spec := Piqi_common.is_self_spec piqi;
 
-  (* implicitly add defintions from the boot module to the current module *)
-  let boot_defs = get_boot_dependencies piqi in
+  (* implicitly add built-in defintions reachable from the current module *)
+  let builtin_defs = get_builtin_dependencies piqi in
 
-  (* NOTE: alternatively, we could just include all boot defintions like that,
-   * but this will produce some unnecessary (unused) parsers, generators and
-   * type defintions:
-   * let boot_defs = (some_of !boot_piqi).P#resolved_typedef in
-   *)
-  piqi.P#resolved_typedef <- boot_defs @ piqi.P#resolved_typedef;
+  piqi.P#resolved_typedef <- builtin_defs @ piqi.P#resolved_typedef;
   ()
 
 

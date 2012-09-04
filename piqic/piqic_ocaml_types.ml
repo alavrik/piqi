@@ -386,20 +386,16 @@ let order_variant_defs variants =
  * (e.g. float) can override the default OCaml type names which results in
  * cyclic type definitions without such ordering *)
 let order_alias_defs alias_defs =
-  let is_boot_alias x =
-    match x.A#parent with
-      | Some (`piqi p) -> C.is_boot_piqi p
-      | _ -> false
-  in
-  let rank = function
-    | `alias x ->
-        if is_boot_alias x
-        then
-          (* aliases of built-in OCaml types go first *)
-          if x.A#ocaml_type <> None then 1 else 2
-        else 100
-    | _ ->
-        assert false
+  let rank def =
+    match def with
+      | `alias x ->
+          if C.is_builtin_def def
+          then
+            (* aliases of built-in OCaml types go first *)
+            if x.A#ocaml_type <> None then 1 else 2
+          else 100
+      | _ ->
+          assert false
   in
   let compare_alias_defs a b =
     rank a - rank b

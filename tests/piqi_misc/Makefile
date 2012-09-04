@@ -13,7 +13,7 @@ test_piqi:
 	set -e; \
 	for i in $(PIQI_FILES:%.piqi=%); \
 	do \
-		../examples/test_piqi $$i >/dev/null; \
+		../examples/test_piqi $$i --no-warnings >/dev/null; \
 	done
 
 

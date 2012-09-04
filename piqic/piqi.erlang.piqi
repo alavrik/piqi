@@ -1,6 +1,7 @@
 
-
 .include [ .module piqi.org/piqi ]
+
+.include [ .module piqic/piqi.erlang-types ]
 
 
 .extend [

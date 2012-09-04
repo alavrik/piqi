@@ -19,3 +19,11 @@
     .with.erlang-name "piqi_any"
 ]
 
+
+.extend [
+    .typedef piqi-any
+
+    % piqi_any is already taken by "any" (#piqi_any{}) itself
+    .with.erlang-name "piqi_piqi_any"
+]
+

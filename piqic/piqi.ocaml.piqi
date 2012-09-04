@@ -2,6 +2,8 @@
 
 .include [ .module piqi.org/piqi ]
 
+.include [ .module piqic/piqi.ocaml-types ]
+
 
 .extend [
     (.typedef record field variant option enum alias list import function)

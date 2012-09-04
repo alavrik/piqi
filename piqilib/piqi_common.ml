@@ -173,6 +173,18 @@ let typedef_name (typedef:T.typedef) =
   some_of res
 
 
+(* whether typedef represents a built-in type *)
+let is_builtin_def (typedef:T.typedef) =
+  (*
+  match get_parent def with
+    | `piqi p -> is_boot_piqi p
+    | _ -> false
+  *)
+  match typedef with
+    | `alias x -> x.A#piqi_type <> None
+    | _ -> false
+
+
 let piqi_typename (t:T.piqtype) =
   let open T in
   (* XXX: built-in types should't be used at that stage *)
@@ -190,10 +202,10 @@ let full_piqi_typename x =
   let name = piqi_typename x in
   match x with
     | #T.typedef as def ->
-        let piqi = get_parent_piqi def in
-        if is_boot_piqi piqi
+        if is_builtin_def def
         then name
         else
+          let piqi = get_parent_piqi def in
           let parent_name = some_of piqi.P#modname in
           parent_name ^ "/" ^ name
     | _ -> (* built-in type *)

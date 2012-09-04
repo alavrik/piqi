@@ -9,7 +9,8 @@ erlang: piqi.piqi
 
 
 piqi.piqi: ../../piqi.org/piqi.piqi
-	piqi expand $< | sed -e 's/piqi.org\///' >$@
+	piqi expand $< >piqi.expanded
+	cat piqi.expanded | sed -e 's/piqi.org\///' >$@
 
 
 test: erlang
@@ -19,7 +20,7 @@ test: erlang
 	cat piqi.piqi >> piqi.piq
 	echo "]" >> piqi.piq
 
-	piqi convert --add-defaults -t pb piqi.piq
+	piqi convert --add-defaults -t pb --no-warnings piqi.piq
 	#./test
 
 

@@ -23,7 +23,7 @@ PRE_TARGETS = $(PIQI_ML_FILES)
 
 
 PIQIC = piqic
-PIQIC_FLAGS = --pp #--leave-tmp-files
+PIQIC_FLAGS = --pp --no-warnings #--leave-tmp-files
 
 
 all: native-code #byte-code debug-code

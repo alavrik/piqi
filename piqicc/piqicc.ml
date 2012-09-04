@@ -211,7 +211,7 @@ let piqicc ch boot_fname spec_fname lang_fname impl_fname =
   (* generate default values for generated OCaml types *)
   Piqic_common.flag_gen_defaults := true;
   (* Override supplied module name *)
-  let piqi_impl = P#{piqi_impl with ocaml_module = Some "Piqtype"} in
+  piqi_impl.P#ocaml_module <- Some "Piqtype";
   let code = iol [
     Piqic_ocaml.gen_ocaml_code piqi_impl;
     code;
