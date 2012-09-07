@@ -135,11 +135,26 @@ and parse_any x =
 
 and parse_record t x =
   let l = Piqirun.parse_record x in
+  (* obtain the reference to unparsed piq fields if we are dealing with
+   * serialized Piqi object *)
+  let unparsed_piq_fields_ref, l =
+    if !C.is_inside_parse_piqi
+    then parse_unparsed_piq_fields_ref l
+    else None, l
+  in
   (* NOTE: fields are pre-order by wire code *)
   let fields_spec = t.T.Record#wire_field in
   let fields, rem = List.fold_left parse_field ([], l) fields_spec in
   Piqirun.check_unparsed_fields rem;
-  R#{ t = t; field = List.rev fields}
+  R#{ t = t; field = List.rev fields; unparsed_piq_fields_ref = unparsed_piq_fields_ref}
+
+
+and parse_unparsed_piq_fields_ref l =
+  let res = Piqirun.parse_optional_field 1 (fun x -> parse_int ~wire_type:`varint x) l in
+  match res with
+    | Some (`uint x), rem -> Some (Int64.to_int x), rem
+    | None, l -> None, l
+    | _ -> assert false
 
 
 and parse_field (accu, rem) t =

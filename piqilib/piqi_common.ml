@@ -61,6 +61,8 @@ type piq_ast = Piq_ast.ast
  * formats: Piq, Wire, JSON *)
 let resolve_defaults = ref false
 
+(* whether we are parsing Piqi right now *)
+let is_inside_parse_piqi = ref false
 
 (* lazily loaded representation of piqi-boot.piqi (see piqi.ml for details) *)
 let piqi_boot :T.piqi option ref = ref None

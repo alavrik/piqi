@@ -138,7 +138,7 @@ and parse_record t xml_elem =
   (* issue warnings on unparsed fields *)
   List.iter handle_unknown_field rem;
   (* put required fields back at the top *)
-  R#{ t = t; field = List.rev fields}
+  R#{ t = t; field = List.rev fields; unparsed_piq_fields_ref = None}
 
 
 and parse_field loc (accu, rem) t =

@@ -125,7 +125,9 @@ and
           mutable proto_custom : string list;
           mutable json_name : string option;
           mutable parent : Piqtype.namespace option;
-          mutable is_func_param : bool; mutable ocaml_name : string option
+          mutable is_func_param : bool;
+          mutable unparsed_piq_ast : Piqtype.uint option;
+          mutable ocaml_name : string option
         }
       
     end = Variant
@@ -140,7 +142,9 @@ and
           mutable json_name : string option;
           mutable parent : Piqtype.namespace option;
           mutable wire_field : Piqtype.field list;
-          mutable is_func_param : bool; mutable ocaml_name : string option
+          mutable is_func_param : bool;
+          mutable unparsed_piq_ast : Piqtype.uint option;
+          mutable ocaml_name : string option
         }
       
     end = Record
@@ -168,6 +172,7 @@ and
           mutable included_piqi : Piqtype.piqi list;
           mutable original_piqi : Piqtype.piqi option;
           mutable ast : Piqtype.piq_ast option;
+          mutable unparsed_piq_ast : Piqtype.uint option;
           mutable ocaml_module : string option
         }
       
@@ -186,6 +191,7 @@ and
           mutable getopt_doc : string option;
           mutable piqtype : Piqtype.piqtype option;
           mutable alt_name : Piqtype.word option;
+          mutable unparsed_piq_ast : Piqtype.uint option;
           mutable ocaml_name : string option
         }
       
@@ -204,18 +210,27 @@ and
           mutable parent : Piqtype.namespace option;
           mutable is_func_param : bool;
           mutable piqtype : Piqtype.piqtype option;
+          mutable unparsed_piq_ast : Piqtype.uint option;
           mutable ocaml_name : string option; mutable ocaml_array : bool
         }
       
     end = Piqi_list
-and Includ : sig type t = { mutable modname : Piqtype.word }
-                  end = Includ
+and
+  Includ :
+    sig
+      type t =
+        { mutable modname : Piqtype.word;
+          mutable unparsed_piq_ast : Piqtype.uint option
+        }
+      
+    end = Includ
 and
   Import :
     sig
       type t =
         { mutable modname : Piqtype.word; mutable name : Piqtype.name option;
           mutable piqi : Piqtype.piqi option;
+          mutable unparsed_piq_ast : Piqtype.uint option;
           mutable ocaml_name : string option
         }
       
@@ -231,6 +246,7 @@ and
           mutable resolved_input : Piqtype.typedef option;
           mutable resolved_output : Piqtype.typedef option;
           mutable resolved_error : Piqtype.typedef option;
+          mutable unparsed_piq_ast : Piqtype.uint option;
           mutable ocaml_name : string option
         }
       
@@ -252,6 +268,7 @@ and
           mutable getopt_doc : string option;
           mutable piqtype : Piqtype.piqtype option;
           mutable alt_name : Piqtype.word option;
+          mutable unparsed_piq_ast : Piqtype.uint option;
           mutable ocaml_name : string option; mutable ocaml_array : bool;
           mutable ocaml_optional : bool
         }
@@ -263,7 +280,8 @@ and
       type t =
         { mutable what : Piqtype.extend_target list; mutable override : bool;
           mutable piqi_with : Piqtype.piqi_any list;
-          mutable quote : Piqtype.piqi_any list
+          mutable quote : Piqtype.piqi_any list;
+          mutable unparsed_piq_ast : Piqtype.uint option
         }
       
     end = Extend
@@ -277,7 +295,9 @@ and
           mutable proto_custom : string list;
           mutable json_name : string option;
           mutable parent : Piqtype.namespace option;
-          mutable is_func_param : bool; mutable ocaml_name : string option
+          mutable is_func_param : bool;
+          mutable unparsed_piq_ast : Piqtype.uint option;
+          mutable ocaml_name : string option
         }
       
     end = Enum
@@ -306,6 +326,7 @@ and
           mutable parent : Piqtype.namespace option;
           mutable is_func_param : bool;
           mutable piqtype : Piqtype.piqtype option;
+          mutable unparsed_piq_ast : Piqtype.uint option;
           mutable ocaml_name : string option;
           mutable ocaml_type : string option
         }
@@ -358,7 +379,9 @@ and parse_variant x =
   let count = next_count ()
   in
     refer count
-      (let (_proto_name, x) =
+      (let (_unparsed_piq_ast, x) =
+         Piqirun.parse_optional_field 1 parse_uint x in
+       let (_proto_name, x) =
          Piqirun.parse_optional_field 139663632 parse_string x in
        let (_name, x) =
          Piqirun.parse_optional_field 150958667 parse_name x in
@@ -377,6 +400,7 @@ and parse_variant x =
        in
          (Piqirun.check_unparsed_fields x;
           {
+            Variant.unparsed_piq_ast = _unparsed_piq_ast;
             Variant.proto_name = _proto_name;
             Variant.name = _name;
             Variant.option = _option;
@@ -466,7 +490,9 @@ and parse_record x =
   let count = next_count ()
   in
     refer count
-      (let (_field, x) =
+      (let (_unparsed_piq_ast, x) =
+         Piqirun.parse_optional_field 1 parse_uint x in
+       let (_field, x) =
          Piqirun.parse_repeated_field 9671866 parse_field x in
        let (_wire_field, x) =
          Piqirun.parse_repeated_field 112412530 parse_field x in
@@ -487,6 +513,7 @@ and parse_record x =
        in
          (Piqirun.check_unparsed_fields x;
           {
+            Record.unparsed_piq_ast = _unparsed_piq_ast;
             Record.field = _field;
             Record.wire_field = _wire_field;
             Record.proto_name = _proto_name;
@@ -556,7 +583,9 @@ and parse_piqi x =
   let count = next_count ()
   in
     refer count
-      (let (_ast, x) =
+      (let (_unparsed_piq_ast, x) =
+         Piqirun.parse_optional_field 1 parse_uint x in
+       let (_ast, x) =
          Piqirun.parse_optional_field 4849474 parse_piq_ast x in
        let (_modname, x) =
          Piqirun.parse_optional_field 13841580 parse_word x in
@@ -601,6 +630,7 @@ and parse_piqi x =
        in
          (Piqirun.check_unparsed_fields x;
           {
+            Piqi.unparsed_piq_ast = _unparsed_piq_ast;
             Piqi.ast = _ast;
             Piqi.modname = _modname;
             Piqi.imported_typedef = _imported_typedef;
@@ -641,7 +671,9 @@ and parse_option x =
   let count = next_count ()
   in
     refer count
-      (let (_code, x) =
+      (let (_unparsed_piq_ast, x) =
+         Piqirun.parse_optional_field 1 parse_uint x in
+       let (_code, x) =
          Piqirun.parse_optional_field 29667629 parse_int32 x in
        let (_proto_name, x) =
          Piqirun.parse_optional_field 139663632 parse_string x in
@@ -668,6 +700,7 @@ and parse_option x =
        in
          (Piqirun.check_unparsed_fields x;
           {
+            Option.unparsed_piq_ast = _unparsed_piq_ast;
             Option.code = _code;
             Option.proto_name = _proto_name;
             Option.name = _name;
@@ -701,7 +734,9 @@ and parse_piqi_list x =
   let count = next_count ()
   in
     refer count
-      (let (_proto_name, x) =
+      (let (_unparsed_piq_ast, x) =
+         Piqirun.parse_optional_field 1 parse_uint x in
+       let (_proto_name, x) =
          Piqirun.parse_optional_field 139663632 parse_string x in
        let (_name, x) =
          Piqirun.parse_optional_field 150958667 parse_name x in
@@ -730,6 +765,7 @@ and parse_piqi_list x =
        in
          (Piqirun.check_unparsed_fields x;
           {
+            Piqi_list.unparsed_piq_ast = _unparsed_piq_ast;
             Piqi_list.proto_name = _proto_name;
             Piqi_list.name = _name;
             Piqi_list.piqtype = _piqtype;
@@ -799,14 +835,23 @@ and parse_includ x =
   let count = next_count ()
   in
     refer count
-      (let (_modname, x) = Piqirun.parse_required_field 13841580 parse_word x
-       in (Piqirun.check_unparsed_fields x; { Includ.modname = _modname; }))
+      (let (_unparsed_piq_ast, x) =
+         Piqirun.parse_optional_field 1 parse_uint x in
+       let (_modname, x) = Piqirun.parse_required_field 13841580 parse_word x
+       in
+         (Piqirun.check_unparsed_fields x;
+          {
+            Includ.unparsed_piq_ast = _unparsed_piq_ast;
+            Includ.modname = _modname;
+          }))
 and parse_import x =
   let x = Piqirun.parse_record x in
   let count = next_count ()
   in
     refer count
-      (let (_modname, x) =
+      (let (_unparsed_piq_ast, x) =
+         Piqirun.parse_optional_field 1 parse_uint x in
+       let (_modname, x) =
          Piqirun.parse_required_field 13841580 parse_word x in
        let (_name, x) =
          Piqirun.parse_optional_field 150958667 parse_name x in
@@ -817,6 +862,7 @@ and parse_import x =
        in
          (Piqirun.check_unparsed_fields x;
           {
+            Import.unparsed_piq_ast = _unparsed_piq_ast;
             Import.modname = _modname;
             Import.name = _name;
             Import.piqi = _piqi;
@@ -852,7 +898,9 @@ and parse_func x =
   let count = next_count ()
   in
     refer count
-      (let (_resolved_input, x) =
+      (let (_unparsed_piq_ast, x) =
+         Piqirun.parse_optional_field 1 parse_uint x in
+       let (_resolved_input, x) =
          Piqirun.parse_optional_field 95864501 parse_typedef x in
        let (_name, x) =
          Piqirun.parse_required_field 150958667 parse_name x in
@@ -871,6 +919,7 @@ and parse_func x =
        in
          (Piqirun.check_unparsed_fields x;
           {
+            Func.unparsed_piq_ast = _unparsed_piq_ast;
             Func.resolved_input = _resolved_input;
             Func.name = _name;
             Func.resolved_output = _resolved_output;
@@ -930,7 +979,9 @@ and parse_field x =
   let count = next_count ()
   in
     refer count
-      (let (_code, x) =
+      (let (_unparsed_piq_ast, x) =
+         Piqirun.parse_optional_field 1 parse_uint x in
+       let (_code, x) =
          Piqirun.parse_optional_field 29667629 parse_int32 x in
        let (_proto_name, x) =
          Piqirun.parse_optional_field 139663632 parse_string x in
@@ -968,6 +1019,7 @@ and parse_field x =
        in
          (Piqirun.check_unparsed_fields x;
           {
+            Field.unparsed_piq_ast = _unparsed_piq_ast;
             Field.code = _code;
             Field.proto_name = _proto_name;
             Field.mode = _mode;
@@ -1016,7 +1068,9 @@ and parse_extend x =
   let count = next_count ()
   in
     refer count
-      (let (_override, x) =
+      (let (_unparsed_piq_ast, x) =
+         Piqirun.parse_optional_field 1 parse_uint x in
+       let (_override, x) =
          incr_count_if_true (Piqirun.parse_flag 153625164 x) in
        let (_what, x) =
          Piqirun.parse_repeated_field 251110212 parse_extend_target x in
@@ -1027,6 +1081,7 @@ and parse_extend x =
        in
          (Piqirun.check_unparsed_fields x;
           {
+            Extend.unparsed_piq_ast = _unparsed_piq_ast;
             Extend.override = _override;
             Extend.what = _what;
             Extend.piqi_with = _piqi_with;
@@ -1037,7 +1092,9 @@ and parse_enum x =
   let count = next_count ()
   in
     refer count
-      (let (_proto_name, x) =
+      (let (_unparsed_piq_ast, x) =
+         Piqirun.parse_optional_field 1 parse_uint x in
+       let (_proto_name, x) =
          Piqirun.parse_optional_field 139663632 parse_string x in
        let (_name, x) =
          Piqirun.parse_optional_field 150958667 parse_name x in
@@ -1056,6 +1113,7 @@ and parse_enum x =
        in
          (Piqirun.check_unparsed_fields x;
           {
+            Enum.unparsed_piq_ast = _unparsed_piq_ast;
             Enum.proto_name = _proto_name;
             Enum.name = _name;
             Enum.option = _option;
@@ -1096,7 +1154,9 @@ and parse_alias x =
   let count = next_count ()
   in
     refer count
-      (let (_wire_type, x) =
+      (let (_unparsed_piq_ast, x) =
+         Piqirun.parse_optional_field 1 parse_uint x in
+       let (_wire_type, x) =
          Piqirun.parse_optional_field 9699074 parse_wire_type x in
        let (_proto_name, x) =
          Piqirun.parse_optional_field 139663632 parse_string x in
@@ -1127,6 +1187,7 @@ and parse_alias x =
        in
          (Piqirun.check_unparsed_fields x;
           {
+            Alias.unparsed_piq_ast = _unparsed_piq_ast;
             Alias.wire_type = _wire_type;
             Alias.proto_name = _proto_name;
             Alias.name = _name;
@@ -1182,6 +1243,8 @@ and packed_gen__wire_type x =
       | `block -> 352089421l))
 and gen__variant code x =
   (refer x;
+   let _unparsed_piq_ast =
+     Piqirun.gen_optional_field 1 gen__uint x.Variant.unparsed_piq_ast in
    let _proto_name =
      Piqirun.gen_optional_field 139663632 gen__string x.Variant.proto_name in
    let _name =
@@ -1200,8 +1263,8 @@ and gen__variant code x =
      Piqirun.gen_optional_field 515275216 gen__string x.Variant.json_name
    in
      Piqirun.gen_record code
-       [ _proto_name; _name; _option; _parent; _ocaml_name; _is_func_param;
-         _proto_custom; _json_name ])
+       [ _unparsed_piq_ast; _proto_name; _name; _option; _parent;
+         _ocaml_name; _is_func_param; _proto_custom; _json_name ])
 and gen__uint64_fixed code x = reference Piqirun.int64_to_fixed64 code x
 and packed_gen__uint64_fixed x = reference1 Piqirun.int64_to_packed_fixed64 x
 and gen__uint64 code x = reference Piqirun.int64_to_varint code x
@@ -1225,6 +1288,8 @@ and gen__typename code x = gen__name code x
 and gen__string code x = reference Piqirun.string_to_block code x
 and gen__record code x =
   (refer x;
+   let _unparsed_piq_ast =
+     Piqirun.gen_optional_field 1 gen__uint x.Record.unparsed_piq_ast in
    let _field =
      Piqirun.gen_repeated_field 9671866 gen__field x.Record.field in
    let _wire_field =
@@ -1245,8 +1310,8 @@ and gen__record code x =
      Piqirun.gen_optional_field 515275216 gen__string x.Record.json_name
    in
      Piqirun.gen_record code
-       [ _field; _wire_field; _proto_name; _name; _parent; _ocaml_name;
-         _is_func_param; _proto_custom; _json_name ])
+       [ _unparsed_piq_ast; _field; _wire_field; _proto_name; _name; _parent;
+         _ocaml_name; _is_func_param; _proto_custom; _json_name ])
 and gen__proto_int64 code x = reference Piqirun.int64_to_signed_varint code x
 and packed_gen__proto_int64 x =
   reference1 Piqirun.int64_to_packed_signed_varint x
@@ -1282,6 +1347,8 @@ and packed_gen__piqi_type x =
 and gen__piqi_any code x = (fun code x -> gen__any code x) code x
 and gen__piqi code x =
   (refer x;
+   let _unparsed_piq_ast =
+     Piqirun.gen_optional_field 1 gen__uint x.Piqi.unparsed_piq_ast in
    let _ast = Piqirun.gen_optional_field 4849474 gen__piq_ast x.Piqi.ast in
    let _modname =
      Piqirun.gen_optional_field 13841580 gen__word x.Piqi.modname in
@@ -1327,11 +1394,12 @@ and gen__piqi code x =
        x.Piqi.extended_func_typedef
    in
      Piqirun.gen_record code
-       [ _ast; _modname; _imported_typedef; _extended_func; _resolved_import;
-         _extend; _import; _included_piqi; _extended_typedef; _custom_field;
-         _resolved_func; _includ; _proto_package; _func; _ocaml_module;
-         _proto_custom; _typedef; _extended_import; _resolved_typedef;
-         _original_piqi; _extended_func_typedef ])
+       [ _unparsed_piq_ast; _ast; _modname; _imported_typedef;
+         _extended_func; _resolved_import; _extend; _import; _included_piqi;
+         _extended_typedef; _custom_field; _resolved_func; _includ;
+         _proto_package; _func; _ocaml_module; _proto_custom; _typedef;
+         _extended_import; _resolved_typedef; _original_piqi;
+         _extended_func_typedef ])
 and gen__piq_format code (x : Piqtype.piq_format) =
   (refer x;
    Piqirun.gen_record code
@@ -1342,6 +1410,8 @@ and gen__piq_ast code x = gen__bool code (Piq_ast.ast_to_bool x)
 and packed_gen__piq_ast x = packed_gen__bool (Piq_ast.ast_to_bool x)
 and gen__option code x =
   (refer x;
+   let _unparsed_piq_ast =
+     Piqirun.gen_optional_field 1 gen__uint x.Option.unparsed_piq_ast in
    let _code =
      Piqirun.gen_optional_field 29667629 gen__int32 x.Option.code in
    let _proto_name =
@@ -1368,9 +1438,9 @@ and gen__option code x =
      Piqirun.gen_optional_field 515275216 gen__string x.Option.json_name
    in
      Piqirun.gen_record code
-       [ _code; _proto_name; _name; _piqtype; _alt_name; _getopt_letter;
-         _typename; _piq_format; _ocaml_name; _piq_repr; _getopt_doc;
-         _json_name ])
+       [ _unparsed_piq_ast; _code; _proto_name; _name; _piqtype; _alt_name;
+         _getopt_letter; _typename; _piq_format; _ocaml_name; _piq_repr;
+         _getopt_doc; _json_name ])
 and gen__namespace code (x : Piqtype.namespace) =
   (refer x;
    Piqirun.gen_record code
@@ -1380,6 +1450,8 @@ and gen__namespace code (x : Piqtype.namespace) =
 and gen__name code x = gen__word code x
 and gen__piqi_list code x =
   (refer x;
+   let _unparsed_piq_ast =
+     Piqirun.gen_optional_field 1 gen__uint x.Piqi_list.unparsed_piq_ast in
    let _proto_name =
      Piqirun.gen_optional_field 139663632 gen__string x.Piqi_list.proto_name in
    let _name =
@@ -1411,9 +1483,9 @@ and gen__piqi_list code x =
      Piqirun.gen_optional_field 515275216 gen__string x.Piqi_list.json_name
    in
      Piqirun.gen_record code
-       [ _proto_name; _name; _piqtype; _typename; _parent; _piq_format;
-         _ocaml_array; _ocaml_name; _is_func_param; _piq_repr; _proto_custom;
-         _wire_packed; _json_name ])
+       [ _unparsed_piq_ast; _proto_name; _name; _piqtype; _typename; _parent;
+         _piq_format; _ocaml_array; _ocaml_name; _is_func_param; _piq_repr;
+         _proto_custom; _wire_packed; _json_name ])
 and gen__int64_fixed code x =
   reference Piqirun.int64_to_signed_fixed64 code x
 and packed_gen__int64_fixed x =
@@ -1430,11 +1502,15 @@ and gen__int code x = reference Piqirun.int_to_zigzag_varint code x
 and packed_gen__int x = reference1 Piqirun.int_to_packed_zigzag_varint x
 and gen__includ code x =
   (refer x;
+   let _unparsed_piq_ast =
+     Piqirun.gen_optional_field 1 gen__uint x.Includ.unparsed_piq_ast in
    let _modname =
      Piqirun.gen_required_field 13841580 gen__word x.Includ.modname
-   in Piqirun.gen_record code [ _modname ])
+   in Piqirun.gen_record code [ _unparsed_piq_ast; _modname ])
 and gen__import code x =
   (refer x;
+   let _unparsed_piq_ast =
+     Piqirun.gen_optional_field 1 gen__uint x.Import.unparsed_piq_ast in
    let _modname =
      Piqirun.gen_required_field 13841580 gen__word x.Import.modname in
    let _name =
@@ -1443,7 +1519,9 @@ and gen__import code x =
      Piqirun.gen_optional_field 173536529 gen__piqi x.Import.piqi in
    let _ocaml_name =
      Piqirun.gen_optional_field 351856652 gen__string x.Import.ocaml_name
-   in Piqirun.gen_record code [ _modname; _name; _piqi; _ocaml_name ])
+   in
+     Piqirun.gen_record code
+       [ _unparsed_piq_ast; _modname; _name; _piqi; _ocaml_name ])
 and gen__function_param code (x : Piqtype.function_param) =
   (refer x;
    Piqirun.gen_record code
@@ -1455,6 +1533,8 @@ and gen__function_param code (x : Piqtype.function_param) =
         | `list x -> gen__piqi_list 129178718 x) ])
 and gen__func code x =
   (refer x;
+   let _unparsed_piq_ast =
+     Piqirun.gen_optional_field 1 gen__uint x.Func.unparsed_piq_ast in
    let _resolved_input =
      Piqirun.gen_optional_field 95864501 gen__typedef x.Func.resolved_input in
    let _name = Piqirun.gen_required_field 150958667 gen__name x.Func.name in
@@ -1472,8 +1552,8 @@ and gen__func code x =
      Piqirun.gen_optional_field 505267210 gen__function_param x.Func.input
    in
      Piqirun.gen_record code
-       [ _resolved_input; _name; _resolved_output; _output; _error;
-         _ocaml_name; _resolved_error; _input ])
+       [ _unparsed_piq_ast; _resolved_input; _name; _resolved_output;
+         _output; _error; _ocaml_name; _resolved_error; _input ])
 and gen__float64 code x = reference Piqirun.float_to_fixed64 code x
 and packed_gen__float64 x = reference1 Piqirun.float_to_packed_fixed64 x
 and gen__float32 code x = reference Piqirun.float_to_fixed32 code x
@@ -1496,6 +1576,8 @@ and packed_gen__field_mode x =
       | `repeated -> 274054266l))
 and gen__field code x =
   (refer x;
+   let _unparsed_piq_ast =
+     Piqirun.gen_optional_field 1 gen__uint x.Field.unparsed_piq_ast in
    let _code = Piqirun.gen_optional_field 29667629 gen__int32 x.Field.code in
    let _proto_name =
      Piqirun.gen_optional_field 139663632 gen__string x.Field.proto_name in
@@ -1530,10 +1612,10 @@ and gen__field code x =
      Piqirun.gen_optional_field 515275216 gen__string x.Field.json_name
    in
      Piqirun.gen_record code
-       [ _code; _proto_name; _mode; _name; _piqtype; _alt_name;
-         _getopt_letter; _typename; _piq_format; _ocaml_array; _ocaml_name;
-         _piq_repr; _wire_packed; _getopt_doc; _default; _ocaml_optional;
-         _json_name ])
+       [ _unparsed_piq_ast; _code; _proto_name; _mode; _name; _piqtype;
+         _alt_name; _getopt_letter; _typename; _piq_format; _ocaml_array;
+         _ocaml_name; _piq_repr; _wire_packed; _getopt_doc; _default;
+         _ocaml_optional; _json_name ])
 and gen__extend_target code (x : Piqtype.extend_target) =
   (refer x;
    Piqirun.gen_record code
@@ -1546,6 +1628,8 @@ and gen__extend_target code (x : Piqtype.extend_target) =
         | `func x -> gen__name 340962072 x) ])
 and gen__extend code x =
   (refer x;
+   let _unparsed_piq_ast =
+     Piqirun.gen_optional_field 1 gen__uint x.Extend.unparsed_piq_ast in
    let _override =
      reference_if_true Piqirun.gen_flag 153625164 x.Extend.override in
    let _what =
@@ -1554,9 +1638,13 @@ and gen__extend code x =
      Piqirun.gen_repeated_field 251164166 gen__piqi_any x.Extend.piqi_with in
    let _quote =
      Piqirun.gen_repeated_field 365880944 gen__piqi_any x.Extend.quote
-   in Piqirun.gen_record code [ _override; _what; _piqi_with; _quote ])
+   in
+     Piqirun.gen_record code
+       [ _unparsed_piq_ast; _override; _what; _piqi_with; _quote ])
 and gen__enum code x =
   (refer x;
+   let _unparsed_piq_ast =
+     Piqirun.gen_optional_field 1 gen__uint x.Enum.unparsed_piq_ast in
    let _proto_name =
      Piqirun.gen_optional_field 139663632 gen__string x.Enum.proto_name in
    let _name = Piqirun.gen_optional_field 150958667 gen__name x.Enum.name in
@@ -1574,8 +1662,8 @@ and gen__enum code x =
      Piqirun.gen_optional_field 515275216 gen__string x.Enum.json_name
    in
      Piqirun.gen_record code
-       [ _proto_name; _name; _option; _parent; _ocaml_name; _is_func_param;
-         _proto_custom; _json_name ])
+       [ _unparsed_piq_ast; _proto_name; _name; _option; _parent;
+         _ocaml_name; _is_func_param; _proto_custom; _json_name ])
 and gen__bool code x = reference Piqirun.bool_to_varint code x
 and packed_gen__bool x = reference1 Piqirun.bool_to_packed_varint x
 and gen__binary code x = reference Piqirun.string_to_block code x
@@ -1589,6 +1677,8 @@ and gen__any code x =
    in Piqirun.gen_record code [ _ref; _typename; _binobj ])
 and gen__alias code x =
   (refer x;
+   let _unparsed_piq_ast =
+     Piqirun.gen_optional_field 1 gen__uint x.Alias.unparsed_piq_ast in
    let _wire_type =
      Piqirun.gen_optional_field 9699074 gen__wire_type x.Alias.wire_type in
    let _proto_name =
@@ -1618,9 +1708,9 @@ and gen__alias code x =
      Piqirun.gen_optional_field 515275216 gen__string x.Alias.json_name
    in
      Piqirun.gen_record code
-       [ _wire_type; _proto_name; _name; _piqtype; _piqi_type; _proto_type;
-         _typename; _parent; _piq_format; _ocaml_name; _is_func_param;
-         _piq_repr; _ocaml_type; _json_name ])
+       [ _unparsed_piq_ast; _wire_type; _proto_name; _name; _piqtype;
+         _piqi_type; _proto_type; _typename; _parent; _piq_format;
+         _ocaml_name; _is_func_param; _piq_repr; _ocaml_type; _json_name ])
   
 let gen_word x = gen__word (-1) x
   
@@ -1716,6 +1806,7 @@ let rec default_word () = default_string ()
 and default_wire_type () = `varint
 and default_variant () =
   {
+    Variant.unparsed_piq_ast = None;
     Variant.proto_name = None;
     Variant.name = None;
     Variant.option = [];
@@ -1741,6 +1832,7 @@ and default_string () =
   Piqirun.string_of_block (Piqirun.parse_default "\n\000")
 and default_record () =
   {
+    Record.unparsed_piq_ast = None;
     Record.field = [];
     Record.wire_field = [];
     Record.proto_name = None;
@@ -1760,6 +1852,7 @@ and default_piqi_type () = `int
 and default_piqi_any () = default_any ()
 and default_piqi () =
   {
+    Piqi.unparsed_piq_ast = None;
     Piqi.ast = None;
     Piqi.modname = None;
     Piqi.imported_typedef = [];
@@ -1786,6 +1879,7 @@ and default_piq_format () = `word
 and default_piq_ast () = Piq_ast.ast_of_bool (default_bool ())
 and default_option () =
   {
+    Option.unparsed_piq_ast = None;
     Option.code = None;
     Option.proto_name = None;
     Option.name = None;
@@ -1803,6 +1897,7 @@ and default_namespace () = `piqi (default_piqi ())
 and default_name () = default_word ()
 and default_piqi_list () =
   {
+    Piqi_list.unparsed_piq_ast = None;
     Piqi_list.proto_name = None;
     Piqi_list.name = None;
     Piqi_list.piqtype = None;
@@ -1829,9 +1924,11 @@ and default_int32 () =
   Piqirun.int32_of_zigzag_varint (Piqirun.parse_default "\b\000")
 and default_int () =
   Piqirun.int_of_zigzag_varint (Piqirun.parse_default "\b\000")
-and default_includ () = { Includ.modname = default_word (); }
+and default_includ () =
+  { Includ.unparsed_piq_ast = None; Includ.modname = default_word (); }
 and default_import () =
   {
+    Import.unparsed_piq_ast = None;
     Import.modname = default_word ();
     Import.name = None;
     Import.piqi = None;
@@ -1840,6 +1937,7 @@ and default_import () =
 and default_function_param () = `name (default_name ())
 and default_func () =
   {
+    Func.unparsed_piq_ast = None;
     Func.resolved_input = None;
     Func.name = default_name ();
     Func.resolved_output = None;
@@ -1860,6 +1958,7 @@ and default_float () =
 and default_field_mode () = `required
 and default_field () =
   {
+    Field.unparsed_piq_ast = None;
     Field.code = None;
     Field.proto_name = None;
     Field.mode =
@@ -1882,6 +1981,7 @@ and default_field () =
 and default_extend_target () = `typedef (default_name ())
 and default_extend () =
   {
+    Extend.unparsed_piq_ast = None;
     Extend.override = false;
     Extend.what = [];
     Extend.piqi_with = [];
@@ -1889,6 +1989,7 @@ and default_extend () =
   }
 and default_enum () =
   {
+    Enum.unparsed_piq_ast = None;
     Enum.proto_name = None;
     Enum.name = None;
     Enum.option = [];
@@ -1905,6 +2006,7 @@ and default_any () =
   { Any.ref = None; Any.typename = None; Any.binobj = None; }
 and default_alias () =
   {
+    Alias.unparsed_piq_ast = None;
     Alias.wire_type = None;
     Alias.proto_name = None;
     Alias.name = None;

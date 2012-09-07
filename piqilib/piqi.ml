@@ -29,6 +29,7 @@ let is_boot_mode = ref true
 (* similarly, for initialization *)
 let is_initialized = ref false
 
+
 (* resolved type definition for the Piqi language;
  * it will be appropriately initialized during boot stage (see below) *)
 let piqi_lang_def :T.piqtype ref = ref `bool
@@ -720,7 +721,10 @@ let mlobj_to_piqobj piqtype wire_generator mlobj =
 
   (* dont' resolve defaults when reading wire *)
   let piqobj =
-    C.with_resolve_defaults false (fun () -> Piqobj_of_wire.parse_binobj piqtype binobj)
+    U.with_bool C.is_inside_parse_piqi true
+    (fun () ->
+      C.with_resolve_defaults false (fun () -> Piqobj_of_wire.parse_binobj piqtype binobj)
+    )
   in
   debug_loc "mlobj_to_piqobj(1)";
   assert_loc ();
@@ -759,7 +763,7 @@ let mlobj_of_ast piqtype wire_parser ast =
    * in piqtype.ml after default values get parsed. We rather decided to fix
    * location bindings here -- see resolve_defaults function for details *)
   let piqobj =
-    U.with_bool Piqobj_of_piq.delay_unknown_warnings true
+    U.with_bool C.is_inside_parse_piqi true
     (fun () ->
       C.with_resolve_defaults true (fun () -> Piqobj_of_piq.parse_obj piqtype ast)
     )
@@ -1406,7 +1410,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
        * modules loaded during initialization *)
       []
     else
-      List.map (fun x -> Includ#{modname = x})
+      List.map (fun x -> Includ#{modname = x; unparsed_piq_ast = None})
       (find_extensions (some_of piqi.P#modname) fname)
   in
   let includes = piqi.P#includ @ extension_includes in
@@ -2018,9 +2022,10 @@ let lang_to_spec piqi =
 
 let piqi_to_ast piqi =
   debug "piqi_to_ast(0)\n";
-  (* XXX: removing custom-field specifications as Piqi doesn't contain any
-   * custom-fields at this stage *)
+  (* TODO: optionally, remove custom fields and all unparsed fields from the
+   * resulting spec
   let piqi = P#{piqi with custom_field = []} in
+  *)
   let ast = mlobj_to_ast !piqi_lang_def T.gen__piqi piqi in
   debug "piqi_to_ast(1)\n";
   ast
@@ -2099,7 +2104,7 @@ let piqi_to_piqobj piqi =
   (* XXX: discard unknown fields -- they don't matter because we are
    * transforming the spec that has been validated already *)
   let piqobj =
-    U.with_bool Piqobj_of_piq.delay_unknown_warnings true
+    U.with_bool C.is_inside_parse_piqi true
     (fun () -> Piqobj_of_piq.parse_obj !piqi_spec_def ast)
   in
 

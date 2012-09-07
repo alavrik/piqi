@@ -139,9 +139,10 @@ let piqicc ch boot_fname spec_fname lang_fname impl_fname =
 
     (* discard unknown fields -- they don't matter because we are transforming the
      * spec that has been validated already *)
-    Piqobj_of_piq.delay_unknown_warnings := true;
-
-    let piqobj = Piqobj_of_piq.parse_obj piqi_type piqi_ast in
+    let piqobj =
+      U.with_bool C.is_inside_parse_piqi true
+      (fun () -> Piqobj_of_piq.parse_obj piqi_type piqi_ast)
+    in
 
     ignore (Piqobj_of_piq.get_unknown_fields ());
 

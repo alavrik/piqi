@@ -67,7 +67,6 @@ let load_piq_ignore (ast : piq_ast) =
     | `list l -> load_piq_ignore_node l
     | _ -> ()
 *)
-let delay_unknown_warnings = ref false
 
 let unknown_fields = ref []
 
@@ -79,7 +78,6 @@ let get_unknown_fields () =
   let res = List.rev !unknown_fields in
   (* reset unkown field list state *)
   unknown_fields := [];
-  delay_unknown_warnings := false;
   res
 
 
@@ -218,7 +216,7 @@ let handle_unknown_field (x: piq_ast) =
   then
     error x ("unknown field: " ^ string_of_piqast x)
   else
-    if !delay_unknown_warnings
+    if !C.is_inside_parse_piqi
     then add_unknown_field x
     else warn_unknown_field x
 
@@ -349,8 +347,13 @@ and do_parse_record loc t l =
     List.fold_left (parse_field loc) ([], l) (required_spec @ other_spec) in
   (* issue warnings on unparsed fields *)
   List.iter handle_unknown_field rem;
+  let unparsed_piq_fields_ref =
+    if !C.is_inside_parse_piqi
+    then Some (Piqi_objstore.put rem) (* FIXME: potential memory leak *)
+    else None
+  in
   (* put required fields back at the top *)
-  R#{ t = t; field = List.rev fields}
+  R#{t = t; field = List.rev fields; unparsed_piq_fields_ref = unparsed_piq_fields_ref}
 
 
 and is_required_field t = (t.T.Field#mode = `required)

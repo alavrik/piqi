@@ -268,6 +268,7 @@ let process_defs (defs: T.typedef list) =
 
 
 let rec hashcode name =
+  if name = "unparsed-piq-ast" then 1 else
   let accu = ref 0 in
   for i = 0 to String.length name - 1 do
     accu := 223 * !accu + Char.code name.[i]

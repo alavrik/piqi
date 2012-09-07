@@ -164,3 +164,23 @@
     ]
 ]
 
+
+.extend [
+    % XXX: think of generating these things implicitly by piqicc inside each
+    % record definition
+    %
+    % NOTE: this field is treated very specially -- see piqi_wire.ml,
+    % piqobj_of_piq.ml ...
+
+    (.typedef
+        record field variant option enum alias list piqi import function
+        extend include
+    )
+
+    .with.field [
+        .name unparsed-piq-ast
+        .type uint
+        .optional
+    ]
+]
+

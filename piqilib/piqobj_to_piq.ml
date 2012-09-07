@@ -155,7 +155,15 @@ and gen_record x =
   let open R in
   (* TODO, XXX: doing ordering at every generation step is inefficient *)
   let fields = order_record_fields x.t x.field in
-  `list (List.map gen_field fields)
+  let encoded_fields =  List.map gen_field fields in
+  let encoded_fields =
+    match x.unparsed_piq_fields_ref with
+      | None -> encoded_fields
+      | Some ref ->
+          let unparsed_fields = Piqi_objstore.get ref in
+          encoded_fields @ unparsed_fields
+  in
+  `list encoded_fields
 
 
 and gen_field x =

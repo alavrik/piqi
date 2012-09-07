@@ -208,7 +208,15 @@ and gen_record code x =
   let open R in
   (* TODO, XXX: doing ordering at every generation step is inefficient *)
   let fields = order_fields x.field in
-  Piqirun.gen_record code (gen_fields fields)
+  let encoded_fields= gen_fields fields in
+  let encoded_fields =
+    match x.unparsed_piq_fields_ref with
+      | Some x when not !is_external_mode ->
+          let encoded_x = gen_int 1 (Int64.of_int x) ~wire_type:`varint in
+          encoded_x :: encoded_fields
+      | _ -> encoded_fields
+  in
+  Piqirun.gen_record code encoded_fields
 
 
 and gen_fields fields =

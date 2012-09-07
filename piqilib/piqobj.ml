@@ -54,6 +54,7 @@ and Record:
       {
         mutable t : Piqi_piqi.record;
         mutable field : Piqobj.field list;
+        mutable unparsed_piq_fields_ref : int option;
       }
   end = Record
 
