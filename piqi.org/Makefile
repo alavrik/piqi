@@ -3,7 +3,7 @@
 PIQI_FILES = \
 	piqi.piq.piqi \
 	piqi.proto.piqi \
-	piqi.wire.piqi \
+	piqi.protobuf.piqi \
 	piqi.json.piqi \
 	piqi.getopt.piqi \
 	\

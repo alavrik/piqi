@@ -1,12 +1,15 @@
-% Wire (binary) extensions for piq type specification
+% Piqi self-spec extensions adding support for binary Google Protocol Buffers
+% format
 %
-% This file defines extensions for piq type specificaiton which enable support
-% for wire (binary) encoding of piq objects.
+% The document describing Protocol Buffers binary "wire" format:
+%
+%   https://developers.google.com/protocol-buffers/docs/encoding
+%
 %
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
 
-.module piqi.org/piqi.wire
+.module piqi.org/piqi.protobuf
 
 
 .include [ .module piqi.org/piqi ]
