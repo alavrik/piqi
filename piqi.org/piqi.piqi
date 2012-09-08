@@ -376,7 +376,10 @@
     ]
 
     .field [
-        .name binobj
+        % arbitrary data object corresponding to the type serialized in Protocol
+        % Buffers format
+
+        .name protobuf
         .type binary
         .optional
     ]

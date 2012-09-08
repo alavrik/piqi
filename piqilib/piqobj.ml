@@ -180,7 +180,7 @@ let any_of_piqi_any (piqi_any: Piqi_piqi.any) :Piqobj.any =
         let any = Any#{
           default_any with
           typename = piqi_any.Piqi_piqi.Any.typename;
-          pb = piqi_any.Piqi_piqi.Any.binobj;
+          pb = piqi_any.Piqi_piqi.Any.protobuf;
         }
         in
         (* cache the value in objstore and in the piqi_any intself *)

@@ -197,7 +197,7 @@ and gen_any code x =
       T.Any#{
         T.default_any () with
         typename = typename;
-        binobj = Some binobj;
+        protobuf = Some binobj;
       }
   in
   Piqloc.check_add_fake_loc x ~label:"_any";
