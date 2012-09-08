@@ -71,3 +71,14 @@
     ]
 ]
 
+
+% function with an alias input parameter
+.function [
+    .name a
+
+    .input.alias [
+        .type string
+        .piq-format.text
+    ]
+]
+

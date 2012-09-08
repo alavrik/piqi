@@ -74,8 +74,12 @@
         .type list
         .ocaml-name "list"
     ]
-    % note: obviously, there's no anonymous alias. at the same time, the "name"
-    % option will turn into <function-name>-input|output|error alias
+    .option [
+        % note: although anonymous alias doesn't make a lot of sense, we need it
+        % for completeness; there's only one use case: when somebody wants to
+        % define additional properties inside such alias (e.g. piq-format)
+        .type alias
+    ]
 ]
 
 

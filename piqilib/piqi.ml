@@ -1164,7 +1164,7 @@ let make_param_name func param_name =
   type_name
 
 
-let make_param_alias name x =
+let make_param_alias_from_name name x =
   let res =
     A#{
       T.default_alias () with
@@ -1195,7 +1195,14 @@ let make_param_enum name x =
 
 
 let make_param_list name x =
+  (* NOTE: the original record is preserved, because it is flat *)
   let res = L#{x with name = Some name} in
+  Piqloc.addrefret x res
+
+
+let make_param_alias name x =
+  (* NOTE: the original record is preserved, because it is flat *)
+  let res = A#{x with name = Some name} in
   Piqloc.addrefret x res
 
 
@@ -1213,7 +1220,7 @@ let resolve_param func param_name param =
     match param with
       | `name x ->
           (* make an alias from name reference *)
-          `alias (make_param_alias type_name x)
+          `alias (make_param_alias_from_name type_name x)
       | `record x ->
           `record (make_param_record type_name x)
       | `variant x ->
@@ -1222,6 +1229,8 @@ let resolve_param func param_name param =
           `enum (make_param_enum type_name x)
       | `list x ->
           `list (make_param_list type_name x)
+      | `alias x ->
+          `alias (make_param_alias type_name x)
   in
   Piqloc.addref param def;
   def
