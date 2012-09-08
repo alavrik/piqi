@@ -1,7 +1,7 @@
-% Piq-specific extensions for piqi
+% Piq-specific extensions for Piqi self-spec
 %
 % This file defines some extensions to the base Piqi specification enabling
-% properties specific to Piq
+% properties specific to the Piq data representation format
 % 
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 

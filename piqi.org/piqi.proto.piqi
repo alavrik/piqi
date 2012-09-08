@@ -1,7 +1,9 @@
-% Google Protocol Buffers extension for piqi
+% Google Protocol Buffers extension for Piqi self-spec
 %
-% This file defines some extensions to base piqi specification enabling fields
-% specific for Protobuf
+% This file defines some extensions to the base Piqi self-specification adding
+% properties related to Protocol Buffer's .proto files. Namely, these properties
+% are used by "piqi to-proto" command that generates .proto files from .piqi
+% files.
 % 
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
