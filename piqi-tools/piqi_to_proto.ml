@@ -572,14 +572,8 @@ and protoname_import import =
 
 
 let piqi_to_proto (piqi: T.piqi) ch =
-  (* implicitly add definitions (aliases) from the boot module to the current
-   * module *)
-  let boot_defs =
-    match !C.piqi_boot with
-      | None -> []
-      | Some x -> x. P#resolved_typedef
-  in
-  piqi.P#resolved_typedef <- boot_defs @ piqi.P#resolved_typedef;
+  (* add built-in type definitions to the current module *)
+  piqi.P#resolved_typedef <- !C.builtin_typedefs @ piqi.P#resolved_typedef;
 
   (* set proto names which are not specified by user *)
   protoname_piqi piqi;

@@ -90,8 +90,8 @@ let replace_piqi piqi =
   loaded_map := Piqitable.add !loaded_map modname piqi
 
 
-let find_local_typedef piqi name =
-  List.find (fun x -> name = typedef_name x) piqi.P#resolved_typedef
+let find_local_typedef typedefs name =
+  List.find (fun x -> name = typedef_name x) typedefs
 
 
 (* To be set up later to Piqi.load_piqi_file; we do this since OCaml doesn't
@@ -103,40 +103,33 @@ let load_piqi_module modname =
   trace "piqi_db: loading module: %s\n" modname;
   trace_enter ();
   let fname = Piqi_file.find_piqi modname in (* can raise Not_found *)
-  (* XXX
-  (* reset Config.noboot option, we can't use this option for
-   * dependent types and modules *)
-  let saved_noboot = !Config.noboot in
-  Config.noboot := false;
-  *)
   let load_piqi_file = some_of !piqi_loader in
   let piqi = load_piqi_file ~modname fname in
-  (*
-  Config.noboot := saved_noboot;
-  *)
   trace_leave ();
   piqi
 
 
-let find_load_piqi_module ~auto_load_piqi modname =
+let find_load_piqi_typedefs ~auto_load_piqi modname =
   match modname with
-    | None -> (* built-in or local type *)
-        (* NOTE: local types are not supported yet *)
-        some_of !C.piqi_boot
+    | None -> (* no modname means built-in type *)
+        !C.builtin_typedefs
     | Some modname ->
         (* check if the module is already loaded, and return it right away *)
-        try find_piqi modname
-        with Not_found when auto_load_piqi ->
-          (* XXX: handle load errors *)
-          load_piqi_module modname
+        let piqi =
+          try find_piqi modname
+          with Not_found when auto_load_piqi ->
+            (* XXX: handle load errors *)
+            load_piqi_module modname
+        in
+        piqi.P#resolved_typedef
 
 
 let find_typedef ?(auto_load_piqi=true) name =
   (* XXX: check global type name before loading? *)
   trace "looking for type: %s\n" name;
   let modname, typename = Piqi_name.split_name name in
-  let piqi = find_load_piqi_module modname ~auto_load_piqi in
-  find_local_typedef piqi typename
+  let typedefs = find_load_piqi_typedefs modname ~auto_load_piqi in
+  find_local_typedef typedefs typename
 
 
 let find_piqtype name =

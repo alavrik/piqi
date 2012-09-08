@@ -83,18 +83,15 @@ let get_builtin_defs piqi seen_defs def =
 (* get all built-in defintions used by (i.e. reacheable from) the module's
  * definitions *)
 let get_builtin_dependencies piqi =
-  if !C.piqi_boot = None
-  then []
-  else
-    let rec aux accu root_defs =
-      let new_builtin_defs = flatmap (get_builtin_defs piqi accu) root_defs in
-      if new_builtin_defs = []
-      then accu
-      else
-        let accu = uniqq (new_builtin_defs @ accu) in
-        aux accu new_builtin_defs
-    in
-    aux [] piqi.P#resolved_typedef
+  let rec aux accu root_defs =
+    let new_builtin_defs = flatmap (get_builtin_defs piqi accu) root_defs in
+    if new_builtin_defs = []
+    then accu
+    else
+      let accu = uniqq (new_builtin_defs @ accu) in
+      aux accu new_builtin_defs
+  in
+  aux [] piqi.P#resolved_typedef
 
 
 let piqic_common piqi =
@@ -115,21 +112,18 @@ let piqic_common piqi =
 
 
 let rec get_piqi_deps piqi =
-  if C.is_boot_piqi piqi
-  then [] (* boot Piqi is not a dependency *)
-  else
-    let imports =
-      List.map (fun x -> some_of x.T.Import#piqi) piqi.P#resolved_import
-    in
-    (* get all imports' dependencies recursively *)
-    let import_deps =
-      flatmap (fun piqi ->
-          flatmap get_piqi_deps piqi.P#included_piqi
-        ) imports
-    in
-    (* remove duplicate entries *)
-    let deps = C.uniqq (import_deps @ imports) in
-    deps @ [piqi]
+  let imports =
+    List.map (fun x -> some_of x.T.Import#piqi) piqi.P#resolved_import
+  in
+  (* get all imports' dependencies recursively *)
+  let import_deps =
+    flatmap (fun piqi ->
+        flatmap get_piqi_deps piqi.P#included_piqi
+      ) imports
+  in
+  (* remove duplicate entries *)
+  let deps = C.uniqq (import_deps @ imports) in
+  deps @ [piqi]
 
 
 let encode_embedded_piqi piqi =
@@ -161,11 +155,4 @@ let arg__gen_defaults =
 let arg__embed_piqi =
     "--embed-piqi", Arg.Set flag_embed_piqi,
       "embed Piqi modules encoded in binary format in the generated code"
-
-
-let init () =
-  (* We have to load embedded Piqi boot modules, because the piqic spec is wider
-   * than piqicc spec, which means that the default Piqtype.boot_piqi, created
-   * using the narrower piqicc spec, misses some fields. *)
-  Piqi.load_embedded_boot_piqi ()
 

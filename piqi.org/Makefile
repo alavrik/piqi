@@ -11,19 +11,7 @@ PIQI_FILES = \
 	piqi-lang.piqi
 
 
-BOOT_PIQI_FILES = piqi-boot.piqi
-
-
-test: test_boot test_piqi test_piqi_piqi
-
-
-test_boot:
-	set -e; \
-	for i in $(BOOT_PIQI_FILES); \
-	do \
-		piqi check --noboot $$i; \
-		piqi light --noboot $$i; \
-	done
+test: test_piqi test_piqi_piqi
 
 
 test_piqi:

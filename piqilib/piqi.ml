@@ -49,6 +49,11 @@ let import_def :T.piqtype ref = ref `bool
 let piqi_spec :T.piqi option ref = ref None
 let piqi_lang :T.piqi option ref = ref None
 
+let is_boot_piqi piqi =
+  match !piqi_spec with
+    | Some x -> x == piqi
+    | None -> false
+
 
 (* processing hooks to be run at the end of Piqi module load & processing *)
 let processing_hooks = ref []
@@ -61,9 +66,6 @@ let register_processing_hook (f :idtable -> T.piqi -> unit) =
   let idtable = Idtable.empty in
 
   (* run the hook on the embedded Piqi self-specification *)
-  if !piqi_boot <> None
-  then f idtable (some_of !piqi_boot);
-
   debug "register_processing_hook(1.5)\n";
   f idtable (some_of !piqi_lang);
 
@@ -375,12 +377,6 @@ let check_wire_type a wt =
                  " is incompatible with piq type " ^ quote (piqi_typename t))
 
 
-let error_noboot obj s =
-  if !is_boot_mode || !Config.noboot
-  then ()
-  else error obj s
-
-
 let check_alias a =
   let open A in
   begin
@@ -390,12 +386,6 @@ let check_alias a =
     if a.typename = None && a.piqi_type = None
     then
       error a ("alias " ^ quote name ^ " must specify either piqi-type or type");
-
-    (* TODO, XXX:
-    if a.piqi_type <> None
-    then
-        error_noboot obj "use of built-in types is allowed only from boot files or when running in \"noboot\" mode"
-    *)
   end
 
 
@@ -1472,19 +1462,12 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   let idtable = Idtable.empty in
   let idtable = add_imported_typedefs idtable imported_defs in
 
-  (* add defintions from the boot module to the idtable *)
-  let boot_defs =
-    match !piqi_boot with
-      | Some x when !Config.noboot = false && not !is_boot_mode && not (C.is_self_spec piqi) ->
-          (* NOTE: boot defs should be already extended *)
-          x.P#resolved_typedef
-      | _ ->
-          (* boot module is being processed right now, or --noboot command-line
-           * option was specified *)
-          []
+  (* add built-in type defintions to the idtable *)
+  let idtable =
+    if not !Config.flag_no_builtin_types && not !is_boot_mode && not (C.is_self_spec piqi)
+    then add_typedefs idtable !C.builtin_typedefs
+    else idtable
   in
-  let idtable = add_typedefs idtable boot_defs in
-
   (*
    * handle functions
    *)
@@ -1770,20 +1753,16 @@ let boot () =
   (* don't cache them as we are adding the spec to the DB explicitly below *)
 
   trace "boot(1)\n";
-  let boot = process_piqi T.piqi_boot ~cache:false in
-  piqi_boot := Some boot;
-
-  trace "boot(2)\n";
   let lang = process_piqi T.piqi_lang ~cache:false in
   piqi_lang := Some lang;
 
-  trace "boot(3)\n";
+  trace "boot(2)\n";
   let spec = process_piqi T.piqi_spec ~cache:false in
   piqi_spec := Some spec;
 
-  (* add the boot spec to the DB under a special name *)
-  boot.P#modname <- Some "embedded/piqi.org/piqi-boot";
-  Piqi_db.add_piqi boot;
+  trace "boot(3)\n";
+  (* populate the list of built-in types *)
+  C.builtin_typedefs := List.filter C.is_builtin_def spec.P#resolved_typedef;
 
   (* add the self-spec to the DB under a special name *)
   spec.P#modname <- Some "embedded/piqi.org/piqi";
@@ -1829,80 +1808,12 @@ let _ =
   )
 
 
-let load_embedded_boot_module (modname, content) =
-  trace "loading embedded module: %s\n" modname;
-  trace_enter ();
-  let fname = "embedded/" ^ modname in
-  let piqi = load_piqi_string fname content in
-  piqi.P#modname <- Some modname; (* fix the modname *)
-  Piqi_db.add_piqi piqi;
-  trace_leave ();
-  piqi
-
-
-let load_embedded_boot_modules () =
-  let rec aux = function
-    | [x] ->
-        (* the last entry in the list is the boot module; return it after
-         * processing *)
-        load_embedded_boot_module x
-    | h::t -> 
-        ignore (load_embedded_boot_module h);
-        aux t
-    | _ ->
-        assert false
-  in
-  let piqi_boot = aux !T.embedded_piqi in
-  (* make loaded modules unsearcheable after loading all of them *)
-  List.iter (fun (modname, _) -> Piqi_db.remove_piqi modname) !T.embedded_piqi;
-  piqi_boot
-
-
-(* Overriding already loaded boot_piqi with exactly the same boot module but now
- * it has correct location info because it is parsed from string representation
- *)
-let load_embedded_boot_piqi () =
-  if!T.embedded_piqi <> []
-  then
-    piqi_boot :=
-      (
-        (* reset previous boot module *)
-        piqi_boot := None;
-        trace "boot using embedded modules\n";
-        trace_enter ();
-        (* XXX: error handling *)
-        let piqi = load_embedded_boot_modules () in
-        trace_leave ();
-        Some piqi
-      )
-
-
-(* used only by piqicc to load a custom Piqi boot module from a file *)
-let load_boot_piqi boot_file  =
-  piqi_boot :=
-    (
-      (* reset previous boot module *)
-      piqi_boot := None;
-      trace "boot using boot file: %s\n" boot_file;
-      trace_enter ();
-      (* TODO: error handling *)
-      let piqi = load_piqi_file boot_file in
-      trace_leave ();
-      Some piqi
-    )
-
-
 (* this is a local function; it can be called more than once, but produce an
- * effect only on its first run *)
+ * effect only on its first run
+ * XXX: call boot () from init()? *)
 let init () =
   if not !is_initialized
   then (
-    (* XXX *)
-    (*
-    if !Config.debug_level > 0 || !Config.flag_trace
-    then load_embedded_boot_piqi ();
-    *)
-
     is_initialized := true
   )
 

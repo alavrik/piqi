@@ -155,9 +155,9 @@ let arg__debug =
    "--debug", Arg.Set_int Config.debug_level,
      "<level> debug level; any number greater than 0 turns on debug messages"
 
-let arg__noboot =
-   "--noboot", Arg.Set Config.noboot,
-     "don't boot, i.e. don't use boot definitions while processing .piqi"
+let arg__no_builtin_types =
+   "--no-builtin-types", Arg.Set Config.flag_no_builtin_types,
+     "don't include built-in type definitions while processing .piqi"
 
 let arg__strict =
    "--strict", Arg.Set Config.flag_strict,
@@ -174,7 +174,7 @@ let common_speclist =
    arg__no_warnings;
    arg__trace;
    arg__debug;
-   arg__noboot;
+   arg__no_builtin_types;
   ]
 
 

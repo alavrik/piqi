@@ -194,11 +194,8 @@ let gen_ocaml_code (piqi: T.piqi) =
   Piqic_common.piqic_common piqi;
 
   (* set ocaml names that are not specified by user *)
-  (match !C.piqi_boot with
-    | None -> ()
-    | Some x -> mlname_piqi x
-  );
   mlname_piqi piqi;
+  mlname_defs !C.builtin_typedefs;
 
   (* set current module's name *)
   Piqic_ocaml_types.top_modname := some_of piqi.P#ocaml_module;
@@ -288,7 +285,6 @@ let init () =
 
 
 let piqic_file ifile =
-  Piqic_common.init ();
   init ();
 
   (* load input .piqi file *)

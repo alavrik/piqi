@@ -217,8 +217,8 @@ let remove_update_seen l =
 
 
 let rec get_piqi_deps piqi ~only_imports =
-  if C.is_boot_piqi piqi
-  then [] (* boot Piqi is not a dependency *)
+  if Piqi.is_boot_piqi piqi
+  then [] (* boot Piqi (a parent of built-in types) is not a dependency *)
   else
     (* get all includes and includes from all included modules -- only *)
     let includes = if only_imports then [piqi] else piqi.P#included_piqi in

@@ -49,7 +49,7 @@ usage() ->
   --no-warnings don't print warnings
   --trace turn on tracing
   --debug <level> debug level; any number greater than 0 turns on debug messages
-  --noboot don't boot, i.e. don't use boot definitions while processing .piqi
+  --no-builtin-types don't include built-in type definitions
   -C <output directory> specify output directory
   --normalize <true|false> normalize identifiers (default: true)
   --gen-defaults generate default value constructors for generated types

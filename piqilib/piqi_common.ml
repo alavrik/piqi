@@ -64,8 +64,10 @@ let resolve_defaults = ref false
 (* whether we are parsing Piqi right now *)
 let is_inside_parse_piqi = ref false
 
-(* lazily loaded representation of piqi-boot.piqi (see piqi.ml for details) *)
-let piqi_boot :T.piqi option ref = ref None
+(* a subset of "Piqi.piqi_spec.P#resolved_typedef" (i.e. Piqi self-spec) that
+ * corresponds to built-in types (built-in types are aliases that have
+ * .piqi-type property defined; this value is set from Piqi.boot () function *)
+let builtin_typedefs :T.typedef list ref = ref []
 
 
 (*
@@ -76,12 +78,6 @@ let piqi_boot :T.piqi option ref = ref None
  * "resolve_defaults" variable is preserved *)
 let with_resolve_defaults new_resolve_defaults f =
   U.with_bool resolve_defaults new_resolve_defaults f
-
-
-let is_boot_piqi p =
-  match !piqi_boot with
-    | None -> false
-    | Some x -> p == x
 
 
 (* TODO: move more of this stuff to piqi_util.ml and leave only Piqi-specific
@@ -177,11 +173,6 @@ let typedef_name (typedef:T.typedef) =
 
 (* whether typedef represents a built-in type *)
 let is_builtin_def (typedef:T.typedef) =
-  (*
-  match get_parent def with
-    | `piqi p -> is_boot_piqi p
-    | _ -> false
-  *)
   match typedef with
     | `alias x -> x.A#piqi_type <> None
     | _ -> false

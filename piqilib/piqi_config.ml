@@ -47,9 +47,9 @@ let reset_paths () =
  *)
 
 
-(* don't boot, i.e. don't include any of embedded or external boot file
- * definitions into piqi specification which is being processed *)
-let noboot = ref false
+(* don't include built-in type definitions into piqi specifications that are
+ * being processed *)
+let flag_no_builtin_types = ref false
 
 
 let flag_strict = ref false

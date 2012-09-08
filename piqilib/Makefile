@@ -51,7 +51,7 @@ PIQI_SOURCES_LIB = \
 PIQI_SOURCES_TAIL += $(PIQI_SOURCES_LIB)
 
 
-PIQI_PIQI = piqi-boot.piqi piqi-lang.piqi piqi-impl.piqi
+PIQI_PIQI = piqi-lang.piqi piqi-impl.piqi
 
 
 PIQICC = ../piqicc/piqicc
@@ -68,9 +68,8 @@ post_target:: install
 
 
 piqi_piqi.ml: $(PIQI_PIQI)
-	# Note, using standard piqi.org/piqi-boot as boot module for piqicc
 	$(PIQICC) $(PIQICC_FLAGS) -o $@.tmp.ml \
-		--boot piqi-boot.piqi --spec piqi.piqi --lang piqi-lang.piqi --impl piqi-impl.piqi
+		--spec piqi.piqi --lang piqi-lang.piqi --impl piqi-impl.piqi
 	$(CAMLP4_O) -o $@ $@.tmp.ml
 
 

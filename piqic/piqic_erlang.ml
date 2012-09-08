@@ -261,11 +261,8 @@ let piqic (piqi: T.piqi) =
   Piqic_common.piqic_common piqi;
 
   (* set Erlang names that are not specified by user *)
-  (match !C.piqi_boot with
-    | None -> ()
-    | Some x -> erlname_piqi x
-  );
   erlname_piqi piqi;
+  erlname_defs !C.builtin_typedefs;
 
   (* set current module's name and type prefix *)
   let modname = some_of piqi.P#erlang_module in
@@ -276,7 +273,7 @@ let piqic (piqi: T.piqi) =
   (* set Erlang name for the type "any" *)
   if !Piqic_common.is_self_spec
   then (
-    let def = Piqi_db.find_local_typedef piqi "any" in
+    let def = Piqi_db.find_local_typedef piqi.P#resolved_typedef "any" in
     let erl_name = Piqic_erlang_types.typedef_erlname def in
     Piqic_erlang_types.any_erlname := erl_name
   );
@@ -291,7 +288,6 @@ let init () =
 
 
 let piqic_file ifile =
-  Piqic_common.init ();
   init ();
 
   (* load input .piqi file *)

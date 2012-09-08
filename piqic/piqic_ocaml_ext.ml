@@ -133,7 +133,6 @@ let piqic_ext piqi =
 
 
 let piqic_file ifile =
-  Piqic_common.init ();
   Piqic_ocaml.init ();
 
   (* load input .piqi file *)
