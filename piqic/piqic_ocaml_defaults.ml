@@ -146,12 +146,13 @@ let gen_variant v =
 
 let gen_alias a =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   iod " "
     [
       ios "default_" ^^ ios (some_of a.ocaml_name); ios "() =";
-      Piqic_ocaml_in.gen_convert_of a.piqtype a.ocaml_type (
+      Piqic_ocaml_in.gen_convert_of piqtype a.ocaml_type (
         gen_default_piqtype
-          (some_of a.piqtype) ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+          piqtype ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
       );
     ]
 

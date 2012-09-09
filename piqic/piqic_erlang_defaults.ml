@@ -129,11 +129,12 @@ let gen_variant v =
 
 let gen_alias a =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   iol [
     ios "default_"; ios (some_of a.erlang_name); ios "() -> ";
-    Piqic_erlang_in.gen_convert_of a.piqtype a.erlang_type (
+    Piqic_erlang_in.gen_convert_of piqtype a.erlang_type (
       gen_default_piqtype
-        (some_of a.piqtype) ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
+        piqtype ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
     );
     ios ".";
   ]

@@ -335,7 +335,7 @@ and gen_list code x =
 
 and gen_alias ?wire_type code x =
   let open A in
-  let wire_type = resolve_wire_type ?wire_type x in
+  let wire_type = resolve_wire_type ?wire_type x.t.T.Alias#wire_type in
   match x.obj with
     | `int x | `uint x -> gen_int code x ?wire_type
     | `float x -> gen_float code x ?wire_type
@@ -345,7 +345,7 @@ and gen_alias ?wire_type code x =
 
 and gen_packed_alias ?wire_type x =
   let open A in
-  let wire_type = resolve_wire_type ?wire_type x in
+  let wire_type = resolve_wire_type ?wire_type x.t.T.Alias#wire_type in
   match x.obj with
     | `int x | `uint x -> gen_packed_int x ?wire_type
     | `float x -> gen_packed_float x ?wire_type
@@ -353,15 +353,12 @@ and gen_packed_alias ?wire_type x =
     | obj -> gen_packed_obj obj
 
 
-and resolve_wire_type ?wire_type x =
-  let open A in
-  let this_wire_type = x.t.T.Alias#wire_type in
-  (* wire-type defined in this alias trumps wire-type passed by the upper
-   * definition *)
-  (* XXX: report a wire-type conflict rather than silently use the default? *)
-  match wire_type, this_wire_type with
-    | _, Some _ -> this_wire_type
-    | _ -> wire_type
+and resolve_wire_type ?wire_type this_wire_type =
+  (* wire-type defined in this alias is overridden by wire-type from the
+   * upper-level definition *)
+  if wire_type <> None
+  then wire_type
+  else this_wire_type
 
 
 let _ =

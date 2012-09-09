@@ -54,6 +54,9 @@ let rec gen_gen_type ocaml_type wire_type wire_packed x =
         if !Piqic_common.is_self_spec
         then ios "(fun code x -> gen__any code x)"
         else ios "(fun code x -> Piqi_piqi.gen__any code x)"
+    | `alias a when wire_type <> None ->
+        (* need special handing for wire_type override *)
+        gen_gen_type a.A#ocaml_type wire_type wire_packed (some_of a.A#piqtype)
     | (#T.typedef as x) ->
         let modname = gen_parent x in
         iol [
@@ -253,7 +256,7 @@ let gen_variant v =
 
 
 let gen_convert_value piqtype ocaml_type direction value =
-  match some_of piqtype with
+  match piqtype with
     | (#T.typedef as typedef) when ocaml_type <> None -> (* custom OCaml type *)
         iol [
           ios "(";
@@ -273,24 +276,26 @@ let gen_convert_to piqtype ocaml_type value =
 
 let gen_alias a =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   iol [
     ios "gen__"; ios (some_of a.ocaml_name);
     ios " code x = ";
-      gen_gen_piqtype (some_of a.piqtype) ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
-      ios " code"; gen_convert_to a.piqtype a.ocaml_type (ios " x");
+      gen_gen_piqtype piqtype ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+      ios " code"; gen_convert_to piqtype a.ocaml_type (ios " x");
   ]
 
 
 let gen_packed_alias a =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   iol [
     ios "packed_gen__"; ios (some_of a.ocaml_name);
     ios " x = ";
-      gen_gen_piqtype (some_of a.piqtype)
+      gen_gen_piqtype piqtype
         ?ocaml_type:a.ocaml_type
         ?wire_type:a.wire_type
         ~wire_packed:true;
-      gen_convert_to a.piqtype a.ocaml_type (ios " x");
+      gen_convert_to piqtype a.ocaml_type (ios " x");
   ]
 
 

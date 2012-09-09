@@ -37,6 +37,9 @@ let rec gen_parse_type ocaml_type wire_type wire_packed x =
         if !Piqic_common.is_self_spec
         then ios "parse_any"
         else ios "Piqi_piqi.parse_any"
+    | `alias a when wire_type <> None ->
+        (* need special handing for wire_type override *)
+        gen_parse_type a.A#ocaml_type wire_type wire_packed (some_of a.A#piqtype)
     | (#T.typedef as x) ->
         let modname = gen_parent x in
         iol [
@@ -224,12 +227,13 @@ let gen_convert_of piqtype ocaml_type value =
 let gen_alias a ~wire_packed =
   let open Alias in
   let packed = ios (if wire_packed then "packed_" else "") in
+  let piqtype = some_of a.piqtype in
   iol [
     packed; ios "parse_"; ios (some_of a.ocaml_name); ios " x = ";
-    gen_convert_of a.piqtype a.ocaml_type (
+    gen_convert_of piqtype a.ocaml_type (
       iol [
         gen_parse_piqtype
-          (some_of a.piqtype)
+          piqtype
           ?ocaml_type:a.ocaml_type
           ?wire_type:a.wire_type
           ~wire_packed;

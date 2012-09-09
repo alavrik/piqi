@@ -310,7 +310,7 @@ and parse_alias0 t x =
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t ?wire_type x =
   let open T.Alias in
-  let wire_type = resolve_wire_type ?wire_type t in
+  let wire_type = Piqobj_to_wire.resolve_wire_type ?wire_type t.wire_type in
   let obj =
     match some_of t.piqtype with
       | `int -> parse_int x ?wire_type
@@ -323,7 +323,7 @@ and parse_alias t ?wire_type x =
 
 and parse_packed_alias t ?wire_type x =
   let open T.Alias in
-  let wire_type = resolve_wire_type ?wire_type t in
+  let wire_type = Piqobj_to_wire.resolve_wire_type ?wire_type t.wire_type in
   let obj =
     match some_of t.piqtype with
       | `int -> parse_packed_int x ?wire_type
@@ -332,18 +332,6 @@ and parse_packed_alias t ?wire_type x =
       | t -> parse_packed_obj t x
   in
   A#{ t = t; obj = obj }
-
-
-(* TODO: move to piqi_wire.ml *)
-and resolve_wire_type ?wire_type t =
-  let open T.Alias in
-  let this_wire_type = t.wire_type in
-  (* wire-type defined in this alias trumps wire-type passed by the upper
-   * definition *)
-  (* XXX: report a wire-type conflict rather than silently use the default? *)
-  match wire_type, this_wire_type with
-    | _, Some _ -> this_wire_type
-    | _ -> wire_type
 
 
 let _ =

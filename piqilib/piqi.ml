@@ -175,12 +175,17 @@ let resolve_def_typenames map = function
   | `variant v ->
       List.iter (resolve_option_typename map) v.V#option
   | `alias a ->
-      (match a.A#piqi_type with
-        | Some x ->
-            a.A#piqtype <- Some (x :> T.piqtype)
-        | None ->
-            a.A#piqtype <- Some (resolve_typename map (some_of a.A#typename))
-      )
+      let piqtype =
+        match a.A#typename with
+          | Some name ->
+              resolve_typename map name
+          | None ->
+              (* either one or another must be defined -- this has been checked
+               * earlier in check_alias *)
+              let piqi_type = some_of a.A#piqi_type in
+              (piqi_type :> T.piqtype)
+      in
+      a.A#piqtype <- Some piqtype
   | `list l ->
       l.L#piqtype <- Some (resolve_typename map l.L#typename)
   | `enum _ ->
@@ -410,12 +415,20 @@ let check_resolved_alias a =
   let open A in
   begin
     (* check for wire-types compatibility with piq types *)
-    match a.wire_type with
+    (match a.wire_type with
       | None -> ()
       | Some x ->
           check_wire_type a x
-    (* XXX: prohibit wire type overrides in upper-level aliases? (currently they
-     * are silently ignored *)
+    );
+    (match some_of a.piqtype with
+      | `alias b ->
+          if a.piqi_type <> None && a.piqi_type <> b.piqi_type
+          then error a "piqi-type doesn't match piqi-type in the redefined alias"
+      | #T.piqi_type -> () (* piqtype was derived from piqi_type *)
+      | _ when a.piqi_type <> None -> (* other definitions *)
+          error a "piqi-type can not be specified for an non-alias"
+      | _ -> ()
+    );
   end
 
 

@@ -70,10 +70,11 @@
 ]
 
 
-% fixed versions
-
+% Fixed versions of int32/64 and uint32/64. "Fixed" here means that they are
+% represented on the wire using exactly 4 and 8 bytes respectively.
 .alias [
     .name int32-fixed
+    .type int32
     .piqi-type.int
 
     .wire-type.signed-fixed32
@@ -82,6 +83,7 @@
 
 .alias [
     .name uint32-fixed
+    .type uint32
     .piqi-type.int
 
     .wire-type.fixed32
@@ -90,6 +92,7 @@
 
 .alias [
     .name int64-fixed
+    .type int64
     .piqi-type.int
 
     .wire-type.signed-fixed64
@@ -98,6 +101,7 @@
 
 .alias [
     .name uint64-fixed
+    .type uint64
     .piqi-type.int
 
     .wire-type.fixed64
@@ -105,9 +109,13 @@
 ]
 
 
-% these two Protocol Buffers types do not have direct piqi counterparts
+% These two types are specific to Protocol Buffers. They have the same
+% on-the-wire representation as uint32/64. The difference is that they allow
+% negative integers which representation is very inefficient requiring many
+% bytes for small absolue values.
 .alias [
     .name proto-int32
+    .type int32
     .piqi-type.int
 
     .wire-type.signed-varint
@@ -116,6 +124,7 @@
 
 .alias [
     .name proto-int64
+    .type int64
     .piqi-type.int
 
     .wire-type.signed-varint

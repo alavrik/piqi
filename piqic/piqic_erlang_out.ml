@@ -55,6 +55,9 @@ let rec gen_gen_type erlang_type wire_type wire_packed x =
         if !Piqic_common.is_self_spec
         then ios "gen_" ^^ ios !any_erlname
         else ios "piqi_piqi:gen_any"
+    | `alias a when wire_type <> None ->
+        (* need special handing for wire_type override *)
+        gen_gen_type a.A#erlang_type wire_type wire_packed (some_of a.A#piqtype)
     | (#T.typedef as x) ->
         let modname = gen_parent x in
         iol [
@@ -260,7 +263,7 @@ let gen_variant v =
 
 
 let gen_convert_value piqtype erlang_type direction value =
-  match some_of piqtype with
+  match piqtype with
     | (#T.typedef as typedef) when erlang_type <> None -> (* custom Erlang type *)
         iol [
           ios (some_of erlang_type);
@@ -278,25 +281,27 @@ let gen_convert_to piqtype erlang_type value =
 
 let gen_alias a =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   iol [
     ios "gen_"; ios (some_of a.erlang_name);
     ios "(Code, X) ->"; indent;
-      gen_gen_piqtype (some_of a.piqtype) ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
-      ios "(Code, "; gen_convert_to a.piqtype a.erlang_type (ios "X"); ios ").";
+      gen_gen_piqtype piqtype ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
+      ios "(Code, "; gen_convert_to piqtype a.erlang_type (ios "X"); ios ").";
     unindent; eol;
   ]
 
 
 let gen_packed_alias a =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   iol [
     ios "packed_gen_"; ios (some_of a.erlang_name);
     ios "(X) ->"; indent;
-      gen_gen_piqtype (some_of a.piqtype)
+      gen_gen_piqtype piqtype
         ?erlang_type:a.erlang_type
         ?wire_type:a.wire_type
         ~wire_packed:true;
-      ios "("; gen_convert_to a.piqtype a.erlang_type (ios "X"); ios ").";
+      ios "("; gen_convert_to piqtype a.erlang_type (ios "X"); ios ").";
     unindent; eol;
   ]
 

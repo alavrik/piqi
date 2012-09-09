@@ -9,13 +9,13 @@
 
 
 .extend [
-    (.typedef int32 uint32 int32-fixed uint32-fixed proto-int32)
+    (.typedef int32 uint32)
     .with.ocaml-type "int32"
 ]
 
 
 .extend [
-    (.typedef int64 uint64 int64-fixed uint64-fixed proto-int64)
+    (.typedef int64 uint64)
     .with.ocaml-type "int64"
 ]
 

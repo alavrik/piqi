@@ -47,6 +47,9 @@ let rec gen_parse_type erlang_type wire_type wire_packed x =
         if !Piqic_common.is_self_spec
         then ios "parse_" ^^ ios !any_erlname
         else ios "piqi_piqi:parse_any"
+    | `alias a when wire_type <> None ->
+        (* need special handing for wire_type override *)
+        gen_parse_type a.A#erlang_type wire_type wire_packed (some_of a.A#piqtype)
     | (#T.typedef as x) ->
         let modname = gen_parent x in
         iol [
@@ -264,12 +267,13 @@ let gen_convert_of piqtype erlang_type value =
 
 let gen_alias a ~wire_packed =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   let packed = ios (if wire_packed then "packed_" else "") in
   iol [
     packed; ios "parse_"; ios (some_of a.erlang_name); ios "(X) ->"; indent;
-      gen_convert_of a.piqtype a.erlang_type (
+      gen_convert_of piqtype a.erlang_type (
         iol [
-          gen_parse_piqtype (some_of a.piqtype)
+          gen_parse_piqtype piqtype
             ?erlang_type:a.erlang_type
             ?wire_type:a.wire_type
             ~wire_packed;
