@@ -134,14 +134,14 @@ let check_code i =
 
 let check_codes codes =
   List.iter check_code codes;
-  match find_dups codes with
+  match U.find_dups codes with
     | None -> ()
     | Some (code, _prev) ->
         error code ("duplicate wire code: " ^ Int32.to_string code)
 
 
 let check_enum_codes codes =
-  match find_dups codes with
+  match U.find_dups codes with
     | None -> ()
     | Some (code, _prev) ->
         warning code ("duplicate enum wire code: " ^ Int32.to_string code)

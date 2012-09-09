@@ -53,7 +53,7 @@ let tokenize s ?(start=0) sep =
 let tokenize_name ?start s =
   let l = tokenize s '.' ?start in
   match l with
-    | h::t -> h :: (flatmap (fun x -> ["."; x]) t)
+    | h::t -> h :: (U.flatmap (fun x -> ["."; x]) t)
     | _ -> assert false
 
 
@@ -70,11 +70,11 @@ let tokenize_typename s =
 let tokenize_name first_c s =
   let parts = tokenize s ':' in
   match first_c with
-    | ":" -> flatmap tokenize_typename parts
+    | ":" -> U.flatmap tokenize_typename parts
     | "." ->
         (match parts with
            | h::t ->
-               "." :: (tokenize_name h) @ (flatmap tokenize_typename t)
+               "." :: (tokenize_name h) @ (U.flatmap tokenize_typename t)
            | _ -> assert false)
     | _ -> assert false
 
@@ -83,13 +83,13 @@ let check_name n =
   (* XXX: this should refer to piq rather than piqi name *)
   if Piqi_name.is_valid_name n ~allow:"."
   then ()
-  else error n ("invalid name: " ^ quote n)
+  else error n ("invalid name: " ^ U.quote n)
 
 
 let check_typename n =
   if Piqi_name.is_valid_typename n ~allow:"."
   then ()
-  else error n ("invalid type name: " ^ quote n)
+  else error n ("invalid type name: " ^ U.quote n)
 
 
 let piq_addrefret dst (src :piq_ast) =
@@ -285,7 +285,7 @@ let expand_control (x: piq_ast) :piq_ast =
           if List.exists (function `control _ -> true | _ -> false) l
           then
             (* expand and splice the results of control expansion *)
-            `list (flatmap expand_list_elem l)
+            `list (U.flatmap expand_list_elem l)
           else
             (* process inner elements *)
             `list (List.map aux l)
@@ -359,7 +359,7 @@ let parse_int s =
           Piqloc.addref s i;
           `uint i
   with Failure _ ->
-      failwith ("invalid integer literal: " ^ quote s)
+      failwith ("invalid integer literal: " ^ U.quote s)
 
 
 let parse_float s =
@@ -376,7 +376,7 @@ let parse_float s =
     Piqloc.addref s f;
     `float f
   with Failure _ ->
-    failwith ("invalid floating point literal: " ^ quote s)
+    failwith ("invalid floating point literal: " ^ U.quote s)
 
 
 let parse_number s =

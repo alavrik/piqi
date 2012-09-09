@@ -26,7 +26,7 @@ type json = Piqi_json_type.json
 
 
 let error_duplicate obj name =
-  error obj ("duplicate field: " ^ quote name)
+  error obj ("duplicate field: " ^ U.quote name)
 
 
 let handle_unknown_field ((n, _) as x) =
@@ -35,7 +35,7 @@ let handle_unknown_field ((n, _) as x) =
     then error
     else warning
   in
-  f x ("unknown field: " ^ quote n)
+  f x ("unknown field: " ^ U.quote n)
 
 
 let parse_int (obj:json) = match obj with
@@ -166,7 +166,7 @@ and do_parse_field loc t l =
 and parse_required_field loc name field_type l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> error loc ("missing field " ^ quote name)
+    | [] -> error loc ("missing field " ^ U.quote name)
     | [x] -> parse_obj field_type x, rem
     | _::o::_ -> error_duplicate o name
 
@@ -188,7 +188,7 @@ and find_flags (name:string) (l:(string*json) list) :(string list * (string*json
     | (n, `Bool true)::t when n = name -> aux (n::accu) rem t
     | (n, `Null ())::t when n = name -> aux accu rem t (* skipping *)
     | (n, _)::t when n = name ->
-        error n ("value can not be specified for flag " ^ quote n)
+        error n ("value can not be specified for flag " ^ U.quote n)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
@@ -229,7 +229,7 @@ and parse_variant t x =
             in
             parse_option o value
           with Not_found ->
-            error x ("unknown variant option: " ^ quote name)
+            error x ("unknown variant option: " ^ U.quote name)
         in
         V#{ t = t; option = option }
     | `Assoc l ->
@@ -264,7 +264,7 @@ and parse_enum t x =
             let o = List.find (fun o -> some_of o.T.Option#json_name = name) options in
             O#{ t = o; obj = None }
           with Not_found ->
-            error x ("unknown enum option: " ^ quote name)
+            error x ("unknown enum option: " ^ U.quote name)
         in
         E#{ t = t; option = option }
     | _ ->

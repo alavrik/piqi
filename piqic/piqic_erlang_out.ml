@@ -211,8 +211,8 @@ let rec gen_option outer_option o =
   (* recursively generate cases from "included" variants *)
   let gen_options options =
         if outer_option <> None
-        then flatmap (gen_option outer_option) options
-        else flatmap (gen_option (Some o)) options
+        then U.flatmap (gen_option outer_option) options
+        else U.flatmap (gen_option (Some o)) options
   in
   match o.erlang_name, o.piqtype with
     | Some ename, None -> (* gen true *)
@@ -247,7 +247,7 @@ let rec gen_option outer_option o =
 
 let gen_variant v =
   let open Variant in
-  let options = flatmap (gen_option None) v.option in
+  let options = U.flatmap (gen_option None) v.option in
   iol
     [
       ios "gen_" ^^ ios (some_of v.erlang_name);

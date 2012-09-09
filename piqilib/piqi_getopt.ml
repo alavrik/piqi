@@ -108,7 +108,7 @@ open C
 
 let check_getopt_letter s =
   let error err =
-    error s ("invalid getopt-letter " ^ quote s ^ ": " ^ err)
+    error s ("invalid getopt-letter " ^ U.quote s ^ ": " ^ err)
   in
   (* NOTE: getopt-letter is a Piq word and, therefore, it can't be empty -- so
    * there's no need to check for that *)
@@ -231,7 +231,7 @@ let parse_name_arg s =
     s.[0] <- '.'; (* replace '-' with '.' to turn it into a Piq name *)
     Piq_lexer.Word s
   )
-  else error ("invalid name: " ^ quote s)
+  else error ("invalid name: " ^ U.quote s)
 
 
 let read_file filename =
@@ -386,7 +386,7 @@ let parse_args (piqtype: T.piqtype) (args: piq_ast list) :Piqobj.obj =
       | _ when is_scalar_type && (not is_piqany_type) ->
           piqi_error
             ("a scalar value expected for type " ^
-              quote (full_piqi_typename piqtype))
+              U.quote (full_piqi_typename piqtype))
       | l ->
           let res = `list l in
           (* set the location *)

@@ -298,8 +298,8 @@ let gen_mod_def = function
 
 
 let gen_defs (defs:T.typedef list) =
-  let mod_defs = flatmap gen_mod_def defs in
-  let odefs = flatmap gen_def defs in
+  let mod_defs = U.flatmap gen_mod_def defs in
+  let odefs = U.flatmap gen_def defs in
   let odef =
     let odef =
       if odefs = []
@@ -367,7 +367,7 @@ let order_variant_defs variants =
   let get_adjacent_vertixes = function
     | `variant v ->
         (* get the list of included variants *)
-        flatmap (fun o ->
+        U.flatmap (fun o ->
           let open O in
           match o.ocaml_name, o.piqtype with
             | None, Some ((`variant _) as def)

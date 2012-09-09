@@ -74,60 +74,15 @@ let builtin_typedefs :T.typedef list ref = ref []
  * Common functions
  *)
 
-(* Run a function with a specific resolve_defauls setting. The global
- * "resolve_defaults" variable is preserved *)
-let with_resolve_defaults new_resolve_defaults f =
-  U.with_bool resolve_defaults new_resolve_defaults f
-
-
-(* TODO: move more of this stuff to piqi_util.ml and leave only Piqi-specific
- * functions here *)
 let some_of = function
   | Some x -> x
   | None -> assert false
 
 
-let flatmap f l =  List.concat (List.map f l)
-
-
-let find_dups l =
-  let rec aux = function
-    | [] -> None
-    | h::t ->
-        try 
-          let dup = List.find (fun x -> x = h) t in
-          Some (dup, h)
-        with Not_found -> aux t
-  in aux l
-
-
-let quote s = "\"" ^ s ^ "\""
-
-
-(* NOTE: naive, non-tail recursive. Remove duplicates from the list using
- * reference equality, preserves the initial order *)
-let rec uniqq = function
-  | [] -> []
-  | h::t ->
-      let t = uniqq t in
-      if List.memq h t then t else h :: t
-
-
-(* leave the first of the duplicate elements in the list instead of the last *)
-let uniqq l =
-  List.rev (uniqq (List.rev l))
-
-
-let rec uniq = function
-  | [] -> []
-  | h::t ->
-      let t = uniq t in
-      if List.mem h t then t else h :: t
-
-
-(* leave the first of the duplicate elements in the list instead of the last *)
-let uniq l =
-  List.rev (uniq (List.rev l))
+(* Run a function with a specific resolve_defauls setting. The global
+ * "resolve_defaults" variable is preserved *)
+let with_resolve_defaults new_resolve_defaults f =
+  U.with_bool resolve_defaults new_resolve_defaults f
 
 
 let get_parent (typedef:T.typedef) :T.namespace =
@@ -289,6 +244,7 @@ let depends_on_piqi_any (piqi: T.piqi) =
 
 (* 
  * error reporting, printing and handling
+ * TODO: move these functions to piqi_util.ml
  *)
 
 let string_of_loc (file, line, col) =

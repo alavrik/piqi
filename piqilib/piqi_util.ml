@@ -73,3 +73,47 @@ let with_bool bool_ref value f =
      bool_ref := saved_value;
      raise exn
 
+
+(* list flatmap *)
+let flatmap f l =  List.concat (List.map f l)
+
+
+let find_dups l =
+  let rec aux = function
+    | [] -> None
+    | h::t ->
+        try
+          let dup = List.find (fun x -> x = h) t in
+          Some (dup, h)
+        with Not_found -> aux t
+  in aux l
+
+
+let quote s = "\"" ^ s ^ "\""
+
+
+(* NOTE: naive, non-tail recursive. Remove duplicates from the list using
+ * reference equality, preserves the initial order *)
+let rec uniqq = function
+  | [] -> []
+  | h::t ->
+      let t = uniqq t in
+      if List.memq h t then t else h :: t
+
+
+(* leave the first of the duplicate elements in the list instead of the last *)
+let uniqq l =
+  List.rev (uniqq (List.rev l))
+
+
+let rec uniq = function
+  | [] -> []
+  | h::t ->
+      let t = uniq t in
+      if List.mem h t then t else h :: t
+
+
+(* leave the first of the duplicate elements in the list instead of the last *)
+let uniq l =
+  List.rev (uniq (List.rev l))
+

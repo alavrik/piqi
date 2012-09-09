@@ -86,7 +86,7 @@ and gen_record x =
   let field_types = x.t.T.Record.field in
   (* generate fields and order them according to the order of fields in the
    * original Piqi record specification *)
-  flatmap (gen_field x.field) field_types
+  U.flatmap (gen_field x.field) field_types
 
 
 and gen_field fields t =

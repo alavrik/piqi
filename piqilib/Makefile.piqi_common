@@ -9,6 +9,7 @@ all:
 
 PIQI_SOURCES_HEAD = \
 	piqloc.ml \
+	piqi_util.ml \
 	piq_ast.ml \
 
 
@@ -19,7 +20,6 @@ PIQI_SOURCES_TAIL = \
 	piqi_config.ml \
 	piqi_iolist.ml \
 	piqi_graph.ml \
-	piqi_util.ml \
 	piqi_name.ml \
 	piqi_common.ml \
 	piqi_file.ml \

@@ -389,7 +389,7 @@ and gen_alias ?name ?parent ?(is_func_param=false) a =
 
 
 let gen_defs (defs:T.typedef list) =
-  let defs = flatmap gen_def defs in
+  let defs = U.flatmap gen_def defs in
   iod "\n" defs
 
 
@@ -424,7 +424,7 @@ let gen_imports l =
   let modnames = List.map (fun x -> x.Import#modname) l in
   (* using C.uniq to prevent importing a module more than once, otherwise protoc
    * will fail to compile *)
-  let l = List.map gen_import (C.uniq modnames) in
+  let l = List.map gen_import (U.uniq modnames) in
   iol l
 
 

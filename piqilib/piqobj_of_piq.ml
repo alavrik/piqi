@@ -179,10 +179,10 @@ let check_duplicate name tail =
         if !Config.flag_strict
         then
           let obj = List.hd l in
-          error obj ("duplicate field " ^ quote name)
+          error obj ("duplicate field " ^ U.quote name)
         else
           List.iter (fun obj ->
-            warning obj ("duplicate field " ^ quote name)) l
+            warning obj ("duplicate field " ^ U.quote name)) l
 
 
 (* truncate the string till the first newline or to max_len *)
@@ -229,7 +229,7 @@ let find_piqtype name =
   try
     Piqi_db.find_piqtype name
   with Not_found ->
-    Piqi_common.error name ("unknown type: " ^ quote name)
+    Piqi_common.error name ("unknown type: " ^ U.quote name)
 
 
 (* idtable implemented as map: string -> 'a *)
@@ -417,7 +417,7 @@ and parse_required_field f loc name field_type l =
           let res, rem = find_first_parsed f field_type l in
           match res with
             | Some x -> x, rem
-            | None -> error loc ("missing field " ^ quote name)
+            | None -> error loc ("missing field " ^ U.quote name)
         end
     | x::tail ->
         check_duplicate name tail;
@@ -443,7 +443,7 @@ and find_fields (name:string) (alt_name:string option) (l:piq_ast list) :(piq_as
     | [] -> List.rev accu, List.rev rem
     | (`named n)::t when equals_name n.Piq_ast.Named#name -> aux (n.Piq_ast.Named#value::accu) rem t
     | (`name n)::t when equals_name n ->
-        error n ("value must be specified for field " ^ quote n)
+        error n ("value must be specified for field " ^ U.quote n)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
@@ -456,7 +456,7 @@ and find_flags (name:string) (alt_name:string option) (l:piq_ast list) :(string 
     | [] -> List.rev accu, List.rev rem
     | (`name n)::t when equals_name n -> aux (n::accu) rem t
     | (`named n)::t when equals_name n.Piq_ast.Named#name ->
-        error n ("value can not be specified for flag " ^ quote n.Piq_ast.Named#name)
+        error n ("value can not be specified for flag " ^ U.quote n.Piq_ast.Named#name)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
@@ -559,7 +559,7 @@ and parse_option ~try_mode options x =
         | _ -> (* contra-variant *)
             []
     in
-    let covariants = C.flatmap get_covariants options in
+    let covariants = U.flatmap get_covariants options in
     let value = parse_covariants covariants x ~try_mode in
     Piqloc.addrefret x value
 
@@ -595,7 +595,7 @@ and parse_name_option options name =
     let equals_name x = equals_name x o.alt_name name in
     match o.name, o.piqtype with
       | Some n, Some _ when equals_name n ->
-          error name ("value expected for option " ^ quote n)
+          error name ("value expected for option " ^ U.quote n)
       | Some n, None -> equals_name n
       | _, _ -> false
   in

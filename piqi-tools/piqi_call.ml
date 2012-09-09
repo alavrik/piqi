@@ -148,7 +148,7 @@ let get_http_piqi path =
 
 
 let find_function piqi name =
-  trace "piqi_call: find function %s\n" (quote name);
+  trace "piqi_call: find function %s\n" (U.quote name);
   try List.find (fun x -> x.T.Func.name = name) piqi.P#resolved_func
   with Not_found ->
     piqi_error ("server doesn't implement function: " ^ name)

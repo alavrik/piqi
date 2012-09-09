@@ -229,7 +229,7 @@ let gen_extension x =
   let open Extend in
   (* TODO: break long list of extended names to several lines *)
   let names = List.map (fun x -> ios (gen_extension_target x)) x.what in
-  let items = flatmap gen_extension_item x.quote in
+  let items = U.flatmap gen_extension_item x.quote in
   iol [
     ios "extend "; iod " " names; indent;
       iod "\n" items;

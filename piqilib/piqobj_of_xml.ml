@@ -189,7 +189,7 @@ and do_parse_field loc t l =
 and parse_required_field loc name field_type l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> error loc ("missing field " ^ quote name)
+    | [] -> error loc ("missing field " ^ U.quote name)
     | x::tail ->
         check_duplicate name tail;
         parse_obj field_type x, rem
@@ -211,7 +211,7 @@ and find_flags (name:string) (l:xml_elem list) :(string list * xml_elem list) =
     | [] -> List.rev accu, List.rev rem
     | (n, [])::t when n = name -> aux (n::accu) rem t
     | (n, _)::t when n = name ->
-        error n ("value can not be specified for flag " ^ quote n)
+        error n ("value can not be specified for flag " ^ U.quote n)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
@@ -248,7 +248,7 @@ and parse_variant t xml_elem =
             let o = List.find (fun o -> name = C.name_of_option o) options in
             parse_option o xml_elem
           with Not_found ->
-            error xml_elem ("unknown variant option: " ^ quote name)
+            error xml_elem ("unknown variant option: " ^ U.quote name)
         in
         V#{ t = t; option = option }
     | _ ->
@@ -262,7 +262,7 @@ and parse_option t xml_elem =
     | None, [] ->
         O#{ t = t; obj = None }
     | None, _ ->
-        error name ("no value expected for option flag " ^ quote name)
+        error name ("no value expected for option flag " ^ U.quote name)
     | Some option_type, _ ->
         let obj = parse_obj option_type xml_elem in
         O#{ t = t; obj = Some obj }
@@ -279,7 +279,7 @@ and parse_enum t xml_elem =
       let o = List.find (fun o -> some_of o.T.Option#name = name) options in
       O#{ t = o; obj = None }
     with Not_found ->
-      error name ("unknown enum option: " ^ quote name)
+      error name ("unknown enum option: " ^ U.quote name)
   in
   E#{ t = t; option = option }
 

@@ -51,7 +51,7 @@ let default_piqtype = ref None
 
 let check_piqtype n =
   if not (Piqi_name.is_valid_typename n)
-  then error n ("invalid type name: " ^ quote n)
+  then error n ("invalid type name: " ^ U.quote n)
   else ()
 
 

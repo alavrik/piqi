@@ -89,7 +89,7 @@ let find_piqi_file modname =
   then
     !found_dir, !found_name
   else
-    (trace "piqi file is not found in path: %s\n" (quote name);
+    (trace "piqi file is not found in path: %s\n" (U.quote name);
      raise Not_found
     )
 

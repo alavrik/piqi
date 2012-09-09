@@ -263,9 +263,9 @@ let gen_def x =
 
 
 let gen_defs (defs:T.typedef list) =
-  let records = flatmap (function `record x -> [x] | _ -> []) defs in
+  let records = U.flatmap (function `record x -> [x] | _ -> []) defs in
   let record_types = List.map gen_record_type records in
-  let defs = flatmap gen_def defs in
+  let defs = U.flatmap gen_def defs in
   let code = iol [
     iol defs; eol;
     iol record_types; eol;

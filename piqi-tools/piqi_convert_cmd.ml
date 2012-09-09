@@ -224,15 +224,15 @@ let rec get_piqi_deps piqi ~only_imports =
     let includes = if only_imports then [piqi] else piqi.P#included_piqi in
     (* get all dependencies from imports *)
     let import_deps =
-      flatmap (fun x ->
+      U.flatmap (fun x ->
           let piqi = some_of x.T.Import#piqi in
-          flatmap (get_piqi_deps ~only_imports) piqi.P#included_piqi)
+          U.flatmap (get_piqi_deps ~only_imports) piqi.P#included_piqi)
         piqi.P#resolved_import
     in
     (* NOTE: imports go first in the list of dependencies *)
     let l = import_deps @ includes in
     (* remove duplicate entries *)
-    C.uniqq l
+    U.uniqq l
 
 
 let get_parent_piqi (t: T.piqtype) =

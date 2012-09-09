@@ -80,7 +80,7 @@ and gen_any x =
 and gen_record x =
   let open R in
   let field_types = x.t.T.Record.field in
-  `Assoc (flatmap (gen_field x.field) field_types)
+  `Assoc (U.flatmap (gen_field x.field) field_types)
 
 
 and gen_field fields t =

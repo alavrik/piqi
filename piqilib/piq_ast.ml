@@ -82,3 +82,27 @@ include Piq_ast
 let ast_of_bool x = `bool x
 let ast_to_bool _ = true
 
+
+(* apply function f to the node identified by its path in the tree *)
+let transform_ast path f (ast:ast) =
+  let rec aux p = function
+    | `list l when p = [] -> (* leaf node *)
+        (* f replaces, removes element, or splices elements of the list *)
+        let res = Piqi_util.flatmap f l in
+        `list res
+    | x when p = [] -> (* leaf node *)
+        (* expecting f to replace the existing value, no other modifications
+         * such as removal or splicing is allowed in this context *)
+        (match f x with [res] -> res | _ -> assert false)
+    | `list l ->
+        (* haven't reached the leaf node => continue tree traversal *)
+        let res = List.map (aux p) l in
+        `list res
+    | `named {Named.name = n; value = v} when List.hd p = n ->
+        (* found path element => continue tree traversal *)
+        let res = {Named.name = n; value = aux (List.tl p) v} in
+        `named res
+    | x -> x
+  in
+  aux path ast
+

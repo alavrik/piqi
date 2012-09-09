@@ -74,7 +74,7 @@ let add_piqi piqi =
     | Some prev_piqi when prev_piqi == piqi -> (* don't readd the same module *)
         ()
     | Some prev_piqi ->
-        warning piqi ("redefinition of module " ^ quote modname);
+        warning piqi ("redefinition of module " ^ U.quote modname);
         warning prev_piqi "previous definition is here";
         do_add_piqi modname piqi
     | None ->

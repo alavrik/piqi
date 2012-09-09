@@ -127,7 +127,7 @@ let do_run name f x =
   try f x
   with exn ->
     let response = return_rpc_error
-      (`internal_error ("error while running function " ^ quote name ^ ": " ^ string_of_exn exn))
+      (`internal_error ("error while running function " ^ U.quote name ^ ": " ^ string_of_exn exn))
     in
     raise (Break response)
 

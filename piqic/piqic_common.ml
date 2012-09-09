@@ -73,8 +73,8 @@ let get_builtin_defs piqi seen_defs def =
     | None -> []
   in
   match def with
-    | `record x -> flatmap (fun x -> get_builtin_def_opt x.F#piqtype) x.R#field
-    | `variant x -> flatmap (fun x -> get_builtin_def_opt x.O#piqtype) x.V#option
+    | `record x -> U.flatmap (fun x -> get_builtin_def_opt x.F#piqtype) x.R#field
+    | `variant x -> U.flatmap (fun x -> get_builtin_def_opt x.O#piqtype) x.V#option
     | `list x -> get_builtin_def (some_of x.L#piqtype)
     | `enum _ -> []
     | `alias a -> get_builtin_def (some_of a.A#piqtype)
@@ -84,11 +84,11 @@ let get_builtin_defs piqi seen_defs def =
  * definitions *)
 let get_builtin_dependencies piqi =
   let rec aux accu root_defs =
-    let new_builtin_defs = flatmap (get_builtin_defs piqi accu) root_defs in
+    let new_builtin_defs = U.flatmap (get_builtin_defs piqi accu) root_defs in
     if new_builtin_defs = []
     then accu
     else
-      let accu = uniqq (new_builtin_defs @ accu) in
+      let accu = U.uniqq (new_builtin_defs @ accu) in
       aux accu new_builtin_defs
   in
   aux [] piqi.P#resolved_typedef
@@ -117,12 +117,12 @@ let rec get_piqi_deps piqi =
   in
   (* get all imports' dependencies recursively *)
   let import_deps =
-    flatmap (fun piqi ->
-        flatmap get_piqi_deps piqi.P#included_piqi
+    U.flatmap (fun piqi ->
+        U.flatmap get_piqi_deps piqi.P#included_piqi
       ) imports
   in
   (* remove duplicate entries *)
-  let deps = C.uniqq (import_deps @ imports) in
+  let deps = U.uniqq (import_deps @ imports) in
   deps @ [piqi]
 
 

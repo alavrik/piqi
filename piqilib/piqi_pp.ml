@@ -19,7 +19,7 @@
 open Piqi_common 
 
 
-(* old method for pretty-printing:
+(* old method of pretty-printing:
 let prettyprint_ast ast =
   let code = Piq_gen.print_ast ast in
   Iolist.to_channel ch code
@@ -47,32 +47,9 @@ let prettyprint_piqi_ast ch ast =
     | _ -> assert false
 
 
-let transform_ast path f (ast:piq_ast) =
-  let rec aux p = function
-    | `list l when p = [] -> (* leaf node *)
-        (* f replaces, removes element, or splices elements of the list *)
-        let res = flatmap f l in
-        `list res
-    | x when p = [] -> (* leaf node *)
-        (* expecting f to replace the existing value, no other modifications
-         * such as removal or splicing is allowed in this context *)
-        (match f x with [res] -> res | _ -> assert false)
-    | `list l ->
-        (* haven't reached the leaf node => continue tree traversal *)
-        let res = List.map (aux p) l in
-        `list res
-    | `named {Piq_ast.Named.name = n; Piq_ast.Named.value = v} when List.hd p = n ->
-        (* found path element => continue tree traversal *)
-        let res = Piq_ast.Named#{name = n; value = aux (List.tl p) v} in
-        `named res
-    | x -> x
-  in
-  aux path ast
-
-
 (* simplify piqi ast: *)
 let simplify_piqi_ast (ast:piq_ast) =
-  let tr = transform_ast in
+  let tr = Piq_ast.transform_ast in
   (* map typedef.x -> x *)
   let rm_typedef =
     tr [] (

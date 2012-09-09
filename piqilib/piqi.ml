@@ -86,12 +86,12 @@ let add_typedef idtable (typedef:T.typedef) =
     if C.is_builtin_def prev_def
     then (
       (* allowing to override a boot def *)
-      C.warning typedef ("override of built-in type definition " ^ quote name);
+      C.warning typedef ("override of built-in type definition " ^ U.quote name);
       Idtable.add idtable name typedef
     )
     else
       C.error typedef
-        ("duplicate type definition " ^ quote name ^ "\n" ^
+        ("duplicate type definition " ^ U.quote name ^ "\n" ^
          error_string prev_def "first defined here")
   )
   else
@@ -123,7 +123,7 @@ let add_imported_typedefs idtable defs =
 let find_def idtable name =
   try Idtable.find idtable name
   with Not_found ->
-    error name ("unknown type " ^ quote name)
+    error name ("unknown type " ^ U.quote name)
 
 
 let is_func_param def =
@@ -148,7 +148,7 @@ let set_is_func_param_flag def =
 let resolve_typename map name :T.piqtype =
     let def = find_def map name in
     if is_func_param def
-    then error name ("type " ^ quote name ^ " is defined as a function parameter and can't be referenced");
+    then error name ("type " ^ U.quote name ^ " is defined as a function parameter and can't be referenced");
     (def :> T.piqtype)
 
 
@@ -201,10 +201,10 @@ let check_piq_format obj piq_format piqtype =
     | `text, `string -> ()
     | _ when C.is_typedef piqtype ->
         error obj
-          ("piq-format can not be defined for non-primitive type " ^ quote (C.piqi_typename piqtype))
+          ("piq-format can not be defined for non-primitive type " ^ U.quote (C.piqi_typename piqtype))
     | _ ->
         error obj
-          ("invalid piq-format for type " ^ quote (C.piqi_typename piqtype))
+          ("invalid piq-format for type " ^ U.quote (C.piqi_typename piqtype))
 
 
 let rec resolve_piq_format (piqtype: T.piqtype) =
@@ -259,14 +259,14 @@ let resolve_def_piq_format = function
 
 let check_name x =
   if not (Piqi_name.is_valid_name x)
-  then error x ("invalid name: " ^ quote x)
+  then error x ("invalid name: " ^ U.quote x)
   else ()
 
 
 (* TODO, XXX: this function is not used *)
 let check_scoped_name x =
   if not (Piqi_name.is_valid_scoped_name x)
-  then error x ("invalid scoped name: " ^ quote x)
+  then error x ("invalid scoped name: " ^ U.quote x)
   else ()
 
 
@@ -276,11 +276,11 @@ let check_opt_name = function
 
 
 let check_dup_names what names =
-  match find_dups names with
+  match U.find_dups names with
     | None -> ()
     | Some (name, prev) ->
         error name
-          ("duplicate " ^ what ^ " name " ^ quote name ^ "\n" ^
+          ("duplicate " ^ what ^ " name " ^ U.quote name ^ "\n" ^
             error_string prev "first defined here")
 
 
@@ -319,11 +319,7 @@ let check_def_name obj = function
 let check_record r =
   check_def_name r r.R#name;
   let fields = r.R#field in
-  (* XXX: Protobuf doesn't print any warnings on records with no fields *)
-  (*
-  if fields = []
-  then warning r ("record " ^ quote r.R#name ^ " doesn't specify any fields");
-  *)
+  (* XXX: protoc doesn't print any warnings on records with no fields *)
   List.iter check_field fields
 
 
@@ -344,7 +340,7 @@ let check_variant v =
   let name = some_of v.V#name in
   let options = v.V#option in
   if options = []
-  then error v ("variant " ^ quote name ^ " doesn't specify any options");
+  then error v ("variant " ^ U.quote name ^ " doesn't specify any options");
   List.iter check_option options
 
 
@@ -367,7 +363,7 @@ let check_enum e =
   let name = some_of e.E#name in
   let options = e.E#option in
   if options = []
-  then error e ("enum " ^ quote name ^ " doesn't specify any options");
+  then error e ("enum " ^ U.quote name ^ " doesn't specify any options");
   List.iter check_enum_option options
 
 
@@ -378,8 +374,8 @@ let check_wire_type a wt =
     | `signed_varint | `signed_fixed32 | `signed_fixed64 when t = `int -> ()
     | `fixed32 | `fixed64 when t = `float -> ()
     | _ ->
-        error a ("wire type " ^ quote (Piqi_wire.wire_type_name wt) ^
-                 " is incompatible with piq type " ^ quote (piqi_typename t))
+        error a ("wire type " ^ U.quote (Piqi_wire.wire_type_name wt) ^
+                 " is incompatible with piq type " ^ U.quote (piqi_typename t))
 
 
 let check_alias a =
@@ -390,7 +386,7 @@ let check_alias a =
     let name = some_of a.name in
     if a.typename = None && a.piqi_type = None
     then
-      error a ("alias " ^ quote name ^ " must specify either piqi-type or type");
+      error a ("alias " ^ U.quote name ^ " must specify either piqi-type or type");
   end
 
 
@@ -681,8 +677,8 @@ let check_assign_module_name ?modname fname (piqi:T.piqi) =
         if x <> x'
         then
           error piqi
-            ("module loaded as " ^ quote x' ^ 
-             " has different name " ^ quote x)
+            ("module loaded as " ^ U.quote x' ^
+             " has different name " ^ U.quote x)
         else ()
     | Some x, None -> (* name is already defined for the module *)
         check_modname x
@@ -865,7 +861,7 @@ let find_field r field_name scoped_name =
   try
     List.find (fun x -> name_of_field x = field_name) r.R#field
   with Not_found ->
-    error scoped_name ("record doesn't have field named " ^ quote field_name)
+    error scoped_name ("record doesn't have field named " ^ U.quote field_name)
 
 
 (* find variant option by name *)
@@ -873,7 +869,7 @@ let find_option v option_name scoped_name =
   try
     List.find (fun x -> name_of_option x = option_name) v.V#option
   with Not_found ->
-    error scoped_name ("variant doesn't have option named " ^ quote option_name)
+    error scoped_name ("variant doesn't have option named " ^ U.quote option_name)
 
 
 (* replace record field with the new one *)
@@ -908,7 +904,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
     then l
     else
       let extension_labels =
-        flatmap (function
+        U.flatmap (function
           | `named x -> [x.Piq_ast.Named#name]
           | `name name -> [name]
           | _ -> []
@@ -998,7 +994,7 @@ let apply_option_extensions idtable scoped_name extension_entries custom_fields 
         Idtable.add idtable def_name extended_typedef
     | _ ->
         error scoped_name
-          ("can't apply option extensions no non-variant definition " ^ quote def_name)
+          ("can't apply option extensions no non-variant definition " ^ U.quote def_name)
 
 
 let apply_field_extensions idtable scoped_name extension_entries custom_fields ~override =
@@ -1017,13 +1013,13 @@ let apply_field_extensions idtable scoped_name extension_entries custom_fields ~
         Idtable.add idtable def_name extended_typedef
     | _ ->
         error scoped_name
-          ("can't apply field extensions no non-record definition " ^ quote def_name)
+          ("can't apply field extensions no non-record definition " ^ U.quote def_name)
 
 
 let extend_import idtable name extension_entries custom_fields ~override =
   let import = 
     try Idtable.find idtable name
-    with Not_found -> error name ("unknown import " ^ quote name)
+    with Not_found -> error name ("unknown import " ^ U.quote name)
   in
   let extended_import =
     apply_extensions import !import_def T.parse_import T.gen__import
@@ -1056,7 +1052,7 @@ let extend_imports imports extensions custom_fields =
 let extend_function idtable name extension_entries custom_fields ~override =
   let func =
     try Idtable.find idtable name
-    with Not_found -> error name ("unknown function " ^ quote name)
+    with Not_found -> error name ("unknown function " ^ U.quote name)
   in
   let extended_func =
     apply_extensions func !function_def T.parse_func T.gen__func
@@ -1139,7 +1135,7 @@ let apply_defs_extensions defs extensions custom_fields =
 let partition_extensions extensions =
   let open Extend in
   (* get a list of (what, [extension]) pairs from all extensions *)
-  let l = flatmap
+  let l = U.flatmap
     (fun x -> List.map (fun what -> what, x.override, (x.piqi_with @ x.quote)) x.what)
     extensions
   in
@@ -1166,7 +1162,7 @@ let get_imported_defs imports =
     List.iter (fun def -> set_parent def (`import x)) imported_defs;
     imported_defs
   in
-  flatmap aux imports
+  U.flatmap aux imports
 
 
 let make_param_name func param_name =
@@ -1333,7 +1329,7 @@ let prepare_included_piqi_ast ast =
 let expand_includes piqi included_piqi =
   (* get the list of included modules' ASTs *)
   let included_asts =
-    flatmap (fun x -> prepare_included_piqi_ast (some_of x.P#ast)) included_piqi
+    U.flatmap (fun x -> prepare_included_piqi_ast (some_of x.P#ast)) included_piqi
   in
   (* transform the module's ast to include all elements from all included
    * modules *)
@@ -1381,7 +1377,7 @@ let find_extensions modname filename =
   in
   if is_extension modname
   then [] (* extensions are not appliable to extensions *)
-  else flatmap find_extension !Config.extensions
+  else U.flatmap find_extension !Config.extensions
 
 
 (* do include & extension expansion for the loaded piqi using extensions from
@@ -1624,7 +1620,7 @@ and load_piqi_module ?(include_path=[]) modname =
         Piqi_file.find_piqi modname
       with
         Not_found ->
-          error modname ("piqi module is not found: " ^ quote modname)
+          error modname ("piqi module is not found: " ^ U.quote modname)
     in
     let piqi = load_piqi_file fname ~modname ~include_path in
     piqi
@@ -1638,10 +1634,10 @@ and load_imports piqi l =
     | h::t ->
         begin
           if List.exists (fun x -> h.Import#name = x.Import#name) t
-          then error h ("duplicate import name " ^ quote (some_of h.Import#name));
+          then error h ("duplicate import name " ^ U.quote (some_of h.Import#name));
 
           if List.exists (fun x -> h.Import#piqi == x.Import#piqi) t
-          then warning h ("duplicate import module " ^ quote h.Import#modname);
+          then warning h ("duplicate import module " ^ U.quote h.Import#modname);
 
           check_dups t
         end
@@ -1684,7 +1680,7 @@ and load_includes ~include_path piqi l =
         let n = x.Includ#modname in
         let keep = not (is_extension x.Includ#modname) in
         if not keep
-        then trace "removing extension include %s\n" (quote n);
+        then trace "removing extension include %s\n" (U.quote n);
         keep
       ) l
     else l
@@ -1696,7 +1692,7 @@ and load_includes ~include_path piqi l =
   let included_piqi = List.map (load_include new_include_path) l in
 
   let process_recursive_piqi p =
-    trace "included piqi module %s forms a loop\n" (quote (some_of p.P#modname));
+    trace "included piqi module %s forms a loop\n" (U.quote (some_of p.P#modname));
     let includes = remove_extensions p.P#includ new_include_path in
     (* check for all Piqi includes that have been already processed in the DFS
      * include path *)
@@ -1704,7 +1700,7 @@ and load_includes ~include_path piqi l =
       (fun x ->
         let n = x.Includ#modname in
         if List.exists (fun p -> n = some_of p.P#modname) new_include_path
-        then error x ("recursive include " ^ quote n)
+        then error x ("recursive include " ^ U.quote n)
       )
       includes;
     (* process the remaining includes as if they were included by the current
@@ -1716,7 +1712,7 @@ and load_includes ~include_path piqi l =
   in
 
   (* append all Piqi modules from all included Piqi modules *)
-  let l = flatmap
+  let l = U.flatmap
     (fun x ->
       let res = x.P#included_piqi in
       if res = [] (* the module is loaded, but hasn't been processed yet *)
@@ -1735,7 +1731,7 @@ and load_includes ~include_path piqi l =
   in
 
   (* remove duplicates -- one module may be included from many modules *)
-  let res = uniqq l in
+  let res = U.uniqq l in
 
   (* finally, remove itself from the list of included modules; it could happen
    * if there is a recursion *)
@@ -1960,35 +1956,10 @@ let piqi_to_ast piqi =
   ast
 
 
-(* FIXME: get rid of this copy-pasted duplicate piece from piqi_pp.ml after
- * Piqi-lang and Piqi-spec become unified *)
-let transform_ast path f (ast:piq_ast) =
-  let rec aux p = function
-    | `list l when p = [] -> (* leaf node *)
-        (* f replaces, removes element, or splices elements of the list *)
-        let res = flatmap f l in
-        `list res
-    | x when p = [] -> (* leaf node *)
-        (* expecting f to replace the existing value, no other modifications
-         * such as removal or splicing is allowed in this context *)
-        (match f x with [res] -> res | _ -> assert false)
-    | `list l ->
-        (* haven't reached the leaf node => continue tree traversal *)
-        let res = List.map (aux p) l in
-        `list res
-    | `named {Piq_ast.Named.name = n; value = v} when List.hd p = n ->
-        (* found path element => continue tree traversal *)
-        let res = Piq_ast.Named#{name = n; value = aux (List.tl p) v} in
-        `named res
-    | x -> x
-  in
-  aux path ast
-
-
 (* transform piqi ast so that type definitions embedded in function definitions
  * get compatible with Piqi-spec *)
 let transform_piqi_ast (ast: piq_ast) =
-  let tr = transform_ast in
+  let tr = Piq_ast.transform_ast in
   (* map ../name.x -> x *)
   let rm_param_extra path =
     tr path (
