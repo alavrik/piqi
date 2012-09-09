@@ -189,7 +189,6 @@
     .option [ .type alias ]
     .option [
         .type list
-        .ocaml-name "list"
     ]
 
     .proto-name "piqi_typedef"
@@ -213,8 +212,6 @@
 .alias [
     .name type
     .type name
-
-    .ocaml-name "typename"
 ]
 
 
@@ -226,8 +223,6 @@
         .type field
         .repeated
     ]
-
-    .erlang-name "piqi_record"
 ]
 
 
@@ -331,11 +326,7 @@
 
     .field [ .type name ]
     .field [ .type type ]
-
-    .ocaml-name "piqi_list"
-    .erlang-name "piqi_list"
 ]
-
 
 
 .record [
@@ -345,7 +336,6 @@
         .name module
         .type word
         .optional
-        .ocaml-name "modname"
     ]
 
     .field [ .type typedef .repeated ]
@@ -361,7 +351,6 @@
     .field [
         .name module
         .type word
-        .ocaml-name "modname"
     ]
 
     .field [
@@ -380,8 +369,6 @@
         .name type
         .type string
         .optional
-
-        .ocaml-name "typename"
     ]
 
     .field [
@@ -397,7 +384,6 @@
 
 .record [
     .name function
-    .ocaml-name "func"
 
     .field [ .type name ]
 
@@ -430,7 +416,4 @@
 .include [ .module piqi.org/piqi.proto ]
 .include [ .module piqi.org/piqi.json ]
 .include [ .module piqi.org/piqi.getopt ]
-
-
-(.custom-field ocaml-name erlang-name proto-name)
 

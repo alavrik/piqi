@@ -32,12 +32,10 @@
 
 .record [
     .name include
-    .ocaml-name "includ"
 
     .field [
         .name module
         .type word
-        .ocaml-name "modname"
     ]
 ]
 
@@ -72,7 +70,6 @@
     ]
     .option [
         .type list
-        .ocaml-name "list"
     ]
     .option [
         % note: although anonymous alias doesn't make a lot of sense, we need it
@@ -101,14 +98,12 @@
 
     .field [
         .name with
-        .ocaml-name "piqi_with"
         .type piqi-any % an actual extension object
         .repeated
     ]
 
     % this way of specifying extensions will be deprecated soon
     .field [
-        .ocaml-name "quote"
         .type piqi-any % an actual extension object
         .repeated
     ]
@@ -128,9 +123,6 @@
     .option [ .name field .type name ]
     .option [ .name option .type name ]
     .option [ .name import .type name ]
-    .option [ .name function .type name .ocaml-name "func" ]
+    .option [ .name function .type name ]
 ]
-
-
-(.custom-field ocaml-name ocaml-optional)
 

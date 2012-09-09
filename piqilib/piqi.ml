@@ -1363,25 +1363,21 @@ let is_extension modname =
 (* find all applicable extensions for a given module *)
 let find_extensions modname filename =
   let find_extension ext_name =
-    let modname = modname ^ "." ^ ext_name in
-    let modname_based =
-      try
-        ignore (Piqi_file.find_piqi modname);
-        trace "found modname-based extension: %s\n" modname;
-        [modname]
-      with
-        Not_found -> []
-    in
-    let filename_based =
-      let modname = Piqi_file.chop_piqi_extensions filename ^ "." ^ ext_name in
-      if Sys.file_exists (modname ^ ".piqi")
-      then (
-        trace "found filename-based extension: %s\n" modname;
-        [modname]
-      )
-      else []
-    in
-    modname_based @ filename_based
+    try
+      let modname = modname ^ "." ^ ext_name in
+      let fname = Piqi_file.find_piqi modname in
+      trace "found modname-based extension: %s (%s)\n" modname fname;
+      [modname]
+    with
+      Not_found ->
+        let modname = Piqi_file.chop_piqi_extensions filename ^ "." ^ ext_name in
+        let fname = modname ^ ".piqi" in
+        if Sys.file_exists fname
+        then (
+          trace "found filename-based extension: %s (%s)\n" modname fname;
+          [modname]
+        )
+        else []
   in
   if is_extension modname
   then [] (* extensions are not appliable to extensions *)

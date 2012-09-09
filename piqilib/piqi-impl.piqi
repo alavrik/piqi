@@ -1,8 +1,10 @@
 
 .include [ .module piqi.org/piqi-lang ]
 
-% we need built-in types definitions that map to OCaml types correctly
-.include [ .module piqic/piqi.ocaml-types ]
+% we need OCaml names and built-in types definitions that map to OCaml types
+% correctly
+.include [ .module piqic/piqi.ocaml ]
+.include [ .module piqic/piqi-lang.ocaml ]
 
 
 .extend [

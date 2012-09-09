@@ -1,5 +1,6 @@
 
 .include [ .module piqic/piqi.erlang ]
+.include [ .module piqic/piqi.erlang-extensions ]
 
 
 % remove the "piqi" prefix from generated Erlang type and record names
