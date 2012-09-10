@@ -10,6 +10,7 @@ ocaml: piqi-obj.piqi
 
 piqi-obj.piqi: ../../piqi.org/piqi.piqi
 	ln -s ../../piqi.org/piqi.piqi
+	ln -s ../../piqic/piqi.ocaml.piqi
 	piqic expand piqi.piqi > piqi.expanded
 	cat piqi.expanded | sed -e 's/piqi.org\/piqi/piqi-obj/;s/Piqi/Piqi_obj/' >$@
 

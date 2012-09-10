@@ -2,8 +2,7 @@ all: prep test
 
 
 prep:
-	ln -sf ../../piqi.org/piqi.piqi .
-	ln -sf ../piqi_misc/piqobj.piqi .
+	cat ../piqi_misc/piqobj.piqi | sed -e 's/piqi.org\///' > piqobj.piqi
 	piqi convert --add-defaults -t pb piqi.piqi
 
 
@@ -15,5 +14,5 @@ test:
 
 clean:
 	$(MAKE) -f Makefile.ocaml clean
-	rm -f *.piqi piqi.* t.*
+	rm -f piqobj.piqi piqi.piqi.pb* t.*
 
