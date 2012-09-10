@@ -67,6 +67,7 @@ let simplify_piqi_ast (ast:piq_ast) =
         | x -> [x]
     )
   (* map extend/.piqi-any x -> x *)
+  (* TODO: this method of specifying extensions will be eventually deprecated *)
   and tr_extend_piq_any =
     tr ["extend"] (
       function
@@ -80,16 +81,7 @@ let simplify_piqi_ast (ast:piq_ast) =
         | `named {Piq_ast.Named.name = "what"; Piq_ast.Named.value = v} -> [v]
         | x -> [x]
     )
-  (* .../type.name x -> type.x *)
-  and tr_type_name_common path =
-    tr path (
-      function
-        | `named ({Piq_ast.Named.name = "type"; Piq_ast.Named.value = `named {Piq_ast.Named.name = "name"; Piq_ast.Named.value = v}} as x) ->
-            let res = `named Piq_ast.Named#{x with value = v} in
-            [res]
-        | x -> [x]
-    )
-  (* map ../anonymous-record.x -> x *)
+  (* map ../record.x -> x *)
   (* map ../name.x -> x *)
   and rm_param_extra path =
     tr path (
@@ -98,30 +90,30 @@ let simplify_piqi_ast (ast:piq_ast) =
         | `named {Piq_ast.Named.name = "name"; Piq_ast.Named.value = v} -> [v]
         | x -> [x]
     )
+  (* strip :<type> from a field's default value *)
+  and tr_field_default_value path =
+    tr path (
+      function
+        | `typed {Piq_ast.Typed.value = v} -> [v]
+        | x -> [x]
+    )
   in
   let (|>) a f = f a in
   let simplify_function_param param ast =
     ast
     |> rm_param_extra ["function"; param]
     |> tr_field_mode ["function"; param; "field"]
-    |> tr_type_name_common ["function"; param; "field"]
-    |> tr_type_name_common ["function"; param; "variant"; "option"]
-    |> tr_type_name_common ["function"; param; "enum"; "option"]
-    |> tr_type_name_common ["function"; param; "list"]
+    |> tr_field_default_value ["function"; param; "field"; "default"]
   in
   ast
   |> rm_typedef
   |> tr_field_mode ["record"; "field"]
+  |> tr_field_default_value ["record"; "field"; "default"]
   |> tr_extend_piq_any
   |> tr_extend_what
-  (* .../type.name x -> type x *)
-  |> tr_type_name_common ["record"; "field"]
-  |> tr_type_name_common ["variant"; "option"]
-  |> tr_type_name_common ["enum"; "option"]
-  |> tr_type_name_common ["list"]
   (* functions *)
   |> simplify_function_param "input"
-  |> simplify_function_param"output"
+  |> simplify_function_param "output"
   |> simplify_function_param "error"
 
 
@@ -139,10 +131,8 @@ let compare_piqi_items a b =
       | "proto-package" -> 1
       | "include" -> 2
       | "import" -> 3
-      (* skipping custom-field, see below
-       * | "custom-field" -> 4
-       *)
-      | "typedef" -> 5
+      | "typedef" -> 4
+      | "function" -> 5
       | "extend" -> 6
       | _ -> 100
   in
