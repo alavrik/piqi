@@ -143,9 +143,6 @@
 .alias [
     .name float
     .type float64
-
-    % adding it so that this type is treated as one of built-in types and
-    % automatically included in every loaded module
     .piqi-type.float
 ]
 
@@ -158,6 +155,10 @@
 ]
 
 
+%
+% end of built-in types
+%
+
 
 .alias [
     .name word
@@ -165,11 +166,6 @@
 
     .piq-format.word
 ]
-
-
-%
-% end of built-in types
-%
 
 
 .alias [
