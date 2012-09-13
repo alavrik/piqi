@@ -81,7 +81,7 @@ let expand_file filename =
 
   if not !flag_binary_output
   then
-    let res_piqi = Piqi.expand_piqi piqi in
+    let res_piqi = Piqi.expand_piqi piqi ~extensions:true ~functions:false in
     Piqi_pp.prettyprint_piqi ch res_piqi
   else
     let code = Piqi.piqi_to_pb piqi in

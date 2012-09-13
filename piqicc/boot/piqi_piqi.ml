@@ -165,6 +165,7 @@ and
           mutable includ : Piqtype.includ list;
           mutable extend : Piqtype.extend list;
           mutable extended_typedef : Piqtype.typedef list;
+          mutable func_typedef : Piqtype.typedef list;
           mutable extended_func_typedef : Piqtype.typedef list;
           mutable resolved_typedef : Piqtype.typedef list;
           mutable imported_typedef : Piqtype.typedef list;
@@ -608,6 +609,8 @@ and parse_piqi x =
          Piqirun.parse_repeated_field 268445433 parse_func x in
        let (_includ, x) =
          Piqirun.parse_repeated_field 301399592 parse_includ x in
+       let (_func_typedef, x) =
+         Piqirun.parse_repeated_field 301864450 parse_typedef x in
        let (_proto_package, x) =
          Piqirun.parse_optional_field 333467105 parse_string x in
        let (_func, x) =
@@ -642,6 +645,7 @@ and parse_piqi x =
             Piqi.custom_field = _custom_field;
             Piqi.resolved_func = _resolved_func;
             Piqi.includ = _includ;
+            Piqi.func_typedef = _func_typedef;
             Piqi.proto_package = _proto_package;
             Piqi.func = _func;
             Piqi.ocaml_module = _ocaml_module;
@@ -1360,6 +1364,8 @@ and gen__piqi code x =
      Piqirun.gen_repeated_field 268445433 gen__func x.Piqi.resolved_func in
    let _includ =
      Piqirun.gen_repeated_field 301399592 gen__includ x.Piqi.includ in
+   let _func_typedef =
+     Piqirun.gen_repeated_field 301864450 gen__typedef x.Piqi.func_typedef in
    let _proto_package =
      Piqirun.gen_optional_field 333467105 gen__string x.Piqi.proto_package in
    let _func = Piqirun.gen_repeated_field 340962072 gen__func x.Piqi.func in
@@ -1384,8 +1390,8 @@ and gen__piqi code x =
        [ _unparsed_piq_ast; _ast; _modname; _imported_typedef;
          _extended_func; _resolved_import; _extend; _import; _included_piqi;
          _extended_typedef; _custom_field; _resolved_func; _includ;
-         _proto_package; _func; _ocaml_module; _proto_custom; _typedef;
-         _extended_import; _resolved_typedef; _original_piqi;
+         _func_typedef; _proto_package; _func; _ocaml_module; _proto_custom;
+         _typedef; _extended_import; _resolved_typedef; _original_piqi;
          _extended_func_typedef ])
 and gen__piq_format code (x : Piqtype.piq_format) =
   (refer x;
@@ -1839,6 +1845,7 @@ and default_piqi () =
     Piqi.custom_field = [];
     Piqi.resolved_func = [];
     Piqi.includ = [];
+    Piqi.func_typedef = [];
     Piqi.proto_package = None;
     Piqi.func = [];
     Piqi.ocaml_module = None;

@@ -1279,24 +1279,24 @@ let process_func f =
 let get_function_defs (non_func_defs: T.typedef list) resolved_funs =
   (* get definitions derived from function parameters *)
   let defs_pairs = List.map process_func resolved_funs in
-
   let defs_pairs = List.concat defs_pairs in
-  let defs, name_setter_assoc_l = List.split defs_pairs in
 
+  let defs, name_setter_assoc_l = List.split defs_pairs in
   (* prepare the setters map *)
   let setter_map = List.fold_left
     (fun t (name, setter) -> Idtable.add t name setter)
     Idtable.empty
     name_setter_assoc_l
   in
-  (* exclude duplicate aliases (duplicates can be created as a result of double
-   * conversion involving external Piqi self-spec; for example, when converting:
-   *   .piqi -> .json -> .piqi *)
+  (* TODO: optimize this linear scan *)
   let is_existing_def name =
     List.exists
       (fun def -> name = C.typedef_name def)
       non_func_defs
   in
+  (* exclude duplicate aliases (duplicates can be created as a result of double
+   * conversion involving external Piqi self-spec; for example, when converting:
+   *   .piqi -> .json -> .piqi *)
   let defs = List.filter
     (function
       | `alias x -> not (is_existing_def (some_of x.A#name))
@@ -1505,6 +1505,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
 
   (* get definitions derived from function parameters *)
   let func_defs, func_defs_map = get_function_defs piqi.P#typedef resolved_funs in
+  piqi.P#func_typedef <- func_defs;
 
   (* add function type definitions to Piqi defs *)
   let defs = piqi.P#typedef @ func_defs in
@@ -1538,8 +1539,14 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
     resolved_defs;
 
   (* move out function defs from the list of extended typedefs *)
+  (* TODO: optimize this linear scan *)
+  let is_func_def name =
+    List.exists
+      (fun def -> name = C.typedef_name def)
+      func_defs
+  in
   let extended_func_defs, extended_defs = List.partition
-    (fun def -> Idtable.mem func_defs_map (typedef_name def))
+    (fun def -> is_func_def (typedef_name def))
     extended_defs
   in
 
@@ -1849,41 +1856,107 @@ let load_piqi fname :T.piqi =
   piqi
 
 
-(* expand all includes and, optionally, extensions and produce an expanded
- * version of the Piqi module *)
-let expand_piqi ?(includes_only=false) piqi =
+(* put extended embedded function parameters back to extended functions *)
+let reconsitute_extended_functions funs func_typedefs =
+  (* add all extended embedded typedefs into a map *)
+  let idtable = add_typedefs Idtable.empty func_typedefs in
+  let reconstitute_param f param_name orig_param =
+    match orig_param with
+      | None (* no parameter *)
+      | Some (`name _) -> (* it wasn't an embedded parameter in the first place *)
+          orig_param (* returning the original one *)
+      | _ ->
+          let type_name = make_param_name f param_name in
+          let typedef = Idtable.find idtable type_name in
+          (* now, anonymize the typedef to make it look an embedded typedef *)
+          let embedded_typedef =
+            match typedef with
+              | `record x ->
+                  `record {x with R.name = None}
+              | `variant x ->
+                  `variant {x with V.name = None}
+              | `enum x ->
+                  `enum {x with E.name = None}
+              | `list x ->
+                  `list {x with L.name = None}
+              | `alias x ->
+                  `alias {x with A.name = None}
+          in
+          Some (embedded_typedef :> T.function_param)
+  in
+  let reconsitute_extended_function f =
+    T.Func#{
+      f with
+      input = reconstitute_param f "input" f.input;
+      output = reconstitute_param f "output" f.output;
+      error = reconstitute_param f "error" f.error;
+    }
+  in
+  List.map reconsitute_extended_function funs
+
+
+(* transform functions to remove embedded type definitions *)
+let expand_function f =
+  let transform_param param_name param =
+    match param with
+      | None ->
+          None
+      | Some (`name _) ->
+          param
+      | Some _ ->
+          let type_name = make_param_name f param_name in
+          Some (`name type_name)
+  in
+  T.Func#{
+    f with
+    input = transform_param "input" f.input;
+    output = transform_param "output" f.output;
+    error = transform_param "error" f.error;
+  }
+
+
+(* expand Piqi module's includes and, optionally, extensions and function *)
+let expand_piqi ~extensions ~functions piqi =
   let open P in
   let orig_piqi = some_of piqi.original_piqi in
 
-  (* create a new piqi module from the original piqi module *)
-  let res_piqi =
-    {
-      orig_piqi with
-
-      includ = [];
-
-      extend =
-        if includes_only
-        then piqi.extend (* all extensions *)
-        else []; (* extensions are already applied *)
-
-      typedef =
-        if includes_only
-        then piqi.typedef (* all typedefs *)
-        else piqi.extended_typedef; (* all typedefs with extensions applied *)
-
-      import =
-        if includes_only
-        then piqi.import
-        else piqi.extended_import; (* all imports with extensions applied *)
-
-      func =
-        if includes_only
-        then piqi.func
-        else piqi.extended_func; (* all functions with extensions applied *)
-    }
+  (* always expand includes *)
+  let res_piqi = {
+    orig_piqi with
+    includ = [];
+  }
   in
-  res_piqi
+  let res_piqi =
+    if not extensions
+    then res_piqi
+    else (* expand extensions *)
+      {
+        res_piqi with
+
+        extend = [];
+        typedef = piqi.extended_typedef; (* all typedefs with extensions applied *)
+        import = piqi.extended_import; (* all imports with extensions applied *)
+        (* all functions with extensions applied *)
+        func = reconsitute_extended_functions piqi.extended_func piqi.extended_func_typedef;
+      }
+  in
+  let res_piqi =
+    if not functions
+    then res_piqi
+    else (* expand functions *)
+      let func_typedefs =
+        if extensions
+        then piqi.extended_func_typedef
+        else piqi.func_typedef
+      in
+      {
+        res_piqi with
+        (* add embedded definitions from function to the list of top-level defs *)
+        typedef = res_piqi.typedef @ func_typedefs;
+        (* remove embedded defintions from function parameters *)
+        func = List.map expand_function res_piqi.func;
+      }
+  in res_piqi
 
 
 (* narrow down Piqi language to Piqi specficiation
@@ -1901,48 +1974,15 @@ let expand_piqi ?(includes_only=false) piqi =
  * such instead of leaving this value out and assuming the are required by
  * default.
  *)
-let transform_func f =
-  let open T.Func in
-  let transform_param param_name param =
-    match param with
-      | None ->
-          None
-      | Some (`name _) ->
-          param
-      | Some _ ->
-          let type_name = make_param_name f param_name in
-          Some (`name type_name)
-  in
-  let input = transform_param "input" f.input in
-  let output = transform_param "output" f.output in
-  let error = transform_param "error" f.error in
-  {f with input; output; error}
-
-
 let lang_to_spec piqi =
   let open P in
-  (* transform functions to remove embedded type definitions and add them at top
-   * level *)
-  let extended_func = List.map transform_func piqi.extended_func in
-  let extended_typedef = piqi.extended_typedef @ piqi.extended_func_typedef in
-  let piqi =
-    {
-      piqi with
-      extended_typedef = extended_typedef;
-      extended_func = extended_func;
-    }
-  in
-  (* expand includes and apply all extensions *)
-  let piqi = expand_piqi piqi in
-
+  (* expand includes, extensions and functions *)
+  let piqi = expand_piqi piqi ~extensions:true ~functions:true in
   (* remove custom fields *)
-  let res_piqi =
-    {
-      piqi with
-      custom_field = [];
-    }
-  in
-  res_piqi
+  {
+    piqi with
+    custom_field = [];
+  }
 
 
 let piqi_to_ast piqi =

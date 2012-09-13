@@ -244,24 +244,26 @@ let gen_extensions l =
   ]
 
 
-let gen_param name p =
-  let repr = gen_typedef_repr p in
-  iol [
-    ios name; ios " ="; repr;
-  ]
-
-
 let gen_param name = function
-  | Some x -> [gen_param name x]
   | None -> []
+  | Some x ->
+      let repr =
+        match x with
+          | `name x -> ios " " ^^ gen_typename x
+          | (#T.typedef as x) -> gen_typedef_repr x
+      in
+      let res = iol [
+        ios name; ios " ="; repr;
+      ]
+      in [res]
 
 
 let gen_function f =
   let open T.Func in
   let params = List.concat [
-      gen_param "input" f.resolved_input;
-      gen_param "output" f.resolved_output;
-      gen_param "error" f.resolved_error;
+      gen_param "input" f.input;
+      gen_param "output" f.output;
+      gen_param "error" f.error;
     ]
   in
   iol [
@@ -296,7 +298,7 @@ let gen_piqi ch (piqi:T.piqi) =
        * printing inludes and extensions separately *)
       gen_defs piqi.typedef;
       gen_extensions piqi.extend;
-      gen_functions piqi.resolved_func;
+      gen_functions piqi.func;
     ]
   in
   Iolist.to_channel ch code

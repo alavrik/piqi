@@ -75,7 +75,7 @@ let piqicc ch spec_fname lang_fname impl_fname =
      Piqirun.gen_binobj T.gen__piqi piqi
      *)
     Piqloc.pause ();
-    let piqi_ast = Piqi_pp.piqi_to_ast piqi in
+    let piqi_ast = Piqi.piqi_to_ast piqi in
 
     (* useful for debugging:
     Piqi_pp.prettyprint_piqi stdout piqi;
@@ -97,16 +97,19 @@ let piqicc ch spec_fname lang_fname impl_fname =
     Piqloc.resume ();
     res
   in
+  let expand_piqi piqi =
+    Piqi.expand_piqi ~extensions:true ~functions:false piqi
+  in
   (* prepare embedded Piqi language spec *)
   let piqi_lang = P#{
-    (Piqi.expand_piqi piqi_lang) with
+    (expand_piqi piqi_lang) with
       modname = piqi_lang.P#modname;
       ocaml_module = None; (* XXX *)
   }
   in
   (* prepare embedded Piqi self-specification *)
   let piqi_spec = P#{
-    (Piqi.expand_piqi piqi_spec) with
+    (expand_piqi piqi_spec) with
       modname = piqi_spec.P#modname;
       ocaml_module = None; (* XXX *)
       custom_field = []; (* XXX *)

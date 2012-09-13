@@ -51,6 +51,7 @@
     .typedef piqi
 
     .with.field [ .name extended-typedef .type typedef .repeated ]
+    .with.field [ .name func-typedef .type typedef .repeated ]
     .with.field [ .name extended-func-typedef .type typedef .repeated ]
 
     .with.field [ .name resolved-typedef .type typedef .repeated ]
