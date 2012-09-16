@@ -9,8 +9,7 @@ erlang: piqi.piqi
 
 
 piqi.piqi: ../../piqi.org/piqi.piqi
-	piqi expand $< >piqi.expanded
-	cat piqi.expanded | sed -e 's/piqi.org\///' >$@
+	piqi expand -I ../../piqi.org $< >$@
 
 
 test: erlang

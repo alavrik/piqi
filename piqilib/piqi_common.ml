@@ -218,7 +218,14 @@ let is_container_type t =
 let is_self_spec (piqi: T.piqi) =
   (* XXX: cache this information to avoid computing it over and over again *)
   List.exists
-    (fun x -> x.P#modname = Some "piqi.org/piqi")
+    (fun x ->
+      match x.P#modname with
+        | None -> false
+        | Some modname ->
+            (* check if the last segment equals "piqi" which is a reserved name
+             * for a self-spec *)
+            Piqi_name.get_local_name modname = "piqi"
+    )
     piqi.P#included_piqi
 
 

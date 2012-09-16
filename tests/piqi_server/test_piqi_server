@@ -34,7 +34,7 @@ piqi call $flags "piqi server/ping"
 f=../piqi.org/piqi.piqi
 
 
-piqi expand $f > t.piqi
+piqi expand --add-module-name $f > t.piqi
 piqi convert -t pb t.piqi
 
 piqi call $flags 'piqi server/add-piqi' -- --format pb --data @t.piqi.pb

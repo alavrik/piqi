@@ -1,30 +1,56 @@
-% Piqi self-spec extensions adding support for binary Google Protocol Buffers
-% format
+% Google Protocol Buffers extension for Piqi self-spec
 %
-% The document describing Protocol Buffers binary "wire" format:
-%
-%   https://developers.google.com/protocol-buffers/docs/encoding
-%
-%
+% This file defines some extensions to the base Piqi self-specification adding
+% properties related to Protocol Buffer's .proto files. Namely, these properties
+% are used by "piqi to-proto" command that generates .proto files from .piqi
+% files.
+% 
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
 
-.module piqi.org/piqi.protobuf
+.include [ .module piqi ]
 
 
-.include [ .module piqi.org/piqi ]
+.extend [
+    (.typedef record field variant option enum alias list)
+
+    .with.field [
+        .name proto-name
+        .type string
+        .optional
+    ]
+]
 
 
-.enum [
-    .name wire-type
-    .option [ varint ]
-    .option [ zigzag-varint ]
-    .option [ fixed32 ]
-    .option [ fixed64 ]
-    .option [ signed-varint ]
-    .option [ signed-fixed32 ]
-    .option [ signed-fixed64 ]
-    .option [ block ]
+.extend [
+    (.typedef record variant list enum)
+
+    % arbitrary string that will be included in .proto message and enum
+    % definitions as a result of .piqi -> .proto conversion
+    .with.field [
+        .name proto-custom
+        .type string
+        .repeated
+    ]
+]
+
+
+.extend [
+    .typedef piqi
+
+    .with.field [
+        .name proto-package
+        .type string
+        .optional
+    ]
+
+    % arbitrary string that will be included in .proto as a result of .piqi ->
+    % .proto conversion
+    .with.field [
+        .name proto-custom
+        .type string
+        .repeated
+    ]
 ]
 
 
@@ -32,36 +58,8 @@
     .typedef alias
 
     .with.field [
-        .type wire-type
-        .optional
-    ]
-]
-
-
-.extend [
-    (.typedef field option)
-
-    .with.field [
-        % for fields and variant options: unique integer field id
-        % from (1 -- (2^29-1)) range used for identifying individual fields and
-        % options encoded in wire format
-        %
-        % for enum options: non-unique integer constant from a full int32 range
-
-        .name code
-        .type int32
-        .optional
-    ]
-]
-
-
-.extend [
-    (.typedef field list)
-
-    % indication that Protobuf "packed" format is used for repeated fields or
-    % list elements
-    .with.field [
-        .name wire-packed
+        .name proto-type
+        .type string
         .optional
     ]
 ]

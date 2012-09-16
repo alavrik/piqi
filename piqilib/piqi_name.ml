@@ -41,6 +41,9 @@ let get_local_name x =
     Not_found -> x
 
 
+let is_scoped_name name = String.contains name '/'
+
+
 let split_name x =
   get_module_name x, get_local_name x
 

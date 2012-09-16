@@ -682,7 +682,7 @@ let check_assign_module_name ?modname fname (piqi:T.piqi) =
         else ()
     | Some x, None -> (* name is already defined for the module *)
         check_modname x
-    | None, Some x -> 
+    | None, Some x ->
         piqi.modname <- modname
     | None, None ->
         (* basename + chop .piqi and .proto.piqi extensions *)
@@ -1380,6 +1380,34 @@ let find_extensions modname filename =
   else U.flatmap find_extension !Config.extensions
 
 
+(* rewriting non-scoped import/modname and include/modname fields when they are
+ * included/imported from a module that has a scoped module name; basically,
+ * that module's dirname is used as a dirname for its includes and imports *)
+let rewrite_non_scoped_modname from_piqi modname =
+  if Piqi_name.is_scoped_name modname
+  then modname
+  else
+    let from_modname = some_of from_piqi.P#modname in
+    match Piqi_name.get_module_name from_modname with
+      | None -> modname
+      | Some from_dir ->
+          from_dir ^ "/" ^ modname
+
+let rewrite_include_modname from_piqi x =
+  let open Includ in
+  let scoped_modname = rewrite_non_scoped_modname from_piqi x.modname in
+  if scoped_modname == x.modname
+  then x (* no change *)
+  else {x with modname = scoped_modname}
+
+let rewrite_import_modname from_piqi x =
+  let open Import in
+  let scoped_modname = rewrite_non_scoped_modname from_piqi x.modname in
+  if scoped_modname == x.modname
+  then x (* no change *)
+  else {x with modname = scoped_modname}
+
+
 (* do include & extension expansion for the loaded piqi using extensions from
  * all included piqi modules *)
 let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast option) ~cache (orig_piqi: T.piqi) =
@@ -1403,6 +1431,11 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   check_assign_module_name ?modname fname piqi;
   if cache then Piqi_db.add_piqi piqi;
   piqi.P#ast <- ast;
+
+  (* make sure include and importe names are properly scoped when
+   * included/imported from a module with a scoped name *)
+  piqi.P#includ <- List.map (rewrite_include_modname piqi) piqi.P#includ;
+  piqi.P#import <- List.map (rewrite_import_modname piqi) piqi.P#import;
 
   (*
    * handle includes
@@ -1747,7 +1780,7 @@ and load_includes ~include_path piqi l =
 
 and load_include include_path x =
   let open Includ in (
-    trace "include: %s\n" x.Includ.modname;
+    trace "include: %s\n" x.modname;
     (* load included piqi module if it isn't already *)
     let piqi = load_piqi_module x.modname ~include_path in
     piqi
@@ -1851,7 +1884,18 @@ let load_piqi fname :T.piqi =
   trace "loading piqi file: %s\n" fname;
   trace_enter ();
   let ast = read_piqi fname in
+
+  (* for scoped filename, add its dirname as a .piqi search path instead of
+   * curent working directory, which is always the first element of the search
+   * path list *)
+  let paths = !Piqi_config.paths in
+  let dirname = Filename.dirname fname in
+  if dirname <> "" && dirname <> "." (* is scoped? *)
+  then Piqi_config.paths := dirname :: paths;
+
   let piqi = load_piqi_ast fname ast ~cache:true in
+
+  Piqi_config.paths := paths; (* restore the original search path setting *)
   trace_leave ();
   piqi
 

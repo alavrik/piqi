@@ -29,6 +29,7 @@ let flag_includes_only = ref false
 let flag_extensions = ref true
 let flag_functions = ref false
 let flag_all = ref false
+let flag_add_module_name = ref false
 
 let usage = "Usage: piqi expand [options] <.piqi file> [output file]\nOptions:"
 
@@ -47,6 +48,9 @@ let speclist = Main.common_speclist @
 
    "--all", Arg.Set flag_all,
      "same as specifying --extensions --functions";
+
+   "--add-module-name", Arg.Set flag_add_module_name,
+     "add module name if it wasn't originally present";
 
     Piqi_main.arg__include_extension;
   ]
@@ -69,6 +73,10 @@ let expand_file filename =
         ~extensions:!flag_extensions
         ~functions:!flag_functions
   in
+
+  if !flag_add_module_name && res_piqi.P#modname = None
+  then res_piqi.P#modname <- piqi.P#modname;
+
   Piqi_pp.prettyprint_piqi ch res_piqi
 
 

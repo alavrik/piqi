@@ -9,10 +9,7 @@
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
 
-.module piqi.org/piqi-lang
-
-
-.include [ .module piqi.org/piqi ]
+.include [ .module piqi ]
 
 
 % The Piqi language, in addition to the Piqi-spec, has includes and extensions

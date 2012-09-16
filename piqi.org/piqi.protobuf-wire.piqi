@@ -1,0 +1,65 @@
+% Piqi self-spec extensions adding support for binary Google Protocol Buffers
+% format
+%
+% The document describing Protocol Buffers binary "wire" format:
+%
+%   https://developers.google.com/protocol-buffers/docs/encoding
+%
+%
+% Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+
+
+.include [ .module piqi ]
+
+
+.enum [
+    .name wire-type
+    .option [ varint ]
+    .option [ zigzag-varint ]
+    .option [ fixed32 ]
+    .option [ fixed64 ]
+    .option [ signed-varint ]
+    .option [ signed-fixed32 ]
+    .option [ signed-fixed64 ]
+    .option [ block ]
+]
+
+
+.extend [
+    .typedef alias
+
+    .with.field [
+        .type wire-type
+        .optional
+    ]
+]
+
+
+.extend [
+    (.typedef field option)
+
+    .with.field [
+        % for fields and variant options: unique integer field id
+        % from (1 -- (2^29-1)) range used for identifying individual fields and
+        % options encoded in wire format
+        %
+        % for enum options: non-unique integer constant from a full int32 range
+
+        .name code
+        .type int32
+        .optional
+    ]
+]
+
+
+.extend [
+    (.typedef field list)
+
+    % indication that Protobuf "packed" format is used for repeated fields or
+    % list elements
+    .with.field [
+        .name wire-packed
+        .optional
+    ]
+]
+

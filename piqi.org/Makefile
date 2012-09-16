@@ -2,8 +2,8 @@
 
 PIQI_FILES = \
 	piqi.piq.piqi \
-	piqi.proto.piqi \
 	piqi.protobuf.piqi \
+	piqi.protobuf-wire.piqi \
 	piqi.json.piqi \
 	piqi.getopt.piqi \
 	\
@@ -24,9 +24,9 @@ test_piqi:
 
 test_piqi_piqi:
 	piqi to-proto piqi.piqi
-	piqi expand piqi.piqi > p.piqi
+	piqi expand --add-module-name piqi.piqi > p.piqi
 	piqi check p.piqi
-	piqi expand --includes-only piqi.piqi > pp.piqi
+	piqi expand --add-module-name --includes-only piqi.piqi > pp.piqi
 	piqi check pp.piqi
 	piqi convert -t pb p.piqi
 	piqi convert -t pb piqi.piqi

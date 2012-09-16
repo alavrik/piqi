@@ -9,10 +9,8 @@ ocaml: piqi-obj.piqi
 
 
 piqi-obj.piqi: ../../piqi.org/piqi.piqi
-	ln -s ../../piqi.org/piqi.piqi
-	ln -s ../../piqic/piqi.ocaml.piqi
-	piqic expand piqi.piqi > piqi.expanded
-	cat piqi.expanded | sed -e 's/piqi.org\/piqi/piqi-obj/;s/Piqi/Piqi_obj/' >$@
+	ln -sf ../../piqic/piqi.ocaml.piqi
+	piqi expand -e ocaml piqi.piqi > $@
 
 
 test: ocaml
@@ -28,5 +26,5 @@ test: ocaml
 
 clean:
 	$(MAKE) -f Makefile.ocaml clean
-	rm -f addressbook.piq.pb piqi-expanded.piqi piqi.* piqi-obj.*
+	rm -f addressbook.piq.pb piqi-expanded.piqi piqi-obj.* piqi.ocaml.piqi piqi.piq piqi.piq.pb
 

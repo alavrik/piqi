@@ -5,8 +5,6 @@
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
 
-.module piqi.org/piqi
-
 .proto-package "piqi_org.piqi"
 
 
@@ -407,9 +405,9 @@
 % standard extensions natively supported by Piqi
 %
 
-.include [ .module piqi.org/piqi.piq ]
-.include [ .module piqi.org/piqi.protobuf ]
-.include [ .module piqi.org/piqi.proto ]
-.include [ .module piqi.org/piqi.json ]
-.include [ .module piqi.org/piqi.getopt ]
+.include [ .module piqi.piq ]
+.include [ .module piqi.protobuf-wire ]
+.include [ .module piqi.protobuf ]
+.include [ .module piqi.json ]
+.include [ .module piqi.getopt ]
 

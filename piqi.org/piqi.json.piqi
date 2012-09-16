@@ -6,10 +6,7 @@
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
 
-.module piqi.org/piqi.json
-
-
-.include [ .module piqi.org/piqi ]
+.include [ .module piqi ]
 
 
 .extend [
