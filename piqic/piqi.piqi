@@ -1,5 +1,5 @@
 
-.include [ .module piqi.org/piqi ]
+.include [ .module piqi/piqi ]
 
 
 % Piqi compiler currently supports Piqi dialect based on the following language

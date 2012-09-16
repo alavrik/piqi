@@ -54,7 +54,7 @@ let rec gen_gen_type erlang_type wire_type wire_packed x =
     | `any ->
         if !Piqic_common.is_self_spec
         then ios "gen_" ^^ ios !any_erlname
-        else ios "piqi_piqi:gen_any"
+        else ios "piqi_piqi:gen_piqi_any"
     | `alias a when wire_type <> None ->
         (* need special handing for wire_type override *)
         gen_gen_type a.A#erlang_type wire_type wire_packed (some_of a.A#piqtype)

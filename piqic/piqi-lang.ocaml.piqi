@@ -1,5 +1,5 @@
 
-.include [ .module piqi.org/piqi-lang ]
+.include [ .module piqi/piqi-lang ]
 
 
 .extend [

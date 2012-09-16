@@ -8,7 +8,7 @@ ocaml: piqi-obj.piqi
 	$(MAKE) -f Makefile.ocaml
 
 
-piqi-obj.piqi: ../../piqi.org/piqi.piqi
+piqi-obj.piqi: ../../piqi/piqi.piqi
 	ln -sf ../../piqic/piqi.ocaml.piqi
 	piqi expand -e ocaml piqi.piqi > $@
 

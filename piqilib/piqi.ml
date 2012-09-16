@@ -1583,7 +1583,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
     extended_defs
   in
 
-  (* if the module includes (or is itself) piqi.org/piqi, use hash-based field
+  (* if the module includes (or is itself) "piqi", use hash-based field
    * and option codes instead of auto-enumerated ones
    *
    * NOTE: code assignment is needed only for .piqi, Piqi specifications encoded
@@ -1791,7 +1791,7 @@ let piqi_loader ?modname fname =
   load_piqi_file ?modname fname
 
 
-let embedded_modname = "embedded/piqi.org/piqi-lang"
+let embedded_modname = "embedded/piqi-lang"
 
 
 let find_embedded_piqtype name =
@@ -1819,7 +1819,7 @@ let boot () =
   C.builtin_typedefs := List.filter C.is_builtin_def spec.P#resolved_typedef;
 
   (* add the self-spec to the DB under a special name *)
-  spec.P#modname <- Some "embedded/piqi.org/piqi";
+  spec.P#modname <- Some "embedded/piqi";
   Piqi_db.add_piqi spec;
 
   (* add the self-spec to the DB under a special name *)
@@ -1829,7 +1829,7 @@ let boot () =
   (* resolved type definition for the Piqi language *)
   piqi_lang_def := find_embedded_piqtype "piqi";
   (* resolved type definition for the Piqi specification *)
-  piqi_spec_def := Piqi_db.find_piqtype "embedded/piqi.org/piqi/piqi";
+  piqi_spec_def := Piqi_db.find_piqtype "embedded/piqi/piqi";
   (* resolved "typedef" type definition *)
   typedef_def := find_embedded_piqtype "typedef";
   field_def := find_embedded_piqtype "field";

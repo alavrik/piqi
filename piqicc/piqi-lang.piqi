@@ -1,4 +1,4 @@
-.include [ .module piqi.org/piqi-lang ]
+.include [ .module piqi/piqi-lang ]
 
 % Piqi compiler compiler (piqicc) produces OCaml code, therefore it has to
 % support OCaml-specific extensions.

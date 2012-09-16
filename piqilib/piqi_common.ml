@@ -213,8 +213,8 @@ let is_container_type t =
     | _ -> false
 
 
-(* check if the module is a Piqi self-specification, i.e. it is
- * "piqi.org/piqi" or includes it *)
+(* check if the module is a Piqi self-specification, i.e. the module's name is
+ * "piqi" or it includes another module named "piqi" *)
 let is_self_spec (piqi: T.piqi) =
   (* XXX: cache this information to avoid computing it over and over again *)
   List.exists

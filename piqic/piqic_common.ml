@@ -53,7 +53,7 @@ let depends_on_piqi_any = ref false
 
 
 (* indication whether the module that is being processed is a Piqi self-spec,
- * i.e. it is "piqi.org/piqtype" or includes it *)
+ * i.e. the module's name is "piqi" or it includes another module named "piqi"*)
 let is_self_spec = ref false
 
 
@@ -99,8 +99,6 @@ let piqic_common piqi =
    * in order to avoid unnecessary dependency on Piqtype module *)
   depends_on_piqi_any := Piqi_common.depends_on_piqi_any piqi;
 
-  (* indication whether the module that is being processed is a Piqi self-spec,
-   * i.e. it is "piqi.org/piqi" or includes it *)
   if not !is_self_spec
   then is_self_spec := Piqi_common.is_self_spec piqi;
 

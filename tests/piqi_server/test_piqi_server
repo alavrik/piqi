@@ -31,7 +31,7 @@ piqi call $flags "piqi server/ping"
 # testing "add-piqi" function
 #
 
-f=../piqi.org/piqi.piqi
+f=../../piqi/piqi.piqi
 
 
 piqi expand --add-module-name $f > t.piqi

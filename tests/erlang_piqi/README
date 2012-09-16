@@ -1,5 +1,5 @@
 
-Compile complex Piqi specification "piqi.org/piqi.piqi" to produce Erlang coders
+Compile complex Piqi specification "piqi/piqi.piqi" to produce Erlang coders
 and decoders.
 
 Then build a program which reads and writes back a serialized binary object

@@ -2,7 +2,7 @@ all: prep test
 
 
 prep:
-	cat ../piqi_misc/piqobj.piqi | sed -e 's/piqi.org\///' > piqobj.piqi
+	cat ../piqi_misc/piqobj.piqi | sed -e 's/piqi\///' > piqobj.piqi
 	piqi convert --add-defaults -t pb piqi.piqi
 
 

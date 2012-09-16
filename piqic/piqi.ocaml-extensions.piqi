@@ -1,6 +1,6 @@
 
 
-.include [ .module piqi.org/piqi ]
+.include [ .module piqi/piqi ]
 
 .include [ .module piqic/piqi.ocaml ]
 

@@ -55,14 +55,14 @@ let piqicc ch spec_fname lang_fname impl_fname =
   (* find the Piqi module that corresponds to the Piqi language
    * self-specification -- a basic input sanity check *)
   let _ =
-    try Piqi_db.find_piqi "piqi.org/piqi-lang"
+    try Piqi_db.find_piqi "piqi/piqi-lang"
     with Not_found ->
-      piqi_error "missing module piqi.org/piqi-lang"
+      piqi_error "missing module piqi/piqi-lang"
   in
   let _ =
-    try Piqi_db.find_piqi "piqi.org/piqi"
+    try Piqi_db.find_piqi "piqi/piqi"
     with Not_found ->
-      piqi_error "missing imported module piqi.org/piqi"
+      piqi_error "missing imported module piqi/piqi"
   in
   (* convert piqi to binobj using piqi self-definition that we've just loaded *)
   let piqi_def = Piqi_db.find_local_typedef piqi_lang.P#resolved_typedef "piqi" in

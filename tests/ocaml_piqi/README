@@ -1,5 +1,5 @@
 
-Compile complex piqi specification "piqi.org/piqi.piqi" to produce OCaml
+Compile complex piqi specification "piqi/piqi.piqi" to produce OCaml
 parsers and generators.
 
 Then build a program which reads and writes back a serialized binary object

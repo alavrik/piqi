@@ -25,7 +25,7 @@ ERLC_FLAGS += -I ../include
 
 
 PIQIC = piqic
-PIQIC_FLAGS =
+PIQIC_FLAGS = --gen-defaults
 
 
 PIQI_FILES = piqi-rpc.piqi piqi-tools.piqi piqi.piqi

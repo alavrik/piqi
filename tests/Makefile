@@ -36,7 +36,7 @@ DIRS_OCAML = \
 
 DIRS = \
        examples \
-       piqi.org \
+       self_spec \
        piqi_misc \
        piqi_server \
        $(DIRS_OCAML) \
