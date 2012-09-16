@@ -243,6 +243,15 @@
         .type piqi-any
         .optional
     ]
+
+    .field [
+        % experimental: indication that the field has been deprecated; which
+        % means that it may not be supported any more and use of such field is
+        % discouraged
+
+        .name deprecated
+        .optional
+    ]
 ]
 
 
@@ -275,6 +284,14 @@
     ]
     .field [
         .type type
+        .optional
+    ]
+    .field [
+        % experimental: indication that the option has been deprecated; which
+        % means that it may not be supported any more and use of such field is
+        % discouraged
+
+        .name deprecated
         .optional
     ]
 ]

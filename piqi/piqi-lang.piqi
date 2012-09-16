@@ -99,10 +99,12 @@
         .repeated
     ]
 
-    % this way of specifying extensions will be deprecated soon
     .field [
+        % this way of specifying extensions will be deprecated soon
+
         .type piqi-any % an actual extension object
         .repeated
+        .deprecated
     ]
 ]
 
@@ -115,7 +117,9 @@
         % previous name for "typedef"; kept for backwards compatibility; will be
         % fully deprecated in future Piqi versions; NOTE: typedef takes
         % precedence over it
+
         .type name
+        .deprecated
     ]
     .option [ .name field .type name ]
     .option [ .name option .type name ]
