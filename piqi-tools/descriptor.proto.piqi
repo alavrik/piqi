@@ -1,4 +1,4 @@
-.proto-package "google.protobuf"
+.protobuf-package "google.protobuf"
 
 .record [
     .name file-descriptor-set
@@ -112,13 +112,13 @@
     .name descriptor-proto-extension-range
     .field [
         .name start
-        .type proto-int32
+        .type protobuf-int32
         .optional
         .code 1
     ]
     .field [
         .name end
-        .type proto-int32
+        .type protobuf-int32
         .optional
         .code 2
     ]
@@ -134,7 +134,7 @@
     ]
     .field [
         .name number
-        .type proto-int32
+        .type protobuf-int32
         .optional
         .code 3
     ]
@@ -181,92 +181,92 @@
     .option [
         .name type-double
         .code 1
-        .proto-name "field_descriptor_proto_type_double"
+        .protobuf-name "field_descriptor_proto_type_double"
     ]
     .option [
         .name type-float
         .code 2
-        .proto-name "field_descriptor_proto_type_float"
+        .protobuf-name "field_descriptor_proto_type_float"
     ]
     .option [
         .name type-int64
         .code 3
-        .proto-name "field_descriptor_proto_type_int64"
+        .protobuf-name "field_descriptor_proto_type_int64"
     ]
     .option [
         .name type-uint64
         .code 4
-        .proto-name "field_descriptor_proto_type_uint64"
+        .protobuf-name "field_descriptor_proto_type_uint64"
     ]
     .option [
         .name type-int32
         .code 5
-        .proto-name "field_descriptor_proto_type_int32"
+        .protobuf-name "field_descriptor_proto_type_int32"
     ]
     .option [
         .name type-fixed64
         .code 6
-        .proto-name "field_descriptor_proto_type_fixed64"
+        .protobuf-name "field_descriptor_proto_type_fixed64"
     ]
     .option [
         .name type-fixed32
         .code 7
-        .proto-name "field_descriptor_proto_type_fixed32"
+        .protobuf-name "field_descriptor_proto_type_fixed32"
     ]
     .option [
         .name type-bool
         .code 8
-        .proto-name "field_descriptor_proto_type_bool"
+        .protobuf-name "field_descriptor_proto_type_bool"
     ]
     .option [
         .name type-string
         .code 9
-        .proto-name "field_descriptor_proto_type_string"
+        .protobuf-name "field_descriptor_proto_type_string"
     ]
     .option [
         .name type-group
         .code 10
-        .proto-name "field_descriptor_proto_type_group"
+        .protobuf-name "field_descriptor_proto_type_group"
     ]
     .option [
         .name type-message
         .code 11
-        .proto-name "field_descriptor_proto_type_message"
+        .protobuf-name "field_descriptor_proto_type_message"
     ]
     .option [
         .name type-bytes
         .code 12
-        .proto-name "field_descriptor_proto_type_bytes"
+        .protobuf-name "field_descriptor_proto_type_bytes"
     ]
     .option [
         .name type-uint32
         .code 13
-        .proto-name "field_descriptor_proto_type_uint32"
+        .protobuf-name "field_descriptor_proto_type_uint32"
     ]
     .option [
         .name type-enum
         .code 14
-        .proto-name "field_descriptor_proto_type_enum"
+        .protobuf-name "field_descriptor_proto_type_enum"
     ]
     .option [
         .name type-sfixed32
         .code 15
-        .proto-name "field_descriptor_proto_type_sfixed32"
+        .protobuf-name "field_descriptor_proto_type_sfixed32"
     ]
     .option [
         .name type-sfixed64
         .code 16
-        .proto-name "field_descriptor_proto_type_sfixed64"
+        .protobuf-name "field_descriptor_proto_type_sfixed64"
     ]
     .option [
         .name type-sint32
         .code 17
-        .proto-name "field_descriptor_proto_type_sint32"
+        .protobuf-name "field_descriptor_proto_type_sint32"
     ]
     .option [
         .name type-sint64
         .code 18
-        .proto-name "field_descriptor_proto_type_sint64"
+        .protobuf-name "field_descriptor_proto_type_sint64"
     ]
 ]
 
@@ -275,17 +275,17 @@
     .option [
         .name label-optional
         .code 1
-        .proto-name "field_descriptor_proto_label_optional"
+        .protobuf-name "field_descriptor_proto_label_optional"
     ]
     .option [
         .name label-required
         .code 2
-        .proto-name "field_descriptor_proto_label_required"
+        .protobuf-name "field_descriptor_proto_label_required"
     ]
     .option [
         .name label-repeated
         .code 3
-        .proto-name "field_descriptor_proto_label_repeated"
+        .protobuf-name "field_descriptor_proto_label_repeated"
     ]
 ]
 
@@ -321,7 +321,7 @@
     ]
     .field [
         .name number
-        .type proto-int32
+        .type protobuf-int32
         .optional
         .code 2
     ]
@@ -445,17 +445,17 @@
     .option [
         .name speed
         .code 1
-        .proto-name "file_options_speed"
+        .protobuf-name "file_options_speed"
     ]
     .option [
         .name code-size
         .code 2
-        .proto-name "file_options_code_size"
+        .protobuf-name "file_options_code_size"
     ]
     .option [
         .name lite-runtime
         .code 3
-        .proto-name "file_options_lite_runtime"
+        .protobuf-name "file_options_lite_runtime"
     ]
 ]
 
@@ -524,17 +524,17 @@
     .option [
         .name string
         .code 0
-        .proto-name "field_options_string"
+        .protobuf-name "field_options_string"
     ]
     .option [
         .name cord
         .code 1
-        .proto-name "field_options_cord"
+        .protobuf-name "field_options_cord"
     ]
     .option [
         .name string-piece
         .code 2
-        .proto-name "field_options_string_piece"
+        .protobuf-name "field_options_string_piece"
     ]
 ]
 
@@ -600,7 +600,7 @@
     ]
     .field [
         .name negative-int-value
-        .type proto-int64
+        .type protobuf-int64
         .optional
         .code 5
     ]

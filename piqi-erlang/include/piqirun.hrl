@@ -20,8 +20,8 @@
 
 % non_neg_integer() holds a value for all varint and zigzag_varint types:
 %
-%    bool, int, int32, int64, uint, uint32, uint64, proto-int32, proto-int64,
-%    enum
+%    bool, int, int32, int64, uint, uint32, uint64, protobuf-int32,
+%    protobuf-int64, enum
 %
 % {fixed32, binary()} with a binary of size 4 holds a value for fixed32 -encoded
 % types:

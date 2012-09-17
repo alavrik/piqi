@@ -175,7 +175,7 @@ void dump_field(const FieldDescriptor *f, string &accu)
         case FieldDescriptor::TYPE_FLOAT:
             type = "float32"; break;
         case FieldDescriptor::TYPE_INT64:
-            type = "proto-int64"; break;
+            type = "protobuf-int64"; break;
         case FieldDescriptor::TYPE_UINT64:
             type = "uint64"; break;
         case FieldDescriptor::TYPE_FIXED64:
@@ -185,7 +185,7 @@ void dump_field(const FieldDescriptor *f, string &accu)
         case FieldDescriptor::TYPE_SINT64:
             type = "int64"; break;
         case FieldDescriptor::TYPE_INT32:
-            type = "proto-int32"; break;
+            type = "protobuf-int32"; break;
         case FieldDescriptor::TYPE_UINT32:
             type = "uint32"; break;
         case FieldDescriptor::TYPE_FIXED32:

@@ -134,7 +134,7 @@ let gen_alias a =
     ios "default_"; ios (some_of a.erlang_name); ios "() -> ";
     Piqic_erlang_in.gen_convert_of piqtype a.erlang_type (
       gen_default_piqtype
-        piqtype ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
+        piqtype ?erlang_type:a.erlang_type ?wire_type:a.protobuf_wire_type;
     );
     ios ".";
   ]

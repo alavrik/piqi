@@ -114,13 +114,13 @@ let gen_field_parser i f =
             ios "piqirun:parse_" ^^ ios mode ^^ ios "_field(";
               gen_code f.code; ios ", ";
               ios "fun ";
-                gen_parse_piqtype piqtype ~wire_packed:f.wire_packed;
+                gen_parse_piqtype piqtype ~wire_packed:f.protobuf_packed;
                 ios "/1, ";
 
               (* when parsing packed repeated fields, we should also accept
                * fields in unpacked representation; therefore, specifying an
                * unpacked field parser as another parameter *)
-              if f.wire_packed
+              if f.protobuf_packed
               then iol [
               ios "fun ";
                 gen_parse_piqtype piqtype;
@@ -275,7 +275,7 @@ let gen_alias a ~wire_packed =
         iol [
           gen_parse_piqtype piqtype
             ?erlang_type:a.erlang_type
-            ?wire_type:a.wire_type
+            ?wire_type:a.protobuf_wire_type
             ~wire_packed;
           ios "(X)";
         ]
@@ -299,18 +299,18 @@ let gen_alias a =
 
 let gen_list l =
   let open L in
-  let packed = ios (if l.wire_packed then "packed_" else "") in
+  let packed = ios (if l.protobuf_packed then "packed_" else "") in
   iol [
     ios "parse_" ^^ ios (some_of l.erlang_name); ios "(X) ->"; indent;
       ios "piqirun:parse_"; packed; ios "list(";
         ios "fun ";
-          gen_parse_piqtype (some_of l.piqtype) ~wire_packed:l.wire_packed;
+          gen_parse_piqtype (some_of l.piqtype) ~wire_packed:l.protobuf_packed;
           ios "/1, ";
 
         (* when parsing packed repeated fields, we should also accept
          * fields in unpacked representation; therefore, specifying an
          * unpacked field parser as another parameter *)
-        if l.wire_packed
+        if l.protobuf_packed
         then iol [
         ios "fun ";
           gen_parse_piqtype (some_of l.piqtype);

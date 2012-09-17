@@ -98,11 +98,11 @@ let gen_field_parser f =
             (* "parse_(required|optional|repeated)_field" function invocation *)
             ios "Piqirun.parse_" ^^ ios mode ^^ ios "_field";
               gen_code f.code;
-              gen_parse_piqtype piqtype ~wire_packed:f.wire_packed;
+              gen_parse_piqtype piqtype ~wire_packed:f.protobuf_packed;
               (* when parsing packed repeated fields, we should also accept
                * fields in unpacked representation; therefore, specifying an
                * unpacked field parser as another parameter *)
-              if f.wire_packed then gen_parse_piqtype piqtype else iol [];
+              if f.protobuf_packed then gen_parse_piqtype piqtype else iol [];
               ios " x";
               gen_default f.default;
           ]
@@ -235,7 +235,7 @@ let gen_alias a ~wire_packed =
         gen_parse_piqtype
           piqtype
           ?ocaml_type:a.ocaml_type
-          ?wire_type:a.wire_type
+          ?wire_type:a.protobuf_wire_type
           ~wire_packed;
         ios " x";
       ]
@@ -263,12 +263,12 @@ let gen_list l =
       gen_cc "let count = next_count() in refer count (";
         (* Piqirun.parse_(packed_)?(list|array|array32|array64) *)
         ios "Piqirun.parse_"; repr;
-          ios " ("; gen_parse_piqtype (some_of l.piqtype) ~wire_packed:l.wire_packed; ios ")";
+          ios " ("; gen_parse_piqtype (some_of l.piqtype) ~wire_packed:l.protobuf_packed; ios ")";
 
           (* when parsing packed repeated fields, we should also accept
            * fields in unpacked representation; therefore, specifying an
            * unpacked field parser as another parameter *)
-          if l.wire_packed
+          if l.protobuf_packed
           then iol [
           ios " ("; gen_parse_piqtype (some_of l.piqtype); ios ")";
           ]

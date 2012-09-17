@@ -3,7 +3,7 @@
 %     piqi of-proto --normalize addressbook.proto
 
 
-.proto-package "tutorial"
+.protobuf-package "tutorial"
 
 .record [
     .name person
@@ -14,7 +14,7 @@
     ]
     .field [
         .name id
-        .type proto-int32
+        .type protobuf-int32
         .code 2
     ]
     .field [
@@ -52,17 +52,17 @@
     .option [
         .name mobile
         .code 0
-        .proto-name "person_mobile"
+        .protobuf-name "person_mobile"
     ]
     .option [
         .name home
         .code 1
-        .proto-name "person_home"
+        .protobuf-name "person_home"
     ]
     .option [
         .name work
         .code 2
-        .proto-name "person_work"
+        .protobuf-name "person_work"
     ]
 ]
 

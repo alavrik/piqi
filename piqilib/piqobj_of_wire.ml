@@ -199,7 +199,7 @@ and do_parse_field t l =
           let res = (match x with Some x -> [x] | None -> []) in
           res, rem
       | `repeated ->
-          if not t.wire_packed
+          if not t.protobuf_packed
           then parse_repeated_field code field_type l
           else parse_packed_repeated_field code field_type l
   in
@@ -295,7 +295,7 @@ and parse_enum_option t code32 =
 and parse_list t x = 
   let obj_type = some_of t.T.Piqi_list#piqtype in
   let contents =
-    if not t.T.Piqi_list.wire_packed
+    if not t.T.Piqi_list.protobuf_packed
     then Piqirun.parse_list (parse_obj obj_type) x
     else Piqirun.parse_packed_list
       (parse_packed_obj obj_type) (parse_obj obj_type) x
@@ -310,7 +310,7 @@ and parse_alias0 t x =
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t ?wire_type x =
   let open T.Alias in
-  let wire_type = Piqobj_to_wire.resolve_wire_type ?wire_type t.wire_type in
+  let wire_type = Piqobj_to_wire.resolve_wire_type ?wire_type t.protobuf_wire_type in
   let obj =
     match some_of t.piqtype with
       | `int -> parse_int x ?wire_type
@@ -323,7 +323,7 @@ and parse_alias t ?wire_type x =
 
 and parse_packed_alias t ?wire_type x =
   let open T.Alias in
-  let wire_type = Piqobj_to_wire.resolve_wire_type ?wire_type t.wire_type in
+  let wire_type = Piqobj_to_wire.resolve_wire_type ?wire_type t.protobuf_wire_type in
   let obj =
     match some_of t.piqtype with
       | `int -> parse_packed_int x ?wire_type

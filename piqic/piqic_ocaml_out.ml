@@ -85,7 +85,7 @@ let gen_wire_elem_width piqtype wire_packed =
     | `alias x ->
         (* NOTE: overriding upper-level wire type even if this one is undefined
          *)
-        aux (some_of x.A#piqtype) ?wire_type:x.A#wire_type
+        aux (some_of x.A#piqtype) ?wire_type:x.A#protobuf_wire_type
     | t ->
         Piqi_wire.get_wire_type_width t wire_type
   in
@@ -106,13 +106,13 @@ let gen_mode f =
     | `optional -> "optional"
     | `repeated ->
         let mode =
-          if f.wire_packed
+          if f.protobuf_packed
           then "packed_repeated"
           else "repeated"
         in
         if f.ocaml_array
         then
-          let width = gen_wire_elem_width f.piqtype f.wire_packed in
+          let width = gen_wire_elem_width f.piqtype f.protobuf_packed in
           mode ^ "_array" ^ width
         else mode
 
@@ -132,7 +132,7 @@ let gen_field rname f =
             [ 
               ios "Piqirun.gen_" ^^ ios mode ^^ ios "_field";
                 gen_code f.code;
-                gen_gen_piqtype piqtype ~wire_packed:f.wire_packed;
+                gen_gen_piqtype piqtype ~wire_packed:f.protobuf_packed;
                 ffname
             ]
       | None ->
@@ -280,7 +280,7 @@ let gen_alias a =
   iol [
     ios "gen__"; ios (some_of a.ocaml_name);
     ios " code x = ";
-      gen_gen_piqtype piqtype ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+      gen_gen_piqtype piqtype ?ocaml_type:a.ocaml_type ?wire_type:a.protobuf_wire_type;
       ios " code"; gen_convert_to piqtype a.ocaml_type (ios " x");
   ]
 
@@ -293,7 +293,7 @@ let gen_packed_alias a =
     ios " x = ";
       gen_gen_piqtype piqtype
         ?ocaml_type:a.ocaml_type
-        ?wire_type:a.wire_type
+        ?wire_type:a.protobuf_wire_type
         ~wire_packed:true;
       gen_convert_to piqtype a.ocaml_type (ios " x");
   ]
@@ -314,10 +314,10 @@ let gen_alias a =
 (* generate: (packed_)?(list|array|array32|array64) *)
 let gen_list_repr l =
   let open L in
-  let packed = ios (if l.wire_packed then "packed_" else "") in
+  let packed = ios (if l.protobuf_packed then "packed_" else "") in
   let repr =
     if l.ocaml_array
-    then ios "array" ^^ ios (gen_wire_elem_width l.piqtype l.wire_packed)
+    then ios "array" ^^ ios (gen_wire_elem_width l.piqtype l.protobuf_packed)
     else ios "list"
   in
   packed ^^ repr
@@ -331,7 +331,7 @@ let gen_list l =
       gen_cc "reference ";
         (* Piqirun.gen_(packed_)?(list|array|array32|array64) *)
         ios "(Piqirun.gen_"; repr; ios " (";
-          gen_gen_piqtype (some_of l.piqtype) ~wire_packed:l.wire_packed;
+          gen_gen_piqtype (some_of l.piqtype) ~wire_packed:l.protobuf_packed;
         ios ")) code x";
   ]
 

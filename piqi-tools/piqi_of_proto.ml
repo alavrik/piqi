@@ -171,12 +171,12 @@ let gen_enum_value path x =
   let piqi_name = format_name name in
   let proto_name =
     match path with
-      | [] -> iol [] (* empty -- no need for separate .proto-name *)
+      | [] -> iol [] (* empty -- no need for separate .protobuf-name *)
       | _ ->
           (* after formatting and probably normalizing name we need to convert
            * dashes back to underscores *)
           let n = U.dashes_to_underscores (make_piqi_name (name :: path)) in
-          ios ".proto-name " ^^ ioq n
+          ios ".protobuf-name " ^^ ioq n
   in
   iod " " [
     ios ".option [";
@@ -326,13 +326,13 @@ let gen_builtin_type = function
   | `type_double -> "float64"
   | `type_float -> "float32"
 
-  | `type_int64 -> "proto-int64"
+  | `type_int64 -> "protobuf-int64"
   | `type_uint64 -> "uint64"
   | `type_fixed64 -> "uint64-fixed"
   | `type_sfixed64 -> "int64-fixed"
   | `type_sint64 -> "int64"
 
-  | `type_int32 -> "proto-int32"
+  | `type_int32 -> "protobuf-int32"
   | `type_uint32 -> "uint32"
   | `type_fixed32 -> "uint32-fixed"
   | `type_sfixed32 -> "int32-fixed"
@@ -401,7 +401,7 @@ let gen_field_internals idtable ?(path=[]) x =
       | None -> ""
       | Some x ->
           if x.D.Field_options#packed = Some true
-          then ".wire-packed"
+          then ".protobuf-packed"
           else ""
   in
   iod "\n" [
@@ -538,7 +538,7 @@ let gen_proto idtable (x:ProtoFile.t) =
     let package =
       match x.package with
         | None -> iol []
-        | Some x -> ios ".proto-package " ^^ ioq x
+        | Some x -> ios ".protobuf-package " ^^ ioq x
     in
     let code =
       iod "\n" [

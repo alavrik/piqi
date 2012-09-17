@@ -152,7 +152,7 @@ let gen_alias a =
       ios "default_" ^^ ios (some_of a.ocaml_name); ios "() =";
       Piqic_ocaml_in.gen_convert_of piqtype a.ocaml_type (
         gen_default_piqtype
-          piqtype ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+          piqtype ?ocaml_type:a.ocaml_type ?wire_type:a.protobuf_wire_type;
       );
     ]
 

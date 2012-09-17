@@ -80,13 +80,13 @@
     ]
     .field [
         .name i32
-        .type proto-int32
+        .type protobuf-int32
         .repeated
         .ocaml-array
     ]
     .field [
         .name i64
-        .type proto-int64
+        .type protobuf-int64
         .repeated
         .ocaml-array
     ]
@@ -216,12 +216,12 @@
 ]
 .list [
     .name i32-list
-    .type proto-int32
+    .type protobuf-int32
     .ocaml-array
 ]
 .list [
     .name i64-list
-    .type proto-int64
+    .type protobuf-int64
     .ocaml-array
 ]
 

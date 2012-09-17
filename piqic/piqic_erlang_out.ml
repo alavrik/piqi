@@ -82,7 +82,7 @@ let gen_mode f =
     | `required -> "required"
     | `optional -> "optional"
     | `repeated ->
-        if f.wire_packed
+        if f.protobuf_packed
         then "packed_repeated"
         else "repeated"
 
@@ -102,8 +102,8 @@ let gen_field rname f =
             ios "piqirun:gen_" ^^ ios mode ^^ ios "_field(";
               gen_code f.code; ios ", ";
               ios "fun ";
-                gen_gen_piqtype piqtype ~wire_packed:f.wire_packed;
-                if f.wire_packed (* arity *)
+                gen_gen_piqtype piqtype ~wire_packed:f.protobuf_packed;
+                if f.protobuf_packed (* arity *)
                 then ios "/1, "
                 else ios "/2, ";
               ffname;
@@ -285,7 +285,7 @@ let gen_alias a =
   iol [
     ios "gen_"; ios (some_of a.erlang_name);
     ios "(Code, X) ->"; indent;
-      gen_gen_piqtype piqtype ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
+      gen_gen_piqtype piqtype ?erlang_type:a.erlang_type ?wire_type:a.protobuf_wire_type;
       ios "(Code, "; gen_convert_to piqtype a.erlang_type (ios "X"); ios ").";
     unindent; eol;
   ]
@@ -299,7 +299,7 @@ let gen_packed_alias a =
     ios "(X) ->"; indent;
       gen_gen_piqtype piqtype
         ?erlang_type:a.erlang_type
-        ?wire_type:a.wire_type
+        ?wire_type:a.protobuf_wire_type
         ~wire_packed:true;
       ios "("; gen_convert_to piqtype a.erlang_type (ios "X"); ios ").";
     unindent; eol;
@@ -320,14 +320,14 @@ let gen_alias a =
 
 let gen_list l =
   let open L in
-  let packed = ios (if l.wire_packed then "packed_" else "") in
+  let packed = ios (if l.protobuf_packed then "packed_" else "") in
   iol [
     ios "gen_" ^^ ios (some_of l.erlang_name);
     ios "(Code, X) ->"; indent;
       ios "piqirun:gen_"; packed; ios "list(Code, ";
         ios "fun ";
-          gen_gen_piqtype (some_of l.piqtype) ~wire_packed:l.wire_packed;
-          if l.wire_packed (* arity *)
+          gen_gen_piqtype (some_of l.piqtype) ~wire_packed:l.protobuf_packed;
+          if l.protobuf_packed (* arity *)
           then ios "/1, X)."
           else ios "/2, X).";
     unindent; eol;

@@ -410,8 +410,8 @@ let check_resolved_alias a =
   (* TODO: check for alias loops *)
   let open A in
   begin
-    (* check for wire-types compatibility with piq types *)
-    (match a.wire_type with
+    (* check for wire-types compatibility with piqi types *)
+    (match a.protobuf_wire_type with
       | None -> ()
       | Some x ->
           check_wire_type a x

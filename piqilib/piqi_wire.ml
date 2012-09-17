@@ -50,7 +50,7 @@ let default_wire_type (t:T.piqtype) =
     | _ -> `block
 
 
-let wire_type_name (wt:T.wire_type) = 
+let wire_type_name (wt:T.protobuf_wire_type) =
   match wt with
     | `varint -> "varint"
     | `zigzag_varint -> "zigzag_varint"
@@ -62,7 +62,7 @@ let wire_type_name (wt:T.wire_type) =
     | `block -> "block"
 
 
-let get_wire_type (t:T.piqtype) (wt:T.wire_type option) =
+let get_wire_type (t:T.piqtype) (wt:T.protobuf_wire_type option) =
   match wt with
     | None -> default_wire_type t
     | Some wt -> wt
@@ -231,21 +231,41 @@ let check_packed_type obj t =
     error obj "packed representation can be used only for numeric, bool and enum types"
 
 
-let check_packed_field x =
-  let open F in
-  if x.wire_packed
-  then (
-    if x.mode <> `repeated
-    then error x "packed representation can be used only for repeated fields";
+let wire_packed_warning x =
+  warning x ".wire-packed is deprecated; use .protobuf-packed instead"
 
-    check_packed_type x x.piqtype
+
+let check_packed_field x =
+  let open F in (
+    if x.wire_packed
+    then (
+      wire_packed_warning x;
+      if not x.protobuf_packed
+      then x.protobuf_packed <- true;
+    );
+
+    if x.protobuf_packed
+    then (
+      if x.mode <> `repeated
+      then error x "packed representation can be used only for repeated fields";
+
+      check_packed_type x x.piqtype
+    )
   )
 
 
 let check_packed_list x =
-  let open L in
-  if x.wire_packed
-  then check_packed_type x x.piqtype
+  let open L in (
+    if x.wire_packed
+    then (
+      wire_packed_warning x;
+      if not x.protobuf_packed
+      then x.protobuf_packed <- true;
+    );
+
+    if x.protobuf_packed
+    then check_packed_type x x.piqtype;
+  )
 
 
 let process_def = function

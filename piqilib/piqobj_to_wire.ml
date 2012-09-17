@@ -227,7 +227,7 @@ and gen_fields fields =
   else List.map gen_field fields
 
 
-and is_packed_field x = x.F#t.T.Field#wire_packed
+and is_packed_field x = x.F#t.T.Field#protobuf_packed
 
 
 (* generate fields but first group packed repeated fields together because they
@@ -328,14 +328,14 @@ and gen_packed_enum_option x =
 
 and gen_list code x =
   let open L in
-  if not x.t.T.Piqi_list.wire_packed
+  if not x.t.T.Piqi_list.protobuf_packed
   then Piqirun.gen_list gen_obj code x.obj
   else Piqirun.gen_packed_list gen_packed_obj code x.obj
 
 
 and gen_alias ?wire_type code x =
   let open A in
-  let wire_type = resolve_wire_type ?wire_type x.t.T.Alias#wire_type in
+  let wire_type = resolve_wire_type ?wire_type x.t.T.Alias#protobuf_wire_type in
   match x.obj with
     | `int x | `uint x -> gen_int code x ?wire_type
     | `float x -> gen_float code x ?wire_type
@@ -345,7 +345,7 @@ and gen_alias ?wire_type code x =
 
 and gen_packed_alias ?wire_type x =
   let open A in
-  let wire_type = resolve_wire_type ?wire_type x.t.T.Alias#wire_type in
+  let wire_type = resolve_wire_type ?wire_type x.t.T.Alias#protobuf_wire_type in
   match x.obj with
     | `int x | `uint x -> gen_packed_int x ?wire_type
     | `float x -> gen_packed_float x ?wire_type

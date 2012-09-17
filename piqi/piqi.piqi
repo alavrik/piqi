@@ -5,11 +5,8 @@
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 
 
-.proto-package "piqi_org.piqi"
-
-
 % aliases for built-in types; these definitions are automatically included in
-% all Piqi modules
+% each Piqi module except modules named "piqi"
 
 .alias [ .name bool       .piqi-type.bool ]
 .alias [ .name string     .piqi-type.string ]
@@ -23,48 +20,48 @@
     .name int
     .piqi-type.int
 
-    .wire-type.zigzag-varint
-    .proto-type "sint32"
+    .protobuf-type "sint32"
+    .protobuf-wire-type.zigzag-varint
 ]
 
 .alias [
     .name uint
     .piqi-type.int
 
-    .wire-type.varint
-    .proto-type "uint32"
+    .protobuf-type "uint32"
+    .protobuf-wire-type.varint
 ]
 
 .alias [
     .name int32
     .piqi-type.int
 
-    .wire-type.zigzag-varint
-    .proto-type "sint32"
+    .protobuf-type "sint32"
+    .protobuf-wire-type.zigzag-varint
 ]
 
 .alias [
     .name uint32
     .piqi-type.int
 
-    .wire-type.varint
-    .proto-type "uint32"
+    .protobuf-type "uint32"
+    .protobuf-wire-type.varint
 ]
 
 .alias [
     .name int64
     .piqi-type.int
 
-    .wire-type.zigzag-varint
-    .proto-type "sint64"
+    .protobuf-type "sint64"
+    .protobuf-wire-type.zigzag-varint
 ]
 
 .alias [
     .name uint64
     .piqi-type.int
 
-    .wire-type.varint
-    .proto-type "uint64"
+    .protobuf-type "uint64"
+    .protobuf-wire-type.varint
 ]
 
 
@@ -75,8 +72,8 @@
     .type int32
     .piqi-type.int
 
-    .wire-type.signed-fixed32
-    .proto-type "sfixed32"
+    .protobuf-type "sfixed32"
+    .protobuf-wire-type.signed-fixed32
 ]
 
 .alias [
@@ -84,8 +81,8 @@
     .type uint32
     .piqi-type.int
 
-    .wire-type.fixed32
-    .proto-type "fixed32"
+    .protobuf-type "fixed32"
+    .protobuf-wire-type.fixed32
 ]
 
 .alias [
@@ -93,8 +90,8 @@
     .type int64
     .piqi-type.int
 
-    .wire-type.signed-fixed64
-    .proto-type "sfixed64"
+    .protobuf-type "sfixed64"
+    .protobuf-wire-type.signed-fixed64
 ]
 
 .alias [
@@ -102,8 +99,8 @@
     .type uint64
     .piqi-type.int
 
-    .wire-type.fixed64
-    .proto-type "fixed64"
+    .protobuf-type "fixed64"
+    .protobuf-wire-type.fixed64
 ]
 
 
@@ -112,21 +109,21 @@
 % negative integers which representation is very inefficient requiring many
 % bytes for small absolue values.
 .alias [
-    .name proto-int32
+    .name protobuf-int32
     .type int32
     .piqi-type.int
 
-    .wire-type.signed-varint
-    .proto-type "int32"
+    .protobuf-type "int32"
+    .protobuf-wire-type.signed-varint
 ]
 
 .alias [
-    .name proto-int64
+    .name protobuf-int64
     .type int64
     .piqi-type.int
 
-    .wire-type.signed-varint
-    .proto-type "int64"
+    .protobuf-type "int64"
+    .protobuf-wire-type.signed-varint
 ]
 
 
@@ -134,8 +131,8 @@
     .name float64
     .piqi-type.float
 
-    .wire-type.fixed64
-    .proto-type "double"
+    .protobuf-type "double"
+    .protobuf-wire-type.fixed64
 ]
 
 .alias [
@@ -148,8 +145,8 @@
     .name float32
     .piqi-type.float
 
-    .wire-type.fixed32
-    .proto-type "float"
+    .protobuf-type "float"
+    .protobuf-wire-type.fixed32
 ]
 
 
@@ -185,7 +182,7 @@
         .type list
     ]
 
-    .proto-name "piqi_typedef"
+    .protobuf-name "piqi_typedef"
 ]
 
 
@@ -194,12 +191,12 @@
 
     .name piqi-type
 
-    .option [ .name int     .proto-name "piqi_type_int" ]
-    .option [ .name float   .proto-name "piqi_type_float" ]
-    .option [ .name bool    .proto-name "piqi_type_bool" ]
-    .option [ .name string  .proto-name "piqi_type_string" ]
-    .option [ .name binary  .proto-name "piqi_type_binary" ]
-    .option [ .name any     .proto-name "piqi_type_any" ]
+    .option [ .name int     .protobuf-name "piqi_type_int" ]
+    .option [ .name float   .protobuf-name "piqi_type_float" ]
+    .option [ .name bool    .protobuf-name "piqi_type_bool" ]
+    .option [ .name string  .protobuf-name "piqi_type_string" ]
+    .option [ .name binary  .protobuf-name "piqi_type_binary" ]
+    .option [ .name any     .protobuf-name "piqi_type_any" ]
 ]
 
 
@@ -308,7 +305,7 @@
         .repeated % > 1
     ]
 
-    .proto-name "piqi_enum"
+    .protobuf-name "piqi_enum"
 ]
 
 
@@ -423,7 +420,6 @@
 %
 
 .include [ .module piqi.piq ]
-.include [ .module piqi.protobuf-wire ]
 .include [ .module piqi.protobuf ]
 .include [ .module piqi.json ]
 .include [ .module piqi.getopt ]

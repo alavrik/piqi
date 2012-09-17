@@ -1,11 +1,23 @@
 % Google Protocol Buffers extension for Piqi self-spec
 %
-% This file defines some extensions to the base Piqi self-specification adding
-% properties related to Protocol Buffer's .proto files. Namely, these properties
-% are used by "piqi to-proto" command that generates .proto files from .piqi
-% files.
-% 
+% This file defines two kinds of extensions to the base Piqi self-specification:
+%
+%   - properties related to Protocol Buffer's .proto files that are used by
+%     "piqi to-proto" command
+%
+%   - properties related to binary binary Google Protocol Buffers format also
+%     known as wire format
+%
+%
+% The document describing Protocol Buffers binary "wire" format:
+%
+%   https://developers.google.com/protocol-buffers/docs/encoding
+%
+%
 % Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+
+
+.protobuf-package "piqi_org.piqi"
 
 
 .include [ .module piqi ]
@@ -15,22 +27,41 @@
     (.typedef record field variant option enum alias list)
 
     .with.field [
+        .name protobuf-name
+        .type string
+        .optional
+    ]
+
+    .with.field [
+        % same as protobuf-name in Piqi-0.5.*
+
         .name proto-name
         .type string
         .optional
+        .deprecated
     ]
 ]
 
 
 .extend [
-    (.typedef record variant list enum)
+    (.typedef piqi record variant list enum)
 
-    % arbitrary string that will be included in .proto message and enum
-    % definitions as a result of .piqi -> .proto conversion
     .with.field [
+        % arbitrary string that will be included in .proto message and enum
+        % definitions as a result of .piqi -> .proto conversion
+
+        .name protobuf-custom
+        .type string
+        .repeated
+    ]
+
+    .with.field [
+        % same as protobuf-custom in Piqi-0.5.*
+
         .name proto-custom
         .type string
         .repeated
+        .deprecated
     ]
 ]
 
@@ -39,17 +70,18 @@
     .typedef piqi
 
     .with.field [
-        .name proto-package
+        .name protobuf-package
         .type string
         .optional
     ]
 
-    % arbitrary string that will be included in .proto as a result of .piqi ->
-    % .proto conversion
     .with.field [
-        .name proto-custom
+        % same as protobuf-package in Piqi-0.5.*
+
+        .name proto-package
         .type string
-        .repeated
+        .optional
+        .deprecated
     ]
 ]
 
@@ -58,9 +90,70 @@
     .typedef alias
 
     .with.field [
-        .name proto-type
+        .name protobuf-type
         .type string
         .optional
+    ]
+]
+
+
+.enum [
+    .name protobuf-wire-type
+
+    .option [ varint ]
+    .option [ zigzag-varint ]
+    .option [ fixed32 ]
+    .option [ fixed64 ]
+    .option [ signed-varint ]
+    .option [ signed-fixed32 ]
+    .option [ signed-fixed64 ]
+    .option [ block ]
+]
+
+
+.extend [
+    .typedef alias
+
+    .with.field [
+        .type protobuf-wire-type
+        .optional
+    ]
+]
+
+
+.extend [
+    (.typedef field option)
+
+    .with.field [
+        % for fields and variant options: unique integer field id
+        % from (1 -- (2^29-1)) range used for identifying individual fields and
+        % options encoded in wire format
+        %
+        % for enum options: non-unique integer constant from a full int32 range
+
+        .name code
+        .type int32
+        .optional
+    ]
+]
+
+
+.extend [
+    (.typedef field list)
+
+    % indication that Protobuf "packed" format is used for repeated fields or
+    % list elements
+    .with.field [
+        .name protobuf-packed
+        .optional
+    ]
+
+    .with.field [
+        % same as protobuf-packed in Piqi-0.5.*
+
+        .name wire-packed
+        .optional
+        .deprecated
     ]
 ]
 
