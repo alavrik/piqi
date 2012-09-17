@@ -191,12 +191,16 @@
 
     .name piqi-type
 
-    .option [ .name int     .protobuf-name "piqi_type_int" ]
-    .option [ .name float   .protobuf-name "piqi_type_float" ]
-    .option [ .name bool    .protobuf-name "piqi_type_bool" ]
-    .option [ .name string  .protobuf-name "piqi_type_string" ]
-    .option [ .name binary  .protobuf-name "piqi_type_binary" ]
-    .option [ .name any     .protobuf-name "piqi_type_any" ]
+    % prefix all options in order to prevent clash with keywords of the Protobuf
+    % target languages
+    .protobuf-prefix "piqi_type_"
+
+    .option [ .name int ]
+    .option [ .name float ]
+    .option [ .name bool ]
+    .option [ .name string ]
+    .option [ .name binary ]
+    .option [ .name any ]
 ]
 
 

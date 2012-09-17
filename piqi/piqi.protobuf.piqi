@@ -23,6 +23,10 @@
 .include [ .module piqi ]
 
 
+%
+% properties specific to .piqi to .proto conversion
+%
+
 .extend [
     (.typedef record field variant option enum alias list)
 
@@ -96,6 +100,26 @@
     ]
 ]
 
+
+.extend [
+    .typedef enum
+
+    .with.field [
+        % prefix each enum option's name with the specified string; it helps to
+        % deal with the fact that enum doesn't form a C++ namespace meaning that
+        % enum constants are defined directly in the outer namespace; it was
+        % announced that this problem will be fixed in protobuf-2.5
+
+        .name protobuf-prefix
+        .type string
+        .optional
+    ]
+]
+
+
+%
+% definitions and extensions related to how data is represented on the wire
+%
 
 .enum [
     .name protobuf-wire-type

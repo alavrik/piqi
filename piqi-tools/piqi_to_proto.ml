@@ -258,17 +258,24 @@ let gen_record ?name ?parent r =
   in rdef
 
 
-let gen_const c =
+let gen_const prefix c =
   let open O in
+  let name = ios (some_of c.protobuf_name) in
+  let prefixed_name =
+    match prefix with
+      | None -> name
+      | Some p -> ios p ^^ name
+  in
   iod " " [
-    ios (some_of c.protobuf_name); ios "="; gen_code c.code ^^ ios ";";
+    prefixed_name; ios "="; gen_code c.code ^^ ios ";";
   ]
 
 
 let gen_enum e =
   let open E in
   let enum_name = some_of e.protobuf_name in
-  let const_defs = List.map gen_const e.option in
+  let prefix = e.protobuf_prefix in
+  let const_defs = List.map (gen_const prefix) e.option in
   let make_enum_def name =
     iol [
       ios "enum "; ios name; ios " {"; indent;
