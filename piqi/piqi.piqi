@@ -12,58 +12,17 @@
 .alias [ .name string     .piqi-type.string ]
 .alias [ .name binary     .piqi-type.binary ]
 
-
 .alias [ .name piqi-any   .piqi-type.any ]
 
+.alias [ .name int        .piqi-type.int ]
+.alias [ .name uint       .piqi-type.int ]
+.alias [ .name int32      .piqi-type.int ]
+.alias [ .name uint32     .piqi-type.int ]
+.alias [ .name int64      .piqi-type.int ]
+.alias [ .name uint64     .piqi-type.int ]
 
-.alias [
-    .name int
-    .piqi-type.int
-
-    .protobuf-type "sint32"
-    .protobuf-wire-type.zigzag-varint
-]
-
-.alias [
-    .name uint
-    .piqi-type.int
-
-    .protobuf-type "uint32"
-    .protobuf-wire-type.varint
-]
-
-.alias [
-    .name int32
-    .piqi-type.int
-
-    .protobuf-type "sint32"
-    .protobuf-wire-type.zigzag-varint
-]
-
-.alias [
-    .name uint32
-    .piqi-type.int
-
-    .protobuf-type "uint32"
-    .protobuf-wire-type.varint
-]
-
-.alias [
-    .name int64
-    .piqi-type.int
-
-    .protobuf-type "sint64"
-    .protobuf-wire-type.zigzag-varint
-]
-
-.alias [
-    .name uint64
-    .piqi-type.int
-
-    .protobuf-type "uint64"
-    .protobuf-wire-type.varint
-]
-
+.alias [ .name float64    .piqi-type.float ]
+.alias [ .name float32    .piqi-type.float ]
 
 % Fixed versions of int32/64 and uint32/64. "Fixed" here means that they are
 % represented on the wire using exactly 4 and 8 bytes respectively.
@@ -71,68 +30,24 @@
     .name int32-fixed
     .type int32
     .piqi-type.int
-
-    .protobuf-type "sfixed32"
-    .protobuf-wire-type.signed-fixed32
 ]
 
 .alias [
     .name uint32-fixed
     .type uint32
     .piqi-type.int
-
-    .protobuf-type "fixed32"
-    .protobuf-wire-type.fixed32
 ]
 
 .alias [
     .name int64-fixed
     .type int64
     .piqi-type.int
-
-    .protobuf-type "sfixed64"
-    .protobuf-wire-type.signed-fixed64
 ]
 
 .alias [
     .name uint64-fixed
     .type uint64
     .piqi-type.int
-
-    .protobuf-type "fixed64"
-    .protobuf-wire-type.fixed64
-]
-
-
-% These two types are specific to Protocol Buffers. They have the same
-% on-the-wire representation as uint32/64. The difference is that they allow
-% negative integers which representation is very inefficient requiring many
-% bytes for small absolue values.
-.alias [
-    .name protobuf-int32
-    .type int32
-    .piqi-type.int
-
-    .protobuf-type "int32"
-    .protobuf-wire-type.signed-varint
-]
-
-.alias [
-    .name protobuf-int64
-    .type int64
-    .piqi-type.int
-
-    .protobuf-type "int64"
-    .protobuf-wire-type.signed-varint
-]
-
-
-.alias [
-    .name float64
-    .piqi-type.float
-
-    .protobuf-type "double"
-    .protobuf-wire-type.fixed64
 ]
 
 .alias [
@@ -140,15 +55,6 @@
     .type float64
     .piqi-type.float
 ]
-
-.alias [
-    .name float32
-    .piqi-type.float
-
-    .protobuf-type "float"
-    .protobuf-wire-type.fixed32
-]
-
 
 %
 % end of built-in types
@@ -159,7 +65,7 @@
     .name word
     .type string
 
-    .piq-format.word
+    .piq-format.word  % print it as word instead of a quoted string literal
 ]
 
 
@@ -259,9 +165,9 @@
 .enum [
     .name field-mode
 
-    .option [ required ]
-    .option [ optional ]
-    .option [ repeated ]
+    .option [ .name required ]
+    .option [ .name optional ]
+    .option [ .name repeated ]
 ]
 
 

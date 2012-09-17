@@ -24,6 +24,117 @@
 
 
 %
+% mapping between Piqi primitive and Protobuf types
+%
+
+.extend [
+    .typedef int
+
+    .with.protobuf-type "sint32"
+    .with.protobuf-wire-type.zigzag-varint
+]
+
+.extend [
+    .typedef uint
+
+    .with.protobuf-type "uint32"
+    .with.protobuf-wire-type.varint
+]
+
+.extend [
+    .typedef int32
+
+    .with.protobuf-type "sint32"
+    .with.protobuf-wire-type.zigzag-varint
+]
+
+.extend [
+    .typedef uint32
+
+    .with.protobuf-type "uint32"
+    .with.protobuf-wire-type.varint
+]
+
+.extend [
+    .typedef int64
+
+    .with.protobuf-type "sint64"
+    .with.protobuf-wire-type.zigzag-varint
+]
+
+.extend [
+    .typedef uint64
+
+    .with.protobuf-type "uint64"
+    .with.protobuf-wire-type.varint
+]
+
+.extend [
+    .typedef int32-fixed
+
+    .with.protobuf-type "sfixed32"
+    .with.protobuf-wire-type.signed-fixed32
+]
+
+.extend [
+    .typedef uint32-fixed
+
+    .with.protobuf-type "fixed32"
+    .with.protobuf-wire-type.fixed32
+]
+
+.extend [
+    .typedef int64-fixed
+
+    .with.protobuf-type "sfixed64"
+    .with.protobuf-wire-type.signed-fixed64
+]
+
+.extend [
+    .typedef uint64-fixed
+
+    .with.protobuf-type "fixed64"
+    .with.protobuf-wire-type.fixed64
+]
+
+.extend [
+    .typedef float64
+
+    .with.protobuf-type "double"
+    .with.protobuf-wire-type.fixed64
+]
+
+.extend [
+    .typedef float32
+
+    .with.protobuf-type "float"
+    .with.protobuf-wire-type.fixed32
+]
+
+% These two types are specific to Protocol Buffers. They have the same
+% on-the-wire representation as uint32/64. The difference is that they allow
+% negative integers (which representation is very inefficient requiring many
+% bytes for small absolue values).
+.alias [
+    .name protobuf-int32
+    .type int32
+    .piqi-type.int
+
+    .protobuf-type "int32"
+    .protobuf-wire-type.signed-varint
+]
+
+.alias [
+    .name protobuf-int64
+    .type int64
+    .piqi-type.int
+
+    .protobuf-type "int64"
+    .protobuf-wire-type.signed-varint
+]
+
+
+%
 % properties specific to .piqi to .proto conversion
 %
 
