@@ -835,9 +835,13 @@ let list_replace l f x =
   aux l
 
 
+let name_of_function x = x.T.Func#name
+
+
 let idtable_of_defs defs =
-  let idtable = Idtable.empty in
-  add_typedefs idtable defs
+  List.fold_left
+    (fun t x -> Idtable.add t (C.typedef_name x) x)
+    Idtable.empty defs
 
 
 let idtable_of_imports imports =
@@ -848,12 +852,14 @@ let idtable_of_imports imports =
 
 let idtable_of_functions funcs =
   List.fold_left
-    (fun t x -> Idtable.add t x.T.Func#name x)
+    (fun t x -> Idtable.add t (name_of_function x) x)
     Idtable.empty funcs
 
 
-let list_of_idtable idtable =
-  Idtable.fold (fun k v l -> v::l) [] idtable
+(* convert the map of extended elements back to list; while doing this, preserve
+ * the original order *)
+let list_of_idtable idtable l name_of_elem =
+  List.map (fun x -> Idtable.find idtable (name_of_elem x)) l
 
 
 (* find record field by name *)
@@ -1046,7 +1052,7 @@ let extend_imports imports extensions custom_fields =
       extensions
   in
   (* convert the updated idtable to the list of resulting imports *)
-  list_of_idtable idtable
+  list_of_idtable idtable imports name_of_import
 
 
 let extend_function idtable name extension_entries custom_fields ~override =
@@ -1079,7 +1085,7 @@ let extend_functions funs extensions custom_fields =
       extensions
   in
   (* convert the updated idtable to the list of resulting functions *)
-  list_of_idtable idtable
+  list_of_idtable idtable funs name_of_function
 
 
 (* apply field and option extensions *)
@@ -1127,7 +1133,7 @@ let apply_defs_extensions defs extensions custom_fields =
       idtable extensions
   in
   (* convert the updated idtable to the list of resulting defs *)
-  list_of_idtable idtable
+  list_of_idtable idtable defs C.typedef_name
 
 
 (* partition extensions into typedef extesions, function extensions and import
@@ -1337,7 +1343,7 @@ let expand_includes piqi included_piqi =
   let new_ast =
     match ast with
       | `list l ->
-          let res = `list (included_asts @ l) in
+          let res = `list (l @ included_asts) in
           Piqloc.addrefret ast res
       | _ ->
           assert false
