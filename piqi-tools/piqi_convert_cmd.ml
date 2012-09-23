@@ -171,8 +171,10 @@ let make_reader input_encoding =
     | "wire" ->
         let buf = Piq.open_wire !ifile in
         make_reader (Piq.load_wire_obj (resolve_typename ())) buf
+    | "" ->
+        piqi_error "can't determine input encoding; use -f option to specify it explicitly"
     | x ->
-        piqi_error ("unknown input encoding: " ^ x)
+        piqi_error ("unknown input encoding: " ^ U.quote x)
 
 
 let make_writer ?(is_piqi_input=false) output_encoding =
@@ -196,8 +198,8 @@ let make_writer ?(is_piqi_input=false) output_encoding =
         write_plain write_pb ~is_piqi_input
     | "xml" ->
         write_plain Piq.write_xml ~is_piqi_input
-    | _ ->
-        piqi_error "unknown output encoding"
+    | x ->
+        piqi_error ("unknown output encoding " ^ U.quote x)
 
 
 let seen = ref [] (* the list of seen elements *)
@@ -274,6 +276,18 @@ let get_dependencies (obj :Piq.obj) ~only_imports =
 
 
 let validate_options input_encoding =
+  let typename_str =
+    if !typename = ""
+    then ""
+    else "values of type " ^ U.quote !typename ^ " "
+  in
+  let output_encoding_str =
+    if !output_encoding = ""
+    then "piq" (* default output encoding is "piq" *)
+    else !output_encoding
+  in
+  trace "converting %sfrom .%s to .%s\n" typename_str input_encoding output_encoding_str;
+
   if !flag_embed_piqi
   then (
     if input_encoding = "piqi"
@@ -305,6 +319,7 @@ let convert_file () =
     else Piqi_file.get_extension !ifile
   in
   validate_options input_encoding;
+
   let reader = make_reader input_encoding in
   let is_piqi_input = (input_encoding = "piqi" || !typename = "piqi") in
   let writer = make_writer !output_encoding ~is_piqi_input in
