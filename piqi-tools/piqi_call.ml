@@ -568,15 +568,19 @@ let run_call url =
     let piqi_list = get_piqi url in
     if !flag_piqi
     then
-      let piqi = Piq.original_piqi (last piqi_list) in
-      Piqi_pp.prettyprint_piqi ch piqi
+      let piqi = last piqi_list in
+      if !output_encoding = ""
+      then
+        Piqi_pp.prettyprint_piqi ch (Piq.original_piqi piqi)
+      else
+        writer ch (Piq.Piqi piqi)
+    else if !flag_piqi_all
+    then
+      List.iter (fun piqi -> writer ch (Piq.Piqi piqi)) piqi_list
     else if !flag_piqi_light
     then
       let piqi = last piqi_list in
       Piqi_light.gen_piqi ch piqi
-    else if !flag_piqi_all
-    then
-      List.iter (fun piqi -> writer ch (Piq.Piqi piqi)) piqi_list
     else if !flag_h
     then
       print_help ch (last piqi_list)
