@@ -306,7 +306,7 @@ let convert_file () =
   in
   validate_options input_encoding;
   let reader = make_reader input_encoding in
-  let is_piqi_input = (input_encoding = "piqi") in
+  let is_piqi_input = (input_encoding = "piqi" || !typename = "piqi") in
   let writer = make_writer !output_encoding ~is_piqi_input in
   (* open output file *)
   let ofile =
