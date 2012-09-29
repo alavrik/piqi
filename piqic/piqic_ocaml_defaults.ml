@@ -30,12 +30,15 @@ open Piqic_ocaml_types
 open Piqic_ocaml_out
 
 
-let gen_default_type ocaml_type wire_type x =
+let rec gen_default_type ocaml_type wire_type x =
   match x with
     | `any ->
         if !Piqic_common.is_self_spec
         then ios "default_any ()"
         else ios "Piqi_piqi.default_any ()"
+    | `alias a when wire_type <> None ->
+        (* need special handing for wire_type override *)
+        gen_default_type a.A#ocaml_type wire_type (some_of a.A#piqtype)
     | (#T.typedef as x) ->
         let modname = gen_parent x in
         modname ^^ ios "default_" ^^ ios (typedef_mlname x) ^^ ios "()"

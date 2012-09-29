@@ -30,12 +30,15 @@ open Piqic_erlang_types
 open Piqic_erlang_out
 
 
-let gen_default_type erlang_type wire_type x =
+let rec gen_default_type erlang_type wire_type x =
   match x with
     | `any ->
         if !Piqic_common.is_self_spec
         then ios "default_" ^^ ios !any_erlname ^^ ios "()"
         else ios "piqi_piqi:default_piqi_any()"
+    | `alias a when wire_type <> None ->
+        (* need special handing for wire_type override *)
+        gen_default_type a.A#erlang_type wire_type (some_of a.A#piqtype)
     | (#T.typedef as x) ->
         let modname = gen_parent x in
         modname ^^ ios "default_" ^^ ios (typedef_erlname x) ^^ ios "()"
