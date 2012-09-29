@@ -64,13 +64,6 @@ let gen_field_cons f =
     match f.mode with
       | `required -> gen_default_piqtype (some_of f.piqtype)
       | `optional when f.piqtype = None -> ios "false" (* flag *)
-      | `optional when f.default <> None ->
-          let pb = Piqobj.pb_of_piqi_any (some_of f.default) in
-          let default_expr = Piqic_erlang_in.gen_erlang_binary pb in
-          iol [
-            Piqic_erlang_in.gen_parse_piqtype (some_of f.piqtype);
-              ios "("; default_expr; ios ")";
-          ]
       | `optional -> ios "'undefined'"
       | `repeated -> ios "[]"
   in

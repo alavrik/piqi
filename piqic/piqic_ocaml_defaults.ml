@@ -71,17 +71,13 @@ let gen_field_cons rname f =
     match f.mode with
       | `required -> gen_default_piqtype (some_of f.piqtype)
       | `optional when f.piqtype = None -> ios "false" (* flag *)
-      | `optional when f.default <> None ->
+      | `optional when f.default <> None && (not f.ocaml_optional) ->
           let pb = Piqobj.pb_of_piqi_any (some_of f.default) in
           let default_str = String.escaped pb in
-          let code = iod " " [
+          iod " " [
             Piqic_ocaml_in.gen_parse_piqtype (some_of f.piqtype);
               ios "(Piqirun.parse_default"; ioq default_str; ios ")";
           ]
-          in
-          if not f.ocaml_optional
-          then code
-          else iol [ios "Some ("; code; ios ")"]
       | `optional -> ios "None"
       | `repeated ->
           if f.ocaml_array
