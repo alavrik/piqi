@@ -105,9 +105,12 @@ and gen_field fields t =
         )
     | `repeated ->
         let fields = List.find_all pred fields in
-        let json_fields = List.map (fun f -> gen_obj (some_of f.obj)) fields in
-        let res = make_named name (`List json_fields) in
-        [res]
+        if fields = [] && !omit_null_fields
+        then []
+        else
+          let json_fields = List.map (fun f -> gen_obj (some_of f.obj)) fields in
+          let res = make_named name (`List json_fields) in
+          [res]
 
 
 and gen_variant x =
