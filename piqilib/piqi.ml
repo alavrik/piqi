@@ -1414,10 +1414,9 @@ let rewrite_import_modname from_piqi x =
   else {x with modname = scoped_modname}
 
 
-(* do include & extension expansion for the loaded piqi using extensions from
- * all included piqi modules *)
-let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast option) ~cache (orig_piqi: T.piqi) =
-
+(* first steps of Piqi processing; this function can be called separately from
+ * process_piqi *)
+let pre_process_piqi ?modname ?(fname="") ?(ast: piq_ast option) (orig_piqi: T.piqi) =
   (* report unparsed fields before we load dependencies (this is meaningless if
    * Piqi is not parsed from Piq)
    *)
@@ -1431,12 +1430,56 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   (* preserve the original piqi by creating a shallow copy of it *)
   let piqi = copy_obj orig_piqi in
   piqi.P#original_piqi <- Some orig_piqi;
+  piqi.P#ast <- ast;
 
   (* it is critical to cache loaded piqi module before we process any of its
    * dependencies; by doing this, we check for circular imports *)
   check_assign_module_name ?modname fname piqi;
-  if cache then Piqi_db.add_piqi piqi;
-  piqi.P#ast <- ast;
+  piqi
+
+
+let is_processed piqi =
+  piqi.P#included_piqi <> []
+
+
+let is_being_processed piqi include_path =
+  if is_processed piqi
+  then false (* already processed *)
+  else
+    match piqi.P#modname with
+      | None -> false
+      | Some n ->
+          (* we can rely only on module names to determine if the modules are
+           * being processed; this is because we override the original piqi
+           * object once we expand its includes -- see the "let piqi = " in
+           * process_piqi() *)
+          List.exists (fun x -> n = some_of x.P#modname) include_path
+
+
+(* do include & extension expansion for the loaded piqi using extensions from
+ * all included piqi modules *)
+let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast option) ~cache (input_piqi: T.piqi) =
+  (* do nothing if it has been processed or being processed right now *)
+  if is_processed input_piqi || is_being_processed input_piqi include_path
+  then input_piqi
+  else (
+
+  (* as a first step, pre-process the module if it hasn't been preprocessed
+   * already *)
+  let piqi =
+    match input_piqi.P#original_piqi with
+      | None -> (* not pre-processed yet *)
+          let piqi = pre_process_piqi ?modname ~fname ?ast input_piqi in
+          if cache then Piqi_db.add_piqi piqi;
+          trace "processing module %s\n" (some_of piqi.P#modname);
+          piqi
+      | Some _ ->
+          trace "processing already pre-processed module %s\n" (some_of input_piqi.P#modname);
+          input_piqi
+  in
+  let orig_piqi = some_of piqi.P#original_piqi in
+  let ast = piqi.P#ast in
+  trace_enter ();
 
   (* make sure include and importe names are properly scoped when
    * included/imported from a module with a scoped name *)
@@ -1466,8 +1509,9 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
 
       extended_piqi.P#original_piqi <- Some orig_piqi;
       extended_piqi.P#modname <- piqi.P#modname;
-      (* replace previously cached piqi module *)
-      if cache then Piqi_db.replace_piqi extended_piqi;
+      (* replace previously cached piqi module if it is already present in the
+       * cache *)
+      Piqi_db.replace_piqi extended_piqi;
       extended_piqi
     )
   in
@@ -1619,7 +1663,9 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
    * default field resolution will fail *)
   List.iter resolve_defaults resolved_defs;
 
+  trace_leave ();
   piqi
+  )
  
 
 (* XXX: disallow include and import of the same module or produce a warning? *)
@@ -1659,7 +1705,11 @@ and load_piqi_ast ?modname ?(include_path=[]) ~cache fname (ast :piq_ast) =
 and load_piqi_module ?(include_path=[]) modname =
   check_modname modname;
   (* check if the module is already loaded *)
-  try Piqi_db.find_piqi modname
+  try
+    let piqi = Piqi_db.find_piqi modname in
+    (* make sure it is fully processed at this point (some modules can be loaded
+     * but only pre-processed) *)
+    process_piqi piqi ~include_path ~cache:false
   with Not_found ->
     let fname =
       try

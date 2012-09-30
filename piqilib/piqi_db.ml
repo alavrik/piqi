@@ -87,7 +87,10 @@ let remove_piqi modname =
 
 let replace_piqi piqi =
   let modname = some_of piqi.P#modname in
-  loaded_map := Piqitable.add !loaded_map modname piqi
+  match try_find_piqi modname with
+    | None -> ()
+    | Some _ ->
+        loaded_map := Piqitable.add !loaded_map modname piqi
 
 
 let find_local_typedef typedefs name =

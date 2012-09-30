@@ -81,10 +81,12 @@ let get_current_piqtype user_piqtype locref =
 
 
 let piqi_of_piq fname ast =
-  (* XXX: validate that the input corresponds to piqi-spec and not to a wider
-   * piqi-lang? *)
   let piqi = Piqi.parse_piqi ast in
-  Piqi.process_piqi piqi ~fname ~ast ~cache:false
+  (* can't process it right away, because not all dependencies could be loaded
+   * already; this is expecially ciritical in case of mutually-recursive
+   * includes; just do bare minimum so that we could add to Piqi_db and process
+   * it later *)
+  Piqi.pre_process_piqi piqi ~fname ~ast
 
 
 let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
@@ -100,7 +102,7 @@ let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
         error ast "invalid piqtype specification"
     | `typed {Piq_ast.Typed.typename = "piqi";
               Piq_ast.Typed.value = ((`list _) as ast)} ->
-        (* :piqi <piqi-spec> *)
+        (* :piqi <piqi-lang> *)
         let piqi = piqi_of_piq fname ast in
         Piqi piqi
     | `typed {Piq_ast.Typed.typename = "piqi"} ->

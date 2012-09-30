@@ -42,16 +42,11 @@ let check_piqi filename =
   ignore (Piqi.load_piqi filename)
 
 
+(* TODO: add support for checking .pib and, possibly, json and xml as well *)
 let check_piq filename =
-  let piq_parser = Piq.open_piq filename in
-  try
-    while true
-    do
-      let piqtype = Piqi_convert_cmd.resolve_typename () in
-      ignore (Piq.load_piq_obj piqtype piq_parser)
-    done
-  with
-    Piq.EOF -> ()
+  let reader = Piqi_convert_cmd.make_reader "piq" in
+  (* read Piq objects one by one, but don't output them anywhere *)
+  Piqi_convert_cmd.do_convert reader
 
 
 let check_file filename =

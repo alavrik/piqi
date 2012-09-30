@@ -35,8 +35,11 @@ test_piqi_piqi:
 	piqi convert p.piqi.json >/dev/null
 	piqi convert -t xml p.piqi
 	piqi convert --piqtype piqi p.piqi.xml >/dev/null
+	piqi convert --embed-piqi piqi.piqi > t.piq
+	piqi convert t.piq >/dev/null
+	piqi check t.piq
 
 
 clean:
-	rm -f p.piqi pp.piqi p.piqi.text *.proto *.wire *.pb *.json *.xml
+	rm -f p.piqi pp.piqi p.piqi.text *.proto *.wire *.pb *.json *.xml t.piq
 

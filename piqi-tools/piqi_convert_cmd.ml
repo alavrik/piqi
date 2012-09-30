@@ -305,6 +305,81 @@ let validate_options input_encoding =
   )
 
 
+let do_convert ?writer ?(is_piq_output=false) reader =
+  (* read next object to the input channel *)
+  let read_obj () =
+    try
+      let obj = reader () in
+      Some obj
+    with
+      Piq.EOF -> None
+  in
+  (* write the object to the output channel *)
+  let do_write_obj obj =
+    match writer with
+      | None -> ()
+      | Some f -> f obj
+  in
+  (* write the object to the output, possibly including its Piqi dependencies *)
+  let write_obj obj =
+    (* write object's Piqi dependencies *)
+    if !flag_embed_piqi
+    then (
+      trace "piqi convert: embedding Piqi\n";
+      (* write yet unwirtten object's dependencies *)
+      let deps = get_dependencies obj ~only_imports:(not is_piq_output) in
+      List.iter (fun x -> do_write_obj (Piq.Piqi x)) deps
+    );
+    (* finally, write the object itself *)
+    do_write_obj obj
+  in
+  let process_and_write_piqi piqi_list =
+    List.iter (fun modname ->
+      let piqi = Piqi_db.find_piqi modname in
+      let piqi = Piqi.process_piqi piqi ~cache:false in
+      Piqloc.preserve ();
+      write_obj (Piq.Piqi piqi)
+    )
+    (List.rev piqi_list)
+  in
+  let rec aux piqi_list =
+    match read_obj () with
+      | None ->
+          (* flush all yet unwritten piqi modules at EOF *)
+          process_and_write_piqi piqi_list
+      | Some obj ->
+          let piqi_list =
+            match obj with
+              | Piq.Piqi piqi ->
+                  Piqi_db.add_piqi piqi;
+                  (* Preserve location information so that exising location info for
+                   * Piqi modules won't be discarded by subsequent Piqloc.reset()
+                   * calls. *)
+                  Piqloc.preserve ();
+                  if Piqi.is_processed piqi
+                  then
+                    (* if it has been processed, ready to write it right away *)
+                    (write_obj obj; [])
+                  else
+                    let modname = some_of piqi.P#modname in
+                    modname :: piqi_list (* add to the list of unprocessed modules *)
+              | _ ->
+                  (* reset location db to allow GC collect previously read
+                   * objects *)
+                  Piqloc.reset ();
+                  (* once we read a non-piqi object, fully process and flush all
+                   * yet unwrittent piqi modules *)
+                  process_and_write_piqi piqi_list;
+                  (* finally write the object we've just read *)
+                  write_obj obj;
+                  (* return empty list as a new value of piqi_list *)
+                  []
+          in
+          aux piqi_list
+  in
+  aux []
+
+
 let convert_file () =
   Piqi_convert.init ();
   Piqi_convert.set_options
@@ -344,38 +419,8 @@ let convert_file () =
       | _ -> false
   in
   (* main convert cycle *)
-  try 
-    trace "piqi convert: main loop\n";
-    while true
-    do
-      let obj = reader () in
-
-      (match obj with
-        | Piq.Piqi piqi ->
-            Piqi_db.add_piqi piqi;
-            (* Preserve location information so that exising location info for
-             * Piqi modules won't be discarded by subsequent Piqloc.reset()
-             * calls. *)
-            Piqloc.preserve ();
-        | _ ->
-            (* reset location db to allow GC to collect previously read objects
-             *)
-            Piqloc.reset ()
-      );
-
-      if !flag_embed_piqi
-      then (
-        trace "piqi convert: embedding Piqi\n";
-        (* write yet unwirtten object's dependencies *)
-        let deps = get_dependencies obj ~only_imports:(not is_piq_output) in
-        List.iter (fun x -> writer och (Piq.Piqi x)) deps
-      );
-
-      (* write the output object *)
-      writer och obj
-    done
-  with
-    Piq.EOF -> ()
+  trace "piqi convert: main loop\n";
+  do_convert reader ~writer:(writer och) ~is_piq_output
 
 
 let run () =
