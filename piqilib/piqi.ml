@@ -78,7 +78,7 @@ let register_processing_hook (f :idtable -> T.piqi -> unit) =
 
 
 let add_typedef idtable (typedef:T.typedef) = 
-  let name = typedef_name typedef in
+  let name = C.typedef_name typedef in
   debug "add_typedef: %s\n" name;
   if Idtable.mem idtable name
   then (
@@ -111,7 +111,7 @@ let add_imported_typedef idtable (typedef:T.typedef) =
   in
   (* while adding imported defs to the idtable, transform definition's names to
    * contain module's namespace *)
-  let name = some_of import.name ^ "/" ^ typedef_name typedef in
+  let name = some_of import.name ^ "/" ^ C.typedef_name typedef in
   debug "add_imported_typedef: %s\n" name;
   Idtable.add idtable name typedef
 
@@ -1272,7 +1272,7 @@ let process_func f =
       | None -> []
       | Some param ->
           let def = resolve_param f param_name param in
-          let res = (def, (typedef_name def, set_f)) in
+          let res = (def, (C.typedef_name def, set_f)) in
           [res]
   in
   let input = process_param "input" f.input set_input
@@ -1609,7 +1609,14 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   (* NOTE: boot defs can not be extended *)
   let extended_defs =
     if defs_extensions = []
-    then defs
+    then (
+      (* partial check_defs () pass to make sure that at least all defs have
+       * names; otherise we'll crash with assert failure in one of
+       * C.typedef_name calls below before we get to run resolve_defs that
+       * includes the actual checks *)
+      List.iter check_def defs;
+      defs
+    )
     else (
         (* defs should be correct before extending them *)
         (* XXX: can they become correct after extension while being
@@ -1626,7 +1633,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   List.iter
     (fun def ->
       try
-        let setter = Idtable.find func_defs_map (typedef_name def) in
+        let setter = Idtable.find func_defs_map (C.typedef_name def) in
         setter def
       with
         Not_found -> ()
@@ -1641,7 +1648,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
       func_defs
   in
   let extended_func_defs, extended_defs = List.partition
-    (fun def -> is_func_def (typedef_name def))
+    (fun def -> is_func_def (C.typedef_name def))
     extended_defs
   in
 
