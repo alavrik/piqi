@@ -223,7 +223,7 @@ let rec get_piqi_deps piqi ~only_imports =
   then [] (* boot Piqi (a parent of built-in types) is not a dependency *)
   else
     (* get all includes and includes from all included modules -- only *)
-    let includes = if only_imports then [piqi] else piqi.P#included_piqi in
+    let include_deps = if only_imports then [piqi] else piqi.P#included_piqi in
     (* get all dependencies from imports *)
     let import_deps =
       U.flatmap (fun x ->
@@ -231,8 +231,8 @@ let rec get_piqi_deps piqi ~only_imports =
           U.flatmap (get_piqi_deps ~only_imports) piqi.P#included_piqi)
         piqi.P#resolved_import
     in
-    (* NOTE: imports go first in the list of dependencies *)
-    let l = import_deps @ includes in
+    (* NOTE: includes go first in the list of dependencies *)
+    let l = include_deps @ import_deps in
     (* remove duplicate entries *)
     U.uniqq l
 
@@ -325,10 +325,12 @@ let do_convert ?writer ?(is_piq_output=false) reader =
     (* write object's Piqi dependencies *)
     if !flag_embed_piqi
     then (
-      trace "piqi convert: embedding Piqi\n";
       (* write yet unwirtten object's dependencies *)
       let deps = get_dependencies obj ~only_imports:(not is_piq_output) in
-      List.iter (fun x -> do_write_obj (Piq.Piqi x)) deps
+      List.iter (fun x ->
+        trace "piqi convert: embedding dependency module %s\n" (some_of x.P#modname);
+        do_write_obj (Piq.Piqi x)
+      ) deps
     );
     (* finally, write the object itself *)
     do_write_obj obj
@@ -336,8 +338,11 @@ let do_convert ?writer ?(is_piq_output=false) reader =
   let process_and_write_piqi piqi_list =
     List.iter (fun modname ->
       let piqi = Piqi_db.find_piqi modname in
+      (* process piqi if it hasn't been fully processed yet by this point *)
       let piqi = Piqi.process_piqi piqi ~cache:false in
       Piqloc.preserve ();
+      (* finally, write it to the output channel *)
+      trace "piqi convert: writing module %s\n" modname;
       write_obj (Piq.Piqi piqi)
     )
     (List.rev piqi_list)

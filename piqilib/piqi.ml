@@ -1509,9 +1509,21 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
 
       extended_piqi.P#original_piqi <- Some orig_piqi;
       extended_piqi.P#modname <- piqi.P#modname;
-      (* replace previously cached piqi module if it is already present in the
+
+      (* replace previously cached unexpanded piqi module if it is already present in the
        * cache *)
       Piqi_db.replace_piqi extended_piqi;
+      (* replace previous unexpanded instance of the piqi module in all its
+       * includes;
+       * TODO: omit this step if there's no recursive includes *)
+      List.iter (fun p ->
+        if List.exists (fun pp -> pp == piqi) p.P#included_piqi
+        then
+          p.P#included_piqi <- List.map (
+            fun pp -> if pp == piqi then extended_piqi else pp
+          ) p.P#included_piqi
+      ) included_piqi;
+
       extended_piqi
     )
   in
