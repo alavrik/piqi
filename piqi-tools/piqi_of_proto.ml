@@ -106,7 +106,7 @@ module Idtable =
                 (* basename + chop all extensions + underscores to dashes *)
                 let basename = Filename.basename file in
                 let basename = Piqi_file.chop_all_extensions basename in
-                underscores_to_dashes basename
+                U.underscores_to_dashes basename
         in
         import_name ^ "/" ^ piqi_name
 
@@ -490,7 +490,7 @@ let gen_local_modname filename =
   let name = Piqi_name.get_local_name modname in
   (* import name is mandatory when modname contain underscores *)
   let is_optional = not (String.contains name '_') in
-  underscores_to_dashes name, is_optional
+  U.underscores_to_dashes name, is_optional
 
 
 let name_imports idtable filenames =

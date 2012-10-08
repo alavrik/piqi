@@ -185,8 +185,8 @@ let gen_record_type r =
 let gen_option o =
   let open Option in
   match o.erlang_name, o.piqtype with
-    | None, Some ((`variant v) as t) | None, Some ((`enum v) as t) ->
-        ios_gen_out_piqtype def
+    | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
+        ios_gen_out_piqtype t
     | _, Some t ->
         let n = erlname_of_option o in
         iol [
