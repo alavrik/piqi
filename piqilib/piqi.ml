@@ -26,8 +26,6 @@ type idtable = T.typedef Idtable.t
 
 (* start in boot_mode by default, it will be switched off later (see below) *)
 let is_boot_mode = ref true
-(* similarly, for initialization *)
-let is_initialized = ref false
 
 
 (* resolved type definition for the Piqi language;
@@ -313,7 +311,7 @@ let check_field f =
 let check_def_name obj = function
   | Some x -> check_name x
   | None ->
-      error obj "name is missing"
+      error obj "missing field \"name\""
 
 
 let check_record r =
@@ -502,6 +500,15 @@ let assert_loc () =
     piqi_warning s
 
 
+let add_fake_loc (obj :Piqobj.obj) =
+  Piqloc.do_add_fake_loc obj ~label:"_self_piqi_default";
+  match obj with
+    | `enum x ->
+        Piqloc.do_add_fake_loc x ~label:"_self_piqi_default_enum"
+    | _ ->
+        ()
+
+
 let resolve_field_default x =
   let open F in
   match x.default, x.piqtype with
@@ -514,6 +521,12 @@ let resolve_field_default x =
 
         debug "resolve_field_default: %s\n" (C.name_of_field x);
         Piqobj.resolve_obj any ~piqtype;
+
+        (* make sure we add fake locations for the default values of the
+         * embedded self-specifications; currently, there's only one such value
+         * which is field.mode = required *)
+        if !is_boot_mode
+        then add_fake_loc (some_of any.Piqobj.Any#obj);
 
         (* NOTE: fixing (preserving) location counters which get skewed during
          * parsing defaults *)
@@ -536,7 +549,6 @@ let copy_obj x = reference copy_obj x
 
 
 let copy_obj_list l = List.map copy_obj l
-let copy_obj_list l = reference copy_obj_list l
 
 
 let copy_variant ?(copy_parts=true) x =
@@ -1490,10 +1502,9 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
    * handle includes
    *)
   let extension_includes =
-    if ast = None || not !is_initialized
+    if ast = None
     then
-      (* extensions are not appliable for non-Piq representation and embeeded
-       * modules loaded during initialization *)
+      (* extensions are not appliable for non-Piq representation *)
       []
     else
       List.map (fun x -> Includ#{modname = x; unparsed_piq_ast = None})
@@ -1878,7 +1889,7 @@ let find_embedded_piqtype name =
  *)
 let boot () =
   trace "boot(0)\n";
-  (* process embedded Piqi self-specification *)
+  (* process embedded Piqi self-specifications *)
   (* don't cache them as we are adding the spec to the DB explicitly below *)
 
   trace "boot(1)\n";
@@ -1915,7 +1926,8 @@ let boot () =
   (* turn boot mode off *)
   is_boot_mode := false;
 
-  (* resume object location tracking -- it is paused from the beginning *)
+  (* resume object location tracking; it was off from the beginning for a reason
+   * -- see piqloc.ml for details *)
   Piqloc.resume ();
 
   (* initialize Piqi loader; doing it this way, because Piqi and Piqi_db are
@@ -1937,16 +1949,6 @@ let _ =
   )
 
 
-(* this is a local function; it can be called more than once, but produce an
- * effect only on its first run
- * XXX: call boot () from init()? *)
-let init () =
-  if not !is_initialized
-  then (
-    is_initialized := true
-  )
-
-
 (* public interface: read piqi file *)
 let read_piqi fname :piq_ast =
   let ch = Piqi_main.open_input fname in
@@ -1955,7 +1957,6 @@ let read_piqi fname :piq_ast =
 
 (* public interface: load piqi file *)
 let load_piqi fname :T.piqi =
-  init ();
   trace "loading piqi file: %s\n" fname;
   trace_enter ();
   let ast = read_piqi fname in
@@ -2106,11 +2107,15 @@ let lang_to_spec piqi =
 
 let piqi_to_ast piqi =
   debug "piqi_to_ast(0)\n";
+  Piqloc.pause (); (* we don't really need to track locations at this stage *)
+
   (* TODO: optionally, remove custom fields and all unparsed fields from the
    * resulting spec
   let piqi = P#{piqi with custom_field = []} in
   *)
+
   let ast = mlobj_to_ast !piqi_lang_def T.gen__piqi piqi in
+  Piqloc.resume ();
   debug "piqi_to_ast(1)\n";
   ast
 
@@ -2175,9 +2180,11 @@ let piqi_to_piqobj piqi =
 
 
 let piqi_of_piqobj piqobj =
+  debug "piqi_of_piqobj(0)\n";
   let piqi_ast = Piqobj_to_piq.gen_obj piqobj in
   let piqi = parse_piqi piqi_ast in
   let piqi = process_piqi piqi ~cache:false in
+  debug "piqi_to_piqobj(-)\n";
   piqi
 
 

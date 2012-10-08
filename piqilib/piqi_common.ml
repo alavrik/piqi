@@ -297,12 +297,7 @@ let reference f x =
 
 
 let location obj =
-  try
-    if !Config.debug_level > 0
-    then
-      Piqloc.trace_find obj
-    else
-      Piqloc.find obj
+  try Piqloc.find obj
   with
     Not_found -> ("unknown", 0, 0)
 
@@ -343,7 +338,7 @@ let eprintf_if cond fmt =
 
 
 let debug fmt =
-  eprintf_if (!Config.debug_level > 0) fmt
+  eprintf_if (!Config.debug_level > 1) fmt
 
 
 let trace fmt =

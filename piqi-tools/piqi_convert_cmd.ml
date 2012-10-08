@@ -348,6 +348,10 @@ let do_convert ?writer ?(is_piq_output=false) reader =
     (List.rev piqi_list)
   in
   let rec aux piqi_list =
+    (* resetting source location tracking back to "enabled" state; we don't
+     * carefully call matching Piqloc.resume () for every Piqloc.pause () if we
+     * get exceptions in between *)
+    Piqloc.is_paused := 0;
     match read_obj () with
       | None ->
           (* flush all yet unwritten piqi modules at EOF *)

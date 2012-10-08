@@ -13,11 +13,14 @@ PIQI_FILES = \
 test: test_piqi test_piqi_piqi
 
 
+# NOTE: using --debug 1 to so that we could catch all the source code location
+# tracking problems
+
 test_piqi:
 	set -e; \
 	for i in $(PIQI_FILES:%.piqi=%); \
 	do \
-		../examples/test_piqi $$i --no-warnings >/dev/null; \
+		../examples/test_piqi $$i --no-warnings --debug 1 >/dev/null; \
 	done
 
 

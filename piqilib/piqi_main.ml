@@ -196,6 +196,14 @@ let parse_args
       Arg.usage speclist usage;
       exit 3;
     end
+  else
+    begin
+      (* check location DB consistency on all debug levels *)
+      if !Piqi_config.debug_level >= 1 then Piqloc.check := true;
+      (* turn on extra debugging about source line number tracking *)
+      if !Piqi_config.debug_level >= 3 then Piqloc.trace := true;
+      if !Piqi_config.debug_level >= 4 then Piqloc.crash_on_error := true;
+    end
 
 
 type command = 

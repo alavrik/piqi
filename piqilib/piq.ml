@@ -373,7 +373,12 @@ let piqi_of_json json =
   let piqobj =
     C.with_resolve_defaults false (fun () -> Piqobj_of_json.parse_obj piqtype json)
   in
-  Piqi.piqi_of_piqobj piqobj
+  (* don't try to track location references as we don't preserve them yet in
+   * piqobj_of_json (TODO) *)
+  Piqloc.pause ();
+  let piqi = Piqi.piqi_of_piqobj piqobj in
+  Piqloc.resume ();
+  piqi
 
 
 let piqi_to_json piqi =
@@ -513,7 +518,12 @@ let piqi_of_xml xml =
   let piqobj =
     C.with_resolve_defaults false (fun () -> Piqobj_of_xml.parse_obj piqtype xml)
   in
-  Piqi.piqi_of_piqobj piqobj
+  (* don't try to track location references as we don't preserve them yet in
+   * piqobj_of_xml (TODO) *)
+  Piqloc.pause ();
+  let piqi = Piqi.piqi_of_piqobj piqobj in
+  Piqloc.resume ();
+  piqi
 
 
 let piqi_to_xml piqi =

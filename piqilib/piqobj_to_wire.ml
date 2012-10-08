@@ -185,10 +185,11 @@ and gen_any code x =
     then
       (* in internal mode, passing a reference to intermediate Any
        * prepresentation registered using Piqi_objstore *)
-      T.Any#{
+      let res = T.Any#{
         T.default_any () with
         ref = Some (Piqobj.put_any x);
       }
+      in Piqloc.addrefret x res
     else
       (* in external mode, leave only fields defined by piqi.piqi: binobj and
        * typename *)
@@ -200,7 +201,6 @@ and gen_any code x =
         protobuf = Some binobj;
       }
   in
-  Piqloc.check_add_fake_loc x ~label:"_any";
   T.gen__any code piqi_any
 
 
@@ -208,14 +208,20 @@ and gen_record code x =
   let open R in
   (* TODO, XXX: doing ordering at every generation step is inefficient *)
   let fields = order_fields x.field in
-  let encoded_fields= gen_fields fields in
-  let encoded_fields =
+
+  let encoded_piq_unparsed =
     match x.unparsed_piq_fields_ref with
       | Some x when not !is_external_mode ->
-          let encoded_x = gen_int 1 (Int64.of_int x) ~wire_type:`varint in
-          encoded_x :: encoded_fields
-      | _ -> encoded_fields
+          let obj = Int64.of_int x in
+          (* making Piqloc happy by adding a fake reference *)
+          Piqloc.add_fake_loc obj ~label:"_unparsed_piq_fields_ref";
+
+          let encoded_x = gen_int 1 obj ~wire_type:`varint in
+          [encoded_x]
+      | _ ->
+          []
   in
+  let encoded_fields = encoded_piq_unparsed @ (gen_fields fields) in
   Piqirun.gen_record code encoded_fields
 
 

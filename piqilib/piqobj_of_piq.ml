@@ -93,7 +93,7 @@ exception Error of int * string * Obj.t
 
 (* TODO: trace errors *)
 let trace_error obj s =
-  let loc = location obj in
+  let loc = C.location obj in
   trace "piqobj_of_piq error: %s\n" (strerr loc s)
 
 
@@ -301,7 +301,11 @@ and parse_any x :Piqobj.any =
     | `any ref ->
         (* in internal mode, returning the exact Piqobj.any object passed via a
          * reference *)
-        Piqobj.get_any ref
+        let any = Piqobj.get_any ref in
+        (* prevent adding a location reference; if we attempt to add a location
+         * referene here, we end up with a circular reference *)
+        Piqloc.pause_once ();
+        any
 
     | `typed {Piq_ast.Typed.typename = typename; value = ast} ->
         let any = Any#{
@@ -348,7 +352,7 @@ and do_parse_record loc t l =
   (* issue warnings on unparsed fields *)
   List.iter handle_unknown_field rem;
   let unparsed_piq_fields_ref =
-    if !C.is_inside_parse_piqi
+    if rem <> [] && !C.is_inside_parse_piqi
     then Some (Piqi_objstore.put rem) (* FIXME: potential memory leak *)
     else None
   in
@@ -484,7 +488,8 @@ and parse_optional_field f name field_type default l =
             | Some _ ->
                 res, rem
             | None ->
-                Piqobj_common.parse_default field_type default, l
+                let res = Piqobj_common.parse_default field_type default in
+                res, l
         end
     | x::tail ->
         check_duplicate name tail;

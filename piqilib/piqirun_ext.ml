@@ -79,7 +79,11 @@ let convert
         (data :string) :string =
   if output_format = (input_format :> output_format)
   then data
-  else
+  else (
+    (* resetting source location tracking back to "enabled" state; we don't
+     * carefully call matching Piqloc.resume () for every Piqloc.pause () if we
+     * get exceptions in between *)
+    Piqloc.is_paused := 0;
     let output_format, default_opts =
       match output_format with
         | `json_pretty -> `json, default_options
@@ -92,4 +96,5 @@ let convert
         | Some x -> x
     in
     Piqi_convert.convert_piqtype piqtype input_format output_format data ~opts
+  )
 
