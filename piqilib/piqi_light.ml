@@ -218,27 +218,35 @@ let gen_extension_item x =
 
 
 let gen_extension_target = function
-  | `typedef x | `name x -> x
-  | `field x -> "field=" ^ x
-  | `option x -> "option=" ^ x
-  | `import x -> "import=" ^ x
-  | `func x -> "function=" ^ x
+  | `typedef x | `name x -> [x]
+  | `field x ->  [] (* "field=" ^ x *)
+  | `option x -> [] (* "option=" ^ x *)
+  | `import x -> [] (* "import=" ^ x *)
+  | `func x ->   [] (* "function=" ^ x *)
 
 
 let gen_extension x =
   let open Extend in
   (* TODO: break long list of extended names to several lines *)
-  let names = List.map (fun x -> ios (gen_extension_target x)) x.what in
+  let names = U.flatmap (fun x -> gen_extension_target x) x.what in
   let items = U.flatmap gen_extension_item (x.piqi_with @ x.quote) in
-  iol [
-    ios "extend "; iod " " names; indent;
-      iod "\n" items;
-    unindent;
-  ]
+
+  (* don't print any extensions other than fields and options *)
+  if names <> [] && items <> []
+  then
+    let res = iol [
+      ios "extend "; iod " " (List.map ios names); indent;
+        iod "\n" items;
+      unindent;
+    ]
+    in
+    [res]
+  else
+    []
 
 
 let gen_extensions l =
-  let l = List.map gen_extension l in
+  let l = U.flatmap gen_extension l in
   iol [
     iod "\n\n" l; gen_sep l
   ]
@@ -287,7 +295,7 @@ let gen_module = function
 
 let gen_piqi ch (piqi:T.piqi) =
   let open P in
-  let _orig_piqi = some_of piqi.original_piqi in
+  let piqi = some_of piqi.original_piqi in
   let code =
     iol [
       (* XXX: gen_module _orig_piqi.modname; *)
