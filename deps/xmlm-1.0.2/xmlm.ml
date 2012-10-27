@@ -1065,7 +1065,7 @@ struct
 	  o.outc '<'; out_qname o qn; List.iter (out_attribute o) atts;
 	  o.scopes <- (qn, uris) :: o.scopes;
 	  o.depth <- o.depth + 1;
-          o.last_el_data <- false;
+	  o.last_el_data <- false;
 	  o.last_el_start <- true
       | `El_end -> 
 	  begin match o.scopes with
@@ -1073,43 +1073,23 @@ struct
 	      o.depth <- o.depth - 1;
 	      if o.last_el_start then outs o "/>" else
 	      begin 
-                (* alavrik: don't use indentation for text nodes that as it
-                 * produces extra whitespace: *)
-
-                (* previously:
-		indent o;
-                *)
-                if not o.last_el_data then indent o;
-
+		(* don't use indentation for text nodes as it
+		 * produces extra whitespace *)
+		if not o.last_el_data then indent o;
 		outs o "</"; out_qname o n; o.outc '>';
 	      end;
 	      o.scopes <- scopes';
 	      List.iter (Ht.remove o.prefixes) uris;
-              o.last_el_data <- false;
+	      o.last_el_data <- false;
 	      o.last_el_start <- false;
 	      if o.depth = 0 then (if o.nl then o.outc '\n'; o.depth <- -1;) 
 	      else unindent o
 	  | [] -> invalid_arg err_el_end
 	  end
       | `Data d -> 
-          (* alavrik: don't use indentation for text nodes that as it produces
-           * extra whitespace: *)
-
-          (* previously:
-          if o.last_el_start then (outs o ">"; unindent o);
-          *)
-          if o.last_el_start then outs o ">";
-
-          (* previously:
-	  indent o;
-          *)
-
+	  if o.last_el_start then outs o ">";
 	  out_data o d;
-
-          (* previously:
-	  unindent o;
-          *)
-          o.last_el_data <- true;
+	  o.last_el_data <- true;
 	  o.last_el_start <- false
       | `Dtd _ -> failwith err_dtd
       end
