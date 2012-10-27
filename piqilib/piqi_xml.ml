@@ -185,31 +185,76 @@ let read_xml_obj (xml_parser :xml_parser) :xml option =
     Some xml
 
 
-(* XML output *)
+(* XML output
+ *
+ * We use 2-space indentation and output a newline character after the root
+ * element.
+ *
+ * We do not use Xmlm's library indentation mode (although it would've been so
+ * convenient), because it inserts indentation around text nodes which leads to
+ * extra whitespace. This means we will get extra whitespace when we read
+ * serialized values of primitive types back. And this is not what we want for
+ * data serialization purposes.
+ *
+ * For this reason, we do indentation ourselves using `Data elements filled with
+ * newlines and whitespace. This way we generate indented XML and still can read
+ * it back reliably. Other XML serializers may behave differently, but we don't
+ * really care as we can set our own rules in this case.
+ *)
 
-let make_output ?(pretty_print=true) dest =
-  (* Use 2-space indentation and output a newline character after the root
-   * element.
-   *
-   * NOTE: we use a modified version of Xmlm library that doesn't insert
-   * indentation around text nodes, because indentation leads to extra
-   * whitespace and this is not what we want *)
-  let indent =
-    if pretty_print
-    then Some 2
-    else None
+(* helpers *)
+let ws = `Data "  " (* 2 spaces indentation *)
+let nl = `Data "\n" (* newline *)
+
+
+(* build a list of [ ws; ... ws ] :: l where the number of ws nodes is
+ * determined by the depth parameter *)
+let indent_list depth l =
+  let rec aux depth accu =
+    if depth = 0
+    then accu
+    else aux (depth-1) (ws :: accu)
   in
-  Xmlm.make_output dest ~indent ~nl:true
+  aux depth l
 
 
-let gen_xml ?pretty_print dest (xml :xml) =
+(* rewrite xml tree to inject indentation represented as `Data elements
+ * containing either whitespace or newlines *)
+let indent_tree (xml: xml) :xml =
+  let rec aux depth node =
+    match node with
+      | `Data _               (* don't indent data elements *)
+      | `Elem (_, [`Data _])
+      | `Elem (_, []) -> node (* nothing to indent inside empty element *)
+      | `Elem (name, contents) -> (* non-empty non-data contents *)
+          let l =
+            List.fold_left (fun accu x ->
+              let x = aux (depth + 1) x in (* indent the sub-tree *)
+              indent_list (depth + 1) (x :: nl :: accu)
+            )
+            (indent_list depth []) (* indent right before the closing tag *)
+            (List.rev contents)
+          in
+          let contents = nl :: l in (* newline after the opening tag *)
+          `Elem (name, contents)
+  in
+  aux 0 xml
+
+
+let gen_xml ?(pretty_print=true) dest (xml :xml) =
   let frag = function (* xml to Xmlm.frag converter *)
     | `Data x -> `Data x
     | `Elem (name, contents) ->
         let tag = ("", name), [] in (* no namespace, no attributes *)
         `El (tag, contents)
   in
-  let output = make_output ?pretty_print dest in
+  let xml =
+    if pretty_print
+    then indent_tree xml
+    else xml
+  in
+  (* output a newline character after the root element *)
+  let output = Xmlm.make_output dest ~nl:true in
   let dtd = None in
   Xmlm.output_doc_tree frag output (dtd, xml)
 
