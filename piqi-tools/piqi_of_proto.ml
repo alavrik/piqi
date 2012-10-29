@@ -1,4 +1,4 @@
-(*pp camlp4o -I `ocamlfind query piqi.ulex` -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo pa_ulex.cma *)
+(*pp camlp4o -I `ocamlfind query ulex` -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo pa_ulex.cma *)
 (*
    Copyright 2009, 2010, 2011, 2012 Anton Lavrik
 

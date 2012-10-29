@@ -1,3 +1,4 @@
+include ../../Makefile.config
 
 ERL_SOURCES = \
 	$(PIQI_ERL_FILES) \

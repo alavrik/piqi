@@ -75,27 +75,19 @@ INSTALLATION INSTRUCTIONS
 NOTE: these instruction are applicable only to Unix/Linux systems.
 
 
-1. Edit setenv.sh file to set build configuration variables if necessary.
+1. Run ./configure
 
-2. Apply build configuration by running
-        
-        . setenv.sh
+        Run "./configure --help" for the list of available options.
 
-        or
-
-        source setenv.sh
-
-3. Make sure that "ocamlfind" program is in PATH
-
-4. Build third-party components
+2. Build third-party dependencies
         
         make deps
 
-5. Build Piqi
+3. Build Piqi
 
         make
 
-6. Install "piqi" and "piqic" binaries (optional)
+4. Install "piqi" and "piqic" binaries (optional)
 
         make install
 
@@ -103,5 +95,14 @@ NOTE: these instruction are applicable only to Unix/Linux systems.
 RUNNING TESTS
 =============
 
-See tests/README for instructions.
+1. Prepare the environment
+
+        . setenv.sh
+
+2. Run the tests
+
+        cd tests; make
+
+
+See tests/README for further information.
 

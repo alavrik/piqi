@@ -1,3 +1,4 @@
+include ../../Makefile.config
 
 ERL_SOURCES = \
 	piqi_rpc_runtime.erl \

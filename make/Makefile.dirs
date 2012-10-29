@@ -1,6 +1,6 @@
 .PHONY: all dirs clean pre_target post_target
 
-all: dirs pre_target post_target
+all: pre_target dirs post_target
 
 
 dirs: $(DIRS)

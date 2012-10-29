@@ -7,9 +7,12 @@ INSTALLATION INSTRUCTIONS
 
 1. Follow general build and installation instructions from the INSTALL file.
 
-        If you want Piqi libraries to be installed to a custom filesystem
-        location, configure the "PIQI_OCAML_PREFIX" variable in the setenv.sh
-        file.
+        If you want Piqi OCaml libraries to be installed to a custom filesystem
+        location, run ./configure with --ocaml-libdir=<DIR>
+
+        This will override ocamlfind setting determined by OCAMLFIND_DESTDIR
+        environment variable or by ocamlfind config. You can run
+        "ocamlfind printconf destdir" to see the current setting.
 
 
 2. Build Piqi runtime libraries for OCaml:
@@ -22,7 +25,7 @@ INSTALLATION INSTRUCTIONS
         make ocaml-install
 
 
-To uninstall previously installed Piqi libraries:
+To uninstall previously installed libraries:
 
         make ocaml-uninstall
 

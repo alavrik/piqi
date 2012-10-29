@@ -1,3 +1,4 @@
+include ../Makefile.config
 include $(PIQI_ROOT)/make/Makefile.ocaml
 include $(PIQI_ROOT)/piqilib/Makefile.piqi_common
 

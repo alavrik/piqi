@@ -1,4 +1,4 @@
-include $(PIQI_ROOT)/make/Makefile.ocaml
+OCAMLMAKEFILE := ../../make/OCamlMakefile
 
 
 RESULT = xmlm
