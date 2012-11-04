@@ -23,64 +23,69 @@ architectures supported by OCaml. See the list of supported platforms at:
 
         http://caml.inria.fr/ocaml/portability.en.html
 
-
 The rest of this file describes the process of building Piqi on Unix platforms.
 
 
 PREREQUISITES
 =============
 
-* OCaml compiler and standard library
-
-        Recommended (tested) versions are 3.11.2 and 3.12.0. Older OCaml
-        versions >= 3.10 may work as well.
-
-        OCaml is available in most Linux distributions. It can also be
-        downloaded from here:
-
-                http://caml.inria.fr/download.en.html
-
-
-* CamlP4 -- Caml Preprocessor and Pretty Printer
-
-        It comes as a part of OCaml source distribution. It should be
-        prepackaged in major Linux distributions as well.
-
-
-* Ocamlfind/Findlib -- library manager for OCaml
-
-        If installed separately form prepackaged OCaml distribution, it is
-        recommended to build it from sources after you build/install OCaml. It
-        can be downloaded from here:
-
-                http://projects.camlcity.org/projects/findlib.html
-
-* C compiler
-        
-        GCC works. Other compilers should work if they are able to build OCaml.
-
-
-* GNU make, sed and probably some other tools.
-
-
-On Debian Squeeze, the above dependencies can be installed using the following
-command:
+On Debian (>= Squeeze):
 
         apt-get install ocaml camlp4-extra ocaml-findlib gcc make sed
 
 
+On Mac OS X (using Homebrew):
+
+        brew install objective-caml opam
+        opam init
+        eval `opam config -env`
+        opam install ocamlfind
+
+        (Here, we used [OPAM](http://opam.ocamlpro.com/) to build and install
+        ocamlfind).
+
+
+On other Unix systems:
+
+        * OCaml compiler and standard library
+
+                Recommended (tested) versions are 3.11.2 and 3.12.0. Older OCaml
+                versions >= 3.10 may work as well.
+
+                OCaml is available in most Linux distributions. It can also be
+                downloaded from here:
+
+                        http://caml.inria.fr/download.en.html
+
+        * CamlP4 -- Caml Preprocessor and Pretty Printer
+
+                It comes as a part of OCaml source distribution. It should be
+                prepackaged in major Linux distributions as well.
+
+        * Ocamlfind/Findlib -- library manager for OCaml
+
+                If installed separately form prepackaged OCaml distribution, it
+                is recommended to build it from sources after you build/install
+                OCaml. It can be downloaded from here:
+
+                        http://projects.camlcity.org/projects/findlib.html
+        * C compiler
+
+                GCC works. Other compilers should work if they are able to build
+                OCaml.
+
+        * GNU make, sed and probably some other tools.
+
+
 INSTALLATION INSTRUCTIONS
 =========================
-
-NOTE: these instruction are applicable only to Unix/Linux systems.
-
 
 1. Run ./configure
 
         Run "./configure --help" for the list of available options.
 
 2. Build third-party dependencies
-        
+
         make deps
 
 3. Build Piqi

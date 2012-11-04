@@ -2,8 +2,26 @@ This file contains instructions for building Piqi to be used as a data
 serialization system for OCaml.
 
 
-INSTALLATION INSTRUCTIONS
-=========================
+INSTALLING USING OPAM
+=====================
+
+The latest development version of Piqi can be installed using
+[OPAM](http://opam.ocamlpro.com/) in two steps:
+
+1. Add the following repository as a _remote_
+
+        opam remote -add piqi git://github.com/alavrik/piqi-opam-repo.git
+
+2. After that, run
+
+        opam install piqi
+
+This command will install the latest development version of Piqi, including
+`piqi` and `piqic` executables and piqi libraries for OCaml.
+
+
+INSTALLING FROM SOURCE CODE
+===========================
 
 1. Follow general build and installation instructions from the INSTALL file.
 
