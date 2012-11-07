@@ -221,23 +221,13 @@ let piqobj_to_wire code piqobj =
   res
 
 
-(* using max code value as a wire code for Piqi
- *
- * XXX: alternatively, we could use an invalid value like 0, or lowest possible
- * code, i.e. 1 *)
-let piqi_spec_wire_code = (1 lsl 29) - 1
-
-
-let piqi_to_wire piqi =
-  Piqi.piqi_to_pb piqi ~code:piqi_spec_wire_code
-
-
-let process_piqtype code typename =
+let process_wire_piqtype code typename =
   let piqtype =
-    try Piqi_db.find_piqtype typename
-    with Not_found ->
-      (* TODO: add stream position info *)
-      piqi_error ("unknown type: " ^ typename)
+    if typename = "piqi"
+    then
+      !Piqi.piqi_lang_def (* return Piqi type from embedded self-definition *)
+    else
+      find_piqtype typename
   in
   add_piqtype code piqtype
 
@@ -245,12 +235,9 @@ let process_piqtype code typename =
 let rec load_wire_obj (user_piqtype :T.piqtype option) buf :obj =
   let field_code, field_obj = read_wire_field buf in
   match field_code with
-    | c when c = piqi_spec_wire_code -> (* embedded Piqi spec *)
-        let piqi = Piqi.piqi_of_pb field_obj in
-        Piqi piqi
     | c when c mod 2 = 1 ->
         let typename = Piqirun.parse_string_field field_obj in
-        process_piqtype c typename;
+        process_wire_piqtype c typename;
         if c = 1
         then
           (* :piqtype <typename> *)
@@ -270,8 +257,13 @@ let rec load_wire_obj (user_piqtype :T.piqtype option) buf :obj =
         Piqobj obj
     | c -> (* the code is even which means typed piqobj *)
         let piqtype = find_piqtype_by_code (c/2) in
-        let obj = piqobj_of_wire piqtype field_obj in
-        Typed_piqobj obj
+        if piqtype == !Piqi.piqi_lang_def (* embedded Piqi spec *)
+        then
+          let piqi = Piqi.piqi_of_pb field_obj in
+          Piqi piqi
+        else
+          let obj = piqobj_of_wire piqtype field_obj in
+          Typed_piqobj obj
 
 
 let out_piqtypes = ref []
@@ -300,7 +292,15 @@ let find_add_piqtype_code name =
 let gen_wire (obj :obj) =
   match obj with
     | Piqi piqi ->
-        piqi_to_wire piqi
+        (* FIXME: code duplication! *)
+        let piqtype, code = find_add_piqtype_code "piqi" in
+        let data = Piqi.piqi_to_pb piqi ~code in
+        (match piqtype with
+          | None -> data
+          | Some x ->
+              (* add the piqtype entry before the data *)
+              Piqirun.OBuf.iol [ x; data]
+        )
     | Piqtype typename ->
         gen_piqtype 1 typename
     | Piqobj obj ->
