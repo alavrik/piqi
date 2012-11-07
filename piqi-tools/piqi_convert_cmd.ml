@@ -40,8 +40,8 @@ let arg__t =
     "-t", Arg.Set_string output_encoding,
     "piq|wire|pb|json|piq-json|xml output encoding (piq is used by default)"
 
-let arg__piqtype =
-    "--piqtype", Arg.Set_string typename,
+let arg__type =
+    "--type", Arg.Set_string typename,
     "<typename> type of converted object when converting from .pb, plain .json or .xml"
 
 let arg__add_defaults =
@@ -62,7 +62,7 @@ let speclist = Main.common_speclist @
     "piq|wire|pb|json|piq-json|xml input encoding";
 
     arg__t;
-    arg__piqtype;
+    arg__type;
     arg__add_defaults;
     arg__json_omit_null_fields;
 
@@ -142,7 +142,7 @@ let make_reader load_f input_param =
 let make_reader input_encoding =
   match input_encoding with
     | "pb" when !typename = "" ->
-        piqi_error "--piqtype parameter must be specified for \"pb\" input encoding"
+        piqi_error "--type parameter must be specified for \"pb\" input encoding"
     | "pb" ->
         let piqtype = some_of (resolve_typename ()) in
         let wireobj = Piq.open_pb !ifile in
@@ -153,7 +153,7 @@ let make_reader input_encoding =
         make_reader (Piq.load_piq_json_obj (resolve_typename ())) json_parser
 
     | "xml" when !typename = "" ->
-        piqi_error "--piqtype parameter must be specified for \"xml\" input encoding"
+        piqi_error "--type parameter must be specified for \"xml\" input encoding"
     | "xml" ->
         let piqtype = some_of (resolve_typename ()) in
         let xml_parser = Piqi_xml.open_xml !ifile in
@@ -164,7 +164,7 @@ let make_reader input_encoding =
         make_reader (Piq.load_piq_obj (resolve_typename ())) piq_parser
 
     | "piqi" when !typename <> "" ->
-        piqi_error "--piqtype parameter is not applicable to \"piqi\" input encoding"
+        piqi_error "--type parameter is not applicable to \"piqi\" input encoding"
     | "piqi" ->
         make_reader load_piqi !ifile
 

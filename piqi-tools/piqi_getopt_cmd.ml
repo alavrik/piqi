@@ -39,7 +39,7 @@ let validate_options () =
   if !typename = "" (* pretty-print mode *)
   then (
     if !output_encoding <> ""
-    then piqi_error "option -t can not be used without --piqtype";
+    then piqi_error "option -t can not be used without --type";
   )
 
 
@@ -52,7 +52,7 @@ let getopt_command () =
   match piq_ast_list with
     | [] when !typename = "" -> () (* no data *)
     | _ when !typename = "" ->
-        (* with no --piqtype parameter given, just pretty-print the Piq AST *)
+        (* with no --type parameter given, just pretty-print the Piq AST *)
         let ast =
           (* if there's more that one element, wrap them into a list *)
           match piq_ast_list with
@@ -77,7 +77,7 @@ let speclist = Main.common_speclist @
     arg_o;
 
     Piqi_convert_cmd.arg__t;
-    Piqi_convert_cmd.arg__piqtype;
+    Piqi_convert_cmd.arg__type;
     Piqi_convert_cmd.arg__add_defaults;
 
     Piqi_getopt.arg__rest;

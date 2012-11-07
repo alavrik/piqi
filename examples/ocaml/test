@@ -54,7 +54,7 @@ cmp l1 l2
 
 # check that the addressbook binary file created by "add_person" is readable by
 # "piqi convert"
-piqi convert --piqtype addressbook/address-book addressbook.pb > addressbook.pb.piq
+piqi convert --type addressbook/address-book addressbook.pb > addressbook.pb.piq
 
 rm addressbook.pb
 
