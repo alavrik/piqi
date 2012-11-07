@@ -1,4 +1,4 @@
-:piqtype bool
+(:bool)
 
 true false
 

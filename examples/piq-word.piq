@@ -1,4 +1,4 @@
-:piqtype piq-format/word
+(:piq-format/word)
 
 abc
 

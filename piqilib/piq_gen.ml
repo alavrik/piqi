@@ -346,7 +346,11 @@ let format_ast (x :piq_ast) =
     | `word s -> make_atom s
     | `text s -> format_text (split_text s) ~top
     | `name s -> make_atom (label ^ "." ^ s)
-    | `typename s -> make_atom (label ^ ":" ^ s)
+    | `typename s ->
+        let atom = make_atom (label ^ ":" ^ s) in
+        (* parentheses are not needed if `typename is followed by `typed,
+         * `named, `name or another `typename, but using them anyway for now *)
+        make_control [atom]
     | `named {Piq_ast.Named.name = n; Piq_ast.Named.value = v} ->
         let label = label ^ "." ^ n in
         format_inner_ast label v

@@ -93,9 +93,14 @@ let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
   let ast = read_piq_ast piq_parser in
   let fname, _ = piq_parser in (* TODO: improve getting a filename from parser *)
   match ast with
+    | `typename typename ->
+        (* (:typename) *)
+        process_default_piqtype typename;
+        Piqtype typename
     | `typed {Piq_ast.Typed.typename = "piqtype";
               Piq_ast.Typed.value = `word typename} ->
         (* :piqtype <typename> *)
+        warning ast "this form of specifying default type is deprecated; use (:typename) instead";
         process_default_piqtype typename;
         Piqtype typename
     | `typed {Piq_ast.Typed.typename = "piqtype"} ->
@@ -107,8 +112,6 @@ let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
         Piqi piqi
     | `typed {Piq_ast.Typed.typename = "piqi"} ->
         error ast "invalid piqi specification"
-    | `typename x ->
-        error x "invalid piq object"
     | `typed _ ->
         let obj = Piqobj_of_piq.parse_typed_obj ast in
         Typed_piqobj obj
@@ -116,13 +119,6 @@ let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
         let piqtype = get_current_piqtype user_piqtype ast in
         let obj = Piqobj_of_piq.parse_obj piqtype ast in
         Piqobj obj
-
-
-let make_piqtype typename =
-  `typed {
-    Piq_ast.Typed.typename = "piqtype";
-    Piq_ast.Typed.value = `word typename;
-  }
 
 
 let original_piqi piqi =
@@ -144,7 +140,7 @@ let gen_piq (obj :obj) =
   let f () =
     match obj with
       | Piqtype typename ->
-          make_piqtype typename
+          `typename typename
       | Piqi piqi ->
           piqi_to_piq piqi
       | Typed_piqobj obj ->
