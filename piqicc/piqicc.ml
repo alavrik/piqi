@@ -30,9 +30,9 @@ open Iolist
  * would be used *)
 let add_hashcodes defs =
   (* add hash-based field and option codes instead of auto-enumerated ones *)
-  Piqi_wire.add_hashcodes defs;
+  Piqi_protobuf.add_hashcodes defs;
   (* check for hash conflicts and pre-order fields by hash codes *)
-  Piqi_wire.process_defs defs;
+  Piqi_protobuf.process_defs defs;
   ()
 
 
@@ -91,8 +91,8 @@ let piqicc ch spec_fname lang_fname impl_fname =
     ignore (Piqobj_of_piq.get_unknown_fields ());
 
     let res =
-      U.with_bool Piqobj_to_wire.is_external_mode true
-      (fun () -> Piqobj_to_wire.gen_binobj piqobj)
+      U.with_bool Piqobj_to_protobuf.is_external_mode true
+      (fun () -> Piqobj_to_protobuf.gen_binobj piqobj)
     in
     Piqloc.resume ();
     res

@@ -29,7 +29,7 @@ open Iolist
 open Piqic_ocaml_types
 
 
-module W = Piqi_wire
+module W = Piqi_protobuf
 
 
 let gen_code = Piqic_common.gen_code
@@ -87,7 +87,7 @@ let gen_wire_elem_width piqtype wire_packed =
          *)
         aux (some_of x.A#piqtype) ?wire_type:x.A#protobuf_wire_type
     | t ->
-        Piqi_wire.get_wire_type_width t wire_type
+        Piqi_protobuf.get_wire_type_width t wire_type
   in
   if not wire_packed
   then ""
@@ -301,7 +301,7 @@ let gen_packed_alias a =
 
 let gen_alias a =
   let open Alias in
-  if Piqi_wire.can_be_packed (some_of a.piqtype)
+  if Piqi_protobuf.can_be_packed (some_of a.piqtype)
   then
     (* generate another function for packed encoding *)
     iod " and " [

@@ -36,11 +36,11 @@ let gen_builtin_default_value wire_type t =
   let gen_obj code x =
     match x with
       | #T.typedef | `any -> assert false
-      | `int -> Piqobj_to_wire.gen_int code 0L ?wire_type
-      | `float -> Piqobj_to_wire.gen_float code 0.0 ?wire_type
-      | `bool -> Piqobj_to_wire.gen_bool code false
+      | `int -> Piqobj_to_protobuf.gen_int code 0L ?wire_type
+      | `float -> Piqobj_to_protobuf.gen_float code 0.0 ?wire_type
+      | `bool -> Piqobj_to_protobuf.gen_bool code false
       | `string | `binary | `text | `word ->
-          Piqobj_to_wire.gen_string code ""
+          Piqobj_to_protobuf.gen_string code ""
   in
   Piqloc.pause ();
   let res = Piqirun.gen_binobj gen_obj t in

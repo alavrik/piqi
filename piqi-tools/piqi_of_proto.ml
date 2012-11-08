@@ -651,8 +651,8 @@ let proto_to_wire ifile ofile =
 
 
 let read_proto_wire ifile =
-  let wireobj = Piq.open_pb ifile in
-  let proto_set = D.parse_file_descriptor_set wireobj in
+  let protobuf = Piq.open_pb ifile in
+  let proto_set = D.parse_file_descriptor_set protobuf in
   proto_set
 
 

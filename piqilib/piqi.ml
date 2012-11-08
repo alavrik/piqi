@@ -372,7 +372,7 @@ let check_wire_type a wt =
     | `signed_varint | `signed_fixed32 | `signed_fixed64 when t = `int -> ()
     | `fixed32 | `fixed64 when t = `float -> ()
     | _ ->
-        error a ("wire type " ^ U.quote (Piqi_wire.wire_type_name wt) ^
+        error a ("wire type " ^ U.quote (Piqi_protobuf.wire_type_name wt) ^
                  " is incompatible with piq type " ^ U.quote (piqi_typename t))
 
 
@@ -612,7 +612,7 @@ let resolve_defs ?piqi idtable (defs:T.typedef list) =
 
   (* assign wire codes, if they are unassigned; check otherwise; check
    * correctness of .wire-packed usage *)
-  Piqi_wire.process_defs defs;
+  Piqi_protobuf.process_defs defs;
 
   (* set up parent namespace to local piqi defs *)
   (match piqi with
@@ -734,7 +734,7 @@ let mlobj_to_piqobj piqtype wire_generator mlobj =
   let piqobj =
     U.with_bool C.is_inside_parse_piqi true
     (fun () ->
-      C.with_resolve_defaults false (fun () -> Piqobj_of_wire.parse_binobj piqtype binobj)
+      C.with_resolve_defaults false (fun () -> Piqobj_of_protobuf.parse_binobj piqtype binobj)
     )
   in
   debug_loc "mlobj_to_piqobj(1)";
@@ -754,7 +754,7 @@ let mlobj_to_ast piqtype wire_generator mlobj =
 
 
 let mlobj_of_piqobj wire_parser piqobj =
-  let binobj = Piqobj_to_wire.gen_binobj piqobj in
+  let binobj = Piqobj_to_protobuf.gen_binobj piqobj in
   let mlobj = Piqirun.parse_binobj wire_parser binobj in
   mlobj
 
@@ -1674,7 +1674,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
    * critical for potential piqi extensions such as those used in various piqic
    *)
   if ast <> None && C.is_self_spec piqi
-  then Piqi_wire.add_hashcodes resolved_defs;
+  then Piqi_protobuf.add_hashcodes resolved_defs;
 
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)
@@ -2151,7 +2151,7 @@ let piqi_to_piqobj piqi =
      * fiels and options *)
     (* XXX: why do we need to do it here? *)
     if C.is_self_spec piqi
-    then Piqi_wire.add_hashcodes piqi_spec.P#typedef;
+    then Piqi_protobuf.add_hashcodes piqi_spec.P#typedef;
 
     (* make sure that the module's name is set *)
     P#{piqi_spec with modname = piqi.P#modname}
@@ -2199,8 +2199,8 @@ let piqi_to_pb ?(code = -1) piqi =
    * generating data *)
   Piqloc.pause ();
   let res =
-    U.with_bool Piqobj_to_wire.is_external_mode true
-    (fun () -> Piqobj_to_wire.gen_obj code piqobj)
+    U.with_bool Piqobj_to_protobuf.is_external_mode true
+    (fun () -> Piqobj_to_protobuf.gen_obj code piqobj)
   in
   Piqloc.resume ();
   debug "piqi_to_pb(1)\n";
@@ -2216,7 +2216,7 @@ let piqi_of_pb buf =
 
   (* don't resolve defaults *)
   let piqobj =
-    C.with_resolve_defaults false (fun () -> Piqobj_of_wire.parse_obj piqtype buf)
+    C.with_resolve_defaults false (fun () -> Piqobj_of_protobuf.parse_obj piqtype buf)
   in
   let piqi = piqi_of_piqobj piqobj in
 

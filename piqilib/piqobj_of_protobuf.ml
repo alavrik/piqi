@@ -22,7 +22,7 @@ open C
 open Piqobj_common
 
 
-module W = Piqi_wire
+module W = Piqi_protobuf
 
 
 let next_count = Piqloc.next_icount
@@ -40,7 +40,7 @@ let reference f t x =
   Piqloc.addrefret count obj
 
 
-(* XXX: move to Piqi_wire? *)
+(* XXX: move to Piqi_protobuf? *)
 let parse_int ?wire_type x =
   let r0 = reference0 in
   let wire_type = W.get_wire_type `int wire_type in
@@ -310,7 +310,7 @@ and parse_alias0 t x =
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t ?wire_type x =
   let open T.Alias in
-  let wire_type = Piqobj_to_wire.resolve_wire_type ?wire_type t.protobuf_wire_type in
+  let wire_type = Piqobj_to_protobuf.resolve_wire_type ?wire_type t.protobuf_wire_type in
   let obj =
     match some_of t.piqtype with
       | `int -> parse_int x ?wire_type
@@ -323,7 +323,7 @@ and parse_alias t ?wire_type x =
 
 and parse_packed_alias t ?wire_type x =
   let open T.Alias in
-  let wire_type = Piqobj_to_wire.resolve_wire_type ?wire_type t.protobuf_wire_type in
+  let wire_type = Piqobj_to_protobuf.resolve_wire_type ?wire_type t.protobuf_wire_type in
   let obj =
     match some_of t.piqtype with
       | `int -> parse_packed_int x ?wire_type

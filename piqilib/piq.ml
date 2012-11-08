@@ -203,7 +203,7 @@ let find_piqtype_by_code code =
 let piqobj_of_protobuf piqtype buf =
   (* don't store location references as we're loading from the binary object *)
   Piqloc.pause ();
-  let obj = Piqobj_of_wire.parse_obj piqtype buf in
+  let obj = Piqobj_of_protobuf.parse_obj piqtype buf in
   Piqloc.resume ();
   obj
 
@@ -212,7 +212,7 @@ let piqobj_to_protobuf code piqobj =
   (* don't produce location references as don't care about it in general when
    * generating data *)
   Piqloc.pause ();
-  let res = Piqobj_to_wire.gen_obj code piqobj in
+  let res = Piqobj_to_protobuf.gen_obj code piqobj in
   Piqloc.resume ();
   res
 

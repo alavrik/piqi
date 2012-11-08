@@ -29,7 +29,7 @@ open Iolist
 open Piqic_erlang_types
 
 
-module W = Piqi_wire
+module W = Piqi_protobuf
 
 
 let gen_code = Piqic_common.gen_code
@@ -308,7 +308,7 @@ let gen_packed_alias a =
 
 let gen_alias a =
   let open Alias in
-  if Piqi_wire.can_be_packed (some_of a.piqtype)
+  if Piqi_protobuf.can_be_packed (some_of a.piqtype)
   then
     (* generate another function for packed encoding *)
     iod "\n\n" [

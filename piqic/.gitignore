@@ -16,14 +16,14 @@ piqi_util.ml
 piqi_name.ml
 piqi_file.ml
 piqobj_common.ml
-piqobj_of_wire.ml
+piqobj_of_protobuf.ml
 piqloc.ml
 piq_lexer.ml
 piqi_config.ml
 piq_gen.ml
-piqobj_to_wire.ml
+piqobj_to_protobuf.ml
 piqi_iolist.ml
-piqi_wire.ml
+piqi_protobuf.ml
 piqobj_of_piq.ml
 piqi_db.ml
 piqi_c.ml

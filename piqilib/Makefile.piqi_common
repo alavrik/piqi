@@ -24,7 +24,7 @@ PIQI_SOURCES_TAIL = \
 	piqi_common.ml \
 	piqi_file.ml \
 	piqi_main.ml \
-	piqi_wire.ml \
+	piqi_protobuf.ml \
 	piqi_db.ml \
 	\
 	piq_lexer.ml \
@@ -37,8 +37,8 @@ PIQI_SOURCES_TAIL = \
 	piqi_objstore.ml \
 	piqobj.ml \
 	piqobj_common.ml \
-	piqobj_to_wire.ml \
-	piqobj_of_wire.ml \
+	piqobj_to_protobuf.ml \
+	piqobj_of_protobuf.ml \
 	piqobj_to_piq.ml \
 	piqobj_of_piq.ml \
 	\

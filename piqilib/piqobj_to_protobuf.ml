@@ -22,7 +22,7 @@ open C
 open Piqobj_common
 
 
-module W = Piqi_wire
+module W = Piqi_protobuf
 
 
 (* whether to generate piqi-any in external mode, i.e. only including fields
@@ -46,7 +46,7 @@ let reference f code x =
   f code x
 
 
-(* XXX: move to Piqi_wire? *)
+(* XXX: move to Piqi_protobuf? *)
 let gen_int ?wire_type code x =
   let wire_type = W.get_wire_type `int wire_type in
   let gen_f =

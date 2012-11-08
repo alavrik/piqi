@@ -287,7 +287,7 @@ let gen_alias a ~wire_packed =
 
 let gen_alias a =
   let open Alias in
-  if Piqi_wire.can_be_packed (some_of a.piqtype)
+  if Piqi_protobuf.can_be_packed (some_of a.piqtype)
   then
     (* generate another function for packed encoding *)
     iod "\n\n" [
