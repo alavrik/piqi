@@ -44,5 +44,5 @@ test_piqi_piqi:
 
 
 clean:
-	rm -f p.piqi pp.piqi p.piqi.text *.proto *.wire *.pb *.json *.xml t.piq
+	rm -f p.piqi pp.piqi p.piqi.text *.proto *.pib *.pb *.json *.xml t.piq
 

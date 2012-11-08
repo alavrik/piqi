@@ -24,5 +24,5 @@ test_piqtype_core:
 
 
 clean:
-	rm -f p.piqi pp.piqi p.piqi.text *.proto *.wire *.pb *.json *.xml piqtype-core.piq
+	rm -f p.piqi pp.piqi p.piqi.text *.proto *.pib *.pb *.json *.xml piqtype-core.piq
 

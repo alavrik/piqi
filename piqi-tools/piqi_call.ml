@@ -173,7 +173,7 @@ let decode_response f output =
   trace "piqi_call: decoding response\n";
   let piqobj_of_bin piqtype data =
     let buf = Piqirun.init_from_string data in
-    Piq.piqobj_of_wire (piqtype :> T.piqtype) buf
+    Piq.piqobj_of_protobuf (piqtype :> T.piqtype) buf
   in
   match f.T.Func#resolved_output, output with
     | None, `ok_empty -> `ok_empty

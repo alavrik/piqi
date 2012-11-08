@@ -48,4 +48,4 @@ test_complex:
 
 
 clean:
-	rm -f *.pb *.wire *.json *.xml *.piqi.proto* addressbook.proto.piqi
+	rm -f *.pb *.pib *.json *.xml *.piqi.proto* addressbook.proto.piqi

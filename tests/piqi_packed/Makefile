@@ -6,5 +6,5 @@ all:
 
 
 clean:
-	rm -f *.pb *.proto* *.wire unpacked.piqi test-all-unpacked.piq
+	rm -f *.pb *.proto* *.pib unpacked.piqi test-all-unpacked.piq
 

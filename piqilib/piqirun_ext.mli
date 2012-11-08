@@ -21,7 +21,7 @@
  *)
 
 
-type input_format = [ `json | `pb | `piq | `wire | `xml ]
+type input_format = [ `json | `pb | `piq | `pib | `xml ]
 
 type output_format = [ input_format | `json_pretty | `xml_pretty ]
 

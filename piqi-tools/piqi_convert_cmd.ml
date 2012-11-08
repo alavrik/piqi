@@ -38,7 +38,7 @@ let usage = "Usage: piqi convert [options] [input file] [output file]\nOptions:"
 
 let arg__t =
     "-t", Arg.Set_string output_encoding,
-    "piq|wire|pb|json|piq-json|xml output encoding (piq is used by default)"
+    "piq|pib|pb|json|piq-json|xml output encoding (piq is used by default)"
 
 let arg__type =
     "--type", Arg.Set_string typename,
@@ -59,7 +59,7 @@ let speclist = Main.common_speclist @
     arg_o;
 
     "-f", Arg.Set_string input_encoding,
-    "piq|wire|pb|json|piq-json|xml input encoding";
+    "piq|pib|pb|json|piq-json|xml input encoding";
 
     arg__t;
     arg__type;
@@ -98,12 +98,12 @@ let resolve_typename () =
 
 
 (* ensuring that Piq.load_pb is called exactly one time *)
-let load_pb piqtype wireobj :Piq.obj =
+let load_pb piqtype protobuf :Piq.obj =
   if !first_load
   then
     begin
       first_load := false;
-      Piq.load_pb piqtype wireobj
+      Piq.load_pb piqtype protobuf
     end
   else
     (* XXX: print a warning if there are more input objects? *)
@@ -145,8 +145,8 @@ let make_reader input_encoding =
         piqi_error "--type parameter must be specified for \"pb\" input encoding"
     | "pb" ->
         let piqtype = some_of (resolve_typename ()) in
-        let wireobj = Piq.open_pb !ifile in
-        make_reader (load_pb piqtype) wireobj
+        let protobuf = Piq.open_pb !ifile in
+        make_reader (load_pb piqtype) protobuf
 
     | "json" | "piq-json" ->
         let json_parser = Piqi_json.open_json !ifile in
@@ -168,9 +168,9 @@ let make_reader input_encoding =
     | "piqi" ->
         make_reader load_piqi !ifile
 
-    | "wire" ->
-        let buf = Piq.open_wire !ifile in
-        make_reader (Piq.load_wire_obj (resolve_typename ())) buf
+    | "pib" ->
+        let buf = Piq.open_pib !ifile in
+        make_reader (Piq.load_pib_obj (resolve_typename ())) buf
     | "" ->
         piqi_error "can't determine input encoding; use -f option to specify it explicitly"
     | x ->
@@ -189,7 +189,7 @@ let make_writer ?(is_piqi_input=false) output_encoding =
   match output_encoding with
     | "" (* default output encoding is "piq" *)
     | "piq" -> Piq.write_piq
-    | "wire" -> Piq.write_wire
+    | "pib" -> Piq.write_pib
     | "json" ->
         write_plain Piq.write_json ~is_piqi_input
     | "piq-json" ->
@@ -299,7 +299,7 @@ let validate_options input_encoding =
       match !output_encoding with
         | "json" | "xml" | "pb" ->
           piqi_warning
-            "--embed-piqi doesn't have any effect when converting to .pb, .json or .xml; use .wire or .piq-json"
+            "--embed-piqi doesn't have any effect when converting to .pb, .json or .xml; use .pib or .piq-json"
         | _ -> ()
     )
   )
@@ -439,5 +439,5 @@ let run () =
  
 let _ =
   Main.register_command run "convert"
-    "convert data files between various encodings (piq, wire, pb, json, piq-json, xml)"
+    "convert data files between various encodings (piq, pib, pb, json, piq-json, xml)"
 
