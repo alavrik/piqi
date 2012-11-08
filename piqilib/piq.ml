@@ -247,7 +247,7 @@ let rec load_pib_obj (user_piqtype :T.piqtype option) buf :obj =
           try get_current_piqtype user_piqtype `fake
           with _ ->
             (* TODO: add stream position info *)
-            piqi_error "default type for piq pib object is unknown"
+            piqi_error "default type for pib object is unknown"
         in
         let obj = piqobj_of_protobuf piqtype field_obj in
         Piqobj obj
@@ -377,9 +377,21 @@ let piqi_of_json json =
   piqi
 
 
+(* adding "piqi_type": "piqi" as a first field of the serialized JSON object
+ * XXX: make it optional? *)
+let add_piqi_type_to_json_object json name =
+  let piqi_type = ("piqi_type", `String name) in
+  match json with
+    | `Assoc l ->
+        `Assoc (piqi_type :: l)
+    | _ ->
+        assert false
+
+
 let piqi_to_json piqi =
   let piqobj = Piqi.piqi_to_piqobj piqi in
-  Piqobj_to_json.gen_obj piqobj
+  let json = Piqobj_to_json.gen_obj piqobj in
+  add_piqi_type_to_json_object json "piqi"
 
 
 let write_json_obj ch json =
@@ -388,44 +400,40 @@ let write_json_obj ch json =
   Pervasives.output_char ch '\n'
 
 
-let gen_json_common (piqobj : Piqobj.obj) =
-  let ast = Piqobj_to_json.gen_obj piqobj in
+let is_primitive_or_list piqtype =
+  match C.unalias piqtype with
+    | `enum _ -> true
+    | `list _ -> true
+    | #T.typedef -> false
+    | _ -> true
+
+
+let gen_json_obj (piqobj : Piqobj.obj) =
+  let json = Piqobj_to_json.gen_obj piqobj in
   let piqtype = Piqobj_common.type_of piqobj in
+  let piqtype_name = C.full_piqi_typename piqtype in
   (* generating an associative array wrapper for primitive types because JSON
    * doesn't support them as top-level objects, according to RFC 4627 that says:
    * "A JSON text is a serialized object or array" *)
-  if C.is_primitive_piqtype piqtype
-  then `Assoc ["_", ast]
-  else ast
-
-
-let gen_piq_json (obj :obj) =
-  match obj with
-    | Piqi piqi -> (* embedded Piqi spec *)
-        let json = piqi_to_json piqi in
-        `Assoc [ "_piqi", json ]
-    | Piqtype typename ->
-        `Assoc [ "_piqtype", `String typename ]
-    | Typed_piqobj obj ->
-        Piqobj_to_json.gen_typed_obj obj
-    | Piqobj obj ->
-        gen_json_common obj
-
-
-let write_piq_json ch (obj:obj) =
-  let json = gen_piq_json obj in
-  write_json_obj ch json
+  (* XXX: also wrapping arrays in a top-level object; it is not strictly
+   * required but it feels as the right thing to do; besides, this is the only
+   * reasonable way we can add "piqi_type" field to the serialized lists *)
+  let json =
+    if is_primitive_or_list piqtype
+    then `Assoc [("value", json)]
+    else json
+  in
+  add_piqi_type_to_json_object json piqtype_name
 
 
 let gen_json (obj :obj) =
   match obj with
     | Typed_piqobj obj | Piqobj obj ->
-        gen_json_common obj
+        gen_json_obj obj
     | Piqi piqi ->
         (* output Piqi spec itself if we are converting .piqi *)
         piqi_to_json piqi
     | Piqtype _ ->
-        (* XXX *)
         assert false (* type hints are not supported by Json encoding *)
 
 
@@ -443,16 +451,17 @@ let read_json_ast json_parser :Piqi_json_type.json =
 
 let load_json_common piqtype ast =
   let ast =
-    if C.is_primitive_piqtype piqtype
+    if is_primitive_or_list piqtype
     then
     (* expecting primitive types to be wrapped in associative array because JSON
      * doesn't support them as top-level objects, according to RFC 4627 that
      * says: "A JSON text is a serialized object or array" *)
       match ast with
-        | `Assoc [ "_", ast ] -> ast
+        | `Assoc [ "_", ast ] (* older pre- 0.6.0 format *)
+        | `Assoc [ "value", ast ] -> ast
         | _ ->
             error ast
-              "invalid toplevel value for primitive type: {\"_\": ...} expected"
+              "invalid toplevel value for primitive or arrary type: {\"value\": ...} expected"
     else ast
   in
   if piqtype == !Piqi.piqi_lang_def (* XXX *)
@@ -461,47 +470,34 @@ let load_json_common piqtype ast =
     Piqi piqi
   else
     let obj = piqobj_of_json piqtype ast in
-    match !default_piqtype with
-      | Some x when x == piqtype ->
-          (* return as Piqobj when default_piqtype is used *)
-          Piqobj obj
-      | _ ->
-          Typed_piqobj obj
+    Typed_piqobj obj
 
 
-let load_piq_json_obj (user_piqtype: T.piqtype option) json_parser :obj =
+let load_json_obj (user_piqtype: T.piqtype option) json_parser :obj =
   let ast = read_json_ast json_parser in
   (* check typenames, as Json parser doesn't do it unlike the Piq parser *)
   let check = true in
   match ast with
-    | `Assoc [ "_piqtype", `String typename ] ->
-        (* :piqtype <typename> *)
-        process_default_piqtype typename ~check;
-        Piqtype typename
-    | `Assoc [ "_piqtype", _ ] ->
-        error ast "invalid piqtype specification"
-    | `Assoc [ "_piqi", ((`Assoc _) as json_ast) ] ->
-        (* :piqi <typename> *)
+    | `Assoc (("piqi_type", `String "piqi") :: fields) ->
+        let ast = Piqloc.addrefret ast (`Assoc fields) in
         (* NOTE: caching the loaded module *)
-        let piqi = piqi_of_json json_ast in
+        let piqi = piqi_of_json ast in
         Piqi piqi
-    | `Assoc [ "_piqi", _ ] ->
-        error ast "invalid piqi specification"
-    | `Assoc [ "_piqtype", `String typename;
-               "_piqobj", ast ] ->
+    | `Assoc (("piqi_type", `String typename) :: fields) ->
         let piqtype = find_piqtype typename ~check in
-        let obj = piqobj_of_json piqtype ast in
-        Typed_piqobj obj
-    | `Assoc (("_piqtype", _ )::_) ->
-        error ast "invalid type object specification"
-    | _ ->
-        let piqtype = get_current_piqtype user_piqtype ast in
+        let ast = Piqloc.addrefret ast (`Assoc fields) in
         load_json_common piqtype ast
-
-
-let load_json_obj (piqtype: T.piqtype) json_parser :obj =
-  let ast = read_json_ast json_parser in
-  load_json_common piqtype ast
+    | `Assoc (("piqi_type", ast) :: _) ->
+        error ast "invalid \"piqi_type\" format"
+    | _ ->
+        (* there's no first field that looks like "piqi_type": ... => using the
+         * user-supplied piqtype *)
+        (match user_piqtype with
+          | Some piqtype ->
+              load_json_common piqtype ast
+          | None ->
+              C.error ast "default type for JSON object is unknown"
+        )
 
 
 (*

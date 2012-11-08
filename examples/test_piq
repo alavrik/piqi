@@ -36,8 +36,8 @@ piqi convert $f.piq.pib
 # convert back to .piq and add defaults
 piqi convert --add-defaults $f.piq.pib
 
-# convert to piq-json encoding, writing output to "<source file>.json" file
-piqi convert -t piq-json $f.piq
+# convert to json encoding, writing output to "<source file>.json" file
+piqi convert -t json $f.piq
 
 # convert back to .piq
 piqi convert $f.piq.json
@@ -77,14 +77,14 @@ piqi convert --embed-piqi -t pib $f.piq
 piqi convert $f.piq.pib
 
 
-# convert to piq-json encoding, writing output to "<source file>.json" file
-piqi convert -t piq-json $f.piq
+# convert to json encoding, writing output to "<source file>.json" file
+piqi convert -t json $f.piq
 
 # convert back to .piq
 piqi convert --embed-piqi $f.piq.json
 
-# convert to piq-json encoding, writing output to "<source file>.json" file
-piqi convert --embed-piqi -t piq-json $f.piq
+# convert to json encoding, writing output to "<source file>.json" file
+piqi convert --embed-piqi -t json $f.piq
 
 # convert back to .piq
 piqi convert $f.piq.json
@@ -94,4 +94,4 @@ piqi convert $f.piq.json
 piqi convert -t pib $f.piq.json
 
 # convert .pib back to .json
-piqi convert -t piq-json $f.piq.json.pib
+piqi convert -t json $f.piq.json.pib

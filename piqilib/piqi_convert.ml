@@ -90,7 +90,7 @@ let gen_pib obj =
 
 let parse_json piqtype s =
   let json_parser = Piqi_json_parser.init_from_string ~fname s in
-  let obj = Piq.load_json_obj piqtype json_parser in
+  let obj = Piq.load_json_obj (Some piqtype) json_parser in
   (* XXX: check eof? *)
   obj
 

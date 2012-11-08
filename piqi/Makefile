@@ -34,7 +34,7 @@ test_piqi_piqi:
 	piqi convert -t pb piqi.piqi
 	cmp p.piqi.pb piqi.piqi.pb
 	test ! `which protoc` || protoc -I.. -I. --decode=piqi_org.piqi.piqi piqi.piqi.proto < p.piqi.pb > p.piqi.text
-	piqi convert -t piq-json p.piqi
+	piqi convert -t json p.piqi
 	piqi convert p.piqi.json >/dev/null
 	piqi convert -t xml p.piqi
 	piqi convert --type piqi p.piqi.xml >/dev/null

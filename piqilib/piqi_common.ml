@@ -195,13 +195,6 @@ let is_typedef t =
     | _ -> false
 
 
-let is_primitive_piqtype t =
-  match unalias t with
-    | `enum _ -> true
-    | #T.typedef -> false
-    | _ -> true
-
-
 (* is record or list or alias of the two *)
 let is_container_type t =
   match unalias t with

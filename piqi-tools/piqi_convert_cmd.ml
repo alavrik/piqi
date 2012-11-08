@@ -38,11 +38,11 @@ let usage = "Usage: piqi convert [options] [input file] [output file]\nOptions:"
 
 let arg__t =
     "-t", Arg.Set_string output_encoding,
-    "piq|pib|pb|json|piq-json|xml output encoding (piq is used by default)"
+    "pb|json|xml|piq|pib output encoding (piq is used by default)"
 
 let arg__type =
     "--type", Arg.Set_string typename,
-    "<typename> type of converted object when converting from .pb, plain .json or .xml"
+    "<typename> type of converted object"
 
 let arg__add_defaults =
     "--add-defaults", Arg.Set flag_add_defaults,
@@ -59,7 +59,7 @@ let speclist = Main.common_speclist @
     arg_o;
 
     "-f", Arg.Set_string input_encoding,
-    "piq|pib|pb|json|piq-json|xml input encoding";
+    "pb|json|xml|piq|pib input encoding";
 
     arg__t;
     arg__type;
@@ -124,11 +124,20 @@ let write_pb ch (obj: Piq.obj) =
 
 
 (* write only data and skip Piqi specifications and data hints *)
-let write_plain ~is_piqi_input writer ch (obj: Piq.obj) =
+let write_data ~is_piqi_input writer ch (obj: Piq.obj) =
   match obj with
     | Piq.Piqi _ when not is_piqi_input ->
         (* ignore embedded Piqi specs if we are not converting .piqi *)
         ()
+    | Piq.Piqtype _ ->
+        (* ignore default type names *)
+        ()
+    | _ ->writer ch obj
+
+
+(* write data and Piqi specifications and data hints *)
+let write_data_and_piqi writer ch (obj: Piq.obj) =
+  match obj with
     | Piq.Piqtype _ ->
         (* ignore default type names *)
         ()
@@ -148,9 +157,9 @@ let make_reader input_encoding =
         let protobuf = Piq.open_pb !ifile in
         make_reader (load_pb piqtype) protobuf
 
-    | "json" | "piq-json" ->
+    | "json" ->
         let json_parser = Piqi_json.open_json !ifile in
-        make_reader (Piq.load_piq_json_obj (resolve_typename ())) json_parser
+        make_reader (Piq.load_json_obj (resolve_typename ())) json_parser
 
     | "xml" when !typename = "" ->
         piqi_error "--type parameter must be specified for \"xml\" input encoding"
@@ -184,20 +193,18 @@ let make_writer ?(is_piqi_input=false) output_encoding =
    * if the field is missing. *)
   C.resolve_defaults := !flag_add_defaults ||
     (match output_encoding with
-      | "json" | "piq-json" | "xml" -> true
+      | "json" | "xml" -> true
       | _ -> false);
   match output_encoding with
     | "" (* default output encoding is "piq" *)
     | "piq" -> Piq.write_piq
     | "pib" -> Piq.write_pib
     | "json" ->
-        write_plain Piq.write_json ~is_piqi_input
-    | "piq-json" ->
-        Piq.write_piq_json
+        write_data_and_piqi Piq.write_json
     | "pb" ->
-        write_plain write_pb ~is_piqi_input
+        write_data write_pb ~is_piqi_input
     | "xml" ->
-        write_plain Piq.write_xml ~is_piqi_input
+        write_data Piq.write_xml ~is_piqi_input
     | x ->
         piqi_error ("unknown output encoding " ^ U.quote x)
 
@@ -297,9 +304,8 @@ let validate_options input_encoding =
     )
     else ( (* input_encoding <> "piqi" *)
       match !output_encoding with
-        | "json" | "xml" | "pb" ->
-          piqi_warning
-            "--embed-piqi doesn't have any effect when converting to .pb, .json or .xml; use .pib or .piq-json"
+        | "pb" | "xml" ->
+          piqi_warning "--embed-piqi doesn't have any effect when converting to .pb or .xml"
         | _ -> ()
     )
   )
@@ -412,11 +418,7 @@ let convert_file () =
     match !ofile with
       | "" when !output_encoding = "" -> "" (* print "piq" to stdout by default *)
       | "" when !ifile <> "" && !ifile <> "-" ->
-          let output_extension =
-            match !output_encoding with
-              | "piq-json" -> "json"
-              | x -> x
-          in
+          let output_extension = !output_encoding in
           !ifile ^ "." ^ output_extension
       | x -> x
   in
@@ -439,5 +441,5 @@ let run () =
  
 let _ =
   Main.register_command run "convert"
-    "convert data files between various encodings (piq, pib, pb, json, piq-json, xml)"
+    "convert data files between various encodings (pb, json, xml, piq, pib)"
 

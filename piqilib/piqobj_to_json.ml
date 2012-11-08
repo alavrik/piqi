@@ -59,15 +59,6 @@ let rec gen_obj (x:Piqobj.obj) :json =
     | `alias x -> gen_alias x
 
 
-and gen_typed_obj x =
-  let name = Piqobj_common.full_typename x in
-  let json = gen_obj x in
-  `Assoc [
-    "_piqtype", `String name;
-    "_piqobj", json;
-  ]
-
-
 and gen_any x =
   let open Any in
   if x.json_ast <> None
