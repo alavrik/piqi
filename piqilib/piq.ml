@@ -531,7 +531,6 @@ let gen_xml (obj :obj) :Piqi_xml.xml =
         (* output Piqi spec itself if we are converting .piqi *)
         piqi_to_xml piqi
     | Piqtype _ ->
-        (* XXX *)
         assert false (* type hints are not supported by xml encoding *)
 
 

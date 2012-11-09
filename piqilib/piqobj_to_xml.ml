@@ -140,9 +140,9 @@ and gen_alias x =
 
 (* gen top-level XML element *)
 let gen_obj (obj: Piqobj.obj) :xml =
-  let piqtype = Piqobj_common.type_of obj in
-  let name = C.piqi_typename piqtype in
-  make_element name (gen_obj obj)
+  (* always using <value> as a top-level element; we don't really care what this
+   * names is, but it is better to pick one name and stick to it *)
+  make_element "value" (gen_obj obj)
 
 
 let _ =

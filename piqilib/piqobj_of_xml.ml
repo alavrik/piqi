@@ -231,7 +231,7 @@ and parse_optional_field name field_type default l =
 and parse_repeated_field name field_type l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> [], rem (* XXX: allowing repeated field to be acutally missing *)
+    | [] -> [], rem (* allowing repeated field to be acutally missing *)
     | l ->
         let res = List.map (parse_obj field_type) l in
         res, rem
@@ -312,19 +312,8 @@ and parse_alias t x =
 
 (* parse top-level Piq object formatted as XML *)
 let parse_obj t xml =
-  (* XXX: don't bother checking the name of the root element -- it's quite
-   * annoying in practice
-   *
-   * XXX: provide an optional "name" parameter for checking the root element's
-   * name *)
-  (*
-  let name = C.piqi_typename t in
-  match xml with
-    | `Elem ((n, _) as xml_elem) when n = name ->
-        parse_obj t xml_elem
-    | _ ->
-        error xml ("<" ^ name ^ "> XML root element expected")
-  *)
+  (* NOTE: we don't bother checking the name of the root element -- it doesn't
+   * have any meaning anyway *)
   match xml with
     | `Elem xml_elem ->
         parse_obj t xml_elem

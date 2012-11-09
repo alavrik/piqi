@@ -297,17 +297,14 @@ let validate_options input_encoding =
 
   if !flag_embed_piqi
   then (
-    if input_encoding = "piqi"
-    then (
-      if !output_encoding = "pb"
-      then piqi_error "can't --embed-piqi when converting .piqi to .pb"
-    )
-    else ( (* input_encoding <> "piqi" *)
-      match !output_encoding with
-        | "pb" | "xml" ->
-          piqi_warning "--embed-piqi doesn't have any effect when converting to .pb or .xml"
-        | _ -> ()
-    )
+    match !output_encoding with
+      | "pb" | "xml" ->
+          if input_encoding = "piqi"
+          then
+            piqi_error "can't --embed-piqi when converting .piqi to .pb or .xml"
+          else
+            piqi_warning "--embed-piqi doesn't have any effect when converting to .pb or .xml"
+      | _ -> ()
   )
 
 
