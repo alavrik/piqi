@@ -90,13 +90,13 @@ let gen_pib obj =
 
 let parse_json piqtype s =
   let json_parser = Piqi_json_parser.init_from_string ~fname s in
-  let obj = Piq.load_json_obj (Some piqtype) json_parser in
+  let obj = Piq.load_plain_json_obj piqtype json_parser in
   (* XXX: check eof? *)
   obj
 
 
 let gen_json ?(pretty_print=true) obj =
-  let json = Piq.gen_json obj in
+  let json = Piq.gen_plain_json obj in
   if pretty_print
   then
     Piqi_json_gen.pretty_to_string json

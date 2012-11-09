@@ -377,21 +377,10 @@ let piqi_of_json json =
   piqi
 
 
-(* adding "piqi_type": "piqi" as a first field of the serialized JSON object
- * XXX: make it optional? *)
-let add_piqi_type_to_json_object json name =
-  let piqi_type = ("piqi_type", `String name) in
-  match json with
-    | `Assoc l ->
-        `Assoc (piqi_type :: l)
-    | _ ->
-        assert false
-
-
 let piqi_to_json piqi =
   let piqobj = Piqi.piqi_to_piqobj piqi in
   let json = Piqobj_to_json.gen_obj piqobj in
-  add_piqi_type_to_json_object json "piqi"
+  "piqi", json
 
 
 let write_json_obj ch json =
@@ -423,10 +412,10 @@ let gen_json_obj (piqobj : Piqobj.obj) =
     then `Assoc [("value", json)]
     else json
   in
-  add_piqi_type_to_json_object json piqtype_name
+  piqtype_name, json
 
 
-let gen_json (obj :obj) =
+let gen_json_common (obj :obj) =
   match obj with
     | Typed_piqobj obj | Piqobj obj ->
         gen_json_obj obj
@@ -435,6 +424,22 @@ let gen_json (obj :obj) =
         piqi_to_json piqi
     | Piqtype _ ->
         assert false (* type hints are not supported by Json encoding *)
+
+
+let gen_json obj =
+  let piqi_typename, json = gen_json_common obj in
+  (* adding "piqi_type": name as a first field of the serialized JSON object *)
+  match json with
+    | `Assoc l ->
+        let piqi_type = ("piqi_type", `String piqi_typename) in
+        `Assoc (piqi_type :: l)
+    | _ -> (* top-level json must be an object *)
+        assert false
+
+
+let gen_plain_json obj =
+  let _piqi_type, json = gen_json_common obj in
+  json
 
 
 let write_json ch (obj:obj) =
@@ -498,6 +503,20 @@ let load_json_obj (user_piqtype: T.piqtype option) json_parser :obj =
           | None ->
               C.error ast "default type for JSON object is unknown"
         )
+
+
+(* load json while ignoring all embedded type hints *)
+let load_plain_json_obj (piqtype: T.piqtype) json_parser :obj =
+  let ast = read_json_ast json_parser in
+  let ast =
+    match ast with
+      | `Assoc (("piqi_type", `String _) :: fields) ->
+          (* skip the "piqi_type" field whenever it is present *)
+          Piqloc.addrefret ast (`Assoc fields)
+      | _ ->
+          ast
+  in
+  load_json_common piqtype ast
 
 
 (*
