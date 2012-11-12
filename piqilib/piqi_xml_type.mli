@@ -20,3 +20,12 @@ type xml =
   ]
 and xml_elem = string * xml list (* (name, [xml]) *)
 
+
+(* NOTE: the actual type sould be more like the one below, but the Xmlm parsing
+ * library that we use won't give us such representation out the box, because it
+ * is a generic xml parsing library
+
+type xml_elem = string * xml_elem_content
+and xml_elem_content = [ `Data of string | `Elements of xml_elem list ]
+*)
+

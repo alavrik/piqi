@@ -52,6 +52,10 @@ let arg__json_omit_null_fields =
     "--json-omit-null-fields", Arg.Bool (fun x -> flag_json_omit_null_fields := x),
     "true|false omit null fields in JSON output (default=true)"
 
+let arg__gen_extended_piqi_any =
+    "--gen-extended-piqi-any", Arg.Set Piqi_config.gen_extended_piqi_any,
+    "for JSON and XML: use extended representation of piqi-any values (default=false)"
+
 
 let speclist = Main.common_speclist @
   [
@@ -65,6 +69,7 @@ let speclist = Main.common_speclist @
     arg__type;
     arg__add_defaults;
     arg__json_omit_null_fields;
+    arg__gen_extended_piqi_any;
 
     "--embed-piqi", Arg.Set flag_embed_piqi,
     "embed Piqi dependencies, i.e. Piqi specs which the input depends on";

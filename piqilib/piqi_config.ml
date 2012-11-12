@@ -74,3 +74,11 @@ let extensions = ref []
 let add_include_extension (name :string) =
   extensions := !extensions @ [ name ]
 
+
+(* for JSON and XML output: whether to generate piqi-any values using symbolic
+ * JSON and/or XML representation (this is the default) or use full piqi-any
+ * representation that wraps JSON or XML symbolic representation in a record
+ * that includes the value itself, plus protobuf representation of the value,
+ * typename and possibly something else *)
+let gen_extended_piqi_any = ref false
+

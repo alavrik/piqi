@@ -110,10 +110,10 @@ let rec parse_obj (t: T.piqtype) (x: xml_elem) :Piqobj.obj =
     | `alias t -> `alias (parse_alias t x)
 
 
-and parse_any x =
+and parse_any xml_elem =
   Any#{
     Piqobj.default_any with
-    xml_ast = Some (`Elem x);
+    xml_ast = Some xml_elem;
   }
 
 
@@ -310,6 +310,10 @@ and parse_alias t x =
   A#{ t = t; obj = obj }
 
 
+let _ =
+  Piqobj.of_xml := parse_obj
+
+
 (* parse top-level Piq object formatted as XML *)
 let parse_obj t xml =
   (* NOTE: we don't bother checking the name of the root element -- it doesn't
@@ -319,8 +323,4 @@ let parse_obj t xml =
         parse_obj t xml_elem
     | _ ->
         error xml "XML root element expected"
-
-
-let _ =
-  Piqobj.of_xml := parse_obj
 

@@ -127,7 +127,7 @@ and Any:
         mutable pb : string option; (* protocol buffers binary *)
         mutable piq_ast : Piq_ast.ast option;
         mutable json_ast : Piqi_json_type.json option;
-        mutable xml_ast : Piqi_xml_type.xml option;
+        mutable xml_ast : Piqi_xml_type.xml_elem option;
 
         (* unique reference to self in Piqi_objstore *)
         mutable ref: int option;
@@ -194,12 +194,12 @@ let any_of_piqi_any (piqi_any: Piqi_piqi.any) :Piqobj.any =
 let to_pb   (obj: Piqobj.obj) :string = assert false
 let to_piq  (obj: Piqobj.obj) :Piq_ast.ast = assert false
 let to_json (obj: Piqobj.obj) :Piqi_json_type.json = assert false
-let to_xml  (obj: Piqobj.obj) :Piqi_xml_type.xml = assert false
+let to_xml  (obj: Piqobj.obj) :Piqi_xml_type.xml list = assert false
 
 let of_pb   (piqtype: Piqi_piqi.piqtype) (x :string) :Piqobj.obj = assert false
 let of_piq  (piqtype: Piqi_piqi.piqtype) (x :Piq_ast.ast) :Piqobj.obj = assert false
 let of_json (piqtype: Piqi_piqi.piqtype) (x :Piqi_json_type.json) :Piqobj.obj = assert false
-let of_xml  (piqtype: Piqi_piqi.piqtype) (x :Piqi_xml_type.xml) :Piqobj.obj = assert false
+let of_xml  (piqtype: Piqi_piqi.piqtype) (x :Piqi_xml_type.xml_elem) :Piqobj.obj = assert false
 
 let to_pb = ref to_pb
 let to_piq = ref to_piq
@@ -240,63 +240,109 @@ let resolve_obj ?(piqtype: Piqi_piqi.piqtype option) (any :Piqobj.any) :unit =
   if any.obj <> None
   then () (* already resolved *)
   else (
-    let piqtype =
-      match piqtype, any.typename with
-        | Some t, _ ->
-            (* XXX: when both are present, check their correspondence? *)
-            C.debug "Piqobj.resolve_obj using known type\n";
-            t
-        | None, Some typename ->
-            C.debug "Piqobj.resolve_obj using type %s\n" typename;
-            Piqi_db.find_piqtype typename
-        | _ ->
-            assert false (* can't resolve, because type is unknown *)
+    let do_resolve_obj piqtype =
+      (* cache typename
+       * XXX: do not use fully qualified names for locally defined types? *)
+      if any.typename = None
+      then any.typename <- Some (Piqi_common.full_piqi_typename piqtype);
+
+      let obj = of_any piqtype any in
+      any.obj <- obj
     in
-
-    (* cache typename
-     * XXX: do not use fully qualified names for locally defined types? *)
-    if any.typename = None
-    then any.typename <- Some (Piqi_common.full_piqi_typename piqtype);
-
-    let obj = of_any piqtype any in
-    any.obj <- obj
+    match piqtype, any.typename with
+      | Some t, _ ->
+          (* XXX: when both are present, check their correspondence? *)
+          C.debug "Piqobj.resolve_obj using known type\n";
+          do_resolve_obj t
+      | None, Some typename ->
+          C.debug "Piqobj.resolve_obj using type %s\n" typename;
+          do_resolve_obj (Piqi_db.find_piqtype typename)
+      | _ ->
+          () (* can't resolve, because type is unknown *)
   )
 
 
-let piq_of_any (any: Piqobj.any) :Piq_ast.ast =
+let piq_of_any (any: Piqobj.any) :Piq_ast.ast option =
   let open Any in
   match any.piq_ast with
-    | Some ast -> ast
-    | _ ->
-        (* XXX: resolve obj just in case it wasn't resolved before *)
+    | (Some _) as res -> res
+    | _ -> (
+        (* resolve obj if it wasn't resolved before *)
         resolve_obj any;
-        let ast = !to_piq (C.some_of any.obj) in
-        any.piq_ast <- Some ast; (* XXX: cache the result *)
-        ast
+        match any.obj with
+          | None -> None (* obj could't be resolved *)
+          | Some obj ->
+              let ast = !to_piq obj in
+              any.piq_ast <- Some ast; (* XXX: cache the result *)
+              Some ast
+    )
 
 
-let pb_of_any (any: Piqobj.any) :string =
+let pb_of_any (any: Piqobj.any) :string option =
   let open Any in
   match any.pb with
-    | Some pb -> pb
-    | _ ->
-        (* XXX: resolve obj just in case it wasn't resolved before *)
+    | (Some _) as res -> res
+    | _ -> (
+        (* resolve obj if it wasn't resolved before *)
         resolve_obj any;
-        Piqloc.pause ();
-        let pb = !to_pb (C.some_of any.obj) in
-        Piqloc.resume ();
-        any.pb <- Some pb; (* XXX: cache the result *)
-        pb
+        match any.obj with
+          | None -> None (* obj could't be resolved *)
+          | Some obj ->
+              Piqloc.pause ();
+              let pb = !to_pb (C.some_of any.obj) in
+              Piqloc.resume ();
+              any.pb <- Some pb; (* XXX: cache the result *)
+              Some pb
+    )
 
 
-let piq_of_piqi_any piqi_any =
+let json_of_any (any: Piqobj.any) :Piqi_json_type.json option =
+  let open Any in
+  match any.json_ast with
+    | (Some _) as res -> res
+    | _ -> (
+        (* resolve obj if it wasn't resolved before *)
+        resolve_obj any;
+        match any.obj with
+          | None -> None (* obj could't be resolved *)
+          | Some obj ->
+              Piqloc.pause ();
+              let json = !to_json obj in
+              Piqloc.resume ();
+              any.json_ast <- Some json; (* XXX: cache the result *)
+              Some json
+    )
+
+
+let xml_of_any (any: Piqobj.any) :Piqi_xml_type.xml list option =
+  let open Any in
+  match any.xml_ast with
+    | Some (_name, xml_list) -> Some xml_list
+    | _ -> (
+        (* resolve obj if it wasn't resolved before *)
+        resolve_obj any;
+        match any.obj with
+          | None -> None (* obj could't be resolved *)
+          | Some obj ->
+              Piqloc.pause ();
+              let xml_list = !to_xml obj in
+              Piqloc.resume ();
+              any.xml_ast <- Some ("undefined", xml_list); (* XXX: cache the result *)
+              Some xml_list
+    )
+
+
+(* this is used internally mostly for piq extensions and default values that are
+ * guaranteed to have piq representation *)
+let piq_of_piqi_any piqi_any :Piq_ast.ast =
   let any = any_of_piqi_any piqi_any in
-  piq_of_any any
+  C.some_of (piq_of_any any)
 
 
-let pb_of_piqi_any piqi_any =
+(* same as the above, plus this is used only by piqic *)
+let pb_of_piqi_any piqi_any :string =
   let any = any_of_piqi_any piqi_any in
-  pb_of_any any
+  C.some_of (pb_of_any any)
 
 
 include Piqobj

@@ -142,13 +142,18 @@ and gen_any x =
     (* in internal mode, passing a reference to intermediate Any prepresentation
      * registered using Piqi_objstore *)
     `any (Piqobj.put_any x)
-  else
+  else (
     let ast = Piqobj.piq_of_any x in
-    match x.typename with
-      | Some typename ->
+    match x.typename, ast with
+      | Some typename, Some ast ->
           make_typed typename ast
-      | None ->
+      | None, Some ast ->
           ast
+      | _, None ->
+          (* TODO: support for untyped JSON, XML *)
+          make_typed "piqi-any" (`list [
+          ])
+  )
 
 
 and gen_record x =

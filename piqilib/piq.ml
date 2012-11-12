@@ -539,13 +539,13 @@ let piqi_of_xml xml =
 
 let piqi_to_xml piqi =
   let piqobj = Piqi.piqi_to_piqobj piqi in
-  Piqobj_to_xml.gen_obj piqobj
+  Piqobj_to_xml.gen_toplevel_obj piqobj
 
 
 let gen_xml (obj :obj) :Piqi_xml.xml =
   match obj with
     | Typed_piqobj obj | Piqobj obj ->
-        Piqobj_to_xml.gen_obj obj
+        Piqobj_to_xml.gen_toplevel_obj obj
     | Piqi piqi ->
         (* output Piqi spec itself if we are converting .piqi *)
         piqi_to_xml piqi

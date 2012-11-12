@@ -191,14 +191,15 @@ and gen_any code x =
       }
       in Piqloc.addrefret x res
     else
-      (* in external mode, leave only fields defined by piqi.piqi: binobj and
+      (* in external mode, leave only fields defined by piqi.piqi: protobuf and
        * typename *)
+      (* TODO: support for untyped JSON, XML *)
       let typename = x.typename in
-      let binobj = Piqobj.pb_of_any x in
+      let protobuf = Piqobj.pb_of_any x in
       T.Any#{
         T.default_any () with
         typename = typename;
-        protobuf = Some binobj;
+        protobuf = protobuf;
       }
   in
   T.gen__any code piqi_any

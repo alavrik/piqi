@@ -61,11 +61,36 @@ let rec gen_obj (x:Piqobj.obj) :json =
 
 and gen_any x =
   let open Any in
-  if x.json_ast <> None
-  then some_of x.json_ast
-  else if x.obj <> None
-  then gen_obj (some_of x.obj)
-  else `Null ()
+  if not !Piqi_config.gen_extended_piqi_any
+  then
+    match Piqobj.json_of_any x with
+      | None -> `Null ()
+      | Some json_ast -> json_ast
+  else (* non-sybolic piqi-any representation *)
+    let make_json_field name value f =
+      match value with
+        | None when !omit_null_fields -> []
+        | None ->
+            [name, `Null ()]
+        | Some x ->
+            [name, f x]
+    in
+    let typename = make_json_field "type" x.typename (fun name -> `String name)
+    in
+    let protobuf = make_json_field "protobuf" (Piqobj.pb_of_any x) (fun pb ->
+      `String (Piqi_base64.encode pb))
+    in
+    let json = make_json_field "json" (Piqobj.json_of_any x) (fun json_ast ->
+      json_ast)
+    in
+    `Assoc (
+      (* this field indicates that this is an extended piqi-any representation
+       * (it is necessary for detecting which variant of piqi-any represenation
+       * is used and to make either representation automatically reversible) *)
+      ("piqi_type", `String "piqi-any") ::
+      (* actual content *)
+      (typename @ protobuf @ json)
+    )
 
 
 and gen_record x =

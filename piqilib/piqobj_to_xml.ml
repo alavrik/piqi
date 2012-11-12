@@ -74,11 +74,32 @@ let rec gen_obj (x:Piqobj.obj) :xml list =
 
 and gen_any x =
   let open Any in
-  if x.xml_ast <> None
-  then [some_of x.xml_ast]
-  else if x.obj <> None
-  then gen_obj (some_of x.obj)
-  else [`Elem ("undefined", [])]
+  if not !Piqi_config.gen_extended_piqi_any
+  then
+    match Piqobj.xml_of_any x with
+      | None -> [] (* no element members *)
+      | Some xml_list -> xml_list
+  else (* non-sybolic piqi-any representation *)
+    let make_xml_field name value f =
+      match value with
+        | None -> []
+        | Some x ->
+            [`Elem (name, f x)]
+    in
+    let typename = make_xml_field "type" x.typename (fun name -> [`Data name])
+    in
+    let protobuf = make_xml_field "protobuf" (Piqobj.pb_of_any x) (fun pb ->
+      [`Data (Piqi_base64.encode pb)])
+    in
+    let json = make_xml_field "xml" (Piqobj.xml_of_any x) (fun xml_list ->
+      xml_list)
+    in
+    (* this field indicates that this is an extended piqi-any representation
+     * (it is necessary for detecting which variant of piqi-any represenation
+     * is used and to make either representation automatically reversible) *)
+    `Elem ("piqi-type", [`Data "piqi-any"]) ::
+    (* actual content *)
+    (typename @ protobuf @ json)
 
 
 and gen_record x =
@@ -138,13 +159,16 @@ and gen_alias x =
     | x -> gen_obj x
 
 
-(* gen top-level XML element *)
-let gen_obj (obj: Piqobj.obj) :xml =
-  (* always using <value> as a top-level element; we don't really care what this
-   * names is, but it is better to pick one name and stick to it *)
-  make_element "value" (gen_obj obj)
+let gen_obj obj = gen_obj obj
 
 
 let _ =
   Piqobj.to_xml := gen_obj
+
+
+(* gen top-level XML element *)
+let gen_toplevel_obj (obj: Piqobj.obj) :xml =
+  (* always using <value> as a top-level element; we don't really care what this
+   * names is, but it is better to pick one name and stick to it *)
+  make_element "value" (gen_obj obj)
 
