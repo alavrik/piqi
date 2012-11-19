@@ -53,17 +53,16 @@ let open_output = function
         piqi_error ("failed to open output file: " ^ s)
 
 
+(* close previously opened output channel *)
 let close_output () =
-  close_out !och
-
-
-let close () =
   if !och != stdout
-  then close_out !och;
+  then close_out !och
 
+
+(* close previously opened input channel *)
+let close_input () =
   if !ich != stdin
-  then close_in !ich;
-  ()
+  then close_in !ich
 
 
 let tmp_files = ref []
@@ -78,7 +77,9 @@ let delete_file fname =
 
 
 let cleanup () =
-  close ();
+  close_input ();
+  close_output ();
+
   (* remove temporary files *)
   if not !flag_leave_tmp_files
   then List.iter delete_file !tmp_files;

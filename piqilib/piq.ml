@@ -127,12 +127,17 @@ let original_piqi piqi =
   P#{orig_piqi with modname = piqi.P#modname}
 
 
-let piqi_to_piq piqi =
-  let piqi_ast = Piqi_pp.piqi_to_ast (original_piqi piqi) in
+let piqi_ast_to_piq piqi_ast =
+  let piqi_ast = Piqi_pp.prettify_piqi_ast piqi_ast in
   `typed {
     Piq_ast.Typed.typename = "piqi";
     Piq_ast.Typed.value = piqi_ast;
   }
+
+
+let piqi_to_piq piqi =
+  let piqi_ast = Piqi_pp.piqi_to_ast (original_piqi piqi) in
+  piqi_ast_to_piq piqi_ast
 
 
 let gen_piq (obj :obj) =
@@ -212,7 +217,12 @@ let piqobj_to_protobuf code piqobj =
   (* don't produce location references as don't care about it in general when
    * generating data *)
   Piqloc.pause ();
-  let res = Piqobj_to_protobuf.gen_obj code piqobj in
+  (* force external mode during the conversion so that all piqi-any values are
+   * generated in external format *)
+  let res =
+    U.with_bool Piqobj_to_protobuf.is_external_mode true
+    (fun () -> Piqobj_to_protobuf.gen_obj code piqobj)
+  in
   Piqloc.resume ();
   res
 

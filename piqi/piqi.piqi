@@ -325,6 +325,23 @@
 ]
 
 
+.record [
+    % Standard portable representation of several piqi modules bundeled
+    % together. This data structure is used by "piqi compile", "piqi server" and
+    % other parts.
+
+    .name piqi-bundle
+
+    .field [
+        % imported modules come before the module they were imported from
+
+        .type piqi
+        .repeated
+        .code 2
+    ]
+]
+
+
 %
 % standard extensions natively supported by Piqi
 %

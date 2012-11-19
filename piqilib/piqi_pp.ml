@@ -41,12 +41,6 @@ let rec prettyprint_list ch ast_list =
   in aux ast_list
 
 
-let prettyprint_piqi_ast ch ast =
-  match ast with
-    | `list l -> prettyprint_list ch l
-    | _ -> assert false
-
-
 (* simplify piqi ast: *)
 let simplify_piqi_ast (ast:piq_ast) =
   let tr = Piq_ast.transform_ast in
@@ -128,7 +122,7 @@ let compare_piqi_items a b =
   let rank x =
     match name_of x with
       | "module" -> 0
-      | "proto-package" -> 1
+      | "protobuf-package" -> 1
       | "include" -> 2
       | "import" -> 3
       | "typedef" -> 4
@@ -147,13 +141,21 @@ let sort_piqi_items (ast:piq_ast) =
     | _ -> assert false
 
 
-let piqi_to_ast piqi =
-  let ast =
-    U.with_bool Piqobj_to_piq.is_external_mode true
-    (fun () -> Piqi.piqi_to_ast piqi)
-  in
+let prettify_piqi_ast ast =
   let ast = sort_piqi_items ast in
   simplify_piqi_ast ast
+
+
+let prettyprint_piqi_ast ch ast =
+  let ast = prettify_piqi_ast ast in
+  match ast with
+    | `list l -> prettyprint_list ch l
+    | _ -> assert false
+
+
+let piqi_to_ast piqi =
+  U.with_bool Piqobj_to_piq.is_external_mode true
+  (fun () -> Piqi.piqi_to_ast piqi)
 
 
 let prettyprint_piqi ch (piqi:T.piqi) =

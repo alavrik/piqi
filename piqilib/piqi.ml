@@ -2142,41 +2142,45 @@ let transform_piqi_ast (ast: piq_ast) =
   |> rm_param_extra ["function"; "error"]
 
 
-let piqi_to_piqobj piqi =
+let piqi_to_piqobj ?custom_piqtype ?(add_codes=false) piqi =
   debug "piqi_to_piqobj(0)\n";
-  let lang_to_spec piqi =
-    let piqi_spec = lang_to_spec piqi in
-
-    (* make sure we include all automatically assigned hash-based wire code for
-     * fiels and options *)
-    (* XXX: why do we need to do it here? *)
-    if C.is_self_spec piqi
-    then Piqi_protobuf.add_hashcodes piqi_spec.P#typedef;
-
-    (* make sure that the module's name is set *)
-    P#{piqi_spec with modname = piqi.P#modname}
-  in
   Piqloc.pause ();
-  let piqi = lang_to_spec piqi in
-  let ast = piqi_to_ast piqi in
+
+  let piqi_spec = lang_to_spec piqi in
+  (* make sure that the module's name is defined *)
+  let piqi_spec = P#{piqi_spec with modname = piqi.P#modname} in
+
+  (* include all automatically assigned hash-based codes for fiels and options;
+   * this is a protection against changing the hashing algorithm: even if new
+   * piqi versions use a different hashing algorith, previous self-definitions
+   * will be still readable *)
+  if C.is_self_spec piqi
+  then Piqi_protobuf.add_hashcodes piqi_spec.P#typedef
+  else if add_codes (* XXX: always add ordinal codes? *)
+  then Piqi_protobuf.process_defs piqi_spec.P#typedef;
+
+  let ast = piqi_to_ast piqi_spec in
   let ast = transform_piqi_ast ast in
 
-  if !Config.debug_level > 0
+  if !Config.debug_level > 1
   then (
     debug "BEGIN piqi_to_piqobj ast:\n\n";
     Piq_gen.to_channel stderr ast;
     debug "\n\nEND piqi_to_piqobj ast\n";
   );
 
-  (* XXX: discard unknown fields -- they don't matter because we are
-   * transforming the spec that has been validated already *)
   let piqobj =
-    U.with_bool C.is_inside_parse_piqi true
-    (fun () -> Piqobj_of_piq.parse_obj !piqi_spec_def ast)
+    match custom_piqtype with
+      | Some piqtype ->
+          (* this will generate warnings on unknown fields *)
+          Piqobj_of_piq.parse_obj piqtype ast
+      | None ->
+          (* ignore unknown fields -- they don't matter because we are
+           * transforming the spec that has been validated (and warnings
+           * printed) already *)
+          U.with_bool C.Config.flag_no_warnings true
+          (fun () -> Piqobj_of_piq.parse_obj !piqi_spec_def ast)
   in
-
-  ignore (Piqobj_of_piq.get_unknown_fields ());
-
   Piqloc.resume ();
   debug "piqi_to_piqobj(1)\n";
   piqobj

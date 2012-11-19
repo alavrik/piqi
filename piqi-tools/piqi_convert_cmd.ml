@@ -234,8 +234,15 @@ let rec get_piqi_deps piqi ~only_imports =
   if Piqi.is_boot_piqi piqi
   then [] (* boot Piqi (a parent of built-in types) is not a dependency *)
   else
-    (* get all includes and includes from all included modules -- only *)
-    let include_deps = if only_imports then [piqi] else piqi.P#included_piqi in
+    (* get all includes and includes from all included modules *)
+    let include_deps =
+      if only_imports
+      then []
+      else
+        (* remove the module itself from the list of included deps (it is always
+         * at the end of the list) *)
+        List.filter (fun x -> x != piqi) piqi.P#included_piqi
+    in
     (* get all dependencies from imports *)
     let import_deps =
       U.flatmap (fun x ->
@@ -244,7 +251,7 @@ let rec get_piqi_deps piqi ~only_imports =
         piqi.P#resolved_import
     in
     (* NOTE: includes go first in the list of dependencies *)
-    let l = include_deps @ import_deps in
+    let l = include_deps @ import_deps @ [piqi] in
     (* remove duplicate entries *)
     U.uniqq l
 
@@ -264,9 +271,7 @@ let get_dependencies (obj :Piq.obj) ~only_imports =
       | Piq.Piqi piqi ->
           (* add piqi itself to the list of seen *)
           add_seen piqi;
-          let deps = get_piqi_deps piqi ~only_imports in
-          (* remove the Piqi itself from the list of deps *)
-          List.filter (fun x -> x != piqi) deps
+          get_piqi_deps piqi ~only_imports
       | _ -> (
           let piqtype =
             match obj with

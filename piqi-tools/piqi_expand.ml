@@ -52,6 +52,7 @@ let speclist = Main.common_speclist @
    "--add-module-name", Arg.Set flag_add_module_name,
      "add module name if it wasn't originally present";
 
+    Piqi_main.arg__strict;
     Piqi_main.arg__include_extension;
   ]
 
