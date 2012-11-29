@@ -37,28 +37,13 @@ let read_piq_obj piq_parser =
   res
 
 
-let map_words (x:piq_ast) f =
-  let rec aux = function
-    | `word s -> `word (f s)
-    | `name s -> `name (f s)
-    | `named ({Piq_ast.Named.value = v} as x) ->
-        `named {x with Piq_ast.Named.value = aux v}
-    | `typed ({Piq_ast.Typed.value = ast} as x) ->
-        let ast = aux ast in
-       `typed {x with Piq_ast.Typed.value = ast}
-    | `list l -> `list (List.map aux l)
-    | `control l -> `control (List.map aux l)
-    | x -> x
-  in aux x
-
-
-let normalize ast =
-  map_words ast Piqi_name.normalize_name
+let normalize_ast ast =
+  Piq_ast.map_words ast Piqi_name.normalize_name
 
 
 let transform_ast ast =
   if !flag_normalize
-  then normalize ast
+  then normalize_ast ast
   else ast
 
 

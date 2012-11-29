@@ -106,3 +106,22 @@ let transform_ast path f (ast:ast) =
   in
   aux path ast
 
+
+let map_words (ast:ast) f :ast =
+  let rec aux = function
+    | `word s -> `word (f s)
+    | `raw_word s -> `raw_word (f s)
+    | `name s -> `name (f s)
+    | `named {Named.name = n; Named.value = v} ->
+        `named {Named.name = f n; Named.value = aux v}
+    (* XXX: apply function to the last segment of the type names? *)
+    | `typename s -> `typename s
+    | `typed ({Typed.value = ast} as x) ->
+        let ast = aux ast in
+       `typed {x with Typed.value = ast}
+    | `list l -> `list (List.map aux l)
+    | `control l -> `control (List.map aux l)
+    | x -> x
+  in
+  aux ast
+

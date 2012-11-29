@@ -136,7 +136,7 @@ let piqi_ast_to_piq piqi_ast =
 
 
 let piqi_to_piq piqi =
-  let piqi_ast = Piqi_pp.piqi_to_ast (original_piqi piqi) in
+  let piqi_ast = Piqi.piqi_to_ast (original_piqi piqi) in
   piqi_ast_to_piq piqi_ast
 
 

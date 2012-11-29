@@ -2082,6 +2082,94 @@ let expand_piqi ~extensions ~functions piqi =
   in res_piqi
 
 
+let normalize_field_names x =
+  let open F in (
+    if x.name <> None
+    then x.name <- Some (Piqi_name.normalize_name (some_of x.name));
+
+    if x.typename <> None
+    then x.typename <- Some (Piqi_name.normalize_name (some_of x.typename));
+  )
+
+
+let normalize_record_names x =
+  let open R in (
+    x.name <- Some (Piqi_name.normalize_name (some_of x.name));
+    List.iter normalize_field_names x.field;
+  )
+
+
+let normalize_option_names x =
+  let open O in (
+    if x.name <> None
+    then x.name <- Some (Piqi_name.normalize_name (some_of x.name));
+
+    if x.typename <> None
+    then x.typename <- Some (Piqi_name.normalize_name (some_of x.typename));
+  )
+
+
+let normalize_variant_names x =
+  let open V in (
+    x.name <- Some (Piqi_name.normalize_name (some_of x.name));
+    List.iter normalize_option_names x.option;
+  )
+
+
+let normalize_enum_names x =
+  let open E in (
+    x.name <- Some (Piqi_name.normalize_name (some_of x.name));
+    List.iter normalize_option_names x.option;
+  )
+
+
+let normalize_alias_names x =
+  let open A in (
+    x.name <- Some (Piqi_name.normalize_name (some_of x.name));
+
+    if x.typename <> None
+    then x.typename <- Some (Piqi_name.normalize_name (some_of x.typename));
+  )
+
+
+let normalize_list_names x =
+  let open L in (
+    x.name <- Some (Piqi_name.normalize_name (some_of x.name));
+    x.typename <- Piqi_name.normalize_name x.typename;
+  )
+
+
+let normalize_typedef_names = function
+  | `record x -> normalize_record_names x
+  | `variant x -> normalize_variant_names x
+  | `enum x -> normalize_enum_names x
+  | `alias x -> normalize_alias_names x
+  | `list x -> normalize_list_names x
+
+
+let normalize_function_param_name = function
+  | Some (`name x) -> `name (Piqi_name.normalize_name x)
+  | _ -> assert false
+
+
+let normalize_function_names func =
+  let open T.Func in (
+    func.name <- Piqi_name.normalize_name func.name;
+    func.input <- Some (normalize_function_param_name func.input);
+    func.output <- Some (normalize_function_param_name func.output);
+    func.error <- Some (normalize_function_param_name func.error);
+  )
+
+
+(* normalize an all typedef, record, option and other names -- see the
+ * "Piqi_name.normalize_name" function above for details *)
+let normalize_piqi_names piqi =
+  (* XXX: normalize module names potentially including module paths? *)
+  List.iter normalize_typedef_names piqi.P#typedef;
+  List.iter normalize_function_names piqi.P#func;
+  ()
+
+
 (* narrow down Piqi language to Piqi specficiation
  *
  * Piqi language (piqi-lang.piqi) adds the following extensions to Piqi
@@ -2097,10 +2185,14 @@ let expand_piqi ~extensions ~functions piqi =
  * such instead of leaving this value out and assuming the are required by
  * default.
  *)
-let lang_to_spec piqi =
+let lang_to_spec ?(normalize_names=true) piqi =
   let open P in
   (* expand includes, extensions and functions *)
   let piqi = expand_piqi piqi ~extensions:true ~functions:true in
+
+  if normalize_names
+  then normalize_piqi_names piqi; (* NOTE: normalization is "in place"! *)
+
   (* remove custom fields *)
   {
     piqi with
@@ -2117,15 +2209,24 @@ let piqi_to_ast piqi =
   let piqi = P#{piqi with custom_field = []} in
   *)
 
-  let ast = mlobj_to_ast !piqi_lang_def T.gen__piqi piqi in
+  let ast =
+    U.with_bool Piqobj_to_piq.is_external_mode true
+    (fun () -> mlobj_to_ast !piqi_lang_def T.gen__piqi piqi)
+  in
   Piqloc.resume ();
   debug "piqi_to_ast(1)\n";
   ast
 
 
+let normalize_field_default_names (ast: piq_ast) =
+  (* XXX: this may or may not work for all cases; can't tell for sure; the
+   * immediate and the most common use case for it is lowercasing enum values *)
+  Piq_ast.map_words ast Piqi_name.normalize_name
+
+
 (* transform piqi ast so that type definitions embedded in function definitions
  * get compatible with Piqi-spec *)
-let transform_piqi_ast (ast: piq_ast) =
+let transform_piqi_ast (ast: piq_ast) ~normalize_names =
   let tr = Piq_ast.transform_ast in
   (* map ../name.x -> x *)
   let rm_param_extra path =
@@ -2136,17 +2237,28 @@ let transform_piqi_ast (ast: piq_ast) =
     )
   in
   let (|>) a f = f a in
-  ast
-  |> rm_param_extra ["function"; "input"]
-  |> rm_param_extra ["function"; "output"]
-  |> rm_param_extra ["function"; "error"]
+  let ast =
+    ast
+    |> rm_param_extra ["function"; "input"]
+    |> rm_param_extra ["function"; "output"]
+    |> rm_param_extra ["function"; "error"]
+  in
+  if not normalize_names
+  then ast
+  else
+    tr ["typedef"; "record"; "field"; "default"]
+      (fun x -> [normalize_field_default_names x])
+      ast
 
 
-let piqi_to_piqobj ?custom_piqtype ?(add_codes=false) piqi =
+let piqi_to_piqobj
+        ?custom_piqtype
+        ?(add_codes=false)
+        ?(normalize_names=false) piqi =
   debug "piqi_to_piqobj(0)\n";
   Piqloc.pause ();
 
-  let piqi_spec = lang_to_spec piqi in
+  let piqi_spec = lang_to_spec piqi ~normalize_names in
   (* make sure that the module's name is defined *)
   let piqi_spec = P#{piqi_spec with modname = piqi.P#modname} in
 
@@ -2160,7 +2272,7 @@ let piqi_to_piqobj ?custom_piqtype ?(add_codes=false) piqi =
   then Piqi_protobuf.process_defs piqi_spec.P#typedef;
 
   let ast = piqi_to_ast piqi_spec in
-  let ast = transform_piqi_ast ast in
+  let ast = transform_piqi_ast ast ?normalize_names in
 
   if !Config.debug_level > 1
   then (

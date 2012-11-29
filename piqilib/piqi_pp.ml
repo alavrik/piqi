@@ -153,12 +153,7 @@ let prettyprint_piqi_ast ch ast =
     | _ -> assert false
 
 
-let piqi_to_ast piqi =
-  U.with_bool Piqobj_to_piq.is_external_mode true
-  (fun () -> Piqi.piqi_to_ast piqi)
-
-
 let prettyprint_piqi ch (piqi:T.piqi) =
-  let ast = piqi_to_ast piqi in
+  let ast = Piqi.piqi_to_ast piqi in
   prettyprint_piqi_ast ch ast
 
