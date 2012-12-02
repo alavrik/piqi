@@ -90,11 +90,44 @@ let rec parse_obj (t:T.piqtype) (x:json) :Piqobj.obj =
     | `alias t -> `alias (parse_alias t x)
 
 
-and parse_any x =
-  Any#{
-    Piqobj.default_any with
-    json_ast = Some x;
-  }
+and parse_any (x:json) :Piqobj.any =
+  (* detect extended piqi-any format *)
+  match x with
+    | `Assoc (("piqi_type", `String "piqi-any") :: rem) -> (* extended piqi-any format *)
+        (* manually parsing the piqi-any record, so that we could extract the
+         * symbolic json representation *)
+        (* XXX: check correspondence between typed protobuf and typed json? *)
+        let typename_obj, rem = parse_optional_field "type" `string None rem in
+        let protobuf_obj, rem = parse_optional_field "protobuf" `binary None rem in
+        let json_obj, rem = parse_optional_field "json" `any None rem in
+        (* issue warnings on unparsed fields *)
+        List.iter handle_unknown_field rem;
+        let typename =
+          match typename_obj with
+            | Some (`string x) -> Some x
+            | _ -> None
+        in
+        let protobuf =
+          match protobuf_obj with
+            | Some (`binary x) -> Some x
+            | _ -> None
+        in
+        let json_ast =
+          match json_obj with
+            | Some (`any {Any.json_ast = json_ast}) -> json_ast
+            | _ -> None
+        in
+        Any#{
+          Piqobj.default_any with
+          typename = typename;
+          pb = protobuf;
+          json_ast = json_ast;
+        }
+    | json_ast -> (* regular symbolic piqi-any *)
+        Any#{
+          Piqobj.default_any with
+          json_ast = Some json_ast;
+        }
 
 
 and parse_record t = function

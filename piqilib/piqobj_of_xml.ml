@@ -93,6 +93,15 @@ let parse_binary xml_elem =
     error xml_elem "invalid base64-encoded string"
 
 
+(* get the list of XML elements from the node *)
+let get_record_elements (l: xml list) :xml_elem list =
+  List.map (fun xml ->
+    match xml with
+      | `Elem x -> x
+      | `Data s ->
+          error xml "XML element is expected as a record field") l
+
+
 let rec parse_obj (t: T.piqtype) (x: xml_elem) :Piqobj.obj =
   match t with
     (* built-in types *)
@@ -111,22 +120,50 @@ let rec parse_obj (t: T.piqtype) (x: xml_elem) :Piqobj.obj =
 
 
 and parse_any xml_elem =
-  Any#{
-    Piqobj.default_any with
-    xml_ast = Some xml_elem;
-  }
+  match xml_elem with
+    | _name, (`Elem ("piqi-type", [`Data "piqi-any"])) :: rem -> (* extended piqi-any format *)
+        let rem = get_record_elements rem in
+        (* manually parsing the piqi-any record, so that we could extract the
+         * symbolic xml representation *)
+        (* XXX: check correspondence between typed protobuf and typed xml? *)
+        let typename_obj, rem = parse_optional_field "type" `string None rem in
+        let protobuf_obj, rem = parse_optional_field "protobuf" `binary None rem in
+        let xml_obj, rem = parse_optional_field "xml" `any None rem in
+        (* issue warnings on unparsed fields *)
+        List.iter handle_unknown_field rem;
+        let typename =
+          match typename_obj with
+            | Some (`string x) -> Some x
+            | _ -> None
+        in
+        let protobuf =
+          match protobuf_obj with
+            | Some (`binary x) -> Some x
+            | _ -> None
+        in
+        let xml_ast =
+          match xml_obj with
+            | Some (`any {Any.xml_ast = xml_ast}) -> xml_ast
+            | _ -> None
+        in
+        Any#{
+          Piqobj.default_any with
+          typename = typename;
+          pb = protobuf;
+          xml_ast = xml_ast;
+        }
+    | _ -> (* regular symbolic piqi-any *)
+        Any#{
+          Piqobj.default_any with
+          xml_ast = Some xml_elem;
+        }
 
 
 and parse_record t xml_elem =
   debug "do_parse_record: %s\n" (some_of t.T.Record#name);
   (* get the list of XML elements from the node *)
   let _name, l = xml_elem in
-  let l = List.map (fun xml ->
-    match xml with
-      | `Elem x -> x
-      | `Data s ->
-          error xml "XML element is expected as a record field") l
-  in
+  let l = get_record_elements l in
 
   (* NOTE: passing locating information as a separate parameter since empty
    * list is unboxed and doesn't provide correct location information *)

@@ -34,13 +34,21 @@ test_piqi_piqi:
 	piqi convert -t pb piqi.piqi
 	cmp p.piqi.pb piqi.piqi.pb
 	test ! `which protoc` || protoc -I.. -I. --decode=piqi_org.piqi.piqi piqi.piqi.proto < p.piqi.pb > p.piqi.text
+	# json
 	piqi convert -t json p.piqi
 	piqi convert p.piqi.json >/dev/null
+	# json with --gen-extended-piqi-any
+	piqi convert -t json --gen-extended-piqi-any p.piqi
+	piqi convert p.piqi.json >/dev/null
+	# xml
 	piqi convert -t xml p.piqi
 	piqi convert --type piqi p.piqi.xml >/dev/null
 	piqi convert --embed-piqi piqi.piqi > t.piq
 	piqi convert t.piq >/dev/null
 	piqi check t.piq
+	# xml with --gen-extended-piqi-any
+	piqi convert -t xml --gen-extended-piqi-any p.piqi
+	piqi convert --type piqi p.piqi.xml >/dev/null
 
 
 clean:
