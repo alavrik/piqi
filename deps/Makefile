@@ -7,7 +7,7 @@ ULEX_DIR = ulex-1.1
 endif
 
 ifndef SKIP-xmlm
-XMLM_DIR = xmlm-1.0.2
+XMLM_DIR = xmlm-1.1.1
 endif
 
 ifndef SKIP-easy-format

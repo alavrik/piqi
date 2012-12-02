@@ -129,7 +129,7 @@ xmlm
         Streaming XML input/output library for OCaml written by
         Daniel C. Bünzli.
 
-        Location: deps/xmlm-1.0.2
+        Location: deps/xmlm-1.1.1
         Homepage: http://erratique.ch/software/xmlm
         License: BSD
 

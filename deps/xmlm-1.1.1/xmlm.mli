@@ -1,8 +1,8 @@
-(*----------------------------------------------------------------------------
-   Copyright (c) 2007-2009, Daniel C. Bünzli. All rights reserved.
-   Distributed under a BSD license, see license at the end of the file.
-   Xmlm version 1.0.2
-  ----------------------------------------------------------------------------*)
+(*---------------------------------------------------------------------------
+   Copyright (c) 2007-2012 Daniel C. Bünzli. All rights reserved.
+   Distributed under a BSD3 license, see license at the end of the file.
+   xmlm release 1.1.1
+  ---------------------------------------------------------------------------*)
 
 (** Streaming XML IO.  
 
@@ -17,19 +17,18 @@
     Consult the {{:#io}features and limitations} and {{:#ex}examples} 
     of use.
 
-    {e Version 1.0.2 - daniel.buenzl i\@erratique.ch }
+    {e Release 1.1.1 - Daniel Bünzli <daniel.buenzli at erratique.ch> }
 
-    {b References.}
-
-    Tim Bray. 
+    {3 References}
+    {ul
+    {- Tim Bray. 
     {e {{:http://www.xml.com/axml/axml.html}The annotated XML Specification}}, 
-    1998. 
-
-    Tim Bray et al. 
+    1998.} 
+    {- Tim Bray et al. 
     {e {{:http://www.w3.org/TR/xml-names11}Namespaces in XML 1.1 (2nd ed.)}},
-    2006.
+    2006.}} *)
 
-    {1 Basic types and values} *)
+(**  {1 Basic types and values} *)
 
 (** The type for character encodings. For [`UTF_16], endianness is
     determined from the 
@@ -202,10 +201,12 @@ type dest = [ `Channel of out_channel | `Buffer of Buffer.t |
 type output
 (** The type for output abstractions. *)
 
-val make_output : ?nl:bool -> ?indent:int option -> 
+val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
                   ?ns_prefix:(string -> string option) -> dest -> output
 (** Returns a new output abstraction writing to the given destination.
     {ul 
+    {- [decl], if [true] the {{:http://www.w3.org/TR/REC-xml/#NT-XMLDecl} XML
+     declaration} is output (defaults to [true]).}
     {- [nl], if [true] a newline is output when the root's element [`El_end] 
      signal is output.
     Defaults to [false].}
@@ -222,6 +223,10 @@ val output : output -> signal -> unit
     {b Raises} [Invalid_argument] if the resulting signal sequence on
     the output abstraction is not {{:#TYPEsignal}well-formed} or if a
     namespace name could not be bound to a prefix. *)
+
+val output_depth : output -> int
+(** [output_depth o] is [o]'s current element nesting level (undefined
+    before the first [`El_start] and after the last [`El_end]). *)
 
 val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
 (** Outputs signals corresponding to a value by recursively
@@ -379,9 +384,10 @@ module type S = sig
     | `Channel of out_channel | `Buffer of std_buffer | `Fun of (int -> unit) ]
 
   type output
-  val make_output : ?nl:bool -> ?indent:int option -> 
+  val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
                     ?ns_prefix:(string -> string option) -> dest -> output
-	
+
+  val output_depth : output -> int
   val output : output -> signal -> unit
   val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
   val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit   
@@ -579,9 +585,8 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
        input with [strip = false] and output with [indent = None].}
     {- Complete whitespace control on output is achieved 
        with [indent = None] and suitable [`Data] signals}}
-*)
 
-(** {1:ex Examples} 
+    {1:ex Examples} 
 
     {2:exseq Sequential processing}    
 
@@ -604,6 +609,7 @@ let ex_ns = (Xmlm.ns_xmlns, "ex"), "http://example.org/ex"]}
   Xmlm.output o (Xmlm.input i); (* `Dtd *)
   pull i o 0;
   if not (Xmlm.eoi i) then invalid_arg "document not well-formed"]}
+
     The following function reads a {e sequence} of documents on an
     input channel and outputs it.
 {[let id_seq ic oc = 
@@ -758,8 +764,8 @@ let out_w3c_bureaucrats dst bl =
   out (`El_end)]}
 *)
 
-(*----------------------------------------------------------------------------
-  Copyright (c) 2007-2009, Daniel C. Bünzli
+(*---------------------------------------------------------------------------
+  Copyright (c) 2007-2012 Daniel C. Bünzli
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -774,7 +780,7 @@ let out_w3c_bureaucrats dst bl =
      documentation and/or other materials provided with the
      distribution.
 
-  3. Neither the name of the Daniel C. Bünzli nor the names of
+  3. Neither the name of Daniel C. Bünzli nor the names of
      contributors may be used to endorse or promote products derived
      from this software without specific prior written permission.
 
@@ -789,4 +795,4 @@ let out_w3c_bureaucrats dst bl =
   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  ----------------------------------------------------------------------------*)
+  ---------------------------------------------------------------------------*)

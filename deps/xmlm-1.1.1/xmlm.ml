@@ -1,8 +1,8 @@
-(*----------------------------------------------------------------------------
-   Copyright (c) 2007-2009, Daniel C. Bünzli. All rights reserved.
-   Distributed under a BSD license, see license at the end of the file.
-   Xmlm version 1.0.2
-  ----------------------------------------------------------------------------*)
+(*---------------------------------------------------------------------------
+   Copyright (c) 2007-2012 Daniel C. Bünzli. All rights reserved.
+   Distributed under a BSD3 license, see license at the end of the file.
+   xmlm release 1.1.1
+  ---------------------------------------------------------------------------*)
 
 module Std_string = String
 module Std_buffer = Buffer
@@ -90,9 +90,10 @@ module type S = sig
     | `Channel of out_channel | `Buffer of std_buffer | `Fun of (int -> unit) ]
 
   type output
-  val make_output : ?nl:bool -> ?indent:int option -> 
+  val make_output : ?decl:bool -> ?nl:bool -> ?indent:int option -> 
                     ?ns_prefix:(string -> string option) -> dest -> output
 
+  val output_depth : output -> int
   val output : output -> signal -> unit
   val output_tree : ('a -> 'a frag) -> output -> 'a -> unit
   val output_doc_tree : ('a -> 'a frag) -> output -> (dtd * 'a) -> unit   
@@ -163,7 +164,7 @@ let int16_le i =
 let uchar_utf16 int16 i = 
   let c0 = int16 i in
   if c0 < 0xD800 || c0 > 0xDFFF then c0 else
-  if c0 >= 0xDBFF then raise Malformed else
+  if c0 > 0xDBFF then raise Malformed else
   let c1 = int16 i in
   (((c0 land 0x3FF) lsl 10) lor (c1 land 0x3FF)) + 0x10000
     
@@ -492,7 +493,7 @@ struct
       while is_name_char i.c do addc_ident i i.c; nextc i done;
       Buffer.contents i.ident
     end
-    
+
   let p_qname i =                                 (* {QName} (Namespace 1.1) *)
     let n = p_ncname i in
     if i.c <> u_colon then (String.empty, n) else (nextc i; (n, p_ncname i))
@@ -940,7 +941,8 @@ struct
     | `Channel of out_channel | `Buffer of std_buffer | `Fun of (int -> unit) ]
 
   type output = 
-      { nl : bool;                (* True if a newline is output at the end. *)
+      { decl : bool;        (* True if the XML declaration should be output. *)
+        nl : bool;                (* True if a newline is output at the end. *)
 	indent : int option;                        (* Optional indentation. *)
 	fun_prefix : string -> string option;            (* Prefix callback. *)
         prefixes : string Ht.t;                   (* uri -> prefix bindings. *)
@@ -957,13 +959,14 @@ struct
   let err_el_end = "end signal without matching start signal"
   let err_data = "data signal not allowed here"
 
-  let make_output ?(nl = false) ?(indent = None) ?(ns_prefix = fun _ ->None) d =
+  let make_output ?(decl = true) ?(nl = false) ?(indent = None) 
+      ?(ns_prefix = fun _ ->None) d =
     let outs, outc = match d with 
     | `Channel c -> (output c), (output_char c)
     | `Buffer b -> (Std_buffer.add_substring b), (Std_buffer.add_char b)
     | `Fun f -> 
 	let os s p l = 
-	  for i = p to p + l - 1 do f (Char.code (Std_string.get s p)) done 
+	  for i = p to p + l - 1 do f (Char.code (Std_string.get s i)) done 
 	in
 	let oc c = f (Char.code c) in 
 	os, oc
@@ -975,9 +978,11 @@ struct
       Ht.add h ns_xmlns n_xmlns;
       h
     in
-    { outs = outs; outc = outc; nl = nl; indent = indent; last_el_start = false;
-      prefixes = prefixes; scopes = []; depth = -1; fun_prefix = ns_prefix; }
- 
+    { decl = decl; outs = outs; outc = outc; nl = nl; indent = indent; 
+      last_el_start = false; prefixes = prefixes; scopes = []; depth = -1; 
+      fun_prefix = ns_prefix; }
+
+  let output_depth o = o.depth
   let outs o s = o.outs s 0 (Std_string.length s)
   let str_utf_8 s = String.to_utf_8 (fun _ s -> s) "" s
   let out_utf_8 o s = ignore (String.to_utf_8 (fun o s -> outs o s; o) o s)
@@ -1043,7 +1048,7 @@ struct
     if o.depth = -1 then 
       begin match s with
       | `Dtd d ->
-	  outs o "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+          if o.decl then outs o "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
 	  begin match d with 
 	  | Some dtd -> out_utf_8 o dtd; o.outc '\n' 
 	  | None -> ()
@@ -1168,7 +1173,7 @@ end
 include Make(String) (Buffer)
     
 (*----------------------------------------------------------------------------
-  Copyright (c) 2007-2009, Daniel C. Bünzli
+  Copyright (c) 2007-2012 Daniel C. Bünzli
   All rights reserved.
 
   Redistribution and use in source and binary forms, with or without
@@ -1183,7 +1188,7 @@ include Make(String) (Buffer)
      documentation and/or other materials provided with the
      distribution.
 
-  3. Neither the name of the Daniel C. Bünzli nor the names of
+  3. Neither the name of Daniel C. Bünzli nor the names of
      contributors may be used to endorse or promote products derived
      from this software without specific prior written permission.
 
@@ -1198,4 +1203,4 @@ include Make(String) (Buffer)
   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-  ----------------------------------------------------------------------------*)
+  ---------------------------------------------------------------------------*)
