@@ -191,8 +191,28 @@ let read_json_obj json_parser =
 (* for internal use only: read one parsed JSON value from its string
  * representation *)
 let json_of_string s :Piqi_json_type.json =
-  let json_parser = Piqi_json_parser.init_from_string s in
-  match read_json_obj json_parser with
-    | Some ast -> ast
-    | None -> assert false
+  (* TODO: optimize location fetching; in this case, it should be possible to
+   * store location in the form structure itself *)
+  (* XXX: catch Not_found to protect against internal loc tracking errors? *)
+  let (fname, lnum, cnum) = Piqloc.find s in
+  let json_parser = Piqi_json_parser.init_from_string s ~fname ~lnum in
+  let res =
+    try Piqi_json_parser.read_all json_parser
+    with C.Error ((fname, lnum, cnum'), error) ->
+      (* adjust location column number: add the original column number of the
+       * '#' character + 1 for the space that follows it; note that this method
+       * doesn't give 100% guarantee that the offset is correct, but it is
+       * accurate if all the text literal lines start at the same column *)
+      let loc = (fname, lnum, cnum + cnum' + 1) in
+      C.error_at loc ("error parsing embedded JSON: " ^ error)
+  in
+  match res with
+    | [x] -> x
+    | _::o::_ ->
+        C.error o "string includes more than one JSON value"
+    | [] ->
+        C.error s "string doesn't have JSON data"
+
+let _ =
+  Piqobj.json_of_string := (fun x -> json_of_string x)
 

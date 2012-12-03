@@ -276,14 +276,43 @@ let xml_to_string ?pretty_print ?decl xml =
   Buffer.contents buf
 
 
-let xml_of_string s :xml =
-  let xml_parser = init_from_string s in
-  match read_xml_obj xml_parser with
-    | Some ast -> ast
-    | None -> assert false
+(* for internal use only: read one parsed XML value from its string
+ * representation *)
+let xml_of_string s :xml list =
+  (* TODO: optimize location fetching; in this case, it should be possible to
+   * store location in the form structure itself *)
+  (* XXX: catch Not_found to protect against internal loc tracking errors? *)
+  let (fname, lnum, cnum) = Piqloc.find s in
+  let xml_parser = init_from_string s ~fname in
+  let res =
+    try read_xml_obj xml_parser
+    with C.Error ((fname, lnum', cnum'), error) ->
+      (* adjust location column number: add the original column number of the
+       * '#' character + 1 for the space that follows it; note that this method
+       * doesn't give 100% guarantee that the offset is correct, but it is
+       * accurate if all the text literal lines start at the same column *)
+      let loc = (fname, lnum + lnum' - 1, cnum + cnum' + 1) in
+      C.error_at loc ("error parsing embedded XML: " ^ error)
+  in
+  (* TODO: check for trailing XML data -- there shouldn't be any after this
+   * object we've just read *)
+  match res with
+    | Some (`Elem (_name, xml_list)) ->
+        (* as in other places, e.g. Piqobj_of_xml, we ignore the top-level
+         * elemnt's name *)
+        xml_list
+    | Some xml ->
+        (* this should never happen, because the xml parser always returns
+         * top-level element *)
+        C.error xml "XML root element expected"
+    | None ->
+        C.error s "string doesn't have XML data"
 
 
 let _ =
   (* pretty print and skip <?xml ...> declaration *)
-  Piqobj.string_of_xml := (fun x -> xml_to_string x ~pretty_print:true ~decl:false)
+  Piqobj.string_of_xml := (fun x -> xml_to_string x ~pretty_print:true ~decl:false);
+
+  (* parse xml from string while not expecting <?xml ...> declaration *)
+  Piqobj.xml_of_string := (fun x -> xml_of_string x)
 

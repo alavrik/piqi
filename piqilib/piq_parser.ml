@@ -433,8 +433,10 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
         Piqloc.addret (`raw_binary s)
     | L.Text text -> 
         let text_loc = loc () in
-        let _,line,_ = text_loc in
+        let (fname, line, col) = text_loc in
         let text = parse_text line text in
+        (* XXX: make on off by one correction in the line number *)
+        let text_loc = (fname, line - 1, col) in
         Piqloc.addloc text_loc text;
         Piqloc.addret (`text text)
     | L.EOF -> error "unexpected end of input"

@@ -316,6 +316,30 @@ and parse_any x :Piqobj.any =
         in
         Piqloc.addrefret ast any
 
+    (* read untyped JSON form (json ...) as piqi-any *)
+    | `form (`word "json", [`text s]) ->
+        let json_ast = !Piqobj.json_of_string s in
+        let any = Any#{
+          Piqobj.default_any with
+          json_ast = Some json_ast;
+        }
+        in
+        Piqloc.addrefret s any
+    | `form (`word "json", _) ->
+        error x "verbatim text literal with JSON value expected after \"json\""
+
+    (* read untyped XML form (xml ...) as piqi-any *)
+    | `form (`word "xml", [`text s]) ->
+        let xml_list = !Piqobj.xml_of_string s in
+        let any = Any#{
+          Piqobj.default_any with
+          xml_ast = Some ("undefined", xml_list);
+        }
+        in
+        Piqloc.addrefret s any
+    | `form (`word "xml", _) ->
+        error x "verbatim text literal with XML value expected after \"xml\""
+
     | ast ->
         let any = Any#{
           Piqobj.default_any with
