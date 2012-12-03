@@ -294,8 +294,7 @@ and format_field (name, x) =
 let pretty_to_buffer ?(indent=false) buf x =
   if indent
   then to_buffer buf x ~indent
-  else Easy_format.Pretty.to_buffer buf (format x);
-  Buffer.add_char buf '\n' (* make sure that text file ends with a newline *)
+  else Easy_format.Pretty.to_buffer buf (format x)
 
 
 let pretty_to_string ?(indent=false) x =
@@ -309,4 +308,8 @@ let pretty_to_channel ?(indent=false) oc x =
   then to_channel oc x ~indent
   else Easy_format.Pretty.to_channel oc (format x);
   output_char oc '\n' (* make sure that text file ends with a newline *)
+
+
+let _ =
+  Piqobj.string_of_json := (fun x -> pretty_to_string x ~indent:true)
 

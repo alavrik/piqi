@@ -241,7 +241,7 @@ let indent_tree (xml: xml) :xml =
   aux 0 xml
 
 
-let gen_xml ?(pretty_print=true) dest (xml :xml) =
+let gen_xml ?(pretty_print=true) ?(nl=false) ?(decl=true) dest (xml :xml) =
   let frag = function (* xml to Xmlm.frag converter *)
     | `Data x -> `Data x
     | `Elem (name, contents) ->
@@ -253,25 +253,26 @@ let gen_xml ?(pretty_print=true) dest (xml :xml) =
     then indent_tree xml
     else xml
   in
-  (* output a newline character after the root element *)
-  let output = Xmlm.make_output dest ~nl:true in
+  let output = Xmlm.make_output dest ~nl ~decl in
   let dtd = None in
   Xmlm.output_doc_tree frag output (dtd, xml)
 
 
-let xml_to_buffer ?pretty_print buf xml =
+let xml_to_buffer ?pretty_print ?decl buf xml =
   let dest = `Buffer buf in
-  gen_xml ?pretty_print dest xml
+  gen_xml dest xml ?pretty_print ?decl
 
 
 let xml_to_channel ?pretty_print ch xml =
   let dest = `Channel ch in
-  gen_xml ?pretty_print dest xml
+  (* output a newline character after the root element so that the file ends
+   * with a newline *)
+  gen_xml dest xml ?pretty_print ~nl:true
 
 
-let xml_to_string ?pretty_print xml =
+let xml_to_string ?pretty_print ?decl xml =
   let buf = Buffer.create 256 in
-  xml_to_buffer ?pretty_print buf xml;
+  xml_to_buffer buf xml ?pretty_print ?decl;
   Buffer.contents buf
 
 
@@ -280,4 +281,9 @@ let xml_of_string s :xml =
   match read_xml_obj xml_parser with
     | Some ast -> ast
     | None -> assert false
+
+
+let _ =
+  (* pretty print and skip <?xml ...> declaration *)
+  Piqobj.string_of_xml := (fun x -> xml_to_string x ~pretty_print:true ~decl:false)
 

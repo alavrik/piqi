@@ -112,7 +112,7 @@ let piq_addrefret dst (src :piq_ast) =
     | `named x -> f x
     | `typed x -> f x
     | `list x -> f x
-    | `control x -> f x
+    | `form x -> f x
     | `raw_word x -> f x
     | `raw_binary x -> f x
     | `any _ ->
@@ -202,8 +202,10 @@ let expand_names (x: piq_ast) :piq_ast =
           expand_obj_names obj
       | `list l ->
           `list (List.map aux l)
-      | `control l ->
-          `control (List.map aux l)
+      | `form (name, args) ->
+          (* at this stage, after we've run expand_forms, this can not be a
+           * named or typed form, so leaving name without a transformation *)
+          `form (name, List.map aux args)
       | _ ->
           expand_obj_names obj
   and aux obj =
@@ -211,16 +213,16 @@ let expand_names (x: piq_ast) :piq_ast =
   in aux x
 
 
-(* rewrite the ast to expand some of control blocks (...) such as
-     blocks affecting parsing associativity, e.g.:
+(* rewrite the ast to expand some of forms (...) such as
+     forms affecting parsing associativity, e.g.:
         .foo (.bar)
         .foo (:bar baz)
      abbreviations for repeated fields, e.g.
         (.foo a b c) -> .foo a .foo b .foo c
 
    NOTE: we perform expansion here rather than during original parsing since we
-   want to preserve the original formatting (i.e. control blocks) to be able to
-   pretty-print without altering symbolic ast representation.
+   want to preserve the original formatting of forms to be able to pretty-print
+   without altering symbolic ast representation.
 *)
 
 let cons_named n v =
@@ -233,40 +235,31 @@ let cons_typed n v =
   piq_addrefret v res
 
 
-let expand_control_list l =
-  match l with
-    | [] -> error l "empty control block is invalid"
-    | [_] ->
-        (* single object is usually included in parenthesis in order to
-         * override default associativity -- just return the object itself *)
-        l
-    | h::t ->
-        (* list contains more that two elements which means either macro call
-         * or abbreviation for repeated fields *)
-        match h with
-          | `name n ->
-              List.map (cons_named n) t
-          | `typename n ->
-              List.map (cons_typed n) t
-          | `named {Piq_ast.Named.name = n} ->
-              let t = List.map (cons_named n) t in
-              h::t
-          | `typed {Piq_ast.Typed.typename = n} ->
-              let t = List.map (cons_typed n) t in
-              h::t
-          | _ ->
-              error l "unsupported format of control block"
+let cons_named_or_typed name v =
+  match name with
+    | `name n ->
+        cons_named n v
+    | `typename n ->
+        cons_typed n v
 
 
-let expand_control (x: piq_ast) :piq_ast =
+(* expand named and typed forms *)
+let expand_forms (x: piq_ast) :piq_ast =
   let rec aux0 obj =
     match obj with
-      | `control l -> 
-          begin
-            match expand_control_list l with
-              | [x] -> aux x (* XXX: a single element enclosed in parenthesis *)
-              | _ -> error l "control expansion is allowed only in lists"
-          end
+      | `form ((`name _) as name, args) | `form ((`typename _) as name, args) ->
+          (match args with
+            | [] ->
+                (* a single name or typename enclosed in parenthesis to control
+                 * associativity -- removing parenthesis *)
+                name
+            | [v] ->
+                (* this is, in fact, typed or named -- it is time to convert
+                 * whatever we have to them *)
+                cons_named_or_typed name v
+            | _ ->
+                error obj "named and typed forms are allowed only in lists"
+          )
       | `named ({Piq_ast.Named.name = n; Piq_ast.Named.value = v} as named) ->
           let v' = aux v in
           if v' != v
@@ -282,18 +275,21 @@ let expand_control (x: piq_ast) :piq_ast =
            *)
           obj
       | `list l ->
-          if List.exists (function `control _ -> true | _ -> false) l
+          if List.exists (function `form (`name _, _) -> true | `form (`typename _, _) -> true | _ -> false) l
           then
-            (* expand and splice the results of control expansion *)
+            (* expand and splice the results of named and typed form expansion *)
             `list (U.flatmap expand_list_elem l)
           else
             (* process inner elements *)
             `list (List.map aux l)
-      | _ -> obj
+      | _ ->
+          obj
   and expand_list_elem = function
-    | `control l ->
-        List.map aux (expand_control_list l)
-    | x -> [aux x]
+    | `form ((`name _) as name , args) | `form ((`typename _) as name , args) ->
+        let expanded_form = List.map (cons_named_or_typed name) args in
+        List.map aux expanded_form
+    | x ->
+        [aux x]
   and aux obj = 
     piq_reference aux0 obj
   in aux x
@@ -302,12 +298,12 @@ let expand_control (x: piq_ast) :piq_ast =
 (* expand built-in syntax abbreviations *)
 let expand x =
   (* expand (...) when possible *)
-  let x = expand_control x in
+  let x = expand_forms x in
   (* expand multi-component names *)
   let x = expand_names x in
   (*
     (* check if expansion produces correct location bindings *)
-    let x = expand_control x in
+    let x = expand_forms x in
     let x = expand_names x in
   *)
   x
@@ -408,18 +404,18 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
   let junk_token () = Stream.junk lexstream in
   let error s = error_at (loc ()) s in
 
-  let rec parse_common = function
+  let rec parse_common ?(chain=true) = function
     | L.Lbr -> parse_list ()
     | L.Rbr -> error "unexpected `]'"
-    | L.Lpar -> parse_control ()
+    | L.Lpar -> parse_form ()
     | L.Rpar -> error "unexpected `)'"
     | L.String (t, s) ->
         let loc = loc () in
         make_string loc t s
     | L.Word s | L.Raw_word s when s.[0] = '.' -> (* name part of the named pair *)
-        parse_named_or_typed s make_named
+        parse_named_or_typed s make_named ~chain
     | L.Word s | L.Raw_word s when s.[0] = ':' -> (* typename part of the typed pair *)
-        parse_named_or_typed s make_typed
+        parse_named_or_typed s make_typed ~chain
     | L.Word s ->
         let word_loc = loc () in
         Piqloc.addloc word_loc s;
@@ -455,18 +451,45 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
       | _ -> (* something else -- end of text block *)
           accu
 
-  and parse_control () =
+  and parse_form () =
     let startloc = loc () in
+    (* parse form name *)
+    let t = next_token () in
+    let name =
+      match t with
+        | L.Word _ | L.Raw_word _ ->
+            (* specify that we don't want to chain `typename and `name and turn
+             * them into `typed and `named *)
+            parse_common t ~chain:false
+        | L.EOF ->
+            error "unexpected end of input while reading a form"
+        | _ ->
+            error "invalid form: form name expected"
+    in
+    (* check that this is one of `typename, `name or `word and for example not a
+     * number *)
+    (match name with
+      | `word _ (* a built-in form *)
+      | `raw_word _ (* can be returned in pp mode *)
+      | `typename _ | `name _ -> (* named or typed forms *)
+          ()
+      | obj ->
+          Piqi_common.error obj
+            "invalid form name: only words, names and typenames are allowed"
+    );
+    (* parse form args *)
     let rec aux accu =
       let t = next_token () in
       match t with
-        | L.Rpar -> 
-            let l = List.rev accu in
-            let res = `control l in
-            Piqloc.addloc startloc l;
-            Piqloc.addret res
+        | L.Rpar -> List.rev accu
         | _ -> aux ((parse_common t)::accu)
-    in aux []
+    in
+    let args = aux [] in
+    (* contruct a resulting form from name and args *)
+    let pair = (name, args) in
+    let res = `form pair in
+    Piqloc.addloc startloc pair;
+    Piqloc.addret res
 
   and parse_word s =
     let len = String.length s in
@@ -481,12 +504,18 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
       | _ when len > 1 && s.[0] = '-' && s.[1] >= '0' && s.[1] <= '9' -> parse_number s
       | _ -> `word s (* just a word *)
 
-  and parse_named_or_typed s make_f =
+  and parse_named_or_typed s make_f ~chain =
     let loc = loc () in
     (* cut the first character which is '.' or ':' *)
     let n = String.sub s 1 (String.length s - 1) in
     Piqloc.addloc loc n;
-    let res = make_f n (parse_named_part ()) in
+
+    let value =
+      if chain
+      then parse_named_part ()
+      else None
+    in
+    let res = make_f n value in
     (*
     let res = expand_obj_names res in
     *)

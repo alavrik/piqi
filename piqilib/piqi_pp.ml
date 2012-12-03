@@ -19,13 +19,6 @@
 open Piqi_common 
 
 
-(* old method of pretty-printing:
-let prettyprint_ast ast =
-  let code = Piq_gen.print_ast ast in
-  Iolist.to_channel ch code
-*)
-
-
 let prettyprint_ast ch ast =
   Piq_gen.to_channel ch ast
 

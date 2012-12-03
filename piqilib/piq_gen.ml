@@ -134,66 +134,6 @@ let format_float x =
         string_of_float x
 
 
-(* Old version without using pretty-printing library:
-let print_ast (x:T.ast) =
-  let rec aux = function
-    | `int x -> ios (Int64.to_string x)
-    | `uint x -> ios (uint64_to_string x)
-    | `float x -> ios (format_float x)
-    | `bool true -> ios "true"
-    | `bool false -> ios "false"
-    | `utf8_string s when !Config.pp_mode ->
-        (* in pretty-print mode the literal represents the original string *)
-        ioq s
-    | `ascii_string s | `utf8_string s ->
-        ioq (Piq_lexer.escape_string s)
-    | `binary s ->
-        ioq (Piq_lexer.escape_binary s)
-    | `word s -> ios s
-    | `text s -> print_text (split_text s)
-    | `name s -> ios "." ^^ ios s
-    | `typename s -> ios ":" ^^ ios s
-    | `named {T.Named.name = n; T.Named.value = v} ->
-        iol [
-          ios "." ^^ ios n;
-          gen_inner_ast v;
-        ]
-    | `typed {T.Typed.typename = n; T.Typed.value = v} ->
-        iol [
-          ios ":" ^^ ios n;
-          gen_inner_ast v;
-        ]
-    | `list l ->
-        let l = iod "\n" (List.map aux l) in
-        if is_multiline l
-        then
-          iol [
-            ios "["; indent;
-            l; unindent; eol;
-            ios "]";
-          ]
-        else 
-          iol [ ios "[ "; l; ios " ]" ]
-    | `control l ->
-        iol [
-          ios "("; indent;
-          iod "\n" (List.map aux l); unindent; eol;
-          ios ")";
-        ]
-  and gen_inner_ast x =
-    match x with
-      | `named _ | `name _ | `typed _ ->
-          aux x
-          (*
-          (* wrap inner pair in parenthesis *)
-          iol [ios "("; aux x; ios ")"]
-          *)
-      | _ -> ios " " ^^ aux x
-  in
-  aux x ^^ eol ^^ eol
-*)
-
-
 (*
  * Pretty-printing
  *)
@@ -225,25 +165,30 @@ let multiple_elem_list =
     wrap_body = `Force_breaks;
   }
 
-let control_list =
+let form_list =
   Fmt#{
     common_list with
     space_after_opening = false;
     space_before_closing = false;
   }
 
-let raw_list =
+let multi_form_list =
   Fmt#{
-    common_list with
+    form_list with
     wrap_body = `Force_breaks;
   }
 
-let raw_top_list =
+let single_form_list =
   Fmt#{
-    raw_list with
-    indent_body = 0;
+    form_list with
+    wrap_body = `Always_wrap;
   }
 
+let atom_form_list =
+  Fmt#{
+    form_list with
+    wrap_body = `Always_wrap;
+  }
 
 let make_atom x =
   Fmt.Atom (x, Fmt.atom)
@@ -256,6 +201,7 @@ let is_atom = function
 
 let rec has_list = function
   | Fmt.List _ -> true
+  | Fmt.Custom _ -> true
   | Fmt.Label ((label, _), node) ->
       if has_list label
       then true
@@ -280,49 +226,100 @@ let make_list l =
   Fmt.List (("[", "", "]", fmt), l)
 
 
-let make_control x =
-  Fmt.List (("(", "", ")", control_list), x)
-
-
-let make_raw_list ~top x =
-  (* no opening, closing; break after each item *)
-  let list_fmt =
-    if top
-    then raw_top_list
-    else raw_list
+let make_form name args =
+  let fmt =
+    (* TODO: unify this with similar code in make_list *)
+    match args with
+      | [] ->
+          single_form_list
+      | [x] ->
+          if has_list x
+          then multi_form_list
+          else single_form_list
+      | l ->
+          if List.for_all is_atom l
+          then atom_form_list
+          else multi_form_list
   in
-  Fmt.List (("", "", "", list_fmt), x)
-
-
-let make_divided_list x =
-  (* no opening, closing; break after each item *)
-  Fmt.List (("", "\n", "", raw_list), x)
+  match name with
+    | Fmt.Atom (name, _) ->
+        let extra_space = (* add space after name it is followed by args *)
+          if args <> []
+          then " "
+          else ""
+        in
+        Fmt.List (("(" ^ name ^ extra_space, "", ")", fmt), args)
+    | _ -> (* name is always atom *)
+        assert false
 
 
 let make_label label node =
-  Fmt.Label ((label, Fmt.label), node)
+  let fmt = Fmt#{
+    label with
+    indent_after_label = 4;
+  }
+  in
+  Fmt.Label ((label, fmt), node)
 
 
 let quote s = "\"" ^ s ^ "\""
 
 
-let format_text_line s =
-  let line =
-    if s = ""
-    then "#"
-    else "# " ^ s
-  in make_atom line
+let format_text_line ?(indent=false) s =
+  let space =
+    if indent
+    then "    " (* standard 4 space indentation after label *)
+    else "" (* no indentation *)
+  in
+  if s = ""
+  then space ^ "#"
+  else space ^ "# " ^ s
 
 
-(* TODO: this method of printing produces extra empty lines -- before and
- * after the text *)
-(* NOTE: l is not empty *)
-let format_text ?(top=false) l =
-  make_raw_list (List.map format_text_line l) ~top
+(* ~is_labeled = true if text appears after a label;
+ * ~is_first = true if text is the first element in the list *)
+let format_text l ~labeled ~is_first =
+  match l with
+    | [] ->
+        assert false
+    | [x] when labeled -> (* single text line after label *)
+        (* try to put a single text line on the same line with its label *)
+        let fmt =
+          Fmt#{
+            common_list with
+            wrap_body = `Force_breaks;
+            align_closing = false;
+            space_after_opening = false;
+            space_before_closing = false;
+        }
+        in
+        (* no opening, closing; break after each item; standard 4-space
+         * indentation *)
+        let line = format_text_line x in
+        Fmt.List (("", "", "", fmt), [make_atom line])
+    | h::t -> (* more than one lines of text *)
+        (* print several lines them as one block; indented if it appears after
+         * a label *)
+        Fmt.Custom (fun fmt ->
+          (* force new line before text block if it appears after a label or if
+            * it is not the first element of the list *)
+          if labeled || not is_first
+          then Format.pp_force_newline fmt ();
+
+          let print_line s =
+            let line = format_text_line s ~indent:labeled in
+            Format.pp_print_string fmt line
+          in
+          print_line h;
+          List.iter (fun x ->
+            Format.pp_force_newline fmt ();
+            print_line x;
+          ) t;
+        )
 
 
 let format_ast (x :piq_ast) =
-  let rec aux ?(label="") ?(top=false) = function
+  let rec aux ?(label="") ?(labeled=false) ?(is_first=false) = function
     | `int x -> make_atom (Int64.to_string x)
     | `uint x -> make_atom (uint64_to_string x)
     | `float x -> make_atom (format_float x)
@@ -344,13 +341,13 @@ let format_ast (x :piq_ast) =
         make_atom (quote (Piq_lexer.escape_binary s))
     | `raw_word s (* used in pretty-printing mode and in some other cases *)
     | `word s -> make_atom s
-    | `text s -> format_text (split_text s) ~top
+    | `text s -> format_text (split_text s) ~labeled ~is_first
     | `name s -> make_atom (label ^ "." ^ s)
     | `typename s ->
         let atom = make_atom (label ^ ":" ^ s) in
         (* parentheses are not needed if `typename is followed by `typed,
          * `named, `name or another `typename, but using them anyway for now *)
-        make_control [atom]
+        make_form atom []
     | `named {Piq_ast.Named.name = n; Piq_ast.Named.value = v} ->
         let label = label ^ "." ^ n in
         format_inner_ast label v
@@ -360,27 +357,43 @@ let format_ast (x :piq_ast) =
     | `list [] ->
         make_atom "[]"
     | `list l ->
-        make_list (List.map aux l)
-    | `control l ->
-        make_control (List.map aux l)
+        make_list (map_aux l)
+    | `form (`typename s, args) -> (* prevent creating a form twice *)
+        let atom = make_atom (label ^ ":" ^ s) in
+        make_form atom (map_aux args)
+    | `form (name, args) ->
+        make_form (aux name) (map_aux args)
     | `any _ ->
         make_atom "FIXME" (* shouldn't happen except when C.debug_level > 0 *)
+
+  and map_aux l =
+    match l with
+      | [] -> []
+      | h::t ->
+          (aux h ~is_first:true)::(List.map aux t)
+
   and format_inner_ast label x =
     match x with
       | `named _ | `name _ ->
           (* continue building label *)
-          aux ~label x
+          aux x ~label
       | `typed _ ->
-          (* finshed building label and wrap typed in parenthesis*)
-          let typed = aux x in
-          make_label (make_atom label) (make_control [typed])
+          (* finshed building label and wrap typed in parenthesis by creating a
+           * (:<typename> ...) form *)
+          (match aux x with
+            | Fmt.Label ((name, _), node) ->
+                make_label (make_atom label) (make_form name [node])
+            | _ ->
+                assert false (* aux (`typed _) always returns Label *)
+          )
       | _ ->
           (* finshed building label *)
-          make_label (make_atom label) (aux x)
+          make_label (make_atom label) (aux x ~labeled:true)
   in
-  aux x ~top:true
+  aux x ~is_first:true
 
 
+(* TODO: remove trailing line whitespace left by the pretty-printing library *)
 let to_buffer ?(nl = true) buf x =
   Fmt.Pretty.to_buffer buf (format_ast x);
   if nl then Buffer.add_char buf '\n'

@@ -37,7 +37,8 @@ type ast =
    | `typename of string
    | `typed of Typed.t (* TODO: string * ast *)
    | `list of ast list
-   | `control of ast list
+   (* XXX: restrict name type to the three supported options? *)
+   | `form of ast * ast list (* name, args; name is `word | `name | `typename *)
 
    (* These two token types are used only in several special cases, and can't be
     * represented in Piq text format directly *)
@@ -120,7 +121,7 @@ let map_words (ast:ast) f :ast =
         let ast = aux ast in
        `typed {x with Typed.value = ast}
     | `list l -> `list (List.map aux l)
-    | `control l -> `control (List.map aux l)
+    | `form (name, args) -> `form ((aux name),(List.map aux args))
     | x -> x
   in
   aux ast

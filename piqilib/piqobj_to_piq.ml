@@ -149,10 +149,20 @@ and gen_any x =
           make_typed typename ast
       | None, Some ast ->
           ast
-      | _, None ->
-          (* TODO: support for untyped JSON, XML *)
-          make_typed "piqi-any" (`list [
-          ])
+      | Some _, None ->
+          assert false (* this is an impossible case *)
+      | None, None -> (
+          (* support for untyped JSON and XML *)
+          match Piqobj.json_of_any x, Piqobj.xml_of_any x with
+            | None, None ->
+                assert false
+            | Some json_ast, _ ->
+                let s = !Piqobj.string_of_json json_ast in
+                `form (`word "json", [`text s]) (* (json ...) form *)
+            | None, Some xml_elems ->
+                let s = !Piqobj.string_of_xml (`Elem ("value", xml_elems)) in
+                `form (`word "xml", [`text s]) (* (xml ...) form *)
+      )
   )
 
 

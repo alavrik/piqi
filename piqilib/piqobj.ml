@@ -212,6 +212,21 @@ let of_json = ref of_json
 let of_xml = ref of_xml
 
 
+(* these function will be set by correspondent piqi_json* and piqi_xml* modules;
+ * they are used for unptyped json
+ * TODO: find a better module for these functions *)
+let json_of_string (x:string) :Piqi_json_type.json = assert false
+let xml_of_string  (x:string) :Piqi_xml_type.xml list = assert false
+
+let string_of_json (x :Piqi_json_type.json) :string = assert false
+let string_of_xml  (x :Piqi_xml_type.xml) :string = assert false
+
+let json_of_string = ref json_of_string
+let xml_of_string  = ref xml_of_string
+let string_of_json = ref string_of_json
+let string_of_xml  = ref string_of_xml
+
+
 let of_any (piqtype: Piqi_piqi.piqtype) (any :Piqobj.any) :Piqobj.obj option =
   let open Any in
   if any.pb <> None (* try parsing from Protobuf *)
