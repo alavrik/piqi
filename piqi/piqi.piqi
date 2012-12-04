@@ -290,11 +290,30 @@
     ]
 
     .field [
-        % arbitrary data object corresponding to the type serialized in Protocol
-        % Buffers format
+        % arbitrary values corresponding to the type serialized in Protocol
+        % Buffers format; when one of "type" or "protobuf" field is present, the
+        % other must be present as well
 
         .name protobuf
         .type binary
+        .optional
+    ]
+
+    .field [
+        % arbitrary JSON value serialized in as utf-8 string; when "type" field
+        % is present, the JSON value must correspond to this type
+
+        .name json
+        .type string
+        .optional
+    ]
+
+    .field [
+        % arbitrary XML value serialized in as utf-8 string; when "type" field
+        % is present, the JSON value must correspond to this type
+
+        .name xml
+        .type string
         .optional
     ]
 ]

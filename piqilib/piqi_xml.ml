@@ -279,14 +279,16 @@ let xml_to_string ?pretty_print ?decl xml =
 (* for internal use only: read one parsed XML value from its string
  * representation *)
 let xml_of_string s :xml list =
-  (* TODO: optimize location fetching; in this case, it should be possible to
-   * store location in the form structure itself *)
-  (* XXX: catch Not_found to protect against internal loc tracking errors? *)
-  let (fname, lnum, cnum) = Piqloc.find s in
-  let xml_parser = init_from_string s ~fname in
+  let xml_parser = init_from_string s in
   let res =
     try read_xml_obj xml_parser
-    with C.Error ((fname, lnum', cnum'), error) ->
+    with C.Error ((_, lnum', cnum'), error) ->
+      (* string location can be missing when we parse from XML embedded in
+       * Protobuf *)
+      let (fname, lnum, cnum) =
+        try Piqloc.find s
+        with Not_found -> ("embedded", 1, -1)
+      in
       (* adjust location column number: add the original column number of the
        * '#' character + 1 for the space that follows it; note that this method
        * doesn't give 100% guarantee that the offset is correct, but it is

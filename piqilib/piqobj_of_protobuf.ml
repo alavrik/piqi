@@ -130,7 +130,32 @@ and parse_binobj piqtype binobj =
 
 and parse_any x =
   let piqi_any = T.parse_any x in
-  Piqobj.any_of_piqi_any piqi_any
+  let any = Piqobj.any_of_piqi_any piqi_any in
+  (* if there's no typed protobuf, look for untyped JSON or XML values *)
+  if any.Any#pb <> None
+  then any
+  else (
+    let json = piqi_any.Piqi_piqi.Any.json in
+    let xml = piqi_any.Piqi_piqi.Any.xml in
+    match json, xml with
+      | Some s, _ ->
+          let json_ast = !Piqobj.json_of_string s in
+          Any#{
+            any with
+            json_ast = Some json_ast; (* same as in Piqobj_of_piq.parse_any *)
+          }
+      | _, Some s ->
+          let xml_list = !Piqobj.xml_of_string s in
+          Any#{
+            any with
+            (* same as in Piqobj_of_piq.parse_any *)
+            xml_ast = Some ("undefined", xml_list);
+          }
+      | None, None ->
+          (* XXX: hmm... no protobuf, JSON, XML -- what are we dealing with
+           * here? *)
+          any
+  )
 
 
 and parse_record t x =

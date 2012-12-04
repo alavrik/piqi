@@ -193,13 +193,36 @@ and gen_any code x =
     else
       (* in external mode, leave only fields defined by piqi.piqi: protobuf and
        * typename *)
-      (* TODO: support for untyped JSON, XML *)
       let typename = x.typename in
       let protobuf = Piqobj.pb_of_any x in
+      (* if protobuf is undefined, see if we have untyped JSON or XML *)
+      (* XXX, TODO: use unindented JSON and XML to preserve space *)
+      let json =
+        if protobuf <> None
+        then None
+        else
+          match Piqobj.json_of_any x with
+            | None -> None
+            | Some json_ast ->
+                let s = !Piqobj.string_of_json json_ast in
+                Some s
+      in
+      let xml =
+        if protobuf <> None || json <> None
+        then None
+        else
+          match Piqobj.xml_of_any x with
+            | None -> None
+            | Some xml_elems ->
+                let s = !Piqobj.string_of_xml (`Elem ("value", xml_elems)) in
+                Some s
+      in
       T.Any#{
         T.default_any () with
         typename = typename;
         protobuf = protobuf;
+        json = json;
+        xml = xml;
       }
   in
   T.gen__any code piqi_any
