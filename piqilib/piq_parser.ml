@@ -457,7 +457,7 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
     let startloc = loc () in
     (* parse form name *)
     let t = next_token () in
-    let name =
+    let name_ast =
       match t with
         | L.Word _ | L.Raw_word _ ->
             (* specify that we don't want to chain `typename and `name and turn
@@ -470,15 +470,13 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
     in
     (* check that this is one of `typename, `name or `word and for example not a
      * number *)
-    (match name with
-      | `word _ (* a built-in form *)
-      | `raw_word _ (* can be returned in pp mode *)
-      | `typename _ | `name _ -> (* named or typed forms *)
-          ()
-      | obj ->
-          Piqi_common.error obj
-            "invalid form name: only words, names and typenames are allowed"
-    );
+    let name =
+      match name_ast with
+        | (#Piq_ast.form_name as x) -> x
+        | obj ->
+            Piqi_common.error obj
+              "invalid form name: only words, names and typenames are allowed"
+    in
     (* parse form args *)
     let rec aux accu =
       let t = next_token () in

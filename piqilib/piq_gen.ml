@@ -241,16 +241,12 @@ let make_form name args =
           then atom_form_list
           else multi_form_list
   in
-  match name with
-    | Fmt.Atom (name, _) ->
-        let extra_space = (* add space after name it is followed by args *)
-          if args <> []
-          then " "
-          else ""
-        in
-        Fmt.List (("(" ^ name ^ extra_space, "", ")", fmt), args)
-    | _ -> (* name is always atom *)
-        assert false
+  let extra_space = (* add space after name it is followed by args *)
+    if args <> []
+    then " "
+    else ""
+  in
+  Fmt.List (("(" ^ name ^ extra_space, "", ")", fmt), args)
 
 
 let make_label label node =
@@ -278,11 +274,11 @@ let format_text_line ?(indent=false) s =
 
 (* ~is_labeled = true if text appears after a label;
  * ~is_first = true if text is the first element in the list *)
-let format_text l ~labeled ~is_first =
+let format_text l ~is_labeled ~is_first =
   match l with
     | [] ->
         assert false
-    | [x] when labeled -> (* single text line after label *)
+    | [x] when is_labeled -> (* single text line after label *)
         (* try to put a single text line on the same line with its label *)
         let fmt =
           Fmt#{
@@ -303,11 +299,11 @@ let format_text l ~labeled ~is_first =
         Fmt.Custom (fun fmt ->
           (* force new line before text block if it appears after a label or if
             * it is not the first element of the list *)
-          if labeled || not is_first
+          if is_labeled || not is_first
           then Format.pp_force_newline fmt ();
 
           let print_line s =
-            let line = format_text_line s ~indent:labeled in
+            let line = format_text_line s ~indent:is_labeled in
             Format.pp_print_string fmt line
           in
           print_line h;
@@ -319,7 +315,7 @@ let format_text l ~labeled ~is_first =
 
 
 let format_ast (x :piq_ast) =
-  let rec aux ?(label="") ?(labeled=false) ?(is_first=false) = function
+  let rec aux ?(is_labeled=false) ?(is_first=false) = function
     | `int x -> make_atom (Int64.to_string x)
     | `uint x -> make_atom (uint64_to_string x)
     | `float x -> make_atom (format_float x)
@@ -341,30 +337,54 @@ let format_ast (x :piq_ast) =
         make_atom (quote (Piq_lexer.escape_binary s))
     | `raw_word s (* used in pretty-printing mode and in some other cases *)
     | `word s -> make_atom s
-    | `text s -> format_text (split_text s) ~labeled ~is_first
-    | `name s -> make_atom (label ^ "." ^ s)
+    | `text s -> format_text (split_text s) ~is_labeled ~is_first
+    | `name s -> make_atom ("." ^ s)
     | `typename s ->
-        let atom = make_atom (label ^ ":" ^ s) in
+        let name = ":" ^ s in
         (* parentheses are not needed if `typename is followed by `typed,
          * `named, `name or another `typename, but using them anyway for now *)
-        make_form atom []
+        make_form name []
     | `named {Piq_ast.Named.name = n; Piq_ast.Named.value = v} ->
-        let label = label ^ "." ^ n in
-        format_inner_ast label v
+        let joined_labels, node = format_labeled_ast v in
+        let name = "." ^ n ^ joined_labels in
+        (match node with
+          | None ->
+              make_atom name
+          | Some node ->
+              make_label (make_atom name) node
+        )
     | `typed {Piq_ast.Typed.typename = n; Piq_ast.Typed.value = v} ->
-        let label = label ^ ":" ^ n in
-        format_inner_ast label v
+        let joined_labels, node = format_labeled_ast v in
+        let name = ":" ^ n ^ joined_labels in
+        if not is_labeled
+        then
+          match node with
+            | None ->
+                make_atom name
+            | Some node ->
+                make_label (make_atom name) node
+        else
+          let nodes =
+            match node with
+              | None -> []
+              | Some node -> [node]
+          in
+          (* wrap typed in parenthesis by creating a (:<typename> ...) form *)
+          (make_form name nodes)
     | `list [] ->
         make_atom "[]"
     | `list l ->
         make_list (map_aux l)
-    | `form (`typename s, args) -> (* prevent creating a form twice *)
-        let atom = make_atom (label ^ ":" ^ s) in
-        make_form atom (map_aux args)
     | `form (name, args) ->
-        make_form (aux name) (map_aux args)
-    | `any _ ->
-        make_atom "FIXME" (* shouldn't happen except when C.debug_level > 0 *)
+        let name =
+          match name with
+            | `word s | `raw_word s -> s
+            | `name s -> "." ^ s
+            | `typename s -> ":" ^ s
+        in
+        make_form name (map_aux args)
+    | `any _ -> (* shouldn't happen except when C.debug_level > 0 *)
+        make_atom "!PIQI-ANY!"
 
   and map_aux l =
     match l with
@@ -372,23 +392,14 @@ let format_ast (x :piq_ast) =
       | h::t ->
           (aux h ~is_first:true)::(List.map aux t)
 
-  and format_inner_ast label x =
-    match x with
-      | `named _ | `name _ ->
-          (* continue building label *)
-          aux x ~label
-      | `typed _ ->
-          (* finshed building label and wrap typed in parenthesis by creating a
-           * (:<typename> ...) form *)
-          (match aux x with
-            | Fmt.Label ((name, _), node) ->
-                make_label (make_atom label) (make_form name [node])
-            | _ ->
-                assert false (* aux (`typed _) always returns Label *)
-          )
-      | _ ->
-          (* finshed building label *)
-          make_label (make_atom label) (aux x ~labeled:true)
+  and format_labeled_ast = function
+    | `name n ->
+        "." ^ n, None
+    | `named {Piq_ast.Named.name = n; Piq_ast.Named.value = v} ->
+        let joined_labels, node = format_labeled_ast v in
+        "." ^ n ^ joined_labels, node
+    | x ->
+        "", Some (aux x ~is_labeled:true)
   in
   aux x ~is_first:true
 

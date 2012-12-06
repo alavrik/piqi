@@ -37,8 +37,7 @@ type ast =
    | `typename of string
    | `typed of Typed.t (* TODO: string * ast *)
    | `list of ast list
-   (* XXX: restrict name type to the three supported options? *)
-   | `form of ast * ast list (* name, args; name is `word | `name | `typename *)
+   | `form of form_name * ast list (* name, args *)
 
    (* These two token types are used only in several special cases, and can't be
     * represented in Piq text format directly *)
@@ -53,6 +52,14 @@ type ast =
 
    (* reference to Piqobj.any object in Piqi_objstore *)
    | `any of int
+ ]
+
+and form_name =
+ [
+   | `word of string
+   | `raw_word of string
+   | `name of string
+   | `typename of string
  ]
 
     end = Piq_ast
@@ -110,19 +117,24 @@ let transform_ast path f (ast:ast) =
 
 let map_words (ast:ast) f :ast =
   let rec aux = function
-    | `word s -> `word (f s)
-    | `raw_word s -> `raw_word (f s)
-    | `name s -> `name (f s)
+    | (#form_name as x) ->
+        (* avoiding code duplication for tree traversal: form_name is actually
+         * a subset of ast *)
+        ((map_form_name x) :> ast)
     | `named {Named.name = n; Named.value = v} ->
         `named {Named.name = f n; Named.value = aux v}
-    (* XXX: apply function to the last segment of the type names? *)
-    | `typename s -> `typename s
     | `typed ({Typed.value = ast} as x) ->
         let ast = aux ast in
        `typed {x with Typed.value = ast}
     | `list l -> `list (List.map aux l)
-    | `form (name, args) -> `form ((aux name),(List.map aux args))
+    | `form (name, args) -> `form ((map_form_name name),(List.map aux args))
     | x -> x
+  and map_form_name = function
+    | `word s -> `word (f s)
+    | `raw_word s -> `raw_word (f s)
+    | `name s -> `name (f s)
+    (* TODO, XXX: apply function to the last segment of the type name? *)
+    | `typename s -> `typename s
   in
   aux ast
 
