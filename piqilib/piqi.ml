@@ -2200,7 +2200,9 @@ let lang_to_spec ?(normalize_names=true) piqi =
   }
 
 
-let piqi_to_ast piqi =
+(* is_external_mode=true means that defaults and potentially other piqi-any
+ * values will be fully expanded (converted) to their piq ast representation *)
+let piqi_to_ast ?(is_external_mode=true) piqi =
   debug "piqi_to_ast(0)\n";
   Piqloc.pause (); (* we don't really need to track locations at this stage *)
 
@@ -2210,7 +2212,7 @@ let piqi_to_ast piqi =
   *)
 
   let ast =
-    U.with_bool Piqobj_to_piq.is_external_mode true
+    U.with_bool Piqobj_to_piq.is_external_mode is_external_mode
     (fun () -> mlobj_to_ast !piqi_lang_def T.gen__piqi piqi)
   in
   Piqloc.resume ();
@@ -2271,7 +2273,11 @@ let piqi_to_piqobj
   else if add_codes (* XXX: always add ordinal codes? *)
   then Piqi_protobuf.process_defs piqi_spec.P#typedef;
 
-  let ast = piqi_to_ast piqi_spec in
+  (* we need to use external mode only when we normalize names, because we need
+   * defaults to be fully expanded to piq ast before we normalize them; in all
+   * other cases we can keep defaults (and potentialy other piqi-any) in their
+   * internal representation *)
+  let ast = piqi_to_ast piqi_spec ~is_external_mode:normalize_names in
   let ast = transform_piqi_ast ast ?normalize_names in
 
   if !Config.debug_level > 1
