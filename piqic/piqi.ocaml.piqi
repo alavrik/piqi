@@ -62,6 +62,13 @@
     .with.ocaml-name "func"
 ]
 
+.extend [
+    .typedef piqi-list
+
+    % ocaml-name "piqi-list" is already defined for record "list"
+    .with.ocaml-name "piqi_bundle"
+]
+
 
 (.custom-field ocaml-type ocaml-name)
 

@@ -348,18 +348,20 @@
     % Standard portable representation of several piqi modules bundeled
     % together. This data structure is used by "piqi compile", "piqi server" and
     % other parts.
+    %
+    % The fact it is called piqi-list while being a record could be somewhat
+    % confusing. However, doing it this way allows to get nicer JSON and XML
+    % "visual" representation. It is still Protobuf-binary-compatible with
+    % .list [ .type piqi ] definition.
 
-    .name piqi-bundle
+    .name piqi-list
 
     .field [
         % imported modules come before the module they were imported from
 
         .type piqi
         .repeated
-
-        % XXX: using 2 instead of 1 so that we could read piqi-bundle as .pib
-        % stream; it is not meaningful otherwise
-        .code 2
+        .code 1
     ]
 ]
 

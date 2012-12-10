@@ -15,7 +15,7 @@
    limitations under the License.
 *)
 
-(* use self-spec to compile %.piqi into a portable piqi-bundle *)
+(* use self-spec to compile %.piqi into a portable piqi-list *)
 
 
 module C = Piqi_common  
@@ -73,48 +73,52 @@ let speclist = Piqi_main.common_speclist @
   ]
 
 
-(* make piqi/piqi-bundle top-level record from the list of piqi piqobjs
- *
- * XXX: would it be easier to make a piqi-bundle ast and then make piqobj from
- * that ast instead of constructing the piqobj manually? *)
-let make_piqi_bundle_piqobj (piqi_piqobj_list: Piqobj.obj list) :Piqobj.obj =
-  (* get the "piqi" record descriptor; TODO: this can be done once at startup *)
-  let piqi_bundle_record =
-    try
-      let piqi_spec = some_of !Piqi.piqi_spec in
-      (* remove "embedded" prefix from the module name *)
-      piqi_spec.P#modname <- Some "piqi";
-      match Piqi_db.find_local_typedef piqi_spec.P#resolved_typedef "piqi-bundle" with
-        | `record x -> x
-        | _ -> assert false
+let get_self_spec_piqtype self_spec typename =
+  let piqi_def =
+    try Piqi_db.find_local_typedef self_spec.P#resolved_typedef typename
     with Not_found ->
-      assert false
+      Printf.eprintf
+        "invalid self-spec read from %s: no definition named %s\n"
+        !input_self_spec (U.quote typename);
+      piqi_error "piqi compile: invalid self-spec"
   in
-  (* get the "piqi" field descriptor; TODO: this can be done once at startup *)
-  let piqi_bundle_field =
-    List.find (fun f ->
-      match f.F#piqtype with
-        | Some t when t == !Piqi.piqi_spec_def -> true
-        | _ -> false)
-    piqi_bundle_record.R#field
-  in
-  (* make the bundle piqobj using the obtained descriptors *)
-  let make_field piqobj =
-    Piqobj.Field#{
-      t = piqi_bundle_field; (* field descriptor *)
-      obj = Some piqobj;
-    }
-  in
-  `record Piqobj.Record#{
-    t = piqi_bundle_record; (* record descriptor *)
-    field = List.map make_field piqi_piqobj_list;
-    unparsed_piq_fields_ref = None;
-  }
+  (piqi_def: T.typedef :> T.piqtype)
 
 
-let compile piqi piqtype och =
+(* make piqi/piqi-list top-level record from the list of piqi piqobjs; we do it
+ * by converting the list of piqobjs to the binary representation of piqi-list
+ * and then reading it back and piqobj *)
+let make_piqi_list_piqobj piqi_list_piqtype (piqi_piqobj_list: Piqobj.obj list) :Piqobj.obj =
+  trace "making piqi-list\n";
+  trace_enter ();
+  trace "converting piqi piqobj list to protobuf piqi-list\n";
+  let piqi_binobj_list = List.map
+    (fun piqobj ->
+      let obuf = Piq.piqobj_to_protobuf (-1) piqobj in
+      Piqirun.to_string obuf
+    )
+    piqi_piqobj_list
+  in
+  let obuf = Piqirun.gen_list Piqirun.gen_string_field (-1) piqi_binobj_list in
+  let s = Piqirun.to_string obuf in
+  let ibuf = Piqirun.init_from_string s in
+  trace "converting piqi-list from protobuf to piqobj\n";
+  let piqi_list_piqobj =
+    (* don't resolve defaults -- they should be resolved already *)
+    C.with_resolve_defaults false
+    (fun () -> Piqobj_of_protobuf.parse_obj piqi_list_piqtype ibuf)
+  in
+  trace_leave ();
+  piqi_list_piqobj
+
+
+let compile self_spec piqi och =
   trace "getting all imported dependencies\n";
   let piqi_list = Piqi_convert_cmd.get_piqi_deps piqi ~only_imports:true in
+
+  (* get necessary piqtypes from the self-spec *)
+  let piqi_piqtype = get_self_spec_piqtype self_spec "piqi" in
+  let piqi_list_piqtype = get_self_spec_piqtype self_spec "piqi-list" in
 
   trace "converting modules to internal representation\n";
   (* We need to resolve all defaults before converting to JSON or XML because
@@ -128,7 +132,7 @@ let compile piqi piqtype och =
   (* convert all modules to internal representation *)
   let piqobj_list = List.map (fun piqi ->
       Piqi.piqi_to_piqobj piqi
-        ?custom_piqtype:piqtype
+        ~custom_piqtype:piqi_piqtype
         ~add_codes:true ~normalize_names:!flag_normalize_names
     ) piqi_list
   in
@@ -136,7 +140,7 @@ let compile piqi piqtype och =
   trace "writing output\n";
   match !output_format with
     | "piq" | "" ->
-        (* XXX: instead of creating a bundle, writing modules in regular .piq
+        (* XXX: instead of creating piqi-list, writing modules in regular .piq
          * notation *)
         let write_piq piqobj =
           let ast =
@@ -156,13 +160,13 @@ let compile piqi piqtype och =
             | "xml" -> Piq.write_xml
             | x -> piqi_error ("unknown output format " ^ U.quote x)
         in
-        let piqobj = make_piqi_bundle_piqobj piqobj_list in
+        let piqobj = make_piqi_list_piqobj piqi_list_piqtype piqobj_list in
         writer och (Piq.Piqobj piqobj)
 
 
 let run_c ifile och =
   let piqi = Piqi.load_piqi ifile in
-  let piqtype =
+  let self_spec =
     if !input_self_spec <> "" (* regular compilation mode mode with explicit --self-spec *)
     then (
       trace "reading self-spec from %s\n" !input_self_spec;
@@ -181,21 +185,15 @@ let run_c ifile och =
           Printf.eprintf "error: failed to read self-spec from %s:\n" !input_self_spec;
           raise exn (* try to give more details about what when wrong *)
       in
-      let piqi_def =
-        try Piqi_db.find_local_typedef self_spec.P#resolved_typedef "piqi"
-        with Not_found ->
-          Printf.eprintf "invalid self-spec read from %s: no definition named \"piqi\"\n" !input_self_spec;
-          piqi_error "piqi c: invalid self-spec"
-      in
       trace_leave ();
-      Some (piqi_def: T.typedef :> T.piqtype)
+      self_spec
     )
     else (
       trace "--self-spec argument is missing; using the default embedded self-spec to compile\n";
-      None
+      C.some_of !Piqi.piqi_spec
     )
   in
-  compile piqi piqtype och
+  compile self_spec piqi och
 
 
 let run () =
@@ -213,5 +211,5 @@ let run () =
 
  
 let _ =
-  Piqi_main.register_command run "compile" "use self-spec to compile %.piqi into a portable piqi-bundle"
+  Piqi_main.register_command run "compile" "use self-spec to compile %.piqi into a portable piqi-list"
 
