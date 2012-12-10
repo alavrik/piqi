@@ -117,8 +117,13 @@ let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
         Typed_piqobj obj
     | _ ->
         let piqtype = get_current_piqtype user_piqtype ast in
-        let obj = Piqobj_of_piq.parse_obj piqtype ast in
-        Piqobj obj
+        if piqtype == !Piqi.piqi_lang_def (* XXX *)
+        then
+          let piqi = piqi_of_piq fname ast in
+          Piqi piqi
+        else
+          let obj = Piqobj_of_piq.parse_obj piqtype ast in
+          Piqobj obj
 
 
 let original_piqi piqi =
@@ -187,7 +192,6 @@ let add_piqtype code piqtype =
     (* NOTE: silently overriding previous value *)
     default_piqtype := Some piqtype
   else
-    let code = (code+1)/2 in
     piqtypes := (code, piqtype) :: !piqtypes
 
 
@@ -238,90 +242,112 @@ let process_pib_piqtype code typename =
   add_piqtype code piqtype
 
 
+(* using max Protobuf wire code value for pib-typehint
+ *
+ * XXX: alternatively, we could use 0 or another value outside of the valid
+ * code range *)
+let pib_typehint_code = (1 lsl 29) - 1
+
+
 let rec load_pib_obj (user_piqtype :T.piqtype option) buf :obj =
   let field_code, field_obj = read_pib_field buf in
-  match field_code with
-    | c when c mod 2 = 1 ->
-        let typename = Piqirun.parse_string_field field_obj in
-        process_pib_piqtype c typename;
-        if c = 1
-        then
-          (* :piqtype <typename> *)
-          Piqtype typename
-        else
-          (* we've just read type-code binding information;
-             proceed to the next stream object *)
-          load_pib_obj user_piqtype buf
-    | 2 ->
-        let piqtype =
-          try get_current_piqtype user_piqtype `fake
-          with _ ->
-            (* TODO: add stream position info *)
-            piqi_error "default type for pib object is unknown"
-        in
-        let obj = piqobj_of_protobuf piqtype field_obj in
-        Piqobj obj
-    | c -> (* the code is even which means typed piqobj *)
-        let piqtype = find_piqtype_by_code (c/2) in
-        if piqtype == !Piqi.piqi_lang_def (* embedded Piqi spec *)
-        then
-          let piqi = Piqi.piqi_of_pb field_obj in
-          Piqi piqi
-        else
-          let obj = piqobj_of_protobuf piqtype field_obj in
-          Typed_piqobj obj
+  if field_code = pib_typehint_code (* is this a typehint entry? *)
+  then ( (* parse and process pib_typehint entry *)
+    Piqloc.pause ();
+    let open T.Pib_typehint in
+    let typehint = T.parse_pib_typehint field_obj in
+    Piqloc.resume ();
+    if typehint.piqi_type = "piqi-type" (* is this a valid piq typehint? *)
+    then process_pib_piqtype typehint.code typehint.typename
+    else (); (* skipping invalid typehint entry; XXX: generate a warning? *)
+
+    (* we've just read type-code binding information;
+    proceed to the next stream object *)
+    load_pib_obj user_piqtype buf
+  )
+  else ( (* process a regular data entry *)
+    let piqtype =
+      if field_code = 1
+      then
+        (* process a regular data entry for which a user-supplied type can be
+         * applied *)
+        try get_current_piqtype user_piqtype `fake
+        with _ ->
+          (* TODO: add stream position info *)
+          piqi_error "default type for pib object is unknown"
+      else
+        (* process a regular explicitly typed data entry *)
+        find_piqtype_by_code field_code
+    in
+    if piqtype == !Piqi.piqi_lang_def (* embedded Piqi spec *)
+    then
+      let piqi = Piqi.piqi_of_pb field_obj in
+      Piqi piqi
+    else
+      let obj = piqobj_of_protobuf piqtype field_obj in
+      if field_code = 1
+      then Piqobj obj
+      else Typed_piqobj obj
+  )
 
 
 let out_piqtypes = ref []
 let next_out_code = ref 2
 
 
-let gen_piqtype code typename =
-  Piqirun.gen_string_field code typename
+let gen_pib_typehint code typename =
+  let x = T.Pib_typehint#{
+    piqi_type = "piqi-type";
+    typename = typename;
+    code = code;
+  } in
+  Piqloc.pause ();
+  let res = T.gen__pib_typehint pib_typehint_code x in
+  Piqloc.resume ();
+  res
 
 
-let find_add_piqtype_code name =
-  try 
+let find_add_pib_typehint name =
+  try
     let (_, code) =
       List.find
         (function (name',_) when name = name' -> true | _ -> false)
         !out_piqtypes
     in None, code
   with Not_found ->
-    let code = !next_out_code * 2 in
+    let code = !next_out_code in
     incr next_out_code;
     out_piqtypes := (name, code)::!out_piqtypes;
-    let piqtype = gen_piqtype (code-1) name in
-    Some piqtype, code
+    let typehint = gen_pib_typehint code name in
+    Some typehint, code
 
 
 let gen_pib (obj :obj) =
-  match obj with
-    | Piqi piqi ->
-        (* FIXME: code duplication! *)
-        let piqtype, code = find_add_piqtype_code "piqi" in
-        let data = Piqi.piqi_to_pb piqi ~code in
-        (match piqtype with
-          | None -> data
-          | Some x ->
-              (* add the piqtype entry before the data *)
-              Piqirun.OBuf.iol [ x; data]
-        )
-    | Piqtype typename ->
-        gen_piqtype 1 typename
-    | Piqobj obj ->
-        piqobj_to_protobuf 2 obj
-    | Typed_piqobj obj ->
-        let typename = Piqobj_common.full_typename obj in
-        let piqtype, code = find_add_piqtype_code typename in
-        let data = piqobj_to_protobuf code obj in
-        match piqtype with
-          | None -> data
-          | Some x ->
-              (* add the piqtype entry before the data *)
-              Piqirun.OBuf.iol [ x; data]
+  let pib_typehint, data =
+    match obj with
+      | Piqi piqi ->
+          let pib_typehint, code = find_add_pib_typehint "piqi" in
+          let data = Piqi.piqi_to_pb piqi ~code in
+          pib_typehint, data
+      | Piqtype typename ->
+          let data = gen_pib_typehint 1 typename in
+          None, data
+      | Piqobj obj ->
+          let data = piqobj_to_protobuf 1 obj in
+          None, data
+      | Typed_piqobj obj ->
+          let typename = Piqobj_common.full_typename obj in
+          let pib_typehint, code = find_add_pib_typehint typename in
+          let data = piqobj_to_protobuf code obj in
+          pib_typehint, data
+  in
+  match pib_typehint with
+    | None -> data
+    | Some x ->
+        (* add the pib_typehint entry before the data *)
+        Piqirun.OBuf.iol [ x; data]
 
- 
+
 let write_pib ch (obj :obj) =
   let data = gen_pib obj in
   Piqirun.to_channel ch data

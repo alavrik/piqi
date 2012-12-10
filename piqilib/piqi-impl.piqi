@@ -187,3 +187,43 @@
     ]
 ]
 
+
+.record [
+    % internally-used data structure for defining association between piqi-type
+    % and pib element's wire code in .pib format
+    %
+    % XXX: consder moving to piqi/piqi.pib.piqi once pib becomes less
+    % experimental and useful for a broader audience
+
+    .name pib-typehint
+
+    .field [
+        % this field should be always present in the first position and contain
+        % the string "piqi-type"; if it is present, but has a different value,
+        % it will be ignored
+
+        .name piqi-type
+        .type string
+
+        .code 1
+    ]
+
+    .field [
+        % fully-qualified piqi type name
+        .type type
+
+        .code 2
+    ]
+
+    .field [
+        % wire code associated with the type; this code is used for identifying
+        % elements in .pib stream; the range of the values is the same as the
+        % range of valid protobuf wire codes
+
+        .name code
+        .type uint
+
+        .code 3
+    ]
+]
+
