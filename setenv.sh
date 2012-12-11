@@ -1,6 +1,7 @@
 # run this script if you want to run tests; otherwise, use ./configure
 
 
+# base build directory
 export PIQI_ROOT="`pwd`"
 
 # temporary build directory
@@ -10,7 +11,7 @@ export PIQI_BUILD="$PIQI_ROOT/build"
 export PATH="$PIQI_ROOT/bin:$PATH"
 
 # path to .piqi files
-export PIQI_DIR="$PIQI_ROOT"
+export PIQI_PATH="$PIQI_ROOT"
 
 
 # this is for backward compatibility with older packaging scripts that were

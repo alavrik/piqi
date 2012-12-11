@@ -59,6 +59,28 @@ let underscores_to_dashes s =
   string_subst_char s '_' '-'
 
 
+(* split string [s] into stubstring using character [sep] as a separator *) 
+let string_split s ?(start=0) sep =
+  let rec aux len i accu =
+    if i < start
+    then
+      let name = String.sub s 0 (i+len+1) in
+      name::accu
+    else
+      let c = s.[i] in
+      if c = sep
+      then
+        let part = String.sub s (i + 1) len in
+        aux 0 (i - 1) (part :: accu)
+      else
+        aux (len + 1) (i - 1) accu
+  in
+  let len = String.length s in
+  if not (String.contains s sep) || len = 0
+  then [s]
+  else aux 0 (len - 1) []
+
+
 (* run (unit -> 'a) function with some boolean reference set to the specified
  * value before than and have the value restored back to its original value
  * after that *)

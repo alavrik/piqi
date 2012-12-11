@@ -297,7 +297,7 @@ let run_subcommand cmd_name =
 
 
 let run () =
-  (* set .piqi search path to contain CWD and $PIQI_DIR *)
+  (* set .piqi search path to contain CWD and $PIQI_PATH *)
   Config.init_paths ();
 
   if !Sys.interactive

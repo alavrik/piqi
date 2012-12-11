@@ -80,7 +80,7 @@ echo "export PIQI_ROOT = `pwd`" >> $M
 # temporary build directory
 echo "export PIQI_BUILD = \$(PIQI_ROOT)/build" >> $M
 # path to .piqi files
-echo "export PIQI_DIR = \$(PIQI_ROOT)" >> $M
+echo "export PIQI_PATH = \$(PIQI_ROOT)" >> $M
 echo >> $M
 
 # figure out which dependencies we need to build

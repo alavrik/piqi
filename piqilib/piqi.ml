@@ -447,7 +447,7 @@ let is_valid_scoped_extension_name name =
   if not (Piqi_name.is_valid_name name ~allow:".")
   then false
   else
-    match Piq_parser.tokenize name '.' with
+    match U.string_split name '.' with
       | [a; b] -> Piqi_name.is_valid_name a && Piqi_name.is_valid_name b
       | _ -> false
 
@@ -824,7 +824,7 @@ let check_unknown_fields ?prepend unknown_fields custom_fields =
 
 
 let parse_scoped_name name =
-  match Piq_parser.tokenize name '.' with
+  match U.string_split name '.' with
     | [def_name; nested_name] -> def_name, nested_name
     | _ -> assert false (* this has been checked already *)
 

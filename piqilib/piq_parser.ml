@@ -29,29 +29,8 @@ module L = Piq_lexer
  * name character
 *) 
 
-let tokenize s ?(start=0) sep =
-  let rec aux len i accu =
-    if i < start
-    then
-      let name = String.sub s 0 (i+len+1) in
-      name::accu
-    else
-      let c = s.[i] in
-      if c = sep
-      then
-        let part = String.sub s (i + 1) len in
-        aux 0 (i - 1) (part :: accu)
-      else
-        aux (len + 1) (i - 1) accu
-  in
-  let len = String.length s in
-  if not (String.contains s sep) || len = 0
-  then [s]
-  else aux 0 (len - 1) []
-
-
 let tokenize_name ?start s =
-  let l = tokenize s '.' ?start in
+  let l = U.string_split s '.' ?start in
   match l with
     | h::t -> h :: (U.flatmap (fun x -> ["."; x]) t)
     | _ -> assert false
@@ -68,7 +47,7 @@ let tokenize_typename s =
 
 
 let tokenize_name first_c s =
-  let parts = tokenize s ':' in
+  let parts = U.string_split s ':' in
   match first_c with
     | ":" -> U.flatmap tokenize_typename parts
     | "." ->
