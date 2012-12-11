@@ -35,6 +35,13 @@
     .with.erlang-name "piqi_list"
 ]
 
+.extend [
+    .typedef piqi-list
+
+    % erlang-name "piqi-list" is already defined for record "list"
+    .with.erlang-name "piqi_bundle"
+]
+
 
 (.custom-field erlang-type erlang-name)
 
