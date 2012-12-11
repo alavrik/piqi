@@ -135,8 +135,8 @@ and parse_any x =
   if any.Any#pb <> None
   then any
   else (
-    let json = piqi_any.Piqi_piqi.Any.json in
-    let xml = piqi_any.Piqi_piqi.Any.xml in
+    let json = piqi_any.T.Any.json in
+    let xml = piqi_any.T.Any.xml in
     match json, xml with
       | Some s, _ ->
           let json_ast = !Piqobj.json_of_string s in

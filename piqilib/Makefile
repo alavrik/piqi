@@ -68,7 +68,7 @@ debug: dcl install
 post_target:: install
 
 
-piqi_piqi.ml: $(PIQI_PIQI)
+piqi_lang_piqi.ml: $(PIQI_PIQI)
 	$(PIQICC) $(PIQICC_FLAGS) -o $@.tmp.ml \
 		--spec piqi.piqi --lang piqi-lang.piqi --impl piqi-impl.piqi
 	$(CAMLP4_O) -o $@ $@.tmp.ml
@@ -82,7 +82,7 @@ uninstall: libuninstall
 
 
 clean::
-	rm -f piqi_piqi.ml.tmp.ml
+	rm -f piqi_lang_piqi.ml.tmp.ml
 
 
 include $(OCAMLMAKEFILE)
