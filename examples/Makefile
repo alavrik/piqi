@@ -31,6 +31,7 @@ test_complex:
 	./test_piq list
 
 	./test_piq flag
+	./test_piq piqi-any
 
 	./test_piqi record-variant-list
 	./test_piqi_proto record-variant-list

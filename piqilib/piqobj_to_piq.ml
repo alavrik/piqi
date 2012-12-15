@@ -155,7 +155,12 @@ and gen_any x =
           (* support for untyped JSON and XML *)
           match Piqobj.json_of_any x, Piqobj.xml_of_any x with
             | None, None ->
-                assert false
+                (* sometimes this can happen in external mode, for example, when
+                 * doing piq -> portable format -> piq conversion of untyped
+                 * piqi-any values; there's not much we can do here, because we
+                 * don't represent non-portable Piq ast in a portable
+                 * serialization format *)
+                `any 0
             | Some json_ast, _ ->
                 let s = !Piqobj.string_of_json json_ast in
                 `form (`word "json", [`text s]) (* (json ...) form *)
