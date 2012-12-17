@@ -40,6 +40,7 @@ DIRS = \
        self_spec \
        piqi_misc \
        piqi_server \
+       piqi_compile \
        $(DIRS_OCAML) \
        $(DIRS_PROTO)
 
