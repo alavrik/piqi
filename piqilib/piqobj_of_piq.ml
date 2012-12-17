@@ -301,6 +301,7 @@ and parse_any x :Piqobj.any =
     | `any ref ->
         (* in internal mode, returning the exact Piqobj.any object passed via a
          * reference *)
+        C.debug "Piqobj_of_piq.parse_any: recovering any from existing ref %d\n" ref;
         let any = Piqobj.get_any ref in
         (* prevent adding a location reference; if we attempt to add a location
          * referene here, we end up with a circular reference *)

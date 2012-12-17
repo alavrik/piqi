@@ -130,32 +130,37 @@ and parse_binobj piqtype binobj =
 
 and parse_any x =
   let piqi_any = T.parse_any x in
-  let any = Piqobj.any_of_piqi_any piqi_any in
-  (* if there's no typed protobuf, look for untyped JSON or XML values *)
-  if any.Any#pb <> None
-  then any
-  else (
-    let json = piqi_any.T.Any.json in
-    let xml = piqi_any.T.Any.xml in
-    match json, xml with
-      | Some s, _ ->
-          let json_ast = !Piqobj.json_of_string s in
-          Any#{
-            any with
-            json_ast = Some json_ast; (* same as in Piqobj_of_piq.parse_any *)
-          }
-      | _, Some s ->
-          let xml_list = !Piqobj.xml_of_string s in
-          Any#{
-            any with
-            (* same as in Piqobj_of_piq.parse_any *)
-            xml_ast = Some ("undefined", xml_list);
-          }
-      | None, None ->
-          (* XXX: hmm... no protobuf, JSON, XML -- what are we dealing with
-           * here? *)
-          any
-  )
+  match piqi_any.T.Any.ref with
+    | Some ref ->
+        (* recover internally passed Piqobj.any from an integer reference *)
+        C.debug "Piqobj_of_protobuf.parse_any: recovering any from existing ref %d\n" ref;
+        Piqobj.get_any ref
+    | None ->
+        (* external mode *)
+        let any = Any#{
+          Piqobj.default_any with
+          typename = piqi_any.Piqi_lang_piqi.Any.typename;
+          pb = piqi_any.Piqi_lang_piqi.Any.protobuf;
+        }
+        in
+        (* if there's no typed protobuf, look for untyped JSON or XML values *)
+        if any.Any#pb = None
+        then (
+          let json = piqi_any.T.Any.json in
+          let xml = piqi_any.T.Any.xml in
+          match json, xml with
+            | Some s, _ ->
+                let json_ast = !Piqobj.json_of_string s in
+                any.Any#json_ast <- Some json_ast (* same as in Piqobj_of_piq.parse_any *)
+            | _, Some s ->
+                let xml_list = !Piqobj.xml_of_string s in
+                any.Any#xml_ast <- Some ("undefined", xml_list) (* same as in Piqobj_of_piq.parse_any *)
+            | None, None ->
+                (* XXX: hmm... no protobuf, JSON, XML -- what are we dealing with
+                 * here? *)
+                ()
+        );
+        any
 
 
 and parse_record t x =

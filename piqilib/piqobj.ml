@@ -161,6 +161,7 @@ let put_any (any: Piqobj.any) :int =
          * freeing them *)
         let ref = Piqi_objstore.put any in
         any.ref <- Some ref;
+        C.debug "Piqobj.put_any: with ref %d\n" ref;
         ref
 
 
@@ -176,14 +177,16 @@ let any_of_piqi_any (piqi_any: Piqi_lang_piqi.any) :Piqobj.any =
         C.debug "Piqobj.any_of_piqi_any: recovering any from existing ref %d\n" ref;
         get_any ref
     | None ->
-        (* external mode *)
+        (* NOTE: this branch is used when the function is called from
+         * Piqi.resolve_field_default when Piqi is read from Protobuf during
+         * Piqi.boot *)
         let any = Any#{
           default_any with
           typename = piqi_any.Piqi_lang_piqi.Any.typename;
           pb = piqi_any.Piqi_lang_piqi.Any.protobuf;
         }
         in
-        (* cache the value in objstore and in the piqi_any intself *)
+        (* cache the value in objstore and in the piqi_any itself *)
         let ref = put_any any in
         C.debug "Piqobj.any_of_piqi_any: creating new any with ref %d\n" ref;
         piqi_any.Piqi_lang_piqi.Any.ref <- Some ref;
