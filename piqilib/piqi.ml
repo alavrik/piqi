@@ -1929,6 +1929,8 @@ let boot () =
   (* resume object location tracking; it was off from the beginning for a reason
    * -- see piqloc.ml for details *)
   Piqloc.resume ();
+  (* also, we need to preserve some fake references we've added during boot *)
+  Piqloc.preserve ();
 
   (* initialize Piqi loader; doing it this way, because Piqi and Piqi_db are
    * mutually recursive modules *)
