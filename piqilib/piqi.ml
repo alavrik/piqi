@@ -1939,9 +1939,12 @@ let boot () =
 
 
 let _ =
+  (*
   if !Sys.interactive
   then () (* don't do anything in interactive (toplevel) mode *)
-  else (
+  else
+  *)
+  (
     (*
     Piqi_config.debug_level := 1;
     *)
