@@ -425,36 +425,30 @@ let write_json_obj ch json =
   Pervasives.output_char ch '\n'
 
 
-let is_primitive_or_list piqtype =
-  match C.unalias piqtype with
-    | `enum _ -> true
-    | `list _ -> true
-    | #T.typedef -> false
-    | _ -> true
-
-
-let gen_json_obj (piqobj : Piqobj.obj) =
+let gen_json_obj ~plain (piqobj : Piqobj.obj) =
   let json = Piqobj_to_json.gen_obj piqobj in
   let piqtype = Piqobj_common.type_of piqobj in
   let piqtype_name = C.full_piqi_typename piqtype in
   (* generating an associative array wrapper for primitive types because JSON
    * doesn't support them as top-level objects, according to RFC 4627 that says:
    * "A JSON text is a serialized object or array" *)
-  (* XXX: also wrapping arrays in a top-level object; it is not strictly
-   * required but it feels as the right thing to do; besides, this is the only
-   * reasonable way we can add "piqi_type" field to the serialized lists *)
+
+  (* optionally, wrapping arrays in a top-level object; it is the only
+   * reasonable way we can add "piqi_type" field to the serialized lists -- see
+   * below *)
   let json =
-    if is_primitive_or_list piqtype
-    then `Assoc [("value", json)]
-    else json
+    match json with
+      | `Assoc _ -> json
+      | `List _ when plain -> json
+      | _ -> `Assoc [("value", json)]
   in
   piqtype_name, json
 
 
-let gen_json_common (obj :obj) =
+let gen_json_common ~plain (obj :obj) =
   match obj with
     | Typed_piqobj obj | Piqobj obj ->
-        gen_json_obj obj
+        gen_json_obj obj ~plain
     | Piqi piqi ->
         (* output Piqi spec itself if we are converting .piqi *)
         piqi_to_json piqi
@@ -463,7 +457,7 @@ let gen_json_common (obj :obj) =
 
 
 let gen_json obj =
-  let piqi_typename, json = gen_json_common obj in
+  let piqi_typename, json = gen_json_common obj ~plain:false in
   (* adding "piqi_type": name as a first field of the serialized JSON object *)
   match json with
     | `Assoc l ->
@@ -474,7 +468,7 @@ let gen_json obj =
 
 
 let gen_plain_json obj =
-  let _piqi_type, json = gen_json_common obj in
+  let _piqi_type, json = gen_json_common obj ~plain:true in
   json
 
 
@@ -490,9 +484,22 @@ let read_json_ast json_parser :Piqi_json_type.json =
     | None -> raise EOF
 
 
+let is_primitive piqtype =
+  match C.unalias piqtype with
+    | `enum _ -> true
+    | #T.typedef -> false
+    | _ -> true
+
+
+let is_list piqtype =
+  match C.unalias piqtype with
+    | `list _ -> true
+    | _ -> false
+
+
 let load_json_common piqtype ast =
   let ast =
-    if is_primitive_or_list piqtype
+    if is_primitive piqtype
     then
     (* expecting primitive types to be wrapped in associative array because JSON
      * doesn't support them as top-level objects, according to RFC 4627 that
@@ -502,7 +509,12 @@ let load_json_common piqtype ast =
         | `Assoc [ "value", ast ] -> ast
         | _ ->
             error ast
-              "invalid toplevel value for primitive or arrary type: {\"value\": ...} expected"
+              "invalid toplevel value for primitive type: {\"value\": ...} expected"
+    else if is_list piqtype
+    then
+      match ast with
+        | `Assoc [ "value", ast ] -> ast (* sometimes top-level arrays are embedded in objects *)
+        | _ -> ast
     else ast
   in
   if piqtype == !Piqi.piqi_lang_def (* XXX *)
