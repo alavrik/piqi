@@ -127,3 +127,62 @@
     .option [ .name function .type name ]
 ]
 
+
+%
+% renamed and deprecated Protobuf fields
+%
+
+.extend [
+    (.typedef piqi record variant list enum)
+
+    .with.field [
+        % same as protobuf-custom in Piqi-0.5.*
+
+        .name proto-custom
+        .type string
+        .repeated
+        .deprecated
+    ]
+]
+
+
+.extend [
+    (.typedef record field variant option enum alias list)
+
+    .with.field [
+        % same as protobuf-name in Piqi-0.5.*
+
+        .name proto-name
+        .type string
+        .optional
+        .deprecated
+    ]
+]
+
+
+.extend [
+    .typedef piqi
+
+    .with.field [
+        % same as protobuf-package in Piqi-0.5.*
+
+        .name proto-package
+        .type string
+        .optional
+        .deprecated
+    ]
+]
+
+
+.extend [
+    (.typedef field list)
+
+    .with.field [
+        % same as protobuf-packed in Piqi-0.5.*
+
+        .name wire-packed
+        .optional
+        .deprecated
+    ]
+]
+
