@@ -38,7 +38,7 @@ On Mac OS X (using Homebrew):
 
         brew install objective-caml opam
         opam init
-        eval `opam config -env`
+        eval `opam config env`
         opam install ocamlfind
 
         (Here, we used [OPAM](http://opam.ocamlpro.com/) to build and install

@@ -10,7 +10,7 @@ The latest development version of Piqi can be installed using
 
 1. Add the following repository as a _remote_
 
-        opam remote -add piqi git://github.com/alavrik/piqi-opam-repo.git
+        opam remote add piqi git://github.com/alavrik/piqi-opam-repo.git
 
 2. After that, run
 
