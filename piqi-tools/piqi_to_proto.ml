@@ -403,10 +403,6 @@ let gen_defs (defs:T.typedef list) =
 (* gen import path based on piqi modname *)
 let gen_import_path modname =
   let _dir, fname = Piqi_file.find_piqi_file modname in
-  (*
-  (* XXX: revert slashes on Windows *)
-  let fname = Piqi_file.make_os_path fname in
-  *)
   let fname =
     if Filename.check_suffix fname ".piqi"
     then fname ^ ".proto"

@@ -261,13 +261,6 @@ let check_name x =
   else ()
 
 
-(* TODO, XXX: this function is not used *)
-let check_scoped_name x =
-  if not (Piqi_name.is_valid_scoped_name x)
-  then error x ("invalid scoped name: " ^ U.quote x)
-  else ()
-
-
 let check_opt_name = function
   | None -> ()
   | Some x -> check_name x

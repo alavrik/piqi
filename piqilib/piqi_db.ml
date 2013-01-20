@@ -51,9 +51,14 @@ module Piqitable = Idtable
 let loaded_map = ref Piqitable.empty
 
 
+(* we use this function to prevent adding same module under several different
+ * names *)
+let normalize_name = U.underscores_to_dashes
+
+
 (* find already loaded module by name *)
 let find_piqi modname :T.piqi =
-  Piqitable.find !loaded_map modname
+  Piqitable.find !loaded_map (normalize_name modname)
 
 
 let try_find_piqi modname =
@@ -66,7 +71,7 @@ let add_piqi piqi =
   trace "piqi_db: caching piqi module \"%s\"\n" modname;
 
   let do_add_piqi modname piqi =
-    loaded_map := Piqitable.add !loaded_map modname piqi
+    loaded_map := Piqitable.add !loaded_map (normalize_name modname) piqi
   in
   (* check for name override/conflict *)
   (* XXX: prohibit override? *)
@@ -82,7 +87,7 @@ let add_piqi piqi =
 
 
 let remove_piqi modname =
-  loaded_map := Piqitable.remove !loaded_map modname
+  loaded_map := Piqitable.remove !loaded_map (normalize_name modname)
 
 
 let replace_piqi piqi =
@@ -90,7 +95,7 @@ let replace_piqi piqi =
   match try_find_piqi modname with
     | None -> ()
     | Some _ ->
-        loaded_map := Piqitable.add !loaded_map modname piqi
+        loaded_map := Piqitable.add !loaded_map (normalize_name modname) piqi
 
 
 let find_local_typedef typedefs name =

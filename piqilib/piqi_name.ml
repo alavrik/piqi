@@ -79,11 +79,6 @@ let some f = function
   | Some x -> f x
     
 
-let is_valid_scoped_name x =
-  let m, n = split_name x in
-  some is_valid_name m && is_valid_name n
-
-
 let is_valid_pathname x =
   (* TODO: check domain name and URL/paths validity *)
   is_valid_name x ~allow:"/._"
