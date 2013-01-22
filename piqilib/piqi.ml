@@ -145,8 +145,6 @@ let set_is_func_param_flag def =
 
 let resolve_typename map name :T.piqtype =
     let def = find_def map name in
-    if is_func_param def
-    then error name ("type " ^ U.quote name ^ " is defined as a function parameter and can't be referenced");
     (def :> T.piqtype)
 
 
@@ -1191,6 +1189,9 @@ let make_param_alias_from_name name x =
 
       name = Some name;
       typename = Some x;
+      (* we set it only to distingwish between aliases defined in-line (see
+       * make_param_alias) and artificially generated aliases like this one *)
+      is_func_param = true;
     }
   in
   Piqloc.addrefret x res
@@ -1310,7 +1311,10 @@ let get_function_defs (non_func_defs: T.typedef list) resolved_funs =
    *   .piqi -> .json -> .piqi *)
   let defs = List.filter
     (function
-      | `alias x -> not (is_existing_def (some_of x.A#name))
+      | `alias x when x.A#is_func_param ->
+          (* artificially created alias that matches some top-level
+           * *-input|output|error definition? *)
+          not (is_existing_def (some_of x.A#name))
       | _ -> true
     )
     defs
