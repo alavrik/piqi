@@ -170,7 +170,9 @@ let parse_binary (x :piq_ast) = match x with
 
 
 (* some common errors *)
-let error_exp_list obj = assert false (* error obj "list expected" *)
+let error_exp_list obj =
+  error obj "list expected"
+
 
 let check_duplicate name tail =
   match tail with
