@@ -1,5 +1,10 @@
+ifeq ($(MAKECMDGOALS),distclean)
+-include Makefile.config
+-include $(PIQI_ROOT)/make/Makefile.dirs
+else
 include Makefile.config
 include $(PIQI_ROOT)/make/Makefile.dirs
+endif
 
 
 DIRS = \
