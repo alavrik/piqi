@@ -253,8 +253,8 @@ let rec load_pib_obj (user_piqtype :T.piqtype option) buf :obj =
   let field_code, field_obj = read_pib_field buf in
   if field_code = pib_typehint_code (* is this a typehint entry? *)
   then ( (* parse and process pib_typehint entry *)
+    let open T.Pib_typehint in (
     Piqloc.pause ();
-    let open T.Pib_typehint in
     let typehint = T.parse_pib_typehint field_obj in
     Piqloc.resume ();
     if typehint.piqi_type = "piqi-type" (* is this a valid piq typehint? *)
@@ -264,7 +264,7 @@ let rec load_pib_obj (user_piqtype :T.piqtype option) buf :obj =
     (* we've just read type-code binding information;
     proceed to the next stream object *)
     load_pib_obj user_piqtype buf
-  )
+  ))
   else ( (* process a regular data entry *)
     let piqtype =
       if field_code = 1
