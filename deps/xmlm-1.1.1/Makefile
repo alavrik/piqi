@@ -7,11 +7,6 @@ RESULT = xmlm
 SOURCES = xmlm.ml xmlm.mli
 
 
-LIBINSTALL_FILES = \
-	xmlm.cmo xmlm.cmx xmlm.o \
-	xmlm.cmi
-
-
 # PRE_TARGETS =
 # LIBS =
 # INCDIRS =
