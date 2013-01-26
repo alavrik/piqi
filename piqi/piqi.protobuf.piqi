@@ -14,7 +14,7 @@
 %   https://developers.google.com/protocol-buffers/docs/encoding
 %
 %
-% Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+% Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
 
 .protobuf-package "piqi_org.piqi"
