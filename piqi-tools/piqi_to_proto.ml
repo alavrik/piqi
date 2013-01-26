@@ -493,8 +493,10 @@ let proto_custom_warning l =
   ) l
 
 
-let proto_name_warning x =
-  C.warning x ".proto-name is deprecated; use .protobuf-name instead"
+let proto_name_warning = function
+  | None -> ()
+  | Some x ->
+      C.warning x ".proto-name is deprecated; use .protobuf-name instead"
 
 
 let protoname_field x =
@@ -641,12 +643,12 @@ let proto_modname n =
  * compatibiliy *)
 let check_transform_piqi piqi =
   (* handle deprecated .proto-package *)
-  let proto_package = piqi.P#proto_package in
-  if proto_package <> None
-  then (
-    C.warning proto_package ".proto-package is deprecated; use .protobuf-package instead";
-    if piqi.P#protobuf_package = None
-    then piqi.P#protobuf_package <- proto_package;
+  (match piqi.P#proto_package with
+    | None -> ()
+    | Some proto_package ->
+        C.warning proto_package ".proto-package is deprecated; use .protobuf-package instead";
+        if piqi.P#protobuf_package = None
+        then piqi.P#protobuf_package <- Some proto_package
   );
   (* handle deprecated top-level .proto-custom *)
   let proto_custom = piqi.P#proto_custom in
