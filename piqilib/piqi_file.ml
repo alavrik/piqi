@@ -110,9 +110,17 @@ let find_piqi_file modname =
   let check_exact_directory base_dir dir_name =
     let dir = Filename.concat base_dir dir_name in
     trace "trying to locate module directory at %s\n" (U.quote dir);
-    if Sys.file_exists dir
-    then (found_dir := base_dir; true)
-    else false
+    let directory_exists =
+      if Sys.os_type = "Unix"
+      then
+        try Sys.is_directory dir with Sys_error _ -> false
+      else
+        (* for some reason, the above method doesn't work for mingw-based builds
+         * when they are called from cygwin environment *)
+        true
+    in
+    if directory_exists then found_dir := base_dir;
+    directory_exists
   in
   let find_directory base_dir =
     if check_exact_directory base_dir dir_name
