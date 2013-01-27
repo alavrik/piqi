@@ -54,7 +54,7 @@ let arg__json_omit_null_fields =
 
 let arg__gen_extended_piqi_any =
     "--gen-extended-piqi-any", Arg.Set Piqi_config.gen_extended_piqi_any,
-    "for JSON and XML: use extended representation of piqi-any values (default=false)"
+    "use extended representation of piqi-any values in XML and JSON output"
 
 
 let speclist = Main.common_speclist @
