@@ -1,3 +1,96 @@
+Piqi 0.6.0 (February 3, 2013)
+=============================
+
+Backward incompatible changes:
+
+  - (piqi) Remove support for "piq-word" and "piq-text" built-in types and
+    provide an alternative way to control Piq representation of string values
+    using a new "piq-format" property
+  - (piqi) Rename "piq-any" built-in type to "piqi-any"
+  - (xml) always use <value> as a top-level XML element instead of tag derived
+    from specific typename
+  - (json) top-level values of primitive types and enum constants encoded in
+    JSON as {"value": ...} instead of {"_": ...}
+  - (tools) use $PIQI_PATH environment variable for Piqi module search paths
+    instead of $PIQI_DIR
+
+Encodings:
+
+  - Fix parsing of enum options with dashes from JSON
+  - Support for untyped JSON and XML values in Piq, Protobuf, JSON and XML
+    formats (JSON and XML formats support only untyped JSON and XML
+    respectively) as values of "piqi-any" type
+  - (json) "json-omit-null-fields" option now works for non-existent repeated
+    fields as well: JSON fields with "[]" values are omitted from the output
+  - (json) top-level values of primitive types and enum constants encoded in
+    JSON as {"value": ...} instead of {"_": ...}
+  - (xml) always use <value> as a top-level XML element instead of tag derived
+    from specific typename
+  - (piq) change ":piqtype <typename>" syntax to "(:<typename>)"
+  - (pib) rename experimental "wire" encoding to "pib"
+  - remove support for experimental "piq-json" encoding (similar functionality,
+    including optional type hints and reversibility is provided as a part of the
+    standard "json" encoding)
+
+Erlang:
+
+  - Fix #22: incorrect generation of -type for imported variants
+
+OCaml:
+
+  - New .ocaml-optional field property for more precise control of how .optional
+    fields with default values are represented in OCaml records
+  - Fix #23: compilation under OCaml-4.00+
+  - OPAM package
+
+Piqi language:
+
+  - Split self-specification into two parts: portable self-spec (piqi.piqi) and
+    the Piqi language superset of it (piqi-lang.piqi)
+  - Ability to define untyped JSON and XML values
+  - Remove support for "piq-word" and "piq-text" built-in types, and provide an
+    alternative way to control Piq representation of string values using a new
+    "piq-format" property
+  - Allow interchangeable use of '_' and '-' in imported module paths and names
+  - Rename "piq-any" built-in type to "piqi-any"
+  - New experimental .deprecated flag for fields and options
+  - Allow referencing automatically-generated from nested function parameters
+    *-input|-output|-error definitions
+  - Allow nested alias definitions in function parameters
+  - (protobuf) new .protobuf-prefix property for enum definitions
+  - (protobuf) rename .proto-name, .proto-custom, .proto-package properties to
+    .protobuf-name, .protobuf-custom, .protobuf-package
+  - (protobuf) rename .wire-type alias property to .protobuf-wire-type
+  - (protobuf) rename .wire-packed repeated field/list property to
+    .protobuf-packed
+
+Piqi tools
+
+  - Use $PIQI_PATH environment variable for Piqi module search paths instead of
+    $PIQI_DIR
+  - Initial implementation of "piqi compile" and "piqi cc"
+  - Rename "piqi convert|check|getopt --piqtype" command-line parameter to
+    "--type"
+  - Modules included and imported from modules with scoped names are searched
+    in the importing/including module's directory first
+  - New "piqi expand --add-module-name" that adds .module <name> property if it
+    was missing
+  - New "piqi expand --functions" and "--all" flags
+  - New "piqi convert --gen-extended-piqi-any" flag for generating extended
+    representation of piqi-any values in JSON and XML formats
+  - Rename "--noboot" flag to "--no-builtin-types"
+
+Miscellaneous:
+
+  - Remove dependency on custom changes in "xmlm" third-party library and bring
+    up-to-date with latest upstream version (1.1.1)
+  - Add conventional "./configure" script (fixes #20)
+  - Don't build ulex, xmlm and easy-format third-party dependencies if they are
+    already installed in the system
+  - Improved Piq pretty-printing, especially of verbatim text literals
+  - Piqi documentation is now distributed with the source code
+
+
 Piqi 0.5.7 (April 29, 2012)
 ===========================
 

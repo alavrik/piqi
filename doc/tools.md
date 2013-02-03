@@ -14,7 +14,14 @@ subcommands.
     to search for included or imported modules defined in `.piqi` or
     `.proto.piqi` files.
 
-    This option may be specified several times.
+    This option can be specified several times. See also `PIQI_PATH`
+    [environment variable](#environmentvariables) below.
+
+    Note that modules included and imported from modules with scoped names are
+    searched in the importing/including module's directory first. For example,
+    if a module `b` is imported from module `<dir>/a` located in `<path>/<dir>`,
+    `<path>/<dir>` will be automatically added as a search path in front of `.`
+    and any paths specified by `-I` and `PIQI_PATH`.
 
 `--no-warnings`
 :   Don't print warnings.
@@ -25,8 +32,8 @@ subcommands.
 `--debug <level>`
 :   Specify debug level; any number greater than 0 turns on debug messages.
 
-`--noboot`
-:   Don't use boot definitions while processing .piqi
+`--no-builtin-types`
+:   Don't include built-in types while processing loaded Piqi modules
 
 `--help`
 :   Display the list of options.
@@ -35,16 +42,18 @@ subcommands.
 :   This sequence delimits the list of options, the remaining arguments will be
     treated as positional arguments.
 
-    For instance, if placed after `'--'` argument, `'-'` can be used for
+    For instance, if placed after `--` argument, `-` can be used for
     specifying `stdin/stdout` as input or output files.
+
 
 ### piqi convert
 
 Usage: `piqi convert [options] [input file] [output file]`
 
-Converts structured data between `piq`, `wire`, `pb` and `json` formats.
+Converts structured data between `piq`, `json`, `xml`, `pb` (Protocol Buffers)
+formats.
 
-It also can be used to convert `.piqi` to `piq`, `wire`, or `json` formats by
+It also can be used to convert `.piqi` to `piq`, `json`, or `pib` formats by
 embedding Piqi specification into the output data stream.
 
 Piq encodings are described [here](/doc/encodings/).
@@ -58,16 +67,16 @@ output file name will be implicitly set to `<input file name>.<encoding name>`.
 Options:
 
 `-o <output file>`
-:   Alternative method for specifying output file; use `'-'` for `stdout`.
+:   Alternative method for specifying output file; use `-` for `stdout`.
 
-`-f piq|wire|pb|json|piq-json`
+`-f pb|json|xml|piq|pib`
 :   Specify input encoding. If not specified, input encoding will be chosen
     based on input file's extension.
 
-`-t piq|wire|pb|json|piq-json|xml`
+`-t pb|json|xml|piq|pib`
 :   Specify output encoding. `piq` encoding is used by default.
 
-`--piqtype <typename>`
+`--type <typename>`
 :   Specify the type of converted object when converting from `pb` or `json`
     encodings, as these formats do not contain information about types. For
     other input formats, this parameter defines the default object type.
@@ -76,7 +85,7 @@ Options:
     `<module name>/<type name>`.
 
     If an input `pb` or `json` stream contains embedded Piqi module(s), a
-    special `--piqtype piqi` value should be used.
+    special `--type piqi` value should be used.
 
 `--add-defaults`
 :   Add field default values while converting records.
@@ -89,8 +98,8 @@ Options:
 :   Include data definitions in a form of embedded Piqi modules into the data
     stream.
 
-    Piq data streams represented in `piq`, `wire` and `piq-json` formats can
-    contain Piqi modules embedded in the data stream.
+    Piq data streams represented in `piq`, `json` and `pib` formats can contain
+    Piqi modules embedded in the data stream.
 
     `--embed-piqi` flag tells `piqi convert` to embed all Piqi modules, which
     the input data depends on, into the output stream. Such dependencies include
@@ -104,8 +113,9 @@ Options:
     converted module will be included in the stream.
 
 `--json-omit-null-fields true|false`
-:   Whether to represent missing optional fields as JSON "null" fields or omit
-    them entirely from JSON output. Default setting is `true`.
+:   Whether to omit missing optional and empty repeated fields from JSON output
+    instead of representing them as {"field_name": null} and {"field_name", []}
+    JSON fields. Default setting is `true`.
 
 `--strict`
 :   Treat unknown and duplicate fields as errors when parsing JSON, XML and Piq
@@ -123,8 +133,8 @@ Checks .piq and .piqi validity.
 
 Returns 0 if the file is valid.
 
-`--piqtype <typename>`
-:   Specify the default objec type when reading data from .piq files.
+`--type <typename>`
+:   Specify the default object type when reading data from .piq files.
 
     `<typename>` should be a fully qualified Piqi typename of the form
     `<module name>/<type name>`.
@@ -136,6 +146,7 @@ Returns 0 if the file is valid.
 `-e <extension-name>`
 :   Automatically include [extension modules](/doc/piqi#extensionmodules)
     `<extension-name>` when loading .piqi files.
+
 
 ### piqi pp
 
@@ -151,7 +162,7 @@ respectively.
 Options:
 
 `-o <output file>`
-:   Alternative method for specifying output file; use `'-'` for `stdout`.
+:   Alternative method for specifying output file; use `-` for `stdout`.
 
 `--normalize-words`
 :   Normalize all words while pretty-printing: convert all "CamelCase" Piq words
@@ -159,6 +170,7 @@ Options:
 
 `--expand-abbr`
 :   Expand built-in syntax abbreviations. See Piq documentation for details.
+
 
 ### piqi json-pp
 
@@ -176,10 +188,11 @@ respectively.
 Options:
 
 `-o <output file>`
-:   Alternative method for specifying output file; use `'-'` for `stdout`.
+:   Alternative method for specifying output file; use `-` for `stdout`.
 
-`--indent` Use indentation instead of pretty-printing
-:   
+`--indent`
+:   Use indentation instead of pretty-printing
+
 
 ### piqi expand
 
@@ -189,14 +202,28 @@ Include all included `.piqi` and, by default, apply all extensions in order to
 get a single `.piqi` specifications from several dependent `.piqi` modules.
 
 `-o <output file>`
-:   Alternative method for specifying output file; use `'-'` for `stdout`.
+:   Alternative method for specifying output file; use `-` for `stdout`.
 
 `--includes-only`
 :   Expand only includes (don't expand extensions).
 
+`--functions`
+:   Removes embedded typedefs from function parameters and turns them into
+    correspondent top-level definitions.
+
+`--extensions`
+:   Only expand extensions and includes (this is the default behavior).
+
+`--all`
+:   Equivalent to specifying both `--extensions` and `--functions`.
+
+`--add-module-name`
+:   Add module name if it wasn't originally present
+
 `-e <extension-name>`
 :   Automatically include [extension modules](/doc/piqi#extensionmodules)
     `<extension-name>` when loading .piqi files.
+
 
 ### piqi to-proto
 
@@ -240,6 +267,7 @@ Options:
 :   Don't delete temporary files created during command execution. This option
     is useful for debugging.
 
+
 ### piqi light
 
 Usage: `piqi light [options] [<.piqi file>] [output-file]`
@@ -249,7 +277,7 @@ Prints `.piqi` file using [Piqi-light syntax](/doc/piqi/#piqilightsyntax).
 Options:
 
 `-o <output file>`
-:   Alternative method for specifying output file; use `'-'` for `stdout`.
+:   Alternative method for specifying output file; use `-` for `stdout`.
 
 ### piqi getopt
 
@@ -258,25 +286,25 @@ Usage: `piqi getopt [options] -- [<data arguments>]`
 Interprets command-line arguments as typed data, and outputs it in various
 formats.
 
-For description of command-line arugment syntax and the way how arguments are
+For description of command-line argument syntax and the way how arguments are
 parsed see correspondent [section](/doc/getopt/) of the current documentation.
 
 Options:
 
 `-o <output file>`
-:   Specify output file; use `'-'` for `stdout`. If no `-o` option is given,
+:   Specify output file; use `-` for `stdout`. If no `-o` option is given,
     `stdout` is used by default.
 
-`-t piq|wire|pb|json|piq-json|xml`
+`-t pb|json|xml|piq|pib`
 :   Specify output encoding. `piq` encoding is used by default.
 
-    Requires `--piqtype` option.
+    Requires `--type` option.
 
     If `-t` option is not used, Piq AST will be produced instead of the
     converted data object. This mode is useful for debugging and understanding
     how Piqi parses command-line arguments.
 
-`--piqtype <typename>`
+`--type <typename>`
 :   Specify the name of the expected data type.
 
     `<typename>` should be a fully qualified Piqi typename of the form
@@ -293,6 +321,31 @@ Options:
 
     (This option is applied only when `-t` option is used.)
 
+
+`--gen-extended-piqi-any`
+:   Use extended representation of `piqi-any` values in XML and JSON output.
+
+    When specified, an extended version of `piqi-any` representation is used in
+    the conversion result. In addition to the original JSON or XML value, it
+    includes Piqi type name (if known), Protobuf representation (if known or can
+    be derived), and a special marker indicating that this is an extended
+    piqi-any representation.
+
+    For example, this flag changes relevant portion of "piqi convert -t json
+    piqi.piqi" output from
+
+       "default": "required",
+
+    to
+
+       "default": {
+          "piqi_type": "piqi-any",
+          "type": "piqi/field-mode",
+          "protobuf": "CN+iipMB",
+          "json": "required"
+        },
+
+
 ### piqi call
 
 Usage: piqi call [options] \<URL\> -- [call arguments]
@@ -304,7 +357,7 @@ converts them into a Protobuf-encoded data object and executes a Piqi-RPC remote
 function call.
 
 In addition to calling a remote function, it can fetch Piqi specifications of
-the remote serivice and print them in several formats: Piqi (`--piqi` flag),
+the remote service and print them in several formats: Piqi (`--piqi` flag),
 Piqi-light (`-p` flag) and getopt-style help for remote functions (`-h` flag).
 
 `<URL>` is either an HTTP URL or a path to a local executable. HTTP URL must
@@ -312,7 +365,7 @@ start with `http://` or `https://`. Everything else will be considered as a path
 to a local command, i.e. *local URL*.
 
 In case of HTTP URL, a remote call will be performed by sending an HTTP `POST`
-requrest that contains input arguments in the requrest's body.
+request that contains input arguments in the request's body.
 
 In case of a *local \<URL\>*, the correspondent program will be started, the
 function will be called using Piqi-RPC-over-pipe protocol, and the program will
@@ -328,12 +381,12 @@ More details can be found in Piqi-RPC [documentation](/doc/piqi-rpc/).
 Options:
 
 `-o <output file>`
-:   Specify output file; use `'-'` for `stdout`. If no `-o` option is given,
+:   Specify output file; use `-` for `stdout`. If no `-o` option is given,
     `stdout` is used by default.
 
     However, `stderr` is always used for printing all kinds of errors.
 
-`-t piq|wire|pb|json|piq-json|xml`
+`-t pb|json|xml|piq|pib`
 :   Specify encoding for the function's output parameters. `piq` encoding is
     used by default.
 
@@ -342,7 +395,7 @@ Options:
     service.
 
 `--piqi-all`
-:   Similar to `--piqi`, but print the Piqi module that defines the serivice and
+:   Similar to `--piqi`, but print the Piqi module that defines the service and
     all its dependencies.
 
 `p` | `--piqi-light`
@@ -353,11 +406,13 @@ Options:
     functions. Printed help is automatically generated from the Piqi
     specification.
 
+
 ### piqi version
 
-Usage: \`Usage: piqi version
+Usage: `Usage: piqi version`
 
 Prints Piqi version.
+
 
 ### Environment variables
 
@@ -365,13 +420,12 @@ Prints Piqi version.
 :   Definition of this environment variable has the same effect as specifying
     `--trace` command-line option.
 
-`PIQI_DIR`
-:   Specifies directory path where to search for `.piqi` or `.proto.piqi`
-    specifications.
+`PIQI_PATH`
+:   Specifies directory paths where to search for `.piqi` or `.proto.piqi`
+    specifications. Several paths can be specified separated by `:`.
 
-    Note that only one directory path can be specified, since Piqi was designed
-    to use global namespace. If you need to specify several paths use `-I`
-    command-line option.
+    You can also specify search paths using the `-I` command-line option.
+
 
 Known problems
 --------------
@@ -388,6 +442,7 @@ Known problems
     Protocol Buffers source distribution:
 
         piqi of-proto google/protobuf/unittest_custom_options.proto
+
 
 Examples
 --------

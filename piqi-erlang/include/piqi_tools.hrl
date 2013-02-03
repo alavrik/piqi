@@ -33,8 +33,9 @@
 %
 % json_omit_null_fields
 %
-%      Omit missing optional fields from JSON output instead of representing
-%      them as {"field_name": null} JSON fields (default = true)
+%      Omit missing optional and empty repeated fields from JSON
+%      output instead of representing them as {"field_name": null} and
+%      {"field_name", []} JSON fields (default = true)
 %
 % use_strict_parsing
 %

@@ -43,6 +43,9 @@ separated from a value by whitespace, e.g.
     -c 10
     --c-long 10
 
+Support for "glueing" long options with their values using `=` character (e.g.
+`--long-option=10`) will be added in future versions.
+
 Short options start with `-` character followed by one letter. When short
 options are grouped together, each option is treated as if it was specified
 separately. For example,
@@ -99,23 +102,21 @@ Examples
 
 Parsing values of built-in types:
 
-    piqi getopt --piqtype bool -- true
-    piqi getopt --piqtype int -- -10
-    piqi getopt --piqtype float -- -0.inf
+    piqi getopt --type bool -- true
+    piqi getopt --type int -- -10
+    piqi getopt --type float -- -0.inf
 
-    piqi getopt --piqtype string -- foo     # parsing words as strings
-    piqi getopt --piqtype string -- foo\ bar
-    piqi getopt --piqtype string -- '"\tfoo\x20\u0045"'
-    piqi getopt --piqtype string -- "привет"
-    piqi getopt --piqtype binary -- '"\x00ab\tcd\xff\xfe"'
-
-    piqi getopt --piqtype piq-word -- foo-bar
+    piqi getopt --type string -- foo     # parsing words as strings
+    piqi getopt --type string -- foo\ bar
+    piqi getopt --type string -- '"\tfoo\x20\u0045"'
+    piqi getopt --type string -- "привет"
+    piqi getopt --type binary -- '"\x00ab\tcd\xff\xfe"'
 
 This example shows a `piqi getopt` shell command invocation for parsing the
 object of type `person/person`. This type is defined in Piqi examples
 [here](/examples/#person_piqi).
 
-    piqi getopt -t json --add-defaults --piqtype person/person -- \
+    piqi getopt -t json --add-defaults --type person/person -- \
         --name "J. Random Hacker" \
         --id 0 \
         --email "j.r.hacker@example.com" \
@@ -146,7 +147,7 @@ option, can be any of JSON, XML, Protocol Buffers or Piq.
 Alternatively, a standard Piq syntax can be used for field and option names. It
 is can be shorter and slightly more readable in some case.
 
-    piqi getopt --piqtype person/person -- \
+    piqi getopt --type person/person -- \
         .name "Joe User" \
         .id 1 \
         .phone [ "(444) 123 45 67" ] \

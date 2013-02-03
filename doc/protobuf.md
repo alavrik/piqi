@@ -85,7 +85,7 @@ For natively supported languages Piqi provides a way for a user to map any
 user-defined type to an arbitrary language type by providing conversion
 functions.
 
-Protobul Buffers do not provide such ability.
+Protobuf Buffers do not provide such ability.
 
 *TODO: example*
 
@@ -98,8 +98,8 @@ intuitive.
 The table below represents correspondence between Piqi and Protocol Buffers
 primitive types.
 
-  Piqi type(s)     Proto type
-  ---------------- ------------
+  Piqi type(s)     Protobuf type
+  ---------------- ---------------
   bool             bool
   string           string
   binary           bytes
@@ -111,12 +111,10 @@ primitive types.
   uint32-fixed     fixed32
   int64-fixed      sfixed64
   uint64-fixed     fixed64
-  proto-int32      int32
-  proto-int64      int64
+  protobuf-int32   int32
+  protobuf-int64   int64
   float, float64   double
   float32          float
-  piq-text         string
-  piq-word         string
 
 Note that mapping of Piqi primitive types to Protobuf types is not hard-coded.
 It it specified in the Piqi self-specification file:
@@ -149,7 +147,7 @@ Considering these problems and implementation difficulties for non-OO languages,
 Piqi takes a different approach to extensions. It is compatible with Protocol
 Buffers way of representing extension fields in binary format and extensions
 definitions can be converted between Piqi and Protocol Buffer formats gaining
-equivalent types in run-time.
+equivalent types at run-time.
 
 Basically, Piqi extensions are applied and resolved at compile time rather than
 at run-time as in Protobuf. For example, if a Piqi extension defines an extra
@@ -184,6 +182,10 @@ One Piqi extension can be applied to several data definitions at a time.
     inheritance: instead of having common properties defined in a parent record,
     which is then "inherited" from other records, Piqi extensions explicitly
     specify which properties are shared among several records.
+
+*That said, we recognize that Protobuf-style dynamic record extensions can still
+be useful for certain applications and Piqi may support them eventually.*
+
 
 #### Extensions of imported definitions
 
@@ -243,7 +245,7 @@ There's no direct support for service definitions in Piqi, but it is possible to
 define functions. The way functions are defined in Piqi makes them incompatible
 with Protobuf service definitions:
 
--   Unlike Prototocol Buffers functions, Piqi functions are not grouped in
+-   Unlike Protocol Buffers functions, Piqi functions are not grouped in
     services. This way functions defined in a Piqi module share common
     namespace.
 
@@ -268,26 +270,26 @@ During conversion each `<path>/<x>.piqi` file is converted to
 `<path>/<x>.piqi.proto` file.
 
 Names of all type definitions are resolved to fully-qualified Protocol Buffers
-names respecting Protocol Buffers package which is defined in 'proto-package'
-top-level field.
+names respecting Protocol Buffers package which is defined in
+'.protobuf-package' top-level field.
 
-Optional `.proto-package <package-name>` top-level string field will be
+Optional `.protobuf-package <package-name>` top-level string field will be
 converted to Protobuf package name.
 
-Repeated `.proto-custom <package-name>` top-level `text` field will be copied to
-the output `.proto` file without modification. This field can be used to specify
-Protobuf-specific options such as "java\_package" or "optimize\_for".
+Repeated `.protobuf-custom <package-name>` top-level `text` field will be copied
+to the output `.proto` file without modification. This field can be used to
+specify Protobuf-specific options such as "java\_package" or "optimize\_for".
 
 Examples:
 
-    .proto-custom # option java_package = "com.example.foo";
+    .protobuf-custom # option java_package = "com.example.foo";
 
     % the same definition that uses string instead of verbatim text syntax:
-    .proto-custom "option java_package = \"com.example.foo\";"
+    .protobuf-custom "option java_package = \"com.example.foo\";"
 
-    .proto-custom # option optimize_for = SPEED;
+    .protobuf-custom # option optimize_for = SPEED;
 
-Several `.proto-custom` fields can be defined in one Piqi module.
+Several `.protobuf-custom` fields can be defined in one Piqi module.
 
 #### Includes
 
@@ -313,13 +315,16 @@ See the type mapping table above.
     Sometimes it is necessary to override Piqi names and specify a custom Proto
     name for a type. For example, Piqi type name can conflict with one of Proto
     keywords. In such case, a custom Proto name can be specified using
-    `.proto-name "<ocaml name>"` field next to the original `.name <name>`
+    `.protobuf-name "< name>"` field next to the original `.name <name>`
     entry. (This feature also works for field names and option names.)
 
     For those Piqi fields or options which do not specify names, Proto name is
     derived from Piqi type name for that field.
 
 -   Records are mapped to Protobuf messages
+
+    Optional `.protobuf-packed` property is used to specify that *packed*
+    encoding should be used for fields with primitive types.
 
     There are several nuances.
 
@@ -337,6 +342,9 @@ See the type mapping table above.
 
 -   List type is mapped to Protobuf message containing a single repeated `elem`
     field: `repeated elem = 1`.
+
+    Optional `.protobuf-packed` property is used to specify that *packed*
+    encoding should be used for list elements of primitive types.
 
 -   Since there are no type aliases in Protocol Buffers, Piqi aliases are
     unwound to their original types which then mapped to related Protobuf types.
@@ -365,7 +373,7 @@ where is `<x>` is a path name.
 Protobuf imports are converted to Piqi imports and each import is given a name
 which is derived from imported file name.
 
-Protobuf package name is converted to `proto-package` top-level field.
+Protobuf package name is converted to `.protobuf-package` top-level field.
 
 Names of all Proto type definitions are converted to valid Piqi names:
 underscores are converted to `-` and each external definition's name is
@@ -391,6 +399,15 @@ See the type mapping table above.
     min/max code constraints for extensions, etc.)
 
 -   Enums are mapped to Piqi `enum` definitions directly.
+
+    For extra convenience, Piqi enum definitions support an optional
+    `.protobuf-prefix <prefix>`. This property defines a prefix that is
+    automatically added to each enum option's name in `.proto` modules converted
+    from `.piqi` using `piqi to-proto` command. This mechanism helps to deal
+    with the fact that Protobuf-generated enum definitions do not form a C++
+    namespace meaning that enum constants are defined directly in the outer
+    namespace (it was announced that this problem will be fixed in
+    protobuf-2.5).
 
 -   Groups
 
@@ -420,7 +437,7 @@ Examples
 
     `piqi to-proto` command produces Protocol Buffers specification (`.proto`)
     from Piqi self-specification
-    ([piqi.org/piqi.piqi](/self-definition/#piqi_piqi)). After that, a C++
+    ([piqi.piqi](/self-definition/#piqi_piqi)). After that, a C++
     program reads Piqi self-specification represented as a binary object and
     prints it out in Protocol Buffers text format.
 

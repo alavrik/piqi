@@ -3,14 +3,13 @@ Overview
 
 Piqi includes a data serialization system for Erlang. It can be used for
 serializing Erlang values in 4 different formats: Google Protocol Buffers,
-[JSON](/doc/encodings/#jsonencoding), [XML](/doc/encodings/#xmlencoding) and
-[Piq](/doc/piq/).
+[JSON](/doc/encodings/#json), [XML](/doc/encodings/#xml) and [Piq](/doc/piq/).
 
 A typical Piqi usage scenario involves the following steps:
 
 **1. Build and install Piqi application for Erlang**
 :   There are two ways to install Piqi for Erlang: build it from sources, or use
-    a [rebar](https://github.com/basho/rebar) package.
+    a [rebar](https://github.com/rebar/rebar) package.
 
     The installation instructions are available
     [here](https://github.com/alavrik/piqi/blob/dev/INSTALL.erlang).
@@ -114,8 +113,9 @@ an additional third argument representing a list of serialization options:
     %
     % json_omit_null_fields
     %
-    %      Omit missing optional fields from JSON output instead of representing
-    %      them as {"field_name": null} JSON fields (default = true)
+    %      Omit missing optional and empty repeated fields from JSON
+    %      output instead of representing them as {"field_name": null} and
+    %      {"field_name", []} JSON fields (default = true)
     %
     % use_strict_parsing
     %
@@ -141,7 +141,7 @@ Both compilers accept the following command-line parameters.
     default value is `true`.
 
 -   `--gen-defaults` -- generate default constructors for each generated data
-    type. The constructurs are Erlang functions named as
+    type. The constructors are Erlang functions named as
     `default_<type-name>/0`.
 
 -   `-C <dir>` -- specify output directory for the generated `.erl` and `.hrl`
@@ -217,17 +217,16 @@ The table below represents correspondence between Piqi primitive types and
 Erlang types.
 
 (Mapping between Piqi and Protocol Buffers primitive type is documented
-[here](http://piqi.org/doc/protobuf/#primitivetypes)).
+[here](/doc/protobuf/#primitivetypes)).
 
-  Piqi type(s)                                                            Erlang type                Protobuf type(s)
-  ----------------------------------------------------------------------- -------------------------- --------------------------------------------------
-  bool                                                                    boolean()                  bool
-  string                                                                  string() | binary()        string
-  binary                                                                  binary()                   bytes
-  int, int32, int64, int32-fixed, int64-fixed, proto-int32, proto-int64   integer()                  sint32, sing64, sfixed32, sfixed64, int32, int64
-  uint, uint32, uint64, uint32-fixed, uint64-fixed                        non\_negative\_integer()   uint32, uing64, fixed32, fixed64
-  float, float64, float32                                                 number()                   double, float
-  piq-text, piq-word                                                      string() | binary()        string
+  Piqi type(s)                                                                    Erlang type                Protobuf type(s)
+  ---------------------------------------------------------------------------     -------------------------- --------------------------------------------------
+  bool                                                                            boolean()                  bool
+  string                                                                          string() | binary()        string
+  binary                                                                          binary()                   bytes
+  int, int32, int64, int32-fixed, int64-fixed, protobuf-int32, protobuf-int64     integer()                  sint32, sing64, sfixed32, sfixed64, int32, int64
+  uint, uint32, uint64, uint32-fixed, uint64-fixed                                non\_negative\_integer()   uint32, uing64, fixed32, fixed64
+  float, float64, float32                                                         number()                   double, float
 
 `string` and `float` types are treated slightly differently during serialization
 and deserialization. For instance, when serializing `float` value, it can be
@@ -465,9 +464,9 @@ Examples
 
     Piq interface compiler for Erlang (`piqic erlang`) produces Erlang parsers
     and generators from Piqi self-specification
-    ([piqi.org/piqi.piqi](/self-definition/#piqi_piqi)). After that, an Erlang
-    program reads (and writes back) Piqi self-specification represented as a
-    binary object.
+    ([piqi.piqi](/self-definition/#piqi_piqi)). After that, an Erlang program
+    reads (and writes back) Piqi self-specification represented as a binary
+    object.
 
     [tests/erlang\_piqi](http://github.com/alavrik/piqi/tree/dev/tests/erlang_piqi/)
 
@@ -475,7 +474,7 @@ Examples
 
     [examples/erlang-custom-types](http://github.com/alavrik/piqi/tree/dev/examples/erlang-custom-types/)
 
--   Examples of how to use Piqi with [rebar](https://github.com/basho/rebar)
+-   Examples of how to use Piqi with [rebar](https://github.com/rebar/rebar)
 
     [https://github.com/alavrik/piqi-erlang-examples](https://github.com/alavrik/piqi-erlang-examples)
 

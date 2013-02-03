@@ -3,8 +3,7 @@ Overview
 
 Piqi includes a data serialization system for OCaml. It can be used for
 serializing OCaml values in 4 different formats: Google Protocol Buffers,
-[JSON](/doc/encodings/#jsonencoding), [XML](/doc/encodings/#xmlencoding) and
-[Piq](/doc/piq/).
+[JSON](/doc/encodings/#json), [XML](/doc/encodings/#xml) and [Piq](/doc/piq/).
 
 A typical Piqi usage scenario involves the following steps:
 
@@ -115,8 +114,9 @@ constructed using `Piqirun_ext.make_options`:
      *
      * json_omit_null_fields
      *
-     *      Omit missing optional fields from JSON output instead of representing
-     *      them as {"field_name": null} JSON fields (default = true)
+     *      Omit missing optional and empty repeated fields from JSON
+     *      output instead of representing them as {"field_name": null} and
+     *      {"field_name", []} JSON fields (default = true)
      *
      * use_strict_parsing
      *
@@ -142,7 +142,7 @@ Both compilers accept the following command-line parameters.
     "CamelCase" turns into "camelCase". The default value is `true`.
 
 -   `--gen-defaults` -- generate default constructors for each generated data
-    type. The constructurs are OCaml functions named as `default_<type-name>()`.
+    type. The constructors are OCaml functions named as `default_<type-name>()`.
 
 -   `-C <dir>` -- specify output directory for the generated `.ml` files.
 
@@ -212,18 +212,17 @@ The table below represents correspondence between Piqi primitive types and OCaml
 types.
 
 (Mapping between Piqi and Protocol Buffers primitive type is documented
-[here](http://piqi.org/doc/protobuf/#primitivetypes)).
+[here](/doc/protobuf/#primitivetypes)).
 
-  Piqi type(s)                                            OCaml type   Protobuf type(s)
-  ------------------------------------------------------- ------------ ------------------------------------------
-  bool                                                    bool         bool
-  string                                                  string       string
-  binary                                                  string       bytes
-  int, uint                                               int          sint32, uint32
-  int32, uint32, int32-fixed, uint32-fixed, proto-int32   int32        sint32, uint32, sfixed32, fixed32, int32
-  int64, uint64, int64-fixed, uint64-fixed, proto-int64   int64        sint64, uint64, sfixed64, fixed64, int64
-  float, float64, float32                                 float        double, float
-  piq-text, piq-word                                      string       string
+  Piqi type(s)                                                    OCaml type   Protobuf type(s)
+  ----------------------------------------------------------      ------------ ------------------------------------------
+  bool                                                            bool         bool
+  string                                                          string       string
+  binary                                                          string       bytes
+  int, uint                                                       int          sint32, uint32
+  int32, uint32, int32-fixed, uint32-fixed, protobuf-int32        int32        sint32, uint32, sfixed32, fixed32, int32
+  int64, uint64, int64-fixed, uint64-fixed, protobuf-int64        int64        sint64, uint64, sfixed64, fixed64, int64
+  float, float64, float32                                         float        double, float
 
 If there is a need to add serialization support for other OCaml types, such as
 `char`, `nativeint` or `bigint`, refer to [Custom OCaml
@@ -291,12 +290,16 @@ OCaml types to Piqi types.
     **required** Piqi fields are mapped directly to OCaml record fields.
 
     **optional** Piqi fields of type `<t>` are mapped to fields with type
-    `option <t>`.
+    `<t> option`.
 
-    **optional** Piqi fields with specified default values are mapped to OCaml
-    fields in the same way as required fields. If a value for such field is not
-    defined in serialized object, it will be set to a default value during
-    deserializing. Also, see "Limitations" section.
+    **optional** Piqi fields with specified default values are mapped
+    to OCaml fields the same way as required fields unless
+    `.ocaml-optional` flag is specified in which case the field will
+    have type `<t> option`.
+
+    If a value of such field is not defined in serialized object, it
+    will be set to the default value during deserialization. Also, see
+    [Limitations](#limitations) section below.
 
     **optional** Piqi fields without type (i.e. *flags*) are mapped to `bool`
     OCaml fields. The value of the field will be set to `true` if the flag is
@@ -450,7 +453,7 @@ Examples
 
     Piq interface compiler for OCaml (`piqic ocaml`) produces OCaml parsers and
     generators from Piqi self-specification
-    ([piqi.org/piqi.piqi](/self-definition/#piqi_piqi)). After that, an OCaml
+    ([piqi.piqi](/self-definition/#piqi_piqi)). After that, an OCaml
     program reads (and writes back) Piqi self-specification represented as a
     binary object.
 
@@ -477,7 +480,7 @@ limitations.
 
     There is no way to skip default values when serializing an optional field
     since concrete value for that field must be always present in the OCaml
-    record. This behaviour may be optimized in the future, but at the moment, it
+    record. This behavior may be optimized in the future, but at the moment, it
     will produce somewhat excessive serialized representation for optional
     fields with default values.
 

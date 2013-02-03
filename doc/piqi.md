@@ -1,8 +1,13 @@
 Overview
 --------
 
-Piqi is a high-level data definition language for [Piq](/doc/piq/) and its
-encodings.
+Piqi is a universal high-level data definition language.
+
+At the moment, it works with 4 different [data formats](/doc/encodings/)
+including JSON, XML, Protocol Buffers and [Piq](/doc/piq/) and has mappings to
+[OCaml](/doc/ocaml/), [Erlang](/doc/erlang/) and [Protocol
+Buffers](/doc/protobuf/) `.proto` definitions.
+
 
 Below is a brief overview of Piqi features.
 
@@ -10,7 +15,7 @@ Below is a brief overview of Piqi features.
 
     primitive types:
     :   boolean, integer, single- and double-precision floating point number,
-        string (Unicode string), binary (byte array), piq-text (verbatim text)
+        string (Unicode string), binary (byte array)
 
     user defined types:
     :   record, variant ([tagged
@@ -30,8 +35,6 @@ Below is a brief overview of Piqi features.
     :   A module can *include* another module to reuse all of its type
         definitions, imports and extensions as if they where defined locally.
 
-    Both 'include' and 'import' mechanisms rely on elaborate module naming
-    scheme.
 
 -   Piqi supports type extensions and data schema evolution.
 
@@ -53,31 +56,43 @@ Below is a brief overview of Piqi features.
     can assign field numbers automatically. Piqi can also automatically assign
     `enum` values.
 
--   Piqi module *is* represented as Piq object.
 
-    Piqi language is based on Piq syntax and Piqi module structure is described
-    in a series of Piqi specifications.
+-   Piqi is self-defined and portable.
 
-    As a result, Piqi module can be turned into a Piq object by taking the
-    contents of the `.piqi` file, where the module is defined, and wrapping them
-    in `:piqi/piqi [ ... ]` container.
+    Piqi module data structure is [defined](/self-definition/) using the Piqi
+    language itself.
 
-    One of the benefits of such representation is the ability to serialize Piqi
-    modules in the same way as any other Piq data objects.
+    As a result, a Piqi module can be converted into a portable JSON, XML or
+    Protocol Buffers representation.
 
--   Piqi type definition language is extensible.
+    One of interesting Piqi properties is that the language implementation takes
+    its own high-level specification, written in Piqi, and parses the language
+    into AST without any hand-written parsing rules -- it is all fully
+    automated.
 
-    One of interesting Piqi properties is that Piqi language implementation
-    takes its own high-level specification, written in Piqi, and parses the
-    language into AST (which also serves as intermediate representation) without
-    any hand-written parsing rules -- it is all fully automated.
 
-    This mechanism allows easy extension of Piqi language. When adding new
-    features, there is no need to design new syntax elements, update parsing
-    code and transform AST into intermediate language. Also, new extensions are
-    typically transparent for the core Piqi implementation.
+-   The Piqi language is extensible.
 
-Piqi borrows many concepts from Google Protocol Buffers which at the moment is
+    The Piqi language is based on a general-purpose data representation language
+    called [Piq](/doc/piq/).
+
+    Now, let's look at the following three properties.
+
+    - Piqi module is just a data structure represented in Piq format (or any
+      other supported portable formats such as JSON), meaning that there's no
+      concrete language syntax.
+    - the Piqi module data structure is described using the same language
+    - the Piqi data definition language supports schema extensions in a
+      backward-compatible way
+
+    This means that once we extend the Piqi self-specification, we instantly
+    have those extensions in the language: there is no need to design new syntax
+    elements, update parsing code and transform AST into intermediate language.
+    Moreover, the new extensions are fully transparent from the core Piqi
+    implementation standpoint, because extensions are backward-compatible.
+
+
+Piqi borrows many concepts from Google Protocol Buffers which, at the moment, is
 much better documented than Piqi. It may be useful to get familiar with Protocol
 Buffers along with reading Piqi documentation.
 
@@ -85,8 +100,9 @@ For those who are familiar with Google Protocol Buffers, information about its
 compatibility with Piqi can be found on [this page](/doc/protobuf/).
 
 Some examples of Piqi specifications can be found [here](/examples/). The most
-complex Piqi specification example is the Piqi self-specification which is
-available [here](/self-definition/).
+complex Piqi specification example is the Piqi
+[self-specification](/self-definition/).
+
 
 Lexical conventions
 -------------------
@@ -95,8 +111,8 @@ The Piqi language described in the remaining part of the document is based on
 Piq syntax which is specified [here](/doc/piq/).
 
 In addition to general Piq rules, Piqi relies on some extra syntax elements,
-such as identifiers which are used for type names, field name, option names,
-etc.
+such as identifiers that are used for type names, field name, option names and
+so on.
 
 Piqi identifier has the following format:
 
@@ -104,30 +120,35 @@ Piqi identifier has the following format:
 
 Piqi identifiers are case-sensitive.
 
-*(Note, \`true\` and \`false\` are reserved for boolean literals -- they can not
-be used as identifiers.)*
-
 **NOTE:** use of underscore (`_`) characters in Piqi identifiers is not allowed.
 Hyphens (`-`) should be used instead.
+
+Two or more consecutive `-` characters are now allowed. Also, identifiers can
+not begin and end with `-`.
+
+\`true\` and \`false\` are reserved for boolean literals -- they can not be used
+as identifiers. As you will see in the following sections, this makes them the
+only keywords in the language.
+
 
 Modules
 -------
 
-Piqi modules are defined in non-empty files with `.piqi` extensions. Each
-`.piqi` file represents one Piqi module.
+Piqi modules are defined as non-empty files with `.piqi` extensions. A `.piqi`
+file represents one Piqi module.
 
 Piqi modules converted from Google Protocol Buffer specification normally have
 `.proto.piqi` file extension.
 
 `.piqi` and `.proto.piqi` are the only file extensions allowed for Piqi modules.
-Other extensions are not recognized by [Piqi tools](/doc/tools/). (When Piqi
-implementations resolves Piq types or Piqi module names it searches for files
+Other extensions are not recognized by [Piqi tools](/doc/tools/). (When the Piqi
+implementation resolves Piqi types and Piqi module names it searches for files
 with `.piqi` or `.proto.piqi` extensions using module search paths.)
 
-There are also several restrictions to `.piqi` file names since they are used as
-a part of Piqi module name. See the next section for details.
+There are also several restrictions to `.piqi` file names, because Piqi module
+names are usually derived from the file names. See the next section for details.
 
-Each Piqi module may contain the following entries:
+Each Piqi module can contain the following entries:
 
 -   module name
 
@@ -139,68 +160,93 @@ Each Piqi module may contain the following entries:
 
 -   type extension directives
 
+-   function definitions
+
+
+In addition, Piqi module can include one or more `custom-field` top-level
+properties. They are used to prevent "Unknown field" warning messages about
+fields that are not natively supported by the Piqi implementation. For example,
+including
+
+    .custom-field ocaml-name
+
+will tell [Piqi tools](/doc/tools/) to ignore properties like `.ocaml-name
+"foo"` as they are only meaningful to `piqic ocaml`.
+
+
 ### Module names
 
-Module names can be *local* or *global*. Global names contain an Internet domain
-name as their first component. Local names rely on module's location in the
-local filesystem.
+Piqi module names consist of two parts: *module path* and *local module name*.
+These parts usually directly correspond to where `.piqi` files are located in
+the filesystem.
 
-Modules with global names must explicitly define them using
-`.module <module-name>` directive at a top-level element of the `.piqi` file.
-For example:
+For example, module named (or referred as)
 
-    .module piqi.org/piqi
+    foo/bar
 
-Modules with local names (i.e. that doesn't start with a domain name) must not
-define module name inside the module specification.
+Would be usually defined in file
 
-Module names consist of two main parts: *module path* and *piqi file basename*.
+    foo/bar.piqi
 
-*Module path* for local modules is a local filesystem path leading to a `.piqi`
-file.
+As you can see, the *local module name* is derived from the file name by
+stripping the `.piqi` extension.
 
-*Module path* for global modules looks like a full URL that start with a domain
-name.
+A module can explicitly specify its name. For example:
 
-*Piqi file basename* is the name of a `.piqi` file with removed extensions.
+    .module foo/bar
 
-Module names can be formally described using the following specification:
+However, explicitly defined module names are rarely useful in practice. Most of
+time, they will be automatically derived from the location of the `.piqi` file.
 
-    <module-name> :: <global-module-name> | <local-module-name>
+Piqi module names can be formally described as follows:
 
-    <global-module-name> :: <domain-name> '/' <local-module-name>
+    <module-name> :: <path> | <local-module-name>
 
-    <local-module-name> ::= (<path> '/')? <piqi-file-basename>
-
-    <domain-name> ::= lowercased Internet domain name as defined by RFC 1034
-
-    <piqi-file-basename> ::= ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '-' '_']*
+    <local-module-name> ::= ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '-' '_']*
 
     <path> ::=   <path-element>
                | <path> '/' <path-element>
 
     <path-element ::= ['a'-'z' 'A'-'Z' '0'-'9' '-' '_' '.']+
 
-**Examples:**
+    NOTE: a <local-module-name> can not contain both `-` and `_` characters.
 
-    % global module names:
-    piqi.org/piqi
+When the Piqi implementation looks for included or imported `.piqi` modules by
+module names, it looks for files according to configured *search paths* and
+trying the following rules one by one:
 
-    example.com/2.1.2-rc1/mod
+1.  `<search-path>/<path>/<local-module-name>.piqi`
+2.  `<search-path>/<path>/<local-module-name>.proto.piqi`
+3.  `<search-path>/<path>/<local-module-name>.piqi`
 
-    example.com/58d3d4c1d/mod
+    with `-` replaced with `_` in <local-module-name>
 
-    % local module name (corresponds to foo/v1.2/mod.piqi file in the local
-    % filesystem):
-    foo/v1.2/mod
+4.  `<search-path>/<module-name>.proto.piqi`
+
+    with `-` replaced with `_` in <local-module-name>
+
+5.  same as 1 but `_` replaced with `-` in <path>
+6.  same as 2 but `_` replaced with `-` in <path>
+7.  same as 3 but `_` replaced with `-` in <path>
+8.  same as 4 but `_` replaced with `-` in <path>
+
+Rules 1--4 means that Piqi allows interchangeable use of `_` and `-` in local
+module names. The recommended style is to use `_` in `.piqi` file names and `-`
+in imported and included module names. See also the [Style
+guidelines](#styleguidelines) section below.
+
+Rules 5--6 account for additional module path normalization, during which path
+is changed to include only `-` characters. This may be useful, for example, for
+using module names as a part of URL strings.
+
 
 ### Module imports
 
 *Imports* provides a way to use types defined in other Piqi modules in local
 type definitions.
 
-In order to use other module's types, the module must be first "imported" using
-`import` directive.
+In order to use other module's types, the module must be first "imported" by
+using the `import` directive.
 
 Import directive defines the following properties:
 
@@ -208,16 +254,13 @@ Import directive defines the following properties:
 
     Name of the imported module.
 
-    The last component of the imported module name -- *piqi file basename* --
-    will be used as *import name* unless *import name* is specified explicitly.
+-   import name (optional)
 
--   import name
+    This is a local shorthand for referring types defined in the imported module
+    as `<import-name>/<type-name>`.
 
-    When specified, it overrides the default import name derived from imported
-    module's name.
-
-Names for types from the imported module have the following form:
-`<import-name>/<type-name>`. See "Record" section below for more details.
+    When not specified, it is implicitly defined as the *local module name*
+    (i.e. the last path segment) of the imported module.
 
 **Examples:**
 
@@ -231,15 +274,16 @@ Names for types from the imported module have the following form:
         .name bar
     ]
 
+
 ### Module includes
 
 *Include* mechanism provide a way to reuse type definitions, imports, extensions
-and other top-level entries from another module as if they where defined
+and all other top-level entries from another module as if they where defined
 locally.
 
 A module can include several other modules to combine their contents together.
 
-`include` directive is used to specify module inclusion. It has only one
+The `include` directive is used to specify module inclusion. It has only one
 property which the name of the included module.
 
 **Example:**
@@ -247,6 +291,7 @@ property which the name of the included module.
     .include [
         .module example.com/foo
     ]
+
 
 ### Extension modules
 
@@ -258,33 +303,33 @@ All operations applicable to regular Piqi modules are also supported for
 extension modules. The difference is that extension modules can be included
 automatically in the modules which they extend.
 
-For instance, "piqic ocaml" and "piqic erlang" Piqi compilers try to
+For instance, `piqic ocaml` and `piqic erlang` Piqi compilers try to
 automatically include `<m>.ocaml.piqi` and `<m>.erlang.piqi` respectively for
-each loaded module `<m>.piqi`.
+every loaded module `<m>.piqi`.
 
 Extension modules are useful for working with third-party Piqi or Protocol
 Buffers definitions which, for example, may not define necessary OCaml- or
 Erlang-specific properties in the first place.
 
-Using this mechanism, it is possible to take any set of Piqi modules and write
-custom extensions for them without modifying the original files. After that,
-extensions can be loaded automatically for all recursively included and imported
-Piqi modules.
+By using this mechanism, it is possible to take any set of Piqi modules and
+write custom extensions for them without modifying the original files. After
+that, extensions can be loaded automatically for all recursively included and
+imported Piqi modules.
+
 
 Primitive types
 ---------------
 
 `bool`
-:   ...
+:   Boolean type.
 
 `int`
 :   `int` type represents signed integers. Supported range for this type is
-    implementation- specific (i.e. depends on a certain Piqi mapping) but
+    implementation-specific (i.e. depends on a certain Piqi mapping) but
     normally it should be capable for holding at least 32-bit signed integers.
 
-    The maximum range for `int` type is the following:
-
-    `(min(signed 64-bit integer), max(unsigned 64-bit integer))`.
+    The maximum supported range for `int` type is is defined as `(min(signed
+    64-bit integer), max(unsigned 64-bit integer))`.
 
     In addition to `int`, there are some other variations of integer types
     supported by default. They are defined as *aliases* of `int` type in Piqi
@@ -294,8 +339,7 @@ Primitive types
 
     Below is the full list of Piqi integer types. Their names reflect some
     properties associated with their binary encoding and language mappings. See
-    for example, description for [Piqi--Protocol Buffers
-    mapping](/doc/protobuf/).
+    for example, [Piqi--Protocol Buffers mapping](/doc/protobuf/).
 
     -   `int`
 
@@ -317,10 +361,6 @@ Primitive types
 
     -   `uint64-fixed`
 
-    -   `proto-int32`
-
-    -   `proto-int64`
-
     If unsure which integer type to use, it is recommended to use `int`.
 
     `uint` can be a little bit more efficient compared to `int` when serialized
@@ -330,7 +370,7 @@ Primitive types
     they guarantee the integer ranges associated with these types (32-bit and
     64-bit).
 
-`float`, `float64`
+`float` and `float64`
 :   IEEE 754 double-precision floating point.
 
 `float32`
@@ -342,32 +382,48 @@ Primitive types
 `binary`
 :   Byte array (sequence of bytes).
 
-`piq-word`
-:   Unicode string represented as *word literal* in Piq notation.
 
-`piq-text`
-:   Unicode string represented as *verbatim text literal* in Piq notation.
+Special built-in types
+----------------------
+
+There are two special built-in types:
+
+-   `piqi-any`
+
+     This type represents dynamically typed values in one of the supported
+     portable data format (Protobuf, JSON, XML) or completely untyped JSON and
+     XML.
+
+     At low level, `piqi-any` maps to the `any` record defined in the Piqi
+     [self-specification](/self-definition/).
+
+     You can find some Piq examples [here](/examples/#piqi-any_piq).
+
+-   `piqi`
+
+     Values of this type are embedded Piqi modules. This type can not be used as
+     a valid *type name* inside type definitions (at least yet). However, it is
+     recognized by Piqi [command-line tools](/doc/tools/) and used in Piq
+     format.
+
 
 User-defined types
 ------------------
 
-Each user-defined defines a new type name which must be unique within the
-module's local namespace and must not override names of the Piqi built-in
-primitive types (e.g. `int`, `float`, `string`).
-
-The local namespace includes all names of Piqi *imports* and all names of
-user-defined types.
+A user-defined defines a new type name that must be unique within the module's
+local namespace and must not override names of the Piqi built-in primitive types
+(e.g. `int`, `float`, `string`).
 
 Type name must be a valid `identifier`.
 
+
 ### Record
 
-Record type is a container data type which specifies zero or more *fields* or
-*flags*.
+Record is a composite data type that contains zero or more *fields* or *flags*.
 
-Fields define the following set of properties:
+Fields can have the following properties:
 
--   name
+-   `name` (optional)
 
     Field name is represented as a valid Piqi `identifier`.
 
@@ -376,13 +432,13 @@ Fields define the following set of properties:
 
     Field names must be unique across all fields for a given record.
 
--   type name
+-   `type` (optional)
 
     Field type name refer to one of the following:
 
     -   Built-in type. E.g. `int`, `string`, `bool`, etc.
 
-    -   Another type defined within the local Piqi module.
+    -   Another type defined within the current module or included module.
 
     -   Type imported from another module. In this case *type name* will have
         the following format: `<import-name>/<type-name>`.
@@ -391,31 +447,40 @@ Fields define the following set of properties:
     field doesn't have associated value, its presence in the record is
     meaningful by itself. Therefore the name -- *flag*.
 
-    Flags must be defined with `optional` field mode.
+    Flags must be defined with `optional` field *mode*.
 
--   mode
+-   `mode` (optional)
 
-    Field mode be specified as `required`, `optional` or `repeated`. As follows
-    from their names:
+    Field mode can be specified as one of `required`, `optional` or `repeated`.
+    As follows from their names:
 
     -   `required` means that exactly one field instance must be present in the
         record. This is the default.
 
-    -   `optional` field *may* be present in the record but not more than once.
+    -   `optional` field *may* be present or missing in the record.
 
     -   `repeated` means that *zero or more* instances of the field may be
         present in the record.
 
--   default value
+-   `default` (optional)
 
-    For `optional` fields it is possible to specify *default value* which can be
+    For `optional` fields it is possible to specify *default value* that can be
     used as a default field's value when the field is missing in the record
-    representation. The actual use of default value depends on particular Piqi
+    representation. The actual use of default value depends on a particular Piqi
     mapping.
 
-    Default values are represented as Piq value of the field's type.
+    Default values are represented as Piq values of the field's type, e.g.
+    integer literals for `int` type.
 
--   wire-packed flag for binary encoding
+-   `code` (optional, used with Protocol Buffer binary format)
+
+    Usually small integer \> 1 uniquely identifying a field within a record. It
+    must either defined for all fields or for none of the fields. When not
+    defined, Piqi implicitly generates codes by enumerating the fields in the
+    order they are defined in the record. See [Piqi--Protocol Buffers
+    mapping](/doc/protobuf/) for details.
+
+-   `protobuf-packed` (optional, used with Protocol Buffer binary format)
 
     Repeated fields of primitive numeric types (integers, floats, booleans and
     enums) can be represented in so called "packed" format. This format was
@@ -425,7 +490,18 @@ Fields define the following set of properties:
     possible because primitive numeric types are self-delimited.
 
     In order to use such "packed" representation for a repeated field, specify
-    `.wire-packed` as a field property.
+    `.protobuf-packed` as a field property.
+
+-   `json-name` (optional, used with JSON format)
+
+    Field name used when data is encoded in JSON. When not specified explicitly,
+    it is derived from Piqi identifiers by replacing `-` characters with `_`.
+
+-   `deprecated` (optional, experimental)
+
+    Use this flag to mark fields that are no longer used or supported. Usually,
+    such *deprecated* fields are kept around in the spec because of various
+    considerations related to backward compatibility.
 
 **Examples:**
 
@@ -501,17 +577,18 @@ Fields define the following set of properties:
             .name p
             .type int
             .repeated
-            .wire-packed
+            .protobuf-packed
         ]
     ]
 
+
 ### Variant
 
-*Variant* type, also known as [tagged
+The *Variant* type, also known as [tagged
 union](http://en.wikipedia.org/wiki/Tagged_union), specifies a set of *options*.
 Only one *option* instance can form a variant value at a time.
 
-For example, a well-known *enum* type is an example of variant type.
+For example, a well-known *enum* type is a simple example of variant type.
 
 Options define *name* and *type name* properties in the same manner as fields
 for the *record type*. The same rules and considerations apply for *option name*
@@ -551,10 +628,11 @@ and *option type name* as for *field name* and *field type name* (see above).
         ]
     ]
 
+
 ### Enum
 
-Enum type is a degenerated case of a variant type. Enum defines options
-similarly to variant, but enum options don't have types.
+Enum is a degenerated case of the variant type. Enum defines options similarly
+to variant, but enum options don't have types and can't hold values.
 
 **Examples:**
 
@@ -572,6 +650,7 @@ similarly to variant, but enum options don't have types.
         .option [ .name mar ] % ...
     ]
 
+
 ### List
 
 *List type* represents a list of elements where all elements have the same type.
@@ -580,7 +659,7 @@ similarly to variant, but enum options don't have types.
 
     % list of v
     .list [
-        % NOTE: "-list" suffix is not mandatory, however it is a style convention
+        % NOTE: "-list" suffix is conventional and not strictly required
         .name v-list
         .type v
     ]
@@ -596,10 +675,10 @@ similarly to variant, but enum options don't have types.
         .type int-list
     ]
 
+
 ### Alias
 
-*Alias* defines an alias for some other type which can be one of user-defined,
-built-in or imported types.
+*Alias* defines an alias for some other user-defined, built-in or imported type.
 
 **Examples:**
 
@@ -620,20 +699,20 @@ built-in or imported types.
         .type uint64
     ]
 
-In Piqi aliases are also used to assign static properties for types. For
+In Piqi, aliases are also used to assign static properties for types. For
 instance, all Piqi integer types other than `int` itself are defined as aliases
 of the built-in `int` type. For example, this is the definition of `int64`:
 
     .alias [
         .name int64
         .type.int
-        .wire-type.zigzag-varint    % type of binary (wire) encoding
-        .proto-type "sint64"        % correspondent Protocol Buffers type
+        .protobuf-type "sint64"            % correspondent Protocol Buffers type
+        .protobuf-wire-type.zigzag-varint  % type of binary (wire) encoding
     ]
 
-At the moment there aren't many properties implemented by Piqi, but the concept
-itself is very powerful. For example, this is how custom formatting functions,
-if implemented, could be applied using aliases:
+At the moment, there aren't many properties implemented by Piqi, but the concept
+itself is very powerful. For example, this is how custom formatting functions
+could be defined using aliases:
 
     .alias [
         .name epoch-seconds
@@ -656,17 +735,18 @@ if implemented, could be applied using aliases:
         .format.sha1
     ]
 
+
 Extensions
 ----------
 
-Extensions mechanism allows to add more components and properties to Piqi
+The extensions mechanism allows to add more components and properties to Piqi
 entries.
 
 Extensions can be applied to user-defined types (including records, variants,
-enums, lists and aliaes), fields, options, functions, function parameters and
+enums, lists and aliases), fields, options, functions, function parameters and
 imports.
 
-Each extension has the following properties:
+Each extension can have the following properties:
 
 -   extension target
 
@@ -685,20 +765,18 @@ Each extension has the following properties:
 
     -   `.function <function name>`
 
-    Targets can be specified more than once. In such case, several entries will
-    be extended at once using the same extension entries.
+    Targets can be specified more than once. In such case, several target
+    entries will be extended using the same extension entries.
 
     Target must refer to a locally defined Piqi entry or entries included from
-    other modules using `include` directive.
+    other modules via `include`.
 
     Extensions of imported definitions are not supported.
 
-    Extensions can not be applied to built-in types.
-
 -   actual extension entry
 
-    Extension entry specifies an object which will be added to the extended type
-    definition as if it was defined there natively.
+    Extension entry specifies an object that will be added to the *extended*
+    entry as if it was defined there natively.
 
     For example, a *field* definition would be a typical extension entry for
     *record* type. Similarly, *option* entries would be typically used for
@@ -750,12 +828,12 @@ target specification:
 In the same manner we can add arbitrary properties to variants, lists, aliases,
 functions and imports.
 
-There is a good example that demonstrates the power of Piqi extensions. Piqi
+There is a good example that demonstrates the power of Piqi extensions. The Piqi
 implementation uses this mechanism to extend its own specification with extra
 features. For example, the following specification extends Piqi to support
 Protocol Buffers properties:
 
-[piqi.proto.piqi](/self-definition/#piqi_proto_piqi)
+[piqi.protobuf.piqi](/self-definition/#piqi_protobuf_piqi)
 
 Similarly, support for OCaml-specific Piqi properties is provided by these two
 specifications:
@@ -763,12 +841,13 @@ specifications:
 [piqi.ocaml.piqi](http://github.com/alavrik/piqi/blob/dev/piqic/piqi.ocaml.piqi),
 [piqi.ocaml-extensions.piqi](http://github.com/alavrik/piqi/blob/dev/piqic/piqi.ocaml-extensions.piqi)
 
+
 Functions
 ---------
 
-Piqi `function` directive provides a way to define abstract functions. Functions
-were originally introduced for [Piqi-RPC](/doc/piqi-rpc/), which relies heavily
-on high-level function definitions.
+The `function` directive provides a way to define abstract functions. Functions
+were originally introduced for [Piqi-RPC](/doc/piqi-rpc/) that relies on
+high-level function definitions.
 
 Each defined function has a name and 3 types of parameters: *input*, *output*
 and *error*, all of which are optional.
@@ -782,8 +861,8 @@ Such function represents a named synchronous call where the call is meaningful
 by itself and no parameters are passed in any direction.
 
 Input and output function parameters correspond to an arbitrary (primitive or
-compound) named Piqi data types. That is a Piqi function takes a data structure
-as the input parameter, and returns a data structure as the output parameter.
+composite) named Piqi data types. That is, Piqi function takes data structure as
+input parameter, and returns a data structure as output parameter.
 
 Examples:
 
@@ -858,13 +937,15 @@ inline without having to define them separately:
     ]
 
 For each defined *input*, *output* or *error* parameter, a correspondent Piqi
-alias or a compund type gets implicitly defined. Records, variants, lists and
+alias or a composite type gets implicitly defined. Records, variants, lists and
 enums are generated for inline parameter definitions, aliases are generated for
 all other types that are referred by name.
 
-For *input* parameters, the name of the alias or the compound type becomes
-`<function-name>-input`. Similarly, names for *output* and *error* parameters
-become `<function-name>-output` and `<function-name>-error` respectively.
+In case of *input* parameters, the name of the alias or the user-defined type
+becomes `<function-name>-input`. Similarly, names for *output* and *error*
+parameters become `<function-name>-output` and `<function-name>-error`
+respectively.
+
 
 Piqi-light syntax
 -----------------
@@ -874,20 +955,20 @@ for Piqi type definitions. It provides a compact way of displaying type
 definitions while omitting all non-significant properties that may be present in
 the original Piqi specification.
 
-Original Piqi syntax relies on Piq file format which is optimized for editing
+The original Piqi syntax is based on Piq that is optimized for editing
 convenience and extensibility. But the same properties that make Piqi/Piq such a
 great format for editing and representing all the features, also make it
-substantially verbose and uniform. Both verbosity and uniformity makes it harder
+substantially verbose and uniform. Both verbosity and uniformity make it harder
 to consume Piqi for informational purposes. Piqi takes a lot of display space
-and doesn't provide more prominent syntax for important properties such as names
-and types which, in the absence of concrete syntax, get the same visual
+and doesn't provide more prominent syntax for important properties such as field
+names and types which, in the absence of concrete syntax, get the same visual
 treatment as other less important language properties.
 
 On the other hand, in practice, type definitions are rarely modified once
 initially written. Therefore it is feasible to have a type definition syntax
 that is optimized for reading.
 
-These considerations lead to the idea that maybe it is practical to have two
+These considerations lead to the idea that, maybe, it is practical to have two
 highly expressive syntaxes: one being optimized for reading, and another one --
 for writing and extensibility.
 
@@ -909,24 +990,25 @@ For examples of Piqi-light syntax visit [Examples](/examples/) and
 [Self-definition](/self-definition/) pages. All `.piqi` files there have a tab
 where they are displayed in Piqi-light syntax.
 
+
 Style guidelines
 ----------------
 
-### Names
+### Type, field and option names
 
 Although Piqi doesn't enforce certain naming style, it is recommended to use
-lowercase identifiers instead of "CamelCase" style.
+lowercase identifiers instead of "CamelCase"-style identifiers.
 
 This way they are more readable and will retain readability while being combined
 with some future Piqi features.
 
-Overall, high-level Piqi type definitions should resemble grammar rules.
-Although the default Piqi syntax is fairly verbose, using lower-case identifiers
-will leave the possibility to format Piqi definitions in a concise notation.
+The guiding principle for this rule is that high-level Piqi type definitions
+should resemble grammar rules.
 
 Piqi pretty-printer from [Piqi tools](/doc/tools/) can be used to convert
 "CamelCase" identifiers to "camel-case" (`piqi pp --normalize <.piqi> file`
 command).
+
 
 ### Names for `list` type
 
@@ -938,19 +1020,54 @@ For example, if we wanted to define a list of type `t`, we would name the type
 
 Using `*-list` names for non-list types should be avoided.
 
-This is necessary for one of possible Piqi future features, where it would
-recognize `*-list` type names as list types automatically removing the need for
-defining `list` types manually.
+One of possible Piqi future features can rely on that: piqi would recognize
+`*-list` type names as list types automatically removing the need for defining
+`list` types manually.
+
+
+### Naming of `.piqi` files
+
+for naming `.piqi` files, it is better use lowercase and `_` as word separator.
+
+As with identifiers, the choice of this convention is determined by the fact
+that is is more universal and popular among various programming languages (and
+URLs!) than "MixedCase" naming schemes.
+
+
+### A note about directory paths
+
+It is typical for `.piqi` modules to be located in nested directory hierarchies.
+When this is the case, directory paths become parts of module names. For
+example, if a Piqi module `bar.piqi` is defined inside directory `foo`, other
+modules may refer to it as `foo/bar`.
+
+Piqi doesn't impose any restriction on how directories should be named. However,
+future normalization schemes will likely automatically turn directory names to
+lowercase with `-` being a word separators.
+
+Considering future normalization, it is recommenced to name directories using
+lowercase characters with `-` character as a word separator. This way directory
+name normalization won't be needed.
+
 
 ### Code formatting
 
-Since Piqi is based on Piq syntax, general [Piq](/doc/piq/) formatting rules
-apply.
+Since Piqi is based on Piq syntax, general [Piq](/doc/piq/#styleguidelines)
+formatting rules apply.
 
-Notes
------
 
--   For the sake of better readability and modularity Piqi doesn't support
+Miscellaneous Design Notes
+--------------------------
+
+-   For the sake of better readability and portability Piqi doesn't support
     nested definitions.
 
+-   As you may noticed, Piqi type definitions are strictly monomorphic. As with
+    nested definitions, this design decision was driven by portability and
+    simplicity of the Piqi language and its potential mappings. There are many
+    programming languages that don't support parametric polymorphism. On the
+    other hand, the world of practical protocols and portable data is
+    surprisingly monomorphic (with sequences being the only exception). This, in
+    turn, means that the absence of polymorphism at the data definition level is
+    unlikely to ever become a serious practical limitation.
 

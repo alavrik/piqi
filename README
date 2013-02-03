@@ -87,14 +87,15 @@ FILES
   INSTALL.erlang        instructions for building Piqi for Erlang
   INSTALL.ocaml         instructions for building Piqi for OCaml
   INSTALL.windows       instructions for building Piqi on Windows
-  setenv.sh             installation configuration file
-  setenv-mingw.sh       build configuration file for Windows/MinGW
+  setenv.sh             environment configuration for running tests
+  setenv-mingw.sh       environment configuration for Windows/MinGW builds
   LICENSE               license
   NOTICE                copyright notice
   AUTHORS               Piqi authors
   CHANGES               release history
   VERSION               current version
-  Makefile              main Makefile
+  configure             configure script
+  Makefile              top-level Makefile
   make/                 makefiles and build scripts
   deps/                 third-party components (see NOTICE for details)
   piqi-camlp4/          Piqi syntax extensions for OCaml
@@ -108,6 +109,7 @@ FILES
   piqi-rpc/             Piqi-RPC -- an RPC-over-HTTP system for Erlang
   examples/             examples
   tests/                tests for various piqi functionality; see tests/README
+  doc/                  Piqi documentation
   editors/              text editor plugins for .piq and .piqi files
   src/                  makes rebar happy (rebar is a build tool for Erlang)
 

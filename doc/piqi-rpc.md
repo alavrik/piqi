@@ -62,18 +62,18 @@ Piqi-RPC user guide
 General Piqi-RPC usage scenario for an Erlang service implementer works as
 follows.
 
-​1. Build and install Piqi-RPC Erlang application and dependencies.
+1. Build and install Piqi-RPC Erlang application and dependencies.
 
-​2. Describe service data and functions using the [Piqi](/doc/piqi/) data
+2. Describe service data and functions using the [Piqi](/doc/piqi/) data
 definition language.
 
-​3. Call `piqic-erlang-rpc` Piqi compiler to generate serialization/
+3. Call `piqic-erlang-rpc` Piqi compiler to generate serialization/
 deserialization functions and server stubs for Erlang.
 
-​4. Implement server callback functions (i.e. the actual service
+4. Implement server callback functions (i.e. the actual service
 implementation).
 
-​5. Start the `piqi_rpc` Erlang application and register the new Piqi-RPC
+5. Start the `piqi_rpc` Erlang application and register the new Piqi-RPC
 service.
 
 The following sections describe each step in detail.
@@ -81,7 +81,7 @@ The following sections describe each step in detail.
 ### Getting Piqi-RPC
 
 Piqi-RPC can be built and installed from source code or it can be installed as a
-[rebar](https://github.com/basho/rebar) package.
+[rebar](https://github.com/rebar/rebar) package.
 
 #### Piqi-RPC source code
 
@@ -469,17 +469,8 @@ the running service.
 
 ### Known limitations
 
-Below is the list of known limitaitons in the existing implementation of
-Piqi-RPC. Some of them will be [addressed](http://piqi.org/roadmap) in the next
-couple of months as a part of Piqi-0.5.7 development.
-
--   No warnings on unknown and duplicate fields
-
-    In the existing implementation, there is no way to return or even log a
-    warning when unknown or duplicate fields are detected in Piqi-RPC requests.
-
-    Having a mode when such conditions are treated as errors would be also very
-    userful.
+Below is the list of known limitations in the existing implementation of
+Piqi-RPC.
 
 -   No logging of user requests
 
