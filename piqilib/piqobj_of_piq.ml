@@ -146,12 +146,28 @@ let parse_bool (x :piq_ast) = match x with
   | o -> error o "boolean constant expected"
 
 
-let parse_string (x :piq_ast) =
+let parse_string ?piq_format (x :piq_ast) =
   let unicode_error s =
       error s "string contains non-unicode binary data"
   in
+  let check_piq_format () =
+    match piq_format, x with
+      | Some `word, `word _
+      | Some `word, `raw_word _ -> (); (* ok *)
+      | Some `word, `text _ ->
+          error x "word literal expected instead of verbatim text"
+      | Some `word, _ (* various string literals *) ->
+          warning x "word literal expected instead of quoted string"
+      | None, `word _ ->
+          error x "quoted string literal expected instead of word"
+      | Some `text, `word _ ->
+          error x "verbatim text or string literal expected instead of word"
+      | _ -> ()
+  in
   match x with
-    | `ascii_string s | `utf8_string s | `text s | `word s -> s
+    | `ascii_string s | `utf8_string s | `text s | `word s ->
+        check_piq_format ();
+        s
     | `raw_binary s ->
         if Piq_lexer.is_utf8_string s
         then s
@@ -235,7 +251,10 @@ let find_piqtype name =
 
 
 (* idtable implemented as map: string -> 'a *)
-let rec parse_obj0 ~try_mode (t: T.piqtype) (x: piq_ast) :Piqobj.obj =
+let rec parse_obj0
+      ?(piq_format: T.piq_format option)
+      ~try_mode
+      (t: T.piqtype) (x: piq_ast) :Piqobj.obj =
   (* fill the location DB *)
   let r f x = reference f x in
   let rr f t x = reference (f t) x in
@@ -244,7 +263,7 @@ let rec parse_obj0 ~try_mode (t: T.piqtype) (x: piq_ast) :Piqobj.obj =
     | `int -> parse_int x
     | `float -> `float (r parse_float x)
     | `bool -> `bool (r parse_bool x)
-    | `string -> `string (r parse_string x)
+    | `string -> `string (reference (parse_string ?piq_format) x)
     | `binary -> `binary (r parse_binary x)
     | `any -> `any (r parse_any x)
     (* custom types *)
@@ -252,9 +271,10 @@ let rec parse_obj0 ~try_mode (t: T.piqtype) (x: piq_ast) :Piqobj.obj =
     | `variant t -> `variant (rr (parse_variant ~try_mode) t x)
     | `enum t -> `enum (rr (parse_enum ~try_mode) t x)
     | `list t -> `list (rr parse_list t x)
-    | `alias t -> `alias (rr parse_alias t x)
+    | `alias t -> `alias (reference (parse_alias t ?piq_format) x)
 
-and parse_obj ?(try_mode=false) t x = reference (parse_obj0 ~try_mode t) x
+and parse_obj ?(try_mode=false) ?piq_format t x =
+  reference (parse_obj0 ~try_mode ?piq_format t) x
 
 
 and parse_typed_obj ?piqtype x = 
@@ -286,7 +306,7 @@ and try_parse_obj f t x =
     (* NOTE, XXX: try-parsing of unlabeled `any always succeeds *)
     | _ ->
         let depth' = !depth in
-        try Some (parse_obj t x ~try_mode:true)
+        try Some (parse_obj t x ~try_mode:true ?piq_format:f.T.Field#piq_format)
         with
           (* ignore errors which occur at the same parse depth, i.e. when
            * parsing everything except for lists and records which increment
@@ -452,7 +472,8 @@ and parse_required_field f loc name field_type l =
         end
     | x::tail ->
         check_duplicate name tail;
-        parse_obj field_type x, rem
+        let obj = parse_obj field_type x ?piq_format:f.T.Field#piq_format in
+        obj, rem
 
 
 and equals_name name alt_name x =
@@ -520,7 +541,8 @@ and parse_optional_field f name field_type default l =
         end
     | x::tail ->
         check_duplicate name tail;
-        Some (parse_obj field_type x), rem
+        let obj = Some (parse_obj field_type x ?piq_format:f.T.Field#piq_format) in
+        obj, rem
 
 
 (* parse repeated variant field allowing variant names if field name is
@@ -541,7 +563,7 @@ and parse_repeated_field f name field_type l =
         in List.rev accu, List.rev rem
     | l ->
         (* use strict parsing *)
-        let res = List.map (parse_obj field_type) res in
+        let res = List.map (parse_obj field_type ?piq_format:f.T.Field#piq_format) res in
         res, rem
 
 
@@ -719,7 +741,8 @@ and parse_list_option options x =
 and parse_typed_option (options:T.Option.t list) f (x:piq_ast) :Piqobj.Option.t =
   let option = List.find f options in
   let option_type = some_of option.T.Option#piqtype in
-  O#{ t = option; obj = Some (parse_obj option_type x) }
+  let obj = Some (parse_obj option_type x ?piq_format:option.T.Option#piq_format) in
+  O#{ t = option; obj = obj }
 
 
 and parse_enum ~try_mode t x =
@@ -739,14 +762,21 @@ and parse_list t = function
 
 and do_parse_list t l =
   let obj_type = some_of t.T.Piqi_list#piqtype in
-  let contents = List.map (parse_obj obj_type) l in
+  let contents = List.map (parse_obj obj_type ?piq_format:t.T.Piqi_list#piq_format) l in
   L#{ t = t; obj = contents }
 
 
 (* XXX: roll-up multiple enclosed aliases into one? *)
-and parse_alias t x =
+and parse_alias ?(piq_format: T.piq_format option) t x =
+  (* upper-level setting overrides lower-level setting *)
+  let this_piq_format = t.T.Alias#piq_format in
+  let piq_format =
+    if this_piq_format <> None
+    then this_piq_format
+    else piq_format
+  in
   let piqtype = some_of t.T.Alias#piqtype in
-  let obj = parse_obj piqtype x in
+  let obj = parse_obj piqtype x ?piq_format in
   A#{ t = t; obj = obj }
 
 

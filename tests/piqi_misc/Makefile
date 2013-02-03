@@ -19,7 +19,7 @@ test_piqi:
 
 # test that piqtype-core.piqi can parse itself
 test_piqtype_core:
-	cat piqtype-core.piqi | sed -e 's!\.module.*!(:piqtype-core/typedef)!' >piqtype-core.piq
+	cat piqtype-core.piqi | sed -e 's!\.module.*!(:piqtype-core/typedef)!;s!.piq-format.word!!' >piqtype-core.piq
 	piqi check piqtype-core.piq
 
 

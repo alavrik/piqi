@@ -21,6 +21,7 @@
         .name name
         .type string
         .required
+        .piq-format.word
     ]
     .field [
         .type field
@@ -36,11 +37,13 @@
         .name name
         .type string
         .optional
+        .piq-format.word
     ]
     .field [
         .name type
         .type string
         .optional
+        .piq-format.word
     ]
     .field [
         .name mode
@@ -65,6 +68,7 @@
         .name name
         .type string
         .required
+        .piq-format.word
     ]
     .field [
         .type option
@@ -80,11 +84,13 @@
         .name name
         .type string
         .optional
+        .piq-format.word
     ]
     .field [
         .name type
         .type string
         .optional
+        .piq-format.word
     ]
 ]
 
