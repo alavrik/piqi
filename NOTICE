@@ -1,6 +1,6 @@
 
 The Piqi project
-Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
 This distribution includes software originally developed by Anton Lavrik as a
 part of the Piqi project (http://piqi.org).
@@ -129,7 +129,7 @@ xmlm
         Streaming XML input/output library for OCaml written by
         Daniel C. Bünzli.
 
-        Location: deps/xmlm-1.0.2
+        Location: deps/xmlm-1.1.1
         Homepage: http://erratique.ch/software/xmlm
         License: BSD
 

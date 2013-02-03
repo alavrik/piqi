@@ -20,10 +20,10 @@ cd google/protobuf
 
 	#protoc --include_imports -odescriptor.proto.pb descriptor.proto
 	protoc --include_imports -odescriptor.proto.pb descriptor.proto.piqi.proto
-	piqi convert --piqtype descriptor/file-descriptor-set -t piq descriptor.proto.pb
+	piqi convert --type descriptor/file-descriptor-set -t piq descriptor.proto.pb
 	piqi convert -t pb descriptor.proto.pb.piq
 	cmp descriptor.proto.pb descriptor.proto.pb.piq.pb
-	piqi convert --piqtype descriptor/file-descriptor-set -t piq descriptor.proto.pb.piq.pb
+	piqi convert --type descriptor/file-descriptor-set -t piq descriptor.proto.pb.piq.pb
 	cmp descriptor.proto.pb.piq descriptor.proto.pb.piq.pb.piq
 	#protoc --decode=google.protobuf.FileDescriptorSet descriptor.proto < descriptor.proto.pb.piq.pb >/dev/null
 	protoc --decode=google.protobuf.file_descriptor_set descriptor.proto.piqi.proto < descriptor.proto.pb.piq.pb >/dev/null
@@ -83,7 +83,7 @@ rm l
 
 
 piqi of-proto --leave-tmp-files google/protobuf/unittest_enormous_descriptor.proto 
-piqi convert --piqtype google/protobuf/descriptor/file-descriptor-set -f pb -t pb google/protobuf/unittest_enormous_descriptor.proto.pb 
+piqi convert --type google/protobuf/descriptor/file-descriptor-set -f pb -t pb google/protobuf/unittest_enormous_descriptor.proto.pb 
 cmp google/protobuf/unittest_enormous_descriptor.proto.pb*
 
 

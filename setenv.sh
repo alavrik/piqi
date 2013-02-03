@@ -1,25 +1,28 @@
-
-# "prefix" path for installing "piqi" and "piqic" executables
-export PIQI_PREFIX=/usr/local
+# run this script if you want to run tests; otherwise, use ./configure
 
 
-# "prefix" path for installing Piqi OCaml libraries; if not set, the OCaml
-# installation's library path (i.e. `ocamlc -where`) will be used
-export PIQI_OCAML_PREFIX=
-
-
-#
-# don't change the settings below -- they are necessary for the build process
-#
-
+# base build directory
 export PIQI_ROOT="`pwd`"
 
-# directory for temporary files required for the build
+# temporary build directory
 export PIQI_BUILD="$PIQI_ROOT/build"
 
-# path to piqi and piqic (required for tests)
+# path to piqi and piqic executables
 export PATH="$PIQI_ROOT/bin:$PATH"
 
-# path to .piqi files (required for tests)
-export PIQI_DIR="$PIQI_ROOT"
+# path to .piqi files
+export PIQI_PATH="$PIQI_ROOT"
+
+
+# this is for backward compatibility with older packaging scripts that were
+# created before we added ./configure script
+if [ ! -f Makefile.config ]
+then
+        ./configure
+        if [ $? -ne 0 ]
+        then
+                echo "./configure command failed" 1>&2
+                exit 1
+        fi
+fi
 

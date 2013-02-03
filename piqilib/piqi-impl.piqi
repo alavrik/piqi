@@ -1,5 +1,10 @@
 
-.include [ .module piqi.org/piqi-lang ]
+.include [ .module piqi/piqi-lang ]
+
+% we need OCaml names and built-in types definitions that map to OCaml types
+% correctly
+.include [ .module piqic/piqi.ocaml ]
+.include [ .module piqic/piqi-lang.ocaml ]
 
 
 .extend [
@@ -20,7 +25,7 @@
 
 
 .extend [
-    (.typedef record variant alias list)
+    (.typedef record variant enum alias list)
 
     .with.field [
         .name parent
@@ -45,9 +50,12 @@
 .extend [
     .typedef piqi
 
-    .with.field [ .name extended-piqdef .type piqdef .repeated ]
-    .with.field [ .name resolved-piqdef .type piqdef .repeated ]
-    .with.field [ .name imported-piqdef .type piqdef .repeated ]
+    .with.field [ .name extended-typedef .type typedef .repeated ]
+    .with.field [ .name func-typedef .type typedef .repeated ]
+    .with.field [ .name extended-func-typedef .type typedef .repeated ]
+
+    .with.field [ .name resolved-typedef .type typedef .repeated ]
+    .with.field [ .name imported-typedef .type typedef .repeated ]
 
     .with.field [ .name resolved-import .type import .repeated ]
     .with.field [ .name extended-import .type import .repeated ]
@@ -58,7 +66,7 @@
     .with.field [ .name included-piqi .type piqi .repeated ]
 
     .with.field [ .name original-piqi .type piqi .optional ]
-    .with.field [ .name ast .type ast .optional ]
+    .with.field [ .name ast .type piq-ast .optional ]
 ]
 
 
@@ -67,26 +75,26 @@
 
     .with.field [
         .name resolved-input
-        .type piqdef
+        .type typedef
         .optional
     ]
 
     .with.field [
         .name resolved-output
-        .type piqdef
+        .type typedef
         .optional
     ]
 
     .with.field [
         .name resolved-error
-        .type piqdef
+        .type typedef
         .optional
     ]
 ]
 
 
 .extend [
-    (.typedef alias record variant list)
+    (.typedef alias record variant enum list)
 
     % if type definition is a function parameter, i.e. was defined inside
     % function definition
@@ -98,43 +106,47 @@
 
 
 .extend [
-    .typedef ast
+    (.typedef alias list field option)
 
-    % These two token types are used only in several special cases, and can't be
-    % represented in Piq text format directly.
-
-    .with.option [
-        % Raw word -- a valid utf8 Piq word: may be parsed as either of these:
-        % word, bool, number, string, binary
-
-        .name raw-word
-        .type word
+    .with.field [
+        .type piqtype
+        .optional
     ]
-    .with.option [
-        % Raw binary -- just a sequence of bytes: may be parsed as either binary
-        % or utf8 string
+]
 
-        .name raw-binary
-        .type binary
-    ]
+
+.variant [
+    .name piqtype
+
+    % user-defined types
+    .option [ .type typedef ]
+
+    % built-in types
+    .option [ .type piqi-type ]
+]
+
+
+.alias [
+    .name piq-ast
+
+    % type doesn't matter, because, this field is never represented in other
+    % formats
+    .type bool
+
+    % associating this type with OCaml's type
+    .ocaml-type "Piq_ast.ast"
 ]
 
 
 .extend [
     .typedef any
 
-    % These fields are used for processing default values represented as JSON or
-    % XML data structures
-
     .with.field [
-        .name type
-        .ocaml-name "typename"
-        .type word
-        .optional
-    ]
+        % this field is here to avoid serialization of Piqobj intermediate
+        % representation; basically it is a reference to Piqobj.any object in
+        % the Piqi_objstore
 
-    .with.field [
-        .name ref % reference to JSON or XML value/parse tree
+        .name ref
         .type int
         .optional
     ]
@@ -152,6 +164,66 @@
         .name alt-name
         .type word
         .optional
+    ]
+]
+
+
+.extend [
+    % XXX: think of generating these things implicitly by piqicc inside each
+    % record definition
+    %
+    % NOTE: this field is treated very specially -- see piqi_wire.ml,
+    % piqobj_of_piq.ml ...
+
+    (.typedef
+        record field variant option enum alias list piqi import function
+        extend include
+    )
+
+    .with.field [
+        .name unparsed-piq-ast
+        .type uint
+        .optional
+    ]
+]
+
+
+.record [
+    % internally-used data structure for defining association between piqi-type
+    % and pib element's wire code in .pib format
+    %
+    % XXX: consder moving to piqi/piqi.pib.piqi once pib becomes less
+    % experimental and useful for a broader audience
+
+    .name pib-typehint
+
+    .field [
+        % this field should be always present in the first position and contain
+        % the string "piqi-type"; if it is present, but has a different value,
+        % it will be ignored
+
+        .name piqi-type
+        .type string
+
+        .code 1
+    ]
+
+    .field [
+        % fully-qualified piqi type name
+        .type type
+
+        .code 2
+    ]
+
+    .field [
+        % wire code associated with the type; this code is used for identifying
+        % elements in .pib stream; the range of the values is the same as the
+        % range of valid protobuf wire codes
+
+        .name code
+        .type uint
+
+        .code 3
     ]
 ]
 

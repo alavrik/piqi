@@ -1,5 +1,5 @@
 % examples of integer values
-:piqtype int
+(:int)
 
 0 -1 100 1_000_000_000 
 
@@ -33,8 +33,8 @@
 :int32-fixed -0x8000_0000
 :int32-fixed 0x7fff_ffff
 
-:proto-int32 -0x8000_0000
-:proto-int32 0x7fff_ffff
+:protobuf-int32 -0x8000_0000
+:protobuf-int32 0x7fff_ffff
 
 
 :uint64 0
@@ -50,6 +50,6 @@
 :int64-fixed -0x8000_0000_0000_0000
 :int64-fixed 0x7fff_ffff_ffff_ffff
 
-:proto-int64 -0x8000_0000_0000_0000
-:proto-int64 0x7fff_ffff_ffff_ffff
+:protobuf-int64 -0x8000_0000_0000_0000
+:protobuf-int64 0x7fff_ffff_ffff_ffff
 

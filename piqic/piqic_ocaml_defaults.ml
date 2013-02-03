@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -30,15 +30,18 @@ open Piqic_ocaml_types
 open Piqic_ocaml_out
 
 
-let gen_default_type ocaml_type wire_type x =
+let rec gen_default_type ocaml_type wire_type x =
   match x with
     | `any ->
         if !Piqic_common.is_self_spec
         then ios "default_any ()"
         else ios "Piqi_piqi.default_any ()"
-    | (#T.piqdef as x) ->
+    | `alias a when wire_type <> None ->
+        (* need special handing for wire_type override *)
+        gen_default_type a.A#ocaml_type wire_type (some_of a.A#piqtype)
+    | (#T.typedef as x) ->
         let modname = gen_parent x in
-        modname ^^ ios "default_" ^^ ios (piqdef_mlname x) ^^ ios "()"
+        modname ^^ ios "default_" ^^ ios (typedef_mlname x) ^^ ios "()"
     | _ -> (* gen parsers for built-in types *)
         let default = Piqic_common.gen_builtin_default_value wire_type x in
         let default_expr = iod " " [
@@ -54,8 +57,8 @@ let gen_default_type ocaml_type wire_type x =
         ]
 
 
-let gen_default_typeref ?ocaml_type ?wire_type (t:T.typeref) =
-  gen_default_type ocaml_type wire_type (piqtype t)
+let gen_default_piqtype ?ocaml_type ?wire_type (t:T.piqtype) =
+  gen_default_type ocaml_type wire_type t
 
 
 let gen_field_cons rname f =
@@ -66,16 +69,15 @@ let gen_field_cons rname f =
   in 
   let value =
     match f.mode with
-      | `required -> gen_default_typeref (some_of f.typeref)
-      | `optional when f.typeref = None -> ios "false" (* flag *)
-      | `optional when f.default <> None ->
-          let default = some_of f.default in
-          let default_str = String.escaped (some_of default.T.Any.binobj) in
+      | `required -> gen_default_piqtype (some_of f.piqtype)
+      | `optional when f.piqtype = None -> ios "false" (* flag *)
+      | `optional when f.default <> None && (not f.ocaml_optional) ->
+          let pb = Piqobj.pb_of_piqi_any (some_of f.default) in
+          let default_str = String.escaped pb in
           iod " " [
-            Piqic_ocaml_in.gen_parse_typeref (some_of f.typeref);
+            Piqic_ocaml_in.gen_parse_piqtype (some_of f.piqtype);
               ios "(Piqirun.parse_default"; ioq default_str; ios ")";
           ]
-
       | `optional -> ios "None"
       | `repeated ->
           if f.ocaml_array
@@ -115,18 +117,18 @@ let gen_enum e =
 
 let rec gen_option varname o =
   let open Option in
-  match o.ocaml_name, o.typeref with
+  match o.ocaml_name, o.piqtype with
     | Some mln, None ->
         gen_pvar_name mln
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
         iod " " [
-            ios "("; gen_default_typeref t; ios ":>"; ios varname; ios ")"
+            ios "("; gen_default_piqtype t; ios ":>"; ios varname; ios ")"
         ]
     | _, Some t ->
         let n = mlname_of_option o in
         iod " " [
               gen_pvar_name n;
-              ios "("; gen_default_typeref t; ios ")";
+              ios "("; gen_default_piqtype t; ios ")";
         ]
     | None, None -> assert false
 
@@ -143,12 +145,13 @@ let gen_variant v =
 
 let gen_alias a =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   iod " "
     [
       ios "default_" ^^ ios (some_of a.ocaml_name); ios "() =";
-      Piqic_ocaml_in.gen_convert_of a.typeref a.ocaml_type (
-        gen_default_typeref
-          a.typeref ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
+      Piqic_ocaml_in.gen_convert_of piqtype a.ocaml_type (
+        gen_default_piqtype
+          piqtype ?ocaml_type:a.ocaml_type ?wire_type:a.protobuf_wire_type;
       );
     ]
 
@@ -172,7 +175,7 @@ let gen_def = function
   | `alias t -> gen_alias t
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   let defs = List.map gen_def defs in
   if defs = []
   then iol []
@@ -184,4 +187,4 @@ let gen_defs (defs:T.piqdef list) =
 
 
 let gen_piqi (piqi:T.piqi) =
-  gen_defs piqi.P#resolved_piqdef
+  gen_defs piqi.P#resolved_typedef

@@ -1,11 +1,26 @@
-Piqi tests 
+Piqi tests
 ==========
 
-To build, run and re-run the tests, use "make"
+To build, run and re-run the tests:
+
+1. Setup the environment
+
+    cd ..
+    . setenv.sh
+    cd -
 
 
-NOTE: "boot_proto2piqi" is not originally a test. See boot_proto2piqi/README for
-details.
+2. Run the tests
+
+    make
+
+
+3. (optional) Run Erlang tests
+
+    make erlang
+
+    NOTE: Erlang tests depend on Piqi runtime library, which can be built by
+    running "make erlang" command from the top-level directory.
 
 
 Prerequisites
@@ -25,13 +40,4 @@ example, if Protobuf is installed to "/opt/local", the command will be:
 
 "piqi_proto" test requires access to Protobuf source directory. See
 piqi_proto/README for details.
-
-
-Erlang-specific tests
-=====================
-
-To run Erlang-specific tests, use "make erlang" command.
-
-Erlang tests depend on Piqi runtime library, which can be built by running
-"make erlang" command from the top-level directory of the current distribution.
 

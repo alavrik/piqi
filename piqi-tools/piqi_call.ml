@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -110,7 +110,7 @@ let init_piqi_common data =
   let piqi_list =
       List.map (fun x ->
           let buf = Piqirun.init_from_string x in
-          let piqi = Piq.piqi_of_wire buf in
+          let piqi = Piqi.piqi_of_pb buf in
           Piqi_db.add_piqi piqi;
           piqi
         ) bin_piqi_list
@@ -148,7 +148,7 @@ let get_http_piqi path =
 
 
 let find_function piqi name =
-  trace "piqi_call: find function %s\n" (quote name);
+  trace "piqi_call: find function %s\n" (U.quote name);
   try List.find (fun x -> x.T.Func.name = name) piqi.P#resolved_func
   with Not_found ->
     piqi_error ("server doesn't implement function: " ^ name)
@@ -165,7 +165,7 @@ let encode_input_data f args =
         trace "piqi_call: parsing arguments\n";
         (* XXX: C.resolve_defaults := true; *)
         let piqobj = Piqi_getopt.parse_args (piqtype :> T.piqtype) args in
-        let binobj = Piqobj_to_wire.gen_binobj piqobj in
+        let binobj = Piqobj_to_protobuf.gen_binobj piqobj in
         Some binobj
 
 
@@ -173,7 +173,7 @@ let decode_response f output =
   trace "piqi_call: decoding response\n";
   let piqobj_of_bin piqtype data =
     let buf = Piqirun.init_from_string data in
-    Piq.piqobj_of_wire (piqtype :> T.piqtype) buf
+    Piq.piqobj_of_protobuf (piqtype :> T.piqtype) buf
   in
   match f.T.Func#resolved_output, output with
     | None, `ok_empty -> `ok_empty
@@ -341,12 +341,6 @@ let gen_piqtype t =
   gen_typename (piqi_typename t)
 
 
-let gen_typeref (t:T.typeref) =
-  match t with
-    | `name x -> gen_typename x
-    | (#T.piqtype as t) -> gen_piqtype t
-
-
 let max_opt_len = ref 0
 let reset_padding () = max_opt_len := 0
 
@@ -359,7 +353,7 @@ let padded s =
   iol [ ios s; ios padding ]
 
 
-let gen_option_help typeref name getopt_letter getopt_doc =
+let gen_option_help piqtype name getopt_letter getopt_doc =
   let short =
     match getopt_letter with
       | None -> ios ""
@@ -368,9 +362,9 @@ let gen_option_help typeref name getopt_letter getopt_doc =
   let long = ios "--" ^^ ios name in
   let res = iol [ short; long ] in
   let res =
-    match typeref with
+    match piqtype with
       | None -> res
-      | Some t -> iol [ res; ios " "; gen_typeref t ]
+      | Some t -> iol [ res; ios " "; gen_piqtype t ]
   in
   let res =
     match getopt_doc with
@@ -384,15 +378,14 @@ let gen_option_help typeref name getopt_letter getopt_doc =
 
 let gen_default = function
   | None -> iol [] (* there is no default *)
-  | Some {T.Any.ast = Some ast} ->
+  | Some default ->
+      let ast = Piqobj.piq_of_piqi_any default in
       let str = Piq_gen.to_string ast ~nl:false in
       if String.contains str '\n' (* multiline? *)
       then
         ios " (default = ...)"
       else
         iol [ ios " (default = "; ios str; ios ")" ]
-  | _ ->
-      assert false
 
 
 let gen_field_mode = function
@@ -411,7 +404,7 @@ let gen_field x =
   let field_mode = gen_field_mode x.mode in
   iol [
     field_indent;
-    gen_option_help x.typeref (name_of_field x) x.getopt_letter x.getopt_doc;
+    gen_option_help x.piqtype (name_of_field x) x.getopt_letter x.getopt_doc;
     ios field_mode;
     gen_default x.default;
   ]
@@ -442,18 +435,17 @@ let gen_option x =
   let open O in
   iol [
     field_indent;
-    gen_option_help x.typeref (name_of_option x) x.getopt_letter x.getopt_doc;
+    gen_option_help x.piqtype (name_of_option x) x.getopt_letter x.getopt_doc;
   ]
 
 
-let gen_variant_options x =
-  let open V in
+let gen_options options =
   (* first run is to calculate padding *)
   let _ =
     reset_padding ();
-    List.map gen_option x.option
+    List.map gen_option options
   in
-  let options = List.map gen_option x.option in
+  let options = List.map gen_option options in
   iol [
     ios "\n\n";
     iod "\n" options;
@@ -465,23 +457,34 @@ let gen_variant name x =
   iol [
     gen_typename name;
     ios ", which is one of:";
-    gen_variant_options x;
+    gen_options x.option;
   ]
 
 
-let gen_enum = gen_variant
+let gen_enum name x =
+  let open E in
+  iol [
+    gen_typename name;
+    ios ", which is one of:";
+    gen_options x.option;
+  ]
 
 
 let gen_list x =
   let open L in
-  let typename = gen_typeref x.typeref in
+  let typename = gen_piqtype (some_of x.piqtype) in
   iol [
     ios "["; typename; ios " ...]";
-    match unalias (piqtype x.typeref) with
-      | `variant x | `enum x ->
+    match unalias (some_of x.piqtype) with
+      | `variant x ->
           iol [
             ios ", where "; typename; ios " is one of:";
-            gen_variant_options x;
+            gen_options x.V#option;
+          ]
+      | `enum x ->
+          iol [
+            ios ", where "; typename; ios " is one of:";
+            gen_options x.E#option;
           ]
       | _ ->
           iol []
@@ -501,7 +504,7 @@ let gen_def name t =
 let gen_input def =
   match def with
     | `alias x ->
-        let t = piqtype x.A#typeref in
+        let t = some_of x.A#piqtype in
         let name = piqi_typename t in
         gen_def name (unalias t)
     | _ -> gen_def "input" def
@@ -565,15 +568,19 @@ let run_call url =
     let piqi_list = get_piqi url in
     if !flag_piqi
     then
-      let piqi = Piq.original_piqi (last piqi_list) in
-      Piqi_pp.prettyprint_piqi ch piqi
+      let piqi = last piqi_list in
+      if !output_encoding = ""
+      then
+        Piqi_pp.prettyprint_piqi ch (Piq.original_piqi piqi)
+      else
+        writer ch (Piq.Piqi piqi)
+    else if !flag_piqi_all
+    then
+      List.iter (fun piqi -> writer ch (Piq.Piqi piqi)) piqi_list
     else if !flag_piqi_light
     then
       let piqi = last piqi_list in
       Piqi_light.gen_piqi ch piqi
-    else if !flag_piqi_all
-    then
-      List.iter (fun piqi -> writer ch (Piq.Piqi piqi)) piqi_list
     else if !flag_h
     then
       print_help ch (last piqi_list)

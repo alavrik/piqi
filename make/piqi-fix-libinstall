@@ -24,7 +24,7 @@ ln -s "$BASE/$1" "$BASE/$2"
 DEST="$BASE/piqi"
 
 # pieces to put there
-PARTS="ulex easy-format xmlm syntax runtime lib"
+PARTS="syntax runtime lib"
 
 
 # remove an old piqi lib installation directory

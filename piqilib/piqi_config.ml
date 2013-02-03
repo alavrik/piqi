@@ -1,5 +1,5 @@
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,19 +23,18 @@ let add_path x =
   paths := !paths @ [x]
 
 
-let piqi_dir =
-  try Some (Sys.getenv "PIQI_DIR")
-  with Not_found -> None
+(* TODO, XXX: what about Windows? Is ':' a valid separator there? *)
+let piqi_path =
+  try
+    let s = Sys.getenv "PIQI_PATH" in
+    let l = Piqi_util.string_split s ':' in
+    List.filter (fun s -> s <> "") l (* remove empty segments *)
+  with Not_found -> []
 
 
-(* set .piqi search path to contain CWD and $PIQI_DIR *)
+(* set .piqi search path to contain CWD and $PIQI_PATH *)
 let init_paths () =
-  let l =
-    match piqi_dir with
-      | None -> ["."]
-      | Some x -> ["."; x]
-  in
-  paths := l
+  paths := "." :: piqi_path
 
 
 let reset_paths () =
@@ -47,9 +46,9 @@ let reset_paths () =
  *)
 
 
-(* don't boot, i.e. don't include any of embedded or external boot file
- * definitions into piqi specification which is being processed *)
-let noboot = ref false
+(* don't include built-in type definitions into piqi specifications that are
+ * being processed *)
+let flag_no_builtin_types = ref false
 
 
 let flag_strict = ref false
@@ -73,4 +72,12 @@ let extensions = ref []
 
 let add_include_extension (name :string) =
   extensions := !extensions @ [ name ]
+
+
+(* for JSON and XML output: whether to generate piqi-any values using symbolic
+ * JSON and/or XML representation (this is the default) or use full piqi-any
+ * representation that wraps JSON or XML symbolic representation in a record
+ * that includes the value itself, plus protobuf representation of the value,
+ * typename and possibly something else *)
+let gen_extended_piqi_any = ref false
 

@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ let erlang_name n =
     then Piqi_name.normalize_name n
     else String.uncapitalize n
   in
-  dashes_to_underscores n
+  U.dashes_to_underscores n
 
 
 let erlname n =
@@ -61,7 +61,7 @@ let erlname_field x =
 
 let erlname_record x =
   let open Record in
-  (if x.erlang_name = None then x.erlang_name <- erlname x.name;
+  (if x.erlang_name = None then x.erlang_name <- erlname (some_of x.name);
    List.iter erlname_field x.field)
 
 
@@ -72,27 +72,27 @@ let erlname_option x =
 
 let erlname_variant x =
   let open Variant in
-  (if x.erlang_name = None then x.erlang_name <- erlname x.name;
+  (if x.erlang_name = None then x.erlang_name <- erlname (some_of x.name);
    List.iter erlname_option x.option)
 
 
 let erlname_enum x =
   let open Enum in
-  (if x.erlang_name = None then x.erlang_name <- erlname x.name;
+  (if x.erlang_name = None then x.erlang_name <- erlname (some_of x.name);
    List.iter erlname_option x.option)
 
 
 let erlname_alias x =
   let open Alias in
-  if x.erlang_name = None then x.erlang_name <- erlname x.name
+  if x.erlang_name = None then x.erlang_name <- erlname (some_of x.name)
 
 
 let erlname_list x =
   let open L in
-  if x.erlang_name = None then x.erlang_name <- erlname x.name
+  if x.erlang_name = None then x.erlang_name <- erlname (some_of x.name)
 
 
-let erlname_piqdef = function
+let erlname_typedef = function
   | `record x -> erlname_record x
   | `variant x -> erlname_variant x
   | `enum x -> erlname_enum x
@@ -100,8 +100,8 @@ let erlname_piqdef = function
   | `list x -> erlname_list x
 
 
-let erlname_defs (defs:T.piqdef list) =
-  List.iter erlname_piqdef defs
+let erlname_defs (defs:T.typedef list) =
+  List.iter erlname_typedef defs
 
 
 let erlname_func_param func_name param_name param =
@@ -114,8 +114,10 @@ let erlname_func_param func_name param_name param =
        x.A#erlang_name <- make_name ()
    | Some (`record x) ->
        x.R#erlang_name <- make_name ()
-   | Some (`variant x) | Some (`enum x) ->
+   | Some (`variant x) ->
        x.V#erlang_name <- make_name ()
+   | Some (`enum x) ->
+       x.E#erlang_name <- make_name ()
    | Some (`list x) ->
        x.L#erlang_name <- make_name ()
 
@@ -164,8 +166,8 @@ let rec erlname_piqi (piqi:T.piqi) =
      * overriden in erlname_defs *)
     erlname_functions piqi.P#resolved_func;
 
-    erlname_defs piqi.P#resolved_piqdef;
-    erlname_defs piqi.P#imported_piqdef;
+    erlname_defs piqi.P#resolved_typedef;
+    erlname_defs piqi.P#imported_typedef;
     erlname_imports piqi.P#resolved_import;
   end
 
@@ -259,23 +261,20 @@ let piqic (piqi: T.piqi) =
   Piqic_common.piqic_common piqi;
 
   (* set Erlang names that are not specified by user *)
-  (match !C.piqi_boot with
-    | None -> ()
-    | Some x -> erlname_piqi x
-  );
   erlname_piqi piqi;
+  erlname_defs !C.builtin_typedefs;
 
   (* set current module's name and type prefix *)
   let modname = some_of piqi.P#erlang_module in
   Piqic_erlang_types.top_modname := some_of piqi.P#erlang_module;
   Piqic_erlang_types.type_prefix := some_of piqi.P#erlang_type_prefix;
-  Piqic_erlang_types.string_type := piqi.P#erlang_string_type;
+  Piqic_erlang_types.string_type := some_of piqi.P#erlang_string_type;
 
   (* set Erlang name for the type "any" *)
   if !Piqic_common.is_self_spec
   then (
-    let def = Piqi_db.find_local_piqdef piqi "any" in
-    let erl_name = Piqic_erlang_types.piqdef_erlname def in
+    let def = Piqi_db.find_local_typedef piqi.P#resolved_typedef "any" in
+    let erl_name = Piqic_erlang_types.typedef_erlname def in
     Piqic_erlang_types.any_erlname := erl_name
   );
 
@@ -289,7 +288,6 @@ let init () =
 
 
 let piqic_file ifile =
-  Piqic_common.init ();
   init ();
 
   (* load input .piqi file *)

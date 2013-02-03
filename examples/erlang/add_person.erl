@@ -92,7 +92,7 @@ read_phone_type() ->
         "work" -> work;
         _ ->
             print_endline("Unknown phone type.  Using default."),
-            'undefined'
+            (#person_phone_number{})#person_phone_number.type
     end.
 
 

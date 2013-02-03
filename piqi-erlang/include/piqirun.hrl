@@ -1,4 +1,4 @@
-%% Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+%% Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
 
 % non_neg_integer() holds a value for all varint and zigzag_varint types:
 %
-%    bool, int, int32, int64, uint, uint32, uint64, proto-int32, proto-int64,
-%    enum
+%    bool, int, int32, int64, uint, uint32, uint64, protobuf-int32,
+%    protobuf-int64, enum
 %
 % {fixed32, binary()} with a binary of size 4 holds a value for fixed32 -encoded
 % types:

@@ -12,10 +12,11 @@ SOURCES = \
 PACKS = unix piqi.lib
 
 
-PIQI_FILES = addressbook.proto.piqi piqi-obj.piqi
+PIQI_FILES = addressbook.proto.piqi piqi.piqi piqi-obj.piqi
 
 PIQI_ML_FILES = \
 	addressbook_piqi.ml addressbook_piqi_ext.ml \
+	piqi_piqi.ml piqi_piqi_ext.ml \
 	piqi_obj_piqi.ml piqi_obj_piqi_ext.ml
 
 
@@ -23,7 +24,7 @@ PRE_TARGETS = $(PIQI_ML_FILES)
 
 
 PIQIC = piqic
-PIQIC_FLAGS = --pp #--leave-tmp-files
+PIQIC_FLAGS = --pp --no-warnings #--leave-tmp-files
 
 
 all: native-code #byte-code debug-code

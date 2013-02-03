@@ -1,63 +1,47 @@
 
+.include [ .module piqi/piqi ]
 
-.include [ .module piqi.org/piqi ]
 
-
-.extend [
-    (.typedef record field variant option alias list function)
-
-    .with.field [
-        .name erlang-name
-        .type string
-        .optional
-    ]
-]
-
+%
+% types
+%
 
 .extend [
-    .typedef piqi
+    (.typedef int int32 int64)
 
-    .with.field [
-        .name erlang-module
-        .type string
-        .optional
-    ]
-
-    .with.field [
-        .name erlang-type-prefix
-        .type string
-        .optional
-    ]
+    .with.erlang-type "integer"
 ]
-
 
 .extend [
-    .typedef alias
+    (.typedef uint uint32 uint64)
 
-    .with.field [
-        .name erlang-type
-        .type string
-        .optional
-    ]
+    .with.erlang-type "non_neg_integer"
 ]
 
 
-% specifies whether strings are parsed as binaries or lists
+%
+% names
+%
+
 .extend [
-    .typedef piqi
+    .typedef record
 
-    .with.field [
-        .type erlang-string-type
-        .optional
-        .default.binary
-    ]
+    .with.erlang-name "piqi_record"
+]
+
+.extend [
+    .typedef list
+
+    .with.erlang-name "piqi_list"
+]
+
+.extend [
+    .typedef piqi-list
+
+    % erlang-name "piqi-list" is already defined for record "list"
+    .with.erlang-name "piqi_bundle"
 ]
 
 
-.enum [
-    .name erlang-string-type
-
-    .option [ binary ]
-    .option [ list ]
-]
+(.custom-field erlang-type erlang-name)
 

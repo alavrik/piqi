@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -23,14 +23,14 @@ open C
 module R = Piqobj.Record
 module F = Piqobj.Field
 module V = Piqobj.Variant
-module E = Piqobj.Variant
+module E = Piqobj.Enum
 module O = Piqobj.Option
 module A = Piqobj.Alias
 module Any = Piqobj.Any
 module L = Piqobj.List
 
 
-let type_of (x:Piqobj.obj) :T.piqtype =
+let type_of (x: Piqobj.obj) :T.piqtype =
   (* XXX: built-in types should not be used at this point *)
   match x with
     | `int _ -> `int
@@ -39,18 +39,24 @@ let type_of (x:Piqobj.obj) :T.piqtype =
     | `bool _ -> `bool
     | `string _ -> `string
     | `binary _ -> `binary
-    | `text _ -> `text
-    | `word _ -> `word
     | `any _ -> `any
     (* custom types *)
-    | `record x -> `record x.R#piqtype
-    | `variant x -> `variant x.V#piqtype
-    | `enum x -> `enum x.E#piqtype
-    | `list x -> `list x.L#piqtype
-    | `alias x -> `alias x.A#piqtype
+    | `record x -> `record x.R#t
+    | `variant x -> `variant x.V#t
+    | `enum x -> `enum x.E#t
+    | `list x -> `list x.L#t
+    | `alias x -> `alias x.A#t
 
 
 let full_typename x =
   C.full_piqi_typename (type_of x)
 
+
+let parse_default piqtype (default :T.any option) :Piqobj.obj option =
+  match default with
+    | _ when not !C.resolve_defaults -> None
+    | None -> None
+    | Some piqi_any ->
+        let any = Piqobj.any_of_piqi_any piqi_any in
+        Some (some_of any.Any#obj) (* obj must be resolved already *)
 

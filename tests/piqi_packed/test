@@ -8,8 +8,8 @@ piqi check packed-nocompat.piqi
 for i in *.piq
 do
         piqi check $i
-        piqi convert -t wire $i
-        piqi convert $i.wire
+        piqi convert -t pib $i
+        piqi convert $i.pib
 done
 
 
@@ -39,4 +39,4 @@ cat test-all-unpacked.piq.pb |  protoc --decode=r_all unpacked.piqi.proto
 piqi convert -t pb test-all-unpacked.piq
 cat test-all-unpacked.piq.pb |  protoc --decode=r_all packed.piqi.proto
 
-piqi convert --piqtype packed/r-all test-all-unpacked.piq.pb
+piqi convert --type packed/r-all test-all-unpacked.piq.pb

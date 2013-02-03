@@ -1,4 +1,4 @@
-.proto-package "T"
+.protobuf-package "T"
 
 .import [ .module Topic ]
 

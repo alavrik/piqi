@@ -1,5 +1,5 @@
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 open Piqi_common
 
 
-type input_format = [ `piq | `json | `xml | `pb | `wire ]
+type input_format = [ `piq | `json | `xml | `pb | `pib ]
 
 type output_format = [ input_format | `json_pretty | `xml_pretty ]
 
@@ -39,7 +39,7 @@ let _ =
 
 let add_piqi (piqi_bin: string) =
   let buf = Piqirun.init_from_string piqi_bin in
-  let piqi = Piq.piqi_of_wire buf in
+  let piqi = Piqi.piqi_of_pb buf in
   Piqi_db.add_piqi piqi;
   ()
 
@@ -79,7 +79,11 @@ let convert
         (data :string) :string =
   if output_format = (input_format :> output_format)
   then data
-  else
+  else (
+    (* resetting source location tracking back to "enabled" state; we don't
+     * carefully call matching Piqloc.resume () for every Piqloc.pause () if we
+     * get exceptions in between *)
+    Piqloc.is_paused := 0;
     let output_format, default_opts =
       match output_format with
         | `json_pretty -> `json, default_options
@@ -92,4 +96,5 @@ let convert
         | Some x -> x
     in
     Piqi_convert.convert_piqtype piqtype input_format output_format data ~opts
+  )
 

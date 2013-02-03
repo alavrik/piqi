@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -51,9 +51,14 @@ module Piqitable = Idtable
 let loaded_map = ref Piqitable.empty
 
 
+(* we use this function to prevent adding same module under several different
+ * names *)
+let normalize_name = U.underscores_to_dashes
+
+
 (* find already loaded module by name *)
 let find_piqi modname :T.piqi =
-  Piqitable.find !loaded_map modname
+  Piqitable.find !loaded_map (normalize_name modname)
 
 
 let try_find_piqi modname =
@@ -66,7 +71,7 @@ let add_piqi piqi =
   trace "piqi_db: caching piqi module \"%s\"\n" modname;
 
   let do_add_piqi modname piqi =
-    loaded_map := Piqitable.add !loaded_map modname piqi
+    loaded_map := Piqitable.add !loaded_map (normalize_name modname) piqi
   in
   (* check for name override/conflict *)
   (* XXX: prohibit override? *)
@@ -74,7 +79,7 @@ let add_piqi piqi =
     | Some prev_piqi when prev_piqi == piqi -> (* don't readd the same module *)
         ()
     | Some prev_piqi ->
-        warning piqi ("redefinition of module " ^ quote modname);
+        warning piqi ("redefinition of module " ^ U.quote modname);
         warning prev_piqi "previous definition is here";
         do_add_piqi modname piqi
     | None ->
@@ -82,16 +87,19 @@ let add_piqi piqi =
 
 
 let remove_piqi modname =
-  loaded_map := Piqitable.remove !loaded_map modname
+  loaded_map := Piqitable.remove !loaded_map (normalize_name modname)
 
 
 let replace_piqi piqi =
   let modname = some_of piqi.P#modname in
-  loaded_map := Piqitable.add !loaded_map modname piqi
+  match try_find_piqi modname with
+    | None -> ()
+    | Some _ ->
+        loaded_map := Piqitable.add !loaded_map (normalize_name modname) piqi
 
 
-let find_local_piqdef piqi name =
-  List.find (fun x -> name = piqdef_name x) piqi.P#resolved_piqdef
+let find_local_typedef typedefs name =
+  List.find (fun x -> name = typedef_name x) typedefs
 
 
 (* To be set up later to Piqi.load_piqi_file; we do this since OCaml doesn't
@@ -103,51 +111,44 @@ let load_piqi_module modname =
   trace "piqi_db: loading module: %s\n" modname;
   trace_enter ();
   let fname = Piqi_file.find_piqi modname in (* can raise Not_found *)
-  (* XXX
-  (* reset Config.noboot option, we can't use this option for
-   * dependent types and modules *)
-  let saved_noboot = !Config.noboot in
-  Config.noboot := false;
-  *)
   let load_piqi_file = some_of !piqi_loader in
   let piqi = load_piqi_file ~modname fname in
-  (*
-  Config.noboot := saved_noboot;
-  *)
   trace_leave ();
   piqi
 
 
-let find_load_piqi_module ~auto_load_piqi modname =
+let find_load_piqi_typedefs ~auto_load_piqi modname =
   match modname with
-    | None -> (* built-in or local type *)
-        (* NOTE: local types are not supported yet *)
-        some_of !C.piqi_boot
+    | None -> (* no modname means built-in type *)
+        !C.builtin_typedefs
     | Some modname ->
         (* check if the module is already loaded, and return it right away *)
-        try find_piqi modname
-        with Not_found when auto_load_piqi ->
-          (* XXX: handle load errors *)
-          load_piqi_module modname
+        let piqi =
+          try find_piqi modname
+          with Not_found when auto_load_piqi ->
+            (* XXX: handle load errors *)
+            load_piqi_module modname
+        in
+        piqi.P#resolved_typedef
 
 
-let find_piqdef ?(auto_load_piqi=true) name =
+let find_typedef ?(auto_load_piqi=true) name =
   (* XXX: check global type name before loading? *)
   trace "looking for type: %s\n" name;
   let modname, typename = Piqi_name.split_name name in
-  let piqi = find_load_piqi_module modname ~auto_load_piqi in
-  find_local_piqdef piqi typename
+  let typedefs = find_load_piqi_typedefs modname ~auto_load_piqi in
+  find_local_typedef typedefs typename
 
 
 let find_piqtype name =
-  let def = find_piqdef name in
-  (def: T.piqdef :> T.piqtype)
+  let def = find_typedef name in
+  (def: T.typedef :> T.piqtype)
 
 
 let try_find_piqtype name =
   try
-    let def = find_piqdef name ~auto_load_piqi:false in
-    Some (def: T.piqdef :> T.piqtype)
+    let def = find_typedef name ~auto_load_piqi:false in
+    Some (def: T.typedef :> T.piqtype)
   with
     Not_found -> None
 

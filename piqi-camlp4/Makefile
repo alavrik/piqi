@@ -1,3 +1,4 @@
+include ../Makefile.config
 include $(PIQI_ROOT)/make/Makefile.ocaml
 
 
@@ -15,10 +16,13 @@ PRE_TARGETS = \
 LIBINSTALL_FILES = $(PRE_TARGETS)
 
 
-OCAML_VERSION = $(shell ocamlfind ocamlc -version | sed -e 's/^\([0-9]*\.[0-9]*\)\..*/\1/')
+# latest officially supported OCAML version
+LATEST_SUPPORTED_OCAML = 4.00
+
+OCAML_VERSION ?= $(shell ocamlfind ocamlc -version | sed -e 's/^\([0-9]*\.[0-9]*\)\..*/\1/')
 
 
-all: supported_ocaml_version $(PRE_TARGETS)
+all: $(OCAML_VERSION) $(PRE_TARGETS)
 
 
 pre_target::
@@ -28,7 +32,9 @@ pre_target::
 post_target:: install
 
 
-supported_ocaml_version: $(OCAML_VERSION)
+$(OCAML_VERSION):
+	@echo "There is no library for OCaml $(OCAML_VERSION), trying $(LATEST_SUPPORTED_OCAML) ..."
+	$(MAKE) OCAML_VERSION=$(LATEST_SUPPORTED_OCAML) all
 
 
 #NOTE: when installing, uninstall first to avoid "already installed" error

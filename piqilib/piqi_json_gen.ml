@@ -1,5 +1,5 @@
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -45,7 +45,9 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *)
 
-open Piqi_json_common
+
+type json = Piqi_json_type.json
+
 
 let hex n =
   Char.chr (
@@ -292,8 +294,7 @@ and format_field (name, x) =
 let pretty_to_buffer ?(indent=false) buf x =
   if indent
   then to_buffer buf x ~indent
-  else Easy_format.Pretty.to_buffer buf (format x);
-  Buffer.add_char buf '\n' (* make sure that text file ends with a newline *)
+  else Easy_format.Pretty.to_buffer buf (format x)
 
 
 let pretty_to_string ?(indent=false) x =
@@ -307,4 +308,8 @@ let pretty_to_channel ?(indent=false) oc x =
   then to_channel oc x ~indent
   else Easy_format.Pretty.to_channel oc (format x);
   output_char oc '\n' (* make sure that text file ends with a newline *)
+
+
+let _ =
+  Piqobj.string_of_json := (fun x -> pretty_to_string x ~indent:true)
 

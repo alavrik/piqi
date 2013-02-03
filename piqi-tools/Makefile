@@ -1,3 +1,4 @@
+include ../Makefile.config
 include $(PIQI_ROOT)/make/Makefile.ocaml
 
 
@@ -25,6 +26,9 @@ SOURCES = \
 	piqi_rpc.ml \
 	piqi_server.ml \
 	piqi_call.ml \
+	\
+	piqi_compile.ml \
+	piqi_cc.ml \
 	\
 	piqi_run.ml \
 

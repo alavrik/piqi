@@ -1,4 +1,4 @@
-:piqtype piq-text
+(:piq-format/text)
 
 % text literal are separated between subsequent text literals either by some
 % other lexical element or by empty vertical space

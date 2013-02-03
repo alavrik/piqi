@@ -1,5 +1,5 @@
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *)
 
 {
-  open Piqi_json_common
+  type json = Piqi_json_type.json
 
   module Lexing =
     (*
@@ -129,25 +129,16 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       v lexbuf
 
 
-  let retry_parse_uint s =
-    Piqi_c.piqi_strtoull s
-
-  let parse_uint s =
-    (* see Piq_parser for details *)
-    try Int64.of_string s
-    with Failure _ ->
-      retry_parse_uint s
-
   let parse_int64 s =
     match s.[0] with
       | '-' -> `Int (Int64.of_string s) (* negative integer *)
-      | _ -> `Uint (parse_uint s)
+      | _ -> `Uint (Piq_parser.parse_uint s)
 
 
   let make_int s v lexbuf =
     try parse_int64 s
     with Failure _ ->
-      lexer_error "Int overflow" v lexbuf
+      lexer_error "Invalid int constant" v lexbuf
 
   let parse_float s v lexbuf =
     try float_of_string s

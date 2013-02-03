@@ -1,17 +1,17 @@
 
 This file contains instructions for building Piqi on Windows platform.
 
-Windows build described in this documented relies on MinGW/Msys. Building Piqi
-using Microsoft toolchain has not been tested.
+Windows build procedure described in this documented uses MinGW/Msys toolchain
+for an older version of OCaml. Because of that, you need to follow instructions
+precisely. It is almost guaranteed to not work with newer versions of MinGW,
+OCaml and flexdll.
 
+The newer windows build procedure for OCaml 4.00.1 and MinGW-w64/Cygwin
+toolchain will be provided soon.
 
-(Piqi also successfully builds and runs on Windows under Cygwin. For building
-Piqi under Cygwin, follow general instructions for Unix platforms provided in
+Piqi also successfully builds and runs on Windows under Cygwin. To build Piqi
+under Cygwin, follow general instructions for Unix platforms provided in the
 INSTALL file.
-
-Note that under Cygwin, there could be problems with broken/outdated OCaml and
-Flexdll versions. These problems can be usually solved by downloading the latest
-versions of Flexdll and OCaml and building them from sources.)
 
 
 INSTALLATION INSTRUCTIONS
@@ -21,14 +21,12 @@ INSTALLATION INSTRUCTIONS
 
 1.1. MinGW and Msys
 
-        Install MinGW and Msys using automated installer which can be downloaded
-        from here:
+        Download and run MinGW and Msys self-installer from here:
 
-                http://sourceforge.net/projects/mingw/files/Automated%20MinGW%20Installer/mingw-get-inst/
+                http://sourceforge.net/projects/mingw/files/Installer/mingw-get-inst/mingw-get-inst-20110802/
 
-        Refer to MinGW website for additional information if necessary:
-                
-                http://www.mingw.org
+        During the "Select Components" step, check the "MinGW Developer Toolkit"
+        option.
 
         If you choose to install MinGW to non-default location (c:\mingw), make
         sure the location doesn't contain spaces in directory names.
@@ -36,28 +34,16 @@ INSTALLATION INSTRUCTIONS
 
 1.2. OCaml compiler suite
 
-        Download and install binary OCaml distribution for Windows from the
-        official website:
-
-                http://caml.inria.fr/download.en.html
-
-        The website offers two kinds of binary distributions for Windows: the
-        first one is based on MinGW and the second one relies on Microsoft
-        compiler toolchain.
-
-        It is critical that the one that is based on MinGW is installed.
-
-        The latest OCaml version, distributed through the official website, that
-        is known to work can be downloaded using this URL:
+        Download and install binary OCaml distribution for Windows:
 
                 http://caml.inria.fr/pub/distrib/ocaml-3.11/ocaml-3.11.0-win-mgw.exe
 
 
 1.3. Flexdll
-        
-        Download and run self-extracting Flexdll installer from here:
 
-                http://alain.frisch.fr/flexdll.html#download
+        Download and run self-extracting Flexdll installer:
+
+                http://alain.frisch.fr/flexdll/flexdll-0.26-setup.exe
 
 
 1.4. Ocamlfind/Findlib -- library manager for OCaml
@@ -74,7 +60,13 @@ INSTALLATION INSTRUCTIONS
 
         Download Piqi sources (but don't try to build it!):
 
-                http://piqi.org/downloads/
+                Direct download link:
+
+                        https://github.com/alavrik/piqi/tarball/dev
+
+                General downloads:
+
+                        http://piqi.org/downloads/
 
         Put the Piqi tarball to the same filesystem location where you've put
         the findlib archive (e.g. "c:\build\").
@@ -89,7 +81,7 @@ INSTALLATION INSTRUCTIONS
         shortcut for it.
 
         Go to your build directory:
-                
+
                 cd c:/build
 
 
@@ -110,7 +102,7 @@ INSTALLATION INSTRUCTIONS
         Note: this step is not necessary if MinGW, OCaml and Flexdll are
         installed to the default locations suggested by their installers.
 
-        Use your favorite editor to setup environment variables in
+        Use your favorite editor to configure environment variables in
 
                 c:\build\piqi\setenv-mingw.sh
 
@@ -131,8 +123,8 @@ INSTALLATION INSTRUCTIONS
                 cd ..
 
                 cd findlib-<version>
-        
-        
+
+
         And do the following:
 
                 ./configure
@@ -148,7 +140,7 @@ INSTALLATION INSTRUCTIONS
 
 
 2.7. Build Piqi
-        
+
         Go back to the unpacked Piqi source code directory:
 
                 cd ..
@@ -157,6 +149,8 @@ INSTALLATION INSTRUCTIONS
 
 
         Run the following commands:
+
+                ./configure
 
                 make deps
 
@@ -168,9 +162,4 @@ INSTALLATION INSTRUCTIONS
                piqi-tools/piqi.exe
 
                piqic/piqic.exe
-
-
-3. Further actions that are not specific to Windows
-
-        Refer to general instructions provided in INSTALL file.
 

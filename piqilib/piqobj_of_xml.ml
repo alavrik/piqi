@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,19 +19,11 @@
 module C = Piqi_common
 open C
 
-
-module R = Piqobj.Record
-module F = Piqobj.Field
-module V = Piqobj.Variant
-module E = Piqobj.Variant
-module O = Piqobj.Option
-module A = Piqobj.Alias
-module Any = Piqobj.Any
-module L = Piqobj.List
+open Piqobj_common
 
 
-type xml = Piqi_xml.xml
-type xml_elem = Piqi_xml.xml_elem
+type xml = Piqi_xml_type.xml
+type xml_elem = Piqi_xml_type.xml_elem
 
 
 let handle_unknown_field = Piqobj_of_json.handle_unknown_field
@@ -58,18 +50,14 @@ let parse_string_scalar xml_elem err_string =
 
 let parse_int xml_elem = 
   let s = parse_scalar xml_elem "int constant expected" in
-  let i =
-    try 
-      (* XXX: move this function to a common module *)
-      Piqi_json_parser.parse_int64 s
-    with Failure _ ->
-      (* NOTE: actually, there can be two errors here: invalid integer literal
-       * and integer overflow *)
-      error xml_elem "invalid int constant"
-  in
-  match i with
-    | `Int x -> `int x
-    | `Uint x -> `uint x
+  try
+    match s.[0] with
+      | '-' -> `int (Int64.of_string s) (* negative integer *)
+      | _ -> `uint (Piq_parser.parse_uint s)
+  with Failure _ ->
+    (* NOTE: actually, there can be two errors here: invalid integer literal
+     * and integer overflow *)
+    error xml_elem "invalid int constant"
 
 
 let parse_float xml_elem =
@@ -105,6 +93,15 @@ let parse_binary xml_elem =
     error xml_elem "invalid base64-encoded string"
 
 
+(* get the list of XML elements from the node *)
+let get_record_elements (l: xml list) :xml_elem list =
+  List.map (fun xml ->
+    match xml with
+      | `Elem x -> x
+      | `Data s ->
+          error xml "XML element is expected as a record field") l
+
+
 let rec parse_obj (t: T.piqtype) (x: xml_elem) :Piqobj.obj =
   match t with
     (* built-in types *)
@@ -113,8 +110,6 @@ let rec parse_obj (t: T.piqtype) (x: xml_elem) :Piqobj.obj =
     | `bool -> `bool (parse_bool x)
     | `string -> `string (parse_string x)
     | `binary -> `binary (parse_binary x)
-    | `word -> `word (parse_string x)
-    | `text -> `text (parse_string x)
     | `any -> `any (parse_any x)
     (* custom types *)
     | `record t -> `record (parse_record t x)
@@ -124,24 +119,51 @@ let rec parse_obj (t: T.piqtype) (x: xml_elem) :Piqobj.obj =
     | `alias t -> `alias (parse_alias t x)
 
 
-and parse_any x =
-  (* store JSON parse tree in the object store; it will be retrieved later when
-   * needed by the referece *)
-  let ref = Piqi_objstore.put (`Elem x) in
-  let piq_any = T.Any#{T.default_any() with ref = Some ref} in
-  Any#{ any = piq_any; obj = None }
+and parse_any xml_elem =
+  match xml_elem with
+    | _name, (`Elem ("piqi-type", [`Data "piqi-any"])) :: rem -> (* extended piqi-any format *)
+        let rem = get_record_elements rem in
+        (* manually parsing the piqi-any record, so that we could extract the
+         * symbolic xml representation *)
+        (* XXX: check correspondence between typed protobuf and typed xml? *)
+        let typename_obj, rem = parse_optional_field "type" `string None rem in
+        let protobuf_obj, rem = parse_optional_field "protobuf" `binary None rem in
+        let xml_obj, rem = parse_optional_field "xml" `any None rem in
+        (* issue warnings on unparsed fields *)
+        List.iter handle_unknown_field rem;
+        let typename =
+          match typename_obj with
+            | Some (`string x) -> Some x
+            | _ -> None
+        in
+        let protobuf =
+          match protobuf_obj with
+            | Some (`binary x) -> Some x
+            | _ -> None
+        in
+        let xml_ast =
+          match xml_obj with
+            | Some (`any {Any.xml_ast = xml_ast}) -> xml_ast
+            | _ -> None
+        in
+        Any#{
+          Piqobj.default_any with
+          typename = typename;
+          pb = protobuf;
+          xml_ast = xml_ast;
+        }
+    | _ -> (* regular symbolic piqi-any *)
+        Any#{
+          Piqobj.default_any with
+          xml_ast = Some xml_elem;
+        }
 
 
 and parse_record t xml_elem =
-  debug "do_parse_record: %s\n" t.T.Record#name;
+  debug "do_parse_record: %s\n" (some_of t.T.Record#name);
   (* get the list of XML elements from the node *)
   let _name, l = xml_elem in
-  let l = List.map (fun xml ->
-    match xml with
-      | `Elem x -> x
-      | `Data s ->
-          error xml "XML element is expected as a record field") l
-  in
+  let l = get_record_elements l in
 
   (* NOTE: passing locating information as a separate parameter since empty
    * list is unboxed and doesn't provide correct location information *)
@@ -153,12 +175,12 @@ and parse_record t xml_elem =
   (* issue warnings on unparsed fields *)
   List.iter handle_unknown_field rem;
   (* put required fields back at the top *)
-  R#{ piqtype = t; field = List.rev fields}
+  R#{ t = t; field = List.rev fields; unparsed_piq_fields_ref = None}
 
 
 and parse_field loc (accu, rem) t =
   let fields, rem =
-    match t.T.Field#typeref with
+    match t.T.Field#piqtype with
       | None -> do_parse_flag t rem
       | Some _ -> do_parse_field loc t rem
   in
@@ -174,7 +196,7 @@ and do_parse_flag t l =
     | [] -> [], rem
     | x::tail ->
         check_duplicate name tail;
-        let res = F#{ piqtype = t; obj = None } in
+        let res = F#{ t = t; obj = None } in
         [res], rem
 
 
@@ -182,7 +204,7 @@ and do_parse_field loc t l =
   let open T.Field in
   let name = C.name_of_field t in
   debug "do_parse_field: %s\n" name;
-  let field_type = piqtype (some_of t.typeref) in
+  let field_type = some_of t.piqtype in
   let values, rem =
     match t.mode with
       | `required -> 
@@ -196,7 +218,7 @@ and do_parse_field loc t l =
           parse_repeated_field name field_type l
   in
   let fields =
-    List.map (fun x -> F#{ piqtype = t; obj = Some x }) values
+    List.map (fun x -> F#{ t = t; obj = Some x }) values
   in
   fields, rem
   
@@ -204,7 +226,7 @@ and do_parse_field loc t l =
 and parse_required_field loc name field_type l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> error loc ("missing field " ^ quote name)
+    | [] -> error loc ("missing field " ^ U.quote name)
     | x::tail ->
         check_duplicate name tail;
         parse_obj field_type x, rem
@@ -226,7 +248,7 @@ and find_flags (name:string) (l:xml_elem list) :(string list * xml_elem list) =
     | [] -> List.rev accu, List.rev rem
     | (n, [])::t when n = name -> aux (n::accu) rem t
     | (n, _)::t when n = name ->
-        error n ("value can not be specified for flag " ^ quote n)
+        error n ("value can not be specified for flag " ^ U.quote n)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
@@ -235,7 +257,7 @@ and find_flags (name:string) (l:xml_elem list) :(string list * xml_elem list) =
 and parse_optional_field name field_type default l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> Piqobj_of_wire.parse_default field_type default, rem
+    | [] -> Piqobj_common.parse_default field_type default, rem
     | x::tail ->
         check_duplicate name tail;
         Some (parse_obj field_type x), rem
@@ -246,14 +268,14 @@ and parse_optional_field name field_type default l =
 and parse_repeated_field name field_type l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> [], rem (* XXX: allowing repeated field to be acutally missing *)
+    | [] -> [], rem (* allowing repeated field to be acutally missing *)
     | l ->
         let res = List.map (parse_obj field_type) l in
         res, rem
 
 
 and parse_variant t xml_elem =
-  debug "parse_variant: %s\n" t.T.Variant#name;
+  debug "parse_variant: %s\n" (some_of t.T.Variant#name);
   let _name, l = xml_elem in
   match l with
     | [`Elem ((name, _) as xml_elem)] ->
@@ -263,9 +285,9 @@ and parse_variant t xml_elem =
             let o = List.find (fun o -> name = C.name_of_option o) options in
             parse_option o xml_elem
           with Not_found ->
-            error xml_elem ("unknown variant option: " ^ quote name)
+            error xml_elem ("unknown variant option: " ^ U.quote name)
         in
-        V#{ piqtype = t; option = option }
+        V#{ t = t; option = option }
     | _ ->
         error xml_elem "exactly one XML element expected as a variant value"
 
@@ -273,39 +295,38 @@ and parse_variant t xml_elem =
 and parse_option t xml_elem =
   let open T.Option in
   let name, l = xml_elem in
-  match t.typeref, l with
+  match t.piqtype, l with
     | None, [] ->
-        O#{ piqtype = t; obj = None }
+        O#{ t = t; obj = None }
     | None, _ ->
-        error name ("no value expected for option flag " ^ quote name)
-    | Some typeref, _ ->
-        let option_type = piqtype typeref in
+        error name ("no value expected for option flag " ^ U.quote name)
+    | Some option_type, _ ->
         let obj = parse_obj option_type xml_elem in
-        O#{ piqtype = t; obj = Some obj }
+        O#{ t = t; obj = Some obj }
 
 
 and parse_enum t xml_elem =
-  debug "parse_enum: %s\n" t.T.Variant#name;
+  debug "parse_enum: %s\n" (some_of t.T.Enum#name);
   let name =
     parse_scalar xml_elem "exactly one XML CDATA expected as an enum value"
   in
-  let options = t.T.Variant#option in
+  let options = t.T.Enum#option in
   let option =
     try
       let o = List.find (fun o -> some_of o.T.Option#name = name) options in
-      O#{ piqtype = o; obj = None }
+      O#{ t = o; obj = None }
     with Not_found ->
-      error name ("unknown enum option: " ^ quote name)
+      error name ("unknown enum option: " ^ U.quote name)
   in
-  V#{ piqtype = t; option = option }
+  E#{ t = t; option = option }
 
 
 and parse_list t xml_elem =
-  debug "parse_list: %s\n" t.T.Piqlist#name;
-  let obj_type = piqtype t.T.Piqlist#typeref in
+  debug "parse_list: %s\n" (some_of t.T.Piqi_list#name);
+  let obj_type = some_of t.T.Piqi_list#piqtype in
   let _name, l = xml_elem in
   let contents = List.map (parse_list_item obj_type) l in
-  L#{ piqtype = t; obj = contents }
+  L#{ t = t; obj = contents }
 
 
 and parse_list_item obj_type xml =
@@ -320,27 +341,20 @@ and parse_list_item obj_type xml =
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t x =
   let open T.Alias in
-  let obj_type = piqtype t.typeref in
-  debug "parse_alias: %s\n" t.T.Alias#name;
+  let obj_type = some_of t.piqtype in
+  debug "parse_alias: %s\n" (some_of t.T.Alias#name);
   let obj = parse_obj obj_type x in
-  A#{ piqtype = t; obj = obj }
+  A#{ t = t; obj = obj }
+
+
+let _ =
+  Piqobj.of_xml := parse_obj
 
 
 (* parse top-level Piq object formatted as XML *)
 let parse_obj t xml =
-  (* XXX: don't bother checking the name of the root element -- it's quite
-   * annoying in practice
-   *
-   * XXX: provide an optional "name" parameter for checking the root element's
-   * name *)
-  (*
-  let name = C.piqi_typename t in
-  match xml with
-    | `Elem ((n, _) as xml_elem) when n = name ->
-        parse_obj t xml_elem
-    | _ ->
-        error xml ("<" ^ name ^ "> XML root element expected")
-  *)
+  (* NOTE: we don't bother checking the name of the root element -- it doesn't
+   * have any meaning anyway *)
   match xml with
     | `Elem xml_elem ->
         parse_obj t xml_elem

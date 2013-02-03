@@ -2,7 +2,7 @@
 -compile(export_all).
 
 -include("addressbook_piqi.hrl").
--include("piqi_piqi.hrl").
+-include("piqi_obj_piqi.hrl").
 
 
 main() ->
@@ -61,8 +61,8 @@ test_piqi() ->
     % Read the Piqi-self specification encoded in Protobuf format
     {ok, Bytes} = file:read_file(Filename),
 
-    Reader = fun piqi_piqi_ext:parse_piqi/2,
-    Writer = fun piqi_piqi_ext:gen_piqi/2,
+    Reader = fun piqi_obj_piqi_ext:parse_piqi/2,
+    Writer = fun piqi_obj_piqi_ext:gen_piqi/2,
 
     N = 20000,
 

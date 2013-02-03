@@ -1,1 +1,1 @@
-../piqi.org/piqi-lang.piqi
+.include [ .module piqi/piqi-lang ]

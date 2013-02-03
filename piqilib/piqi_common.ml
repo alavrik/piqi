@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,14 +16,14 @@
 *)
 
 
-module T = Piqi_piqi
+module T = Piqi_lang_piqi
 
 
 module Record = T.Record
 module Field = T.Field
 module Variant = T.Variant
 module Option = T.Option
-module Enum = Variant
+module Enum = T.Enum
 module Alias = T.Alias
 
 
@@ -39,12 +39,18 @@ module V = Variant
 module O = Option
 module E = Enum
 module A = Alias
-module L = T.Piqlist
+module L = T.Piqi_list
 module P = T.Piqi
 
 
 module Config = Piqi_config
 module Iolist = Piqi_iolist
+
+
+module U = Piqi_util
+
+
+type piq_ast = Piq_ast.ast
 
 
 (*
@@ -55,133 +61,43 @@ module Iolist = Piqi_iolist
  * formats: Piq, Wire, JSON *)
 let resolve_defaults = ref false
 
+(* whether we are parsing Piqi right now *)
+let is_inside_parse_piqi = ref false
 
-(* lazily loaded representation of piqi-boot.piqi (see piqi.ml for details) *)
-let piqi_boot :T.piqi option ref = ref None
+(* a subset of "Piqi.piqi_spec.P#resolved_typedef" (i.e. Piqi self-spec) that
+ * corresponds to built-in types (built-in types are aliases that have
+ * .piqi-type property defined; this value is set from Piqi.boot () function *)
+let builtin_typedefs :T.typedef list ref = ref []
 
 
 (*
  * Common functions
  *)
 
-(* Run a function with a specific resolve_defauls setting. The global
- * "resolve_defaults" variable is preserved *)
-let with_resolve_defaults new_resolve_defaults f x =
-   let saved = !resolve_defaults in
-   resolve_defaults := new_resolve_defaults;
-   let res = f x in
-   resolve_defaults := saved;
-   res
-
-
-let is_boot_piqi p =
-  match !piqi_boot with
-    | None -> false
-    | Some x -> p == x
-
-
 let some_of = function
   | Some x -> x
   | None -> assert false
 
 
-let flatmap f l =  List.concat (List.map f l)
+(* Run a function with a specific resolve_defauls setting. The global
+ * "resolve_defaults" variable is preserved *)
+let with_resolve_defaults new_resolve_defaults f =
+  U.with_bool resolve_defaults new_resolve_defaults f
 
 
-let find_dups l =
-  let rec aux = function
-    | [] -> None
-    | h::t ->
-        try 
-          let dup = List.find (fun x -> x = h) t in
-          Some (dup, h)
-        with Not_found -> aux t
-  in aux l
-
-
-let quote s = "\"" ^ s ^ "\""
-
-
-(* substitute character [x] with [y] in string [s] *)
-let string_subst_char s x y =
-  if not (String.contains s x)
-  then s
-  else
-    (* preserve the original string *)
-    let s = String.copy s in
-    for i = 0 to (String.length s) - 1
-    do
-      if s.[i] = x
-      then s.[i] <- y
-    done; s
-
-
-let dashes_to_underscores s =
-  string_subst_char s '-' '_'
-
-
-let underscores_to_dashes s =
-  string_subst_char s '_' '-'
-
-
-let list_of_string s =
-  let n = String.length s in
-  let rec aux i =
-    if i < n
-    then s.[i] :: (aux (i+1))
-    else []
-  in aux 0
-
-
-let string_of_list l =
-  let s = String.create (List.length l) in
-  let rec aux i = function
-    | [] -> ()
-    | h::t ->
-        s.[i] <- h; aux (i+1) t
-  in
-  aux 0 l; s
-
-
-(* NOTE: naive, non-tail recursive. Remove duplicates from the list using
- * reference equality, preserves the initial order *)
-let rec uniqq = function
-  | [] -> []
-  | h::t ->
-      let t = uniqq t in
-      if List.memq h t then t else h :: t
-
-
-(* leave the first of the duplicate elements in the list instead of the last *)
-let uniqq l =
-  List.rev (uniqq (List.rev l))
-
-
-let rec uniq = function
-  | [] -> []
-  | h::t ->
-      let t = uniq t in
-      if List.mem h t then t else h :: t
-
-
-(* leave the first of the duplicate elements in the list instead of the last *)
-let uniq l =
-  List.rev (uniq (List.rev l))
-
-
-let get_parent (piqdef:T.piqdef) :T.namespace =
+let get_parent (typedef:T.typedef) :T.namespace =
   let parent =
-    match piqdef with
+    match typedef with
       | `record t -> t.R#parent
       | `variant t -> t.V#parent
-      | `enum t -> t.V#parent
+      | `enum t -> t.E#parent
       | `alias t -> t.A#parent
       | `list t -> t.L#parent
   in
   some_of parent
 
 
-let set_parent (def:T.piqdef) (parent:T.namespace) =
+let set_parent (def:T.typedef) (parent:T.namespace) =
   let parent = Some parent in
   match def with
     | `record x -> x.R#parent <- parent
@@ -191,20 +107,30 @@ let set_parent (def:T.piqdef) (parent:T.namespace) =
     | `list x -> x.L#parent <- parent
 
 
-let get_parent_piqi (def:T.piqdef) :T.piqi =
+let get_parent_piqi (def:T.typedef) :T.piqi =
   let parent = get_parent def in
   match parent with
     | `import x -> some_of x.Import#piqi
     | `piqi x -> x
 
 
-let piqdef_name (piqdef:T.piqdef) =
-  match piqdef with
-    | `record x -> x.R#name
-    | `variant x -> x.V#name
-    | `enum x -> x.E#name
-    | `alias x -> x.A#name
-    | `list x -> x.L#name
+let typedef_name (typedef:T.typedef) =
+  let res =
+    match typedef with
+      | `record x -> x.R#name
+      | `variant x -> x.V#name
+      | `enum x -> x.E#name
+      | `alias x -> x.A#name
+      | `list x -> x.L#name
+  in
+  some_of res
+
+
+(* whether typedef represents a built-in type *)
+let is_builtin_def (typedef:T.typedef) =
+  match typedef with
+    | `alias x -> x.A#piqi_type <> None
+    | _ -> false
 
 
 let piqi_typename (t:T.piqtype) =
@@ -216,20 +142,18 @@ let piqi_typename (t:T.piqtype) =
     | `bool -> "bool"
     | `string -> "string"
     | `binary -> "binary"
-    | `word -> "piq-word"
-    | `text -> "piq-text"
-    | `any -> "piq-any"
-    | #T.piqdef as x -> piqdef_name x
+    | `any -> "piqi-any"
+    | #T.typedef as x -> typedef_name x
 
 
 let full_piqi_typename x =
   let name = piqi_typename x in
   match x with
-    | #T.piqdef as def ->
-        let piqi = get_parent_piqi def in
-        if is_boot_piqi piqi
+    | #T.typedef as def ->
+        if is_builtin_def def
         then name
         else
+          let piqi = get_parent_piqi def in
           let parent_name = some_of piqi.P#modname in
           parent_name ^ "/" ^ name
     | _ -> (* built-in type *)
@@ -238,58 +162,43 @@ let full_piqi_typename x =
         name
 
 
-let piqtype (t:T.typeref) :T.piqtype =
-  match t with
-    | `name _ -> assert false (* type has to be resolved by that moment *)
-    | (#T.piqtype as t) -> t
-
-
-let piqi_typerefname (t:T.typeref) =
-  match t with
-    | `name x -> x
-    | (#T.piqtype as t) -> piqi_typename t
-
-
 let name_of_field f =
   let open T.Field in
-  match f.name, f.typeref with
+  match f.name, f.piqtype with
     | Some n, _ -> n
-    | None, Some t -> piqi_typerefname t
+    | None, Some t -> piqi_typename t
+    | _ when f.typename <> None -> (* field type hasn't been resolved yet *)
+        Piqi_name.get_local_name (some_of f.typename)
     | _ -> assert false
 
 
 let name_of_option o =
   let open T.Option in
-  match o.name, o.typeref with
+  match o.name, o.piqtype with
     | Some n, _ -> n
-    | None, Some t -> piqi_typerefname t
+    | None, Some t -> piqi_typename t
+    | _ when o.typename <> None -> (* option type hasn't been resolved yet *)
+        Piqi_name.get_local_name (some_of o.typename)
     | _ -> assert false
 
 
 let rec unalias = function
   | `alias t ->
-      let t = piqtype t.T.Alias#typeref in
+      let t = some_of t.T.Alias#piqtype in
       unalias t
   | t -> t
 
 
-let is_piqdef t =
+let is_typedef t =
   match unalias t with
-    | #T.piqdef -> true
+    | #T.typedef -> true
     | _ -> false
-
-
-let is_primitive_piqtype t =
-  match unalias t with
-    | `enum _ -> true
-    | #T.piqdef -> false
-    | _ -> true
 
 
 (* is record or list or alias of the two *)
 let is_container_type t =
   match unalias t with
-    | (#T.piqdef as t) ->
+    | (#T.typedef as t) ->
         (match t with
           | `record _ | `list _ -> true
           | _ -> false
@@ -297,35 +206,45 @@ let is_container_type t =
     | _ -> false
 
 
-(* check if the module is a Piqi self-specification, i.e. it is
- * "piqi.org/piqi" or includes it *)
+(* check if the module is a Piqi self-specification, i.e. the module's name is
+ * "piqi" or it includes another module named "piqi" *)
 let is_self_spec (piqi: T.piqi) =
   (* XXX: cache this information to avoid computing it over and over again *)
   List.exists
-    (fun x -> x.P#modname = Some "piqi.org/piqi")
+    (fun x ->
+      match x.P#modname with
+        | None -> false
+        | Some modname ->
+            (* check if the last segment equals "piqi" which is a reserved name
+             * for a self-spec *)
+            Piqi_name.get_local_name modname = "piqi"
+    )
     piqi.P#included_piqi
 
 
-(* check if any of the module's definitions depends on "piq_any" type *)
-let depends_on_piq_any (piqi: T.piqi) =
+(* check if any of the module's definitions depends on "piqi-any" type *)
+let depends_on_piqi_any (piqi: T.piqi) =
   let aux x =
-    let is_any x = (unalias (piqtype x)) = `any in
+    let is_any x =
+      (unalias x) = `any
+    in
     let is_any_opt = function
       | Some x -> is_any x
       | None -> false
     in
     match x with
-      | `record x -> List.exists (fun x -> is_any_opt x.F#typeref) x.R#field
-      | `variant x -> List.exists (fun x -> is_any_opt x.O#typeref) x.V#option
-      | `list x -> is_any x.L#typeref
+      | `record x -> List.exists (fun x -> is_any_opt x.F#piqtype) x.R#field
+      | `variant x -> List.exists (fun x -> is_any_opt x.O#piqtype) x.V#option
+      | `list x -> is_any (some_of x.L#piqtype)
       | `enum _ -> false
       | `alias _ -> false (* don't check aliases, we do unalias instead *)
   in
-  List.exists aux piqi.P#resolved_piqdef
+  List.exists aux piqi.P#resolved_typedef
 
 
 (* 
  * error reporting, printing and handling
+ * TODO: move these functions to piqi_util.ml
  *)
 
 let string_of_loc (file, line, col) =
@@ -371,12 +290,7 @@ let reference f x =
 
 
 let location obj =
-  try
-    if !Config.debug_level > 0
-    then
-      Piqloc.trace_find obj
-    else
-      Piqloc.find obj
+  try Piqloc.find obj
   with
     Not_found -> ("unknown", 0, 0)
 
@@ -417,7 +331,7 @@ let eprintf_if cond fmt =
 
 
 let debug fmt =
-  eprintf_if (!Config.debug_level > 0) fmt
+  eprintf_if (!Config.debug_level > 1) fmt
 
 
 let trace fmt =

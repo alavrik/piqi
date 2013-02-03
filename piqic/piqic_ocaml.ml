@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ let ocaml_name n =
     then Piqi_name.normalize_name n
     else n
   in
-  dashes_to_underscores n
+  U.dashes_to_underscores n
 
 
 let ocaml_lcname n = (* lowercase *)
@@ -72,13 +72,16 @@ let mlname_field x =
     if x.ocaml_array && x.mode <> `repeated
     then C.error x ".ocaml-array flag can be used only with repeated fields";
 
+    if x.ocaml_optional && x.mode <> `optional
+    then C.error x ".ocaml-optional flag can be used only with optional fields";
+
     if x.ocaml_name = None then x.ocaml_name <- mlname' x.name
   )
 
 
 let mlname_record x =
   let open Record in
-  (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
+  (if x.ocaml_name = None then x.ocaml_name <- mlname (some_of x.name);
    List.iter mlname_field x.field)
 
 
@@ -89,27 +92,27 @@ let mlname_option x =
 
 let mlname_variant x =
   let open Variant in
-  (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
+  (if x.ocaml_name = None then x.ocaml_name <- mlname (some_of x.name);
    List.iter mlname_option x.option)
 
 
 let mlname_enum x =
   let open Enum in
-  (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
+  (if x.ocaml_name = None then x.ocaml_name <- mlname (some_of x.name);
    List.iter mlname_option x.option)
 
 
 let mlname_alias x =
   let open Alias in
-  if x.ocaml_name = None then x.ocaml_name <- mlname x.name
+  if x.ocaml_name = None then x.ocaml_name <- mlname (some_of x.name)
 
 
 let mlname_list x =
   let open L in
-  if x.ocaml_name = None then x.ocaml_name <- mlname x.name
+  if x.ocaml_name = None then x.ocaml_name <- mlname (some_of x.name)
 
 
-let mlname_piqdef = function
+let mlname_typedef = function
   | `record x -> mlname_record x
   | `variant x -> mlname_variant x
   | `enum x -> mlname_enum x
@@ -117,8 +120,8 @@ let mlname_piqdef = function
   | `list x -> mlname_list x
 
 
-let mlname_defs (defs:T.piqdef list) =
-  List.iter mlname_piqdef defs
+let mlname_defs (defs:T.typedef list) =
+  List.iter mlname_typedef defs
 
 
 let mlmodname n =
@@ -136,8 +139,10 @@ let mlname_func_param func_name param_name param =
        x.A#ocaml_name <- make_name ()
    | Some (`record x) ->
        x.R#ocaml_name <- make_name ()
-   | Some (`variant x) | Some (`enum x) ->
+   | Some (`variant x) ->
        x.V#ocaml_name <- make_name ()
+   | Some (`enum x) ->
+       x.E#ocaml_name <- make_name ()
    | Some (`list x) ->
        x.L#ocaml_name <- make_name ()
 
@@ -166,8 +171,8 @@ let rec mlname_piqi (piqi:T.piqi) =
      * overriden in mlname_defs *)
     mlname_functions piqi.P#resolved_func;
 
-    mlname_defs piqi.P#resolved_piqdef;
-    mlname_defs piqi.P#imported_piqdef;
+    mlname_defs piqi.P#resolved_typedef;
+    mlname_defs piqi.P#imported_typedef;
     mlname_imports piqi.P#resolved_import;
   end
 
@@ -189,11 +194,8 @@ let gen_ocaml_code (piqi: T.piqi) =
   Piqic_common.piqic_common piqi;
 
   (* set ocaml names that are not specified by user *)
-  (match !C.piqi_boot with
-    | None -> ()
-    | Some x -> mlname_piqi x
-  );
   mlname_piqi piqi;
+  mlname_defs !C.builtin_typedefs;
 
   (* set current module's name *)
   Piqic_ocaml_types.top_modname := some_of piqi.P#ocaml_module;
@@ -283,7 +285,6 @@ let init () =
 
 
 let piqic_file ifile =
-  Piqic_common.init ();
   init ();
 
   (* load input .piqi file *)

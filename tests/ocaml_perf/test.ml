@@ -15,7 +15,7 @@ let string_of_format = function
   | `xml -> "xml"
   | `xml_pretty -> "xml_pretty"
   | `piq -> "piq"
-  | `wire -> "wire"
+  | `pib -> "pib"
 
 
 let printf = Printf.printf
@@ -85,7 +85,7 @@ let test_rw reader writer (format: Piqirun_ext.output_format) bytes n =
 
 
 let test_rw_all reader writer bytes n =
-  let formats = [`pb; `json; `json_pretty; `xml; `xml_pretty; `piq; `wire;] in
+  let formats = [`pb; `json; `json_pretty; `xml; `xml_pretty; `piq; `pib;] in
   List.iter (fun format -> test_rw reader writer format bytes n) formats
 
 
@@ -111,7 +111,7 @@ let test_addressbook () =
   test_rw reader writer `json_pretty bytes n;
   test_rw reader writer `xml bytes n;
   test_rw reader writer `xml_pretty bytes n;
-  test_rw reader writer `wire bytes n;
+  test_rw reader writer `pib bytes n;
   test_rw reader writer `piq bytes n;
   *)
   ()
@@ -139,7 +139,7 @@ let test_piqi () =
   test_rw reader writer `json_pretty bytes n;
   test_rw reader writer `xml bytes n;
   test_rw reader writer `xml_pretty bytes n;
-  test_rw reader writer `wire bytes n;
+  test_rw reader writer `pib bytes n;
   test_rw reader writer `piq bytes n;
   *)
   ()

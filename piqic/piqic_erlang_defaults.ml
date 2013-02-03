@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -30,15 +30,18 @@ open Piqic_erlang_types
 open Piqic_erlang_out
 
 
-let gen_default_type erlang_type wire_type x =
+let rec gen_default_type erlang_type wire_type x =
   match x with
     | `any ->
         if !Piqic_common.is_self_spec
         then ios "default_" ^^ ios !any_erlname ^^ ios "()"
-        else ios "piqi_piqi:default_any()"
-    | (#T.piqdef as x) ->
+        else ios "piqi_piqi:default_piqi_any()"
+    | `alias a when wire_type <> None ->
+        (* need special handing for wire_type override *)
+        gen_default_type a.A#erlang_type wire_type (some_of a.A#piqtype)
+    | (#T.typedef as x) ->
         let modname = gen_parent x in
-        modname ^^ ios "default_" ^^ ios (piqdef_erlname x) ^^ ios "()"
+        modname ^^ ios "default_" ^^ ios (typedef_erlname x) ^^ ios "()"
     | _ -> (* gen parsers for built-in types *)
         let default = Piqic_common.gen_builtin_default_value wire_type x in
         let default_expr = Piqic_erlang_in.gen_erlang_binary default in
@@ -51,21 +54,16 @@ let gen_default_type erlang_type wire_type x =
         ]
 
 
-let gen_default_typeref ?erlang_type ?wire_type (t:T.typeref) =
-  gen_default_type erlang_type wire_type (piqtype t)
+let gen_default_piqtype ?erlang_type ?wire_type (t: T.piqtype) =
+  gen_default_type erlang_type wire_type t
 
 
 let gen_field_cons f =
   let open Field in
   let value =
     match f.mode with
-      | `required -> gen_default_typeref (some_of f.typeref)
-      | `optional when f.typeref = None -> ios "false" (* flag *)
-      (* XXX: generate default value? (see piqic_ocaml_defaults.ml)
-      | `optional when f.default <> None ->
-      *)
-      (* XXX: don't generate such field as it will be set to 'undefined' by
-       * default? *)
+      | `required -> gen_default_piqtype (some_of f.piqtype)
+      | `optional when f.piqtype = None -> ios "false" (* flag *)
       | `optional -> ios "'undefined'"
       | `repeated -> ios "[]"
   in
@@ -103,15 +101,15 @@ let gen_enum e =
 
 let rec gen_option varname o =
   let open Option in
-  match o.erlang_name, o.typeref with
+  match o.erlang_name, o.piqtype with
     | Some n, None ->
         ios n
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
-        gen_default_typeref t
+        gen_default_piqtype t
     | _, Some t ->
         let n = erlname_of_option o in
         iol [
-          ios "{"; ios n; ios ", "; gen_default_typeref t; ios "}";
+          ios "{"; ios n; ios ", "; gen_default_piqtype t; ios "}";
         ]
     | None, None -> assert false
 
@@ -127,11 +125,12 @@ let gen_variant v =
 
 let gen_alias a =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   iol [
     ios "default_"; ios (some_of a.erlang_name); ios "() -> ";
-    Piqic_erlang_in.gen_convert_of a.typeref a.erlang_type (
-      gen_default_typeref
-        a.typeref ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
+    Piqic_erlang_in.gen_convert_of piqtype a.erlang_type (
+      gen_default_piqtype
+        piqtype ?erlang_type:a.erlang_type ?wire_type:a.protobuf_wire_type;
     );
     ios ".";
   ]
@@ -152,7 +151,7 @@ let gen_def = function
   | `alias t -> gen_alias t
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   let defs = List.map gen_def defs in
   if defs = []
   then iol []
@@ -164,4 +163,4 @@ let gen_defs (defs:T.piqdef list) =
 
 
 let gen_piqi (piqi:T.piqi) =
-  gen_defs piqi.P#resolved_piqdef
+  gen_defs piqi.P#resolved_typedef

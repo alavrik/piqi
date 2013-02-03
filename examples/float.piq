@@ -3,7 +3,7 @@
 % NOTE: "float" and "float64" are the same types with different names (IEEE 754
 % double precision).
 %
-:piqtype float
+(:float)  % all subsequent values have type "float"
 
 0.0 -10.0
 
@@ -29,7 +29,7 @@
 %
 % IEEE 754 single precision
 %
-:piqtype float32
+(:float32)
 
 0.0 3.14159 
 

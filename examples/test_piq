@@ -27,32 +27,32 @@ piqi convert $f.piq
 # which are missing in source objects
 piqi convert --add-defaults $f.piq
 
-# convert to wire encoding, writing output to "<source file>.wire" file
-piqi convert -t wire $f.piq
+# convert to pib encoding, writing output to "<source file>.pib" file
+piqi convert -t pib $f.piq
 
 # convert back to .piq
-piqi convert $f.piq.wire 
+piqi convert $f.piq.pib
 
 # convert back to .piq and add defaults
-piqi convert --add-defaults $f.piq.wire 
+piqi convert --add-defaults $f.piq.pib
 
-# convert to piq-json encoding, writing output to "<source file>.json" file
-piqi convert -t piq-json $f.piq
+# convert to json encoding, writing output to "<source file>.json" file
+piqi convert -t json $f.piq
 
 # convert back to .piq
 piqi convert $f.piq.json
 
-# convert .json to .wire
-piqi convert -t wire $f.piq.json
+# convert .json to .pib
+piqi convert -t pib $f.piq.json
 
-# convert .wire to .json
-piqi convert -t json $f.piq.wire
+# convert .pib to .json
+piqi convert -t json $f.piq.pib
 
-# convert .wire to .xml
-piqi convert -t xml $f.piq.wire
+# convert .pib to .xml
+piqi convert -t xml $f.piq.pib
 
-# convert .wire to .json; generate "null" for missing optional fields
-piqi convert -t json --json-omit-null-fields false $f.piq.wire
+# convert .pib to .json; generate "null" for missing optional fields
+piqi convert -t json --json-omit-null-fields false $f.piq.pib
 
 #
 # Similar to the above but this time, embedding Piqi type specs while
@@ -64,34 +64,34 @@ piqi convert -t json --json-omit-null-fields false $f.piq.wire
 piqi convert --embed-piqi --add-defaults $f.piq
 
 
-# convert to wire encoding, writing output to "<source file>.wire" file
-piqi convert -t wire $f.piq
+# convert to pib encoding, writing output to "<source file>.pib" file
+piqi convert -t pib $f.piq
 
 # convert back to .piq
-piqi convert --embed-piqi $f.piq.wire
+piqi convert --embed-piqi $f.piq.pib
 
-# convert to wire encoding, writing output to "<source file>.wire" file
-piqi convert --embed-piqi -t wire $f.piq
+# convert to pib encoding, writing output to "<source file>.pib" file
+piqi convert --embed-piqi -t pib $f.piq
 
 # convert back to .piq
-piqi convert $f.piq.wire
+piqi convert $f.piq.pib
 
 
-# convert to piq-json encoding, writing output to "<source file>.json" file
-piqi convert -t piq-json $f.piq
+# convert to json encoding, writing output to "<source file>.json" file
+piqi convert -t json $f.piq
 
 # convert back to .piq
 piqi convert --embed-piqi $f.piq.json
 
-# convert to piq-json encoding, writing output to "<source file>.json" file
-piqi convert --embed-piqi -t piq-json $f.piq
+# convert to json encoding, writing output to "<source file>.json" file
+piqi convert --embed-piqi -t json $f.piq
 
 # convert back to .piq
 piqi convert $f.piq.json
 
 
-# convert .json to .wire
-piqi convert -t wire $f.piq.json
+# convert .json to .pib
+piqi convert -t pib $f.piq.json
 
-# convert .wire back to .json
-piqi convert -t piq-json $f.piq.json.wire
+# convert .pib back to .json
+piqi convert -t json $f.piq.json.pib

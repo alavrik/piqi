@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ open Iolist
 open Piqic_erlang_types
 
 
-module W = Piqi_wire
+module W = Piqi_protobuf
 
 
 let gen_code = Piqic_common.gen_code
@@ -54,11 +54,14 @@ let rec gen_gen_type erlang_type wire_type wire_packed x =
     | `any ->
         if !Piqic_common.is_self_spec
         then ios "gen_" ^^ ios !any_erlname
-        else ios "piqi_piqi:gen_any"
-    | (#T.piqdef as x) ->
+        else ios "piqi_piqi:gen_piqi_any"
+    | `alias a when wire_type <> None ->
+        (* need special handing for wire_type override *)
+        gen_gen_type a.A#erlang_type wire_type wire_packed (some_of a.A#piqtype)
+    | (#T.typedef as x) ->
         let modname = gen_parent x in
         iol [
-          modname; packed; ios "gen_"; ios (piqdef_erlname x)
+          modname; packed; ios "gen_"; ios (typedef_erlname x)
         ]
     | _ -> (* gen generators for built-in types *)
         iol [
@@ -68,8 +71,9 @@ let rec gen_gen_type erlang_type wire_type wire_packed x =
           ios (W.get_wire_type_name x wire_type);
         ]
 
-and gen_gen_typeref ?erlang_type ?wire_type ?(wire_packed=false) t =
-  gen_gen_type erlang_type wire_type wire_packed (piqtype t)
+
+let gen_gen_piqtype ?erlang_type ?wire_type ?(wire_packed=false) (t :T.piqtype) =
+  gen_gen_type erlang_type wire_type wire_packed t
 
 
 let gen_mode f =
@@ -78,7 +82,7 @@ let gen_mode f =
     | `required -> "required"
     | `optional -> "optional"
     | `repeated ->
-        if f.wire_packed
+        if f.protobuf_packed
         then "packed_repeated"
         else "repeated"
 
@@ -91,15 +95,15 @@ let gen_field rname f =
   in 
   let mode = gen_mode f in
   let fgen =
-    match f.typeref with
-      | Some typeref ->
+    match f.piqtype with
+      | Some piqtype ->
           (* field generation code *)
           iol [
             ios "piqirun:gen_" ^^ ios mode ^^ ios "_field(";
               gen_code f.code; ios ", ";
               ios "fun ";
-                gen_gen_typeref typeref ~wire_packed:f.wire_packed;
-                if f.wire_packed (* arity *)
+                gen_gen_piqtype piqtype ~wire_packed:f.protobuf_packed;
+                if f.protobuf_packed (* arity *)
                 then ios "/1, "
                 else ios "/2, ";
               ffname;
@@ -193,18 +197,24 @@ let gen_enum e =
 let gen_inner_option pattern outer_option =
   let open Option in
   let o = some_of outer_option in
-  let t = some_of o.typeref in
+  let t = some_of o.piqtype in
   let res =
     iol [
       pattern; ios " -> ";
-        gen_gen_typeref t; ios "("; gen_code o.code; ios ", X)";
+        gen_gen_piqtype t; ios "("; gen_code o.code; ios ", X)";
     ]
   in [res]
 
 
 let rec gen_option outer_option o =
   let open Option in
-  match o.erlang_name, o.typeref with
+  (* recursively generate cases from "included" variants *)
+  let gen_options options =
+        if outer_option <> None
+        then U.flatmap (gen_option outer_option) options
+        else U.flatmap (gen_option (Some o)) options
+  in
+  match o.erlang_name, o.piqtype with
     | Some ename, None -> (* gen true *)
         if outer_option <> None
         then gen_inner_option (ios ename) outer_option
@@ -215,11 +225,12 @@ let rec gen_option outer_option o =
                 ios "piqirun:gen_bool_field("; gen_code o.code; ios ", true)";
             ]
           in [res]
-    | None, Some (`variant v) | None, Some (`enum v) ->
+    | None, Some (`variant v) ->
         (* recursively generate cases from "included" variants *)
-        if outer_option <> None
-        then flatmap (gen_option outer_option) v.V.option
-        else flatmap (gen_option (Some o)) v.V.option
+        gen_options v.V#option
+    | None, Some (`enum e) ->
+        (* recursively generate cases from "included" enums *)
+        gen_options e.E#option
     | _, Some t ->
         let ename = erlname_of_option o in
         if outer_option <> None
@@ -228,7 +239,7 @@ let rec gen_option outer_option o =
           let res = 
             iol [
               ios "{"; ios ename; ios ", Y} -> ";
-                gen_gen_typeref t; ios "("; gen_code o.code; ios ", Y)";
+                gen_gen_piqtype t; ios "("; gen_code o.code; ios ", Y)";
             ]
           in [res]
     | None, None -> assert false
@@ -236,7 +247,7 @@ let rec gen_option outer_option o =
 
 let gen_variant v =
   let open Variant in
-  let options = flatmap (gen_option None) v.option in
+  let options = U.flatmap (gen_option None) v.option in
   iol
     [
       ios "gen_" ^^ ios (some_of v.erlang_name);
@@ -251,51 +262,53 @@ let gen_variant v =
     ]
 
 
-let gen_convert_value typeref erlang_type direction value =
-  match piqtype typeref with
-    | (#T.piqdef as piqdef) when erlang_type <> None -> (* custom Erlang type *)
+let gen_convert_value piqtype erlang_type direction value =
+  match piqtype with
+    | (#T.typedef as typedef) when erlang_type <> None -> (* custom Erlang type *)
         iol [
           ios (some_of erlang_type);
           ios direction;
-          ios (piqdef_erlname piqdef);
+          ios (typedef_erlname typedef);
           ios "("; value; ios ")";
         ]
     | _ ->
         value
 
 
-let gen_convert_to typeref erlang_type value =
-  gen_convert_value typeref erlang_type "_to_" value
+let gen_convert_to piqtype erlang_type value =
+  gen_convert_value piqtype erlang_type "_to_" value
 
 
 let gen_alias a =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   iol [
     ios "gen_"; ios (some_of a.erlang_name);
     ios "(Code, X) ->"; indent;
-      gen_gen_typeref a.typeref ?erlang_type:a.erlang_type ?wire_type:a.wire_type;
-      ios "(Code, "; gen_convert_to a.typeref a.erlang_type (ios "X"); ios ").";
+      gen_gen_piqtype piqtype ?erlang_type:a.erlang_type ?wire_type:a.protobuf_wire_type;
+      ios "(Code, "; gen_convert_to piqtype a.erlang_type (ios "X"); ios ").";
     unindent; eol;
   ]
 
 
 let gen_packed_alias a =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   iol [
     ios "packed_gen_"; ios (some_of a.erlang_name);
     ios "(X) ->"; indent;
-      gen_gen_typeref a.typeref
+      gen_gen_piqtype piqtype
         ?erlang_type:a.erlang_type
-        ?wire_type:a.wire_type
+        ?wire_type:a.protobuf_wire_type
         ~wire_packed:true;
-      ios "("; gen_convert_to a.typeref a.erlang_type (ios "X"); ios ").";
+      ios "("; gen_convert_to piqtype a.erlang_type (ios "X"); ios ").";
     unindent; eol;
   ]
 
 
 let gen_alias a =
   let open Alias in
-  if Piqi_wire.can_be_packed (piqtype a.typeref)
+  if Piqi_protobuf.can_be_packed (some_of a.piqtype)
   then
     (* generate another function for packed encoding *)
     iod "\n\n" [
@@ -307,14 +320,14 @@ let gen_alias a =
 
 let gen_list l =
   let open L in
-  let packed = ios (if l.wire_packed then "packed_" else "") in
+  let packed = ios (if l.protobuf_packed then "packed_" else "") in
   iol [
     ios "gen_" ^^ ios (some_of l.erlang_name);
     ios "(Code, X) ->"; indent;
       ios "piqirun:gen_"; packed; ios "list(Code, ";
         ios "fun ";
-          gen_gen_typeref l.typeref ~wire_packed:l.wire_packed;
-          if l.wire_packed (* arity *)
+          gen_gen_piqtype (some_of l.piqtype) ~wire_packed:l.protobuf_packed;
+          if l.protobuf_packed (* arity *)
           then ios "/1, X)."
           else ios "/2, X).";
     unindent; eol;
@@ -324,9 +337,9 @@ let gen_list l =
 (* generate gen_<name>/2 specs and functions *)
 let gen_spec_2 x =
   iol [
-    ios "-spec gen_"; ios (piqdef_erlname x); ios "/2 :: (";
+    ios "-spec gen_"; ios (typedef_erlname x); ios "/2 :: (";
       ios "Code :: piqirun_code(), ";
-      ios "X :: "; ios_gen_out_typeref (x :> T.typeref); ios ") -> ";
+      ios "X :: "; ios_gen_out_piqtype (x :> T.piqtype); ios ") -> ";
     ios "iolist().";
   ]
 
@@ -348,13 +361,13 @@ let gen_def_2 x =
 (* generate gen_<name>/1 specs and functions *)
 let gen_spec_1 x =
   iol [
-    ios "-spec gen_"; ios (piqdef_erlname x); ios "/1 :: (";
-      ios "X :: "; ios_gen_out_typeref (x :> T.typeref); ios ") -> ";
+    ios "-spec gen_"; ios (typedef_erlname x); ios "/1 :: (";
+      ios "X :: "; ios_gen_out_piqtype (x :> T.piqtype); ios ") -> ";
     ios "iolist().";
   ]
 
 let gen_def_1 x =
-  let func_name = ios "gen_" ^^ ios (piqdef_erlname x) in
+  let func_name = ios "gen_" ^^ ios (typedef_erlname x) in
   let generator =
     iol [
       func_name; ios "(X) ->"; indent;
@@ -367,11 +380,11 @@ let gen_def_1 x =
   ]
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   let defs_2 = List.map gen_def_2 defs in
   let defs_1 = List.map gen_def_1 defs in
   iod "\n" (defs_2 @ defs_1)
 
 
 let gen_piqi (piqi:T.piqi) =
-  gen_defs piqi.P#resolved_piqdef
+  gen_defs piqi.P#resolved_typedef

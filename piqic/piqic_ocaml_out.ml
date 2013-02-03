@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ open Iolist
 open Piqic_ocaml_types
 
 
-module W = Piqi_wire
+module W = Piqi_protobuf
 
 
 let gen_code = Piqic_common.gen_code
@@ -54,12 +54,15 @@ let rec gen_gen_type ocaml_type wire_type wire_packed x =
         if !Piqic_common.is_self_spec
         then ios "(fun code x -> gen__any code x)"
         else ios "(fun code x -> Piqi_piqi.gen__any code x)"
-    | (#T.piqdef as x) ->
+    | `alias a when wire_type <> None ->
+        (* need special handing for wire_type override *)
+        gen_gen_type a.A#ocaml_type wire_type wire_packed (some_of a.A#piqtype)
+    | (#T.typedef as x) ->
         let modname = gen_parent x in
         iol [
           modname;
           packed; ios "gen__";
-          ios (piqdef_mlname x)
+          ios (typedef_mlname x)
         ]
     | _ -> (* gen generators for built-in types *)
         iol [
@@ -71,25 +74,25 @@ let rec gen_gen_type ocaml_type wire_type wire_packed x =
           gen_cc ")";
         ]
 
-and gen_gen_typeref ?ocaml_type ?wire_type ?(wire_packed=false) t =
-  gen_gen_type ocaml_type wire_type wire_packed (piqtype t)
+let gen_gen_piqtype ?ocaml_type ?wire_type ?(wire_packed=false) t =
+  gen_gen_type ocaml_type wire_type wire_packed t
 
 
 (* calculates and generates the width of a packed wire element in bits:
  * generated value can be 32, 64 or empty *)
-let gen_wire_elem_width typeref wire_packed =
+let gen_wire_elem_width piqtype wire_packed =
   let rec aux ?wire_type = function
     | `alias x ->
         (* NOTE: overriding upper-level wire type even if this one is undefined
          *)
-        aux (piqtype x.A#typeref) ?wire_type:x.A#wire_type
+        aux (some_of x.A#piqtype) ?wire_type:x.A#protobuf_wire_type
     | t ->
-        Piqi_wire.get_wire_type_width t wire_type
+        Piqi_protobuf.get_wire_type_width t wire_type
   in
   if not wire_packed
   then ""
   else
-    match aux (piqtype typeref) with
+    match aux (some_of piqtype) with
       | Some x -> string_of_int x
       | None -> ""
 
@@ -98,17 +101,18 @@ let gen_mode f =
   let open F in
   match f.mode with
     | `required -> "required"
-    | `optional when f.default <> None -> "required" (* optional + default *)
+    | `optional when f.default <> None && (not f.ocaml_optional) ->
+        "required" (* optional + default *)
     | `optional -> "optional"
     | `repeated ->
         let mode =
-          if f.wire_packed
+          if f.protobuf_packed
           then "packed_repeated"
           else "repeated"
         in
         if f.ocaml_array
         then
-          let width = gen_wire_elem_width (some_of f.typeref) f.wire_packed in
+          let width = gen_wire_elem_width f.piqtype f.protobuf_packed in
           mode ^ "_array" ^ width
         else mode
 
@@ -121,14 +125,14 @@ let gen_field rname f =
   in 
   let mode = gen_mode f in
   let fgen =
-    match f.typeref with
-      | Some typeref ->
+    match f.piqtype with
+      | Some piqtype ->
           (* field generation code *)
           iod " "
             [ 
               ios "Piqirun.gen_" ^^ ios mode ^^ ios "_field";
                 gen_code f.code;
-                gen_gen_typeref typeref ~wire_packed:f.wire_packed;
+                gen_gen_piqtype piqtype ~wire_packed:f.protobuf_packed;
                 ffname
             ]
       | None ->
@@ -210,7 +214,7 @@ let gen_enum e =
 
 let rec gen_option o =
   let open Option in
-  match o.ocaml_name, o.typeref with
+  match o.ocaml_name, o.piqtype with
     | Some mln, None -> (* gen true *)
         iod " " [
           ios "|"; gen_pvar_name mln; ios "->";
@@ -218,7 +222,7 @@ let rec gen_option o =
             ios "Piqirun.gen_bool_field"; gen_code o.code; ios "true";
         ]
     | None, Some ((`variant _) as t) | None, Some ((`enum _) as t) ->
-        let ocaml_name = piqdef_mlname t in
+        let ocaml_name = typedef_mlname t in
         let scoped_name =
           match get_parent t with
             | `import x -> (* imported name *)
@@ -228,13 +232,13 @@ let rec gen_option o =
         in
         iod " " [
           ios "| (#" ^^ ios scoped_name; ios " as x) ->";
-            gen_gen_typeref t; gen_code o.code; ios "x";
+            gen_gen_piqtype t; gen_code o.code; ios "x";
         ]
     | _, Some t ->
         let mln = mlname_of_option o in
         iod " " [
           ios "|"; gen_pvar_name mln; ios "x ->";
-            gen_gen_typeref t; gen_code o.code; ios "x";
+            gen_gen_piqtype t; gen_code o.code; ios "x";
         ]
     | None, None -> assert false
 
@@ -245,20 +249,20 @@ let gen_variant v =
   iod " "
     [
       ios "gen__" ^^ ios (some_of v.ocaml_name);
-      ios "code (x:" ^^ ios_gen_typeref (`variant v) ^^ ios ") =";
+      ios "code (x:" ^^ ios_gen_piqtype (`variant v) ^^ ios ") =";
       gen_cc "refer x;";
       ios "Piqirun.gen_record code [(match x with"; iol options; ios ")]";
     ]
 
 
-let gen_convert_value typeref ocaml_type direction value =
-  match piqtype typeref with
-    | (#T.piqdef as piqdef) when ocaml_type <> None -> (* custom OCaml type *)
+let gen_convert_value piqtype ocaml_type direction value =
+  match piqtype with
+    | (#T.typedef as typedef) when ocaml_type <> None -> (* custom OCaml type *)
         iol [
           ios "(";
             ios (some_of ocaml_type);
             ios direction;
-            ios (piqdef_mlname piqdef);
+            ios (typedef_mlname typedef);
             ios "("; value; ios ")";
           ios ")"
         ]
@@ -266,36 +270,38 @@ let gen_convert_value typeref ocaml_type direction value =
         value
 
 
-let gen_convert_to typeref ocaml_type value =
-  gen_convert_value typeref ocaml_type "_to_" value
+let gen_convert_to piqtype ocaml_type value =
+  gen_convert_value piqtype ocaml_type "_to_" value
 
 
 let gen_alias a =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   iol [
     ios "gen__"; ios (some_of a.ocaml_name);
     ios " code x = ";
-      gen_gen_typeref a.typeref ?ocaml_type:a.ocaml_type ?wire_type:a.wire_type;
-      ios " code"; gen_convert_to a.typeref a.ocaml_type (ios " x");
+      gen_gen_piqtype piqtype ?ocaml_type:a.ocaml_type ?wire_type:a.protobuf_wire_type;
+      ios " code"; gen_convert_to piqtype a.ocaml_type (ios " x");
   ]
 
 
 let gen_packed_alias a =
   let open Alias in
+  let piqtype = some_of a.piqtype in
   iol [
     ios "packed_gen__"; ios (some_of a.ocaml_name);
     ios " x = ";
-      gen_gen_typeref a.typeref
+      gen_gen_piqtype piqtype
         ?ocaml_type:a.ocaml_type
-        ?wire_type:a.wire_type
+        ?wire_type:a.protobuf_wire_type
         ~wire_packed:true;
-      gen_convert_to a.typeref a.ocaml_type (ios " x");
+      gen_convert_to piqtype a.ocaml_type (ios " x");
   ]
 
 
 let gen_alias a =
   let open Alias in
-  if Piqi_wire.can_be_packed (piqtype a.typeref)
+  if Piqi_protobuf.can_be_packed (some_of a.piqtype)
   then
     (* generate another function for packed encoding *)
     iod " and " [
@@ -308,10 +314,10 @@ let gen_alias a =
 (* generate: (packed_)?(list|array|array32|array64) *)
 let gen_list_repr l =
   let open L in
-  let packed = ios (if l.wire_packed then "packed_" else "") in
+  let packed = ios (if l.protobuf_packed then "packed_" else "") in
   let repr =
     if l.ocaml_array
-    then ios "array" ^^ ios (gen_wire_elem_width l.typeref l.wire_packed)
+    then ios "array" ^^ ios (gen_wire_elem_width l.piqtype l.protobuf_packed)
     else ios "list"
   in
   packed ^^ repr
@@ -325,7 +331,7 @@ let gen_list l =
       gen_cc "reference ";
         (* Piqirun.gen_(packed_)?(list|array|array32|array64) *)
         ios "(Piqirun.gen_"; repr; ios " (";
-          gen_gen_typeref l.typeref ~wire_packed:l.wire_packed;
+          gen_gen_piqtype (some_of l.piqtype) ~wire_packed:l.protobuf_packed;
         ios ")) code x";
   ]
 
@@ -340,7 +346,7 @@ let gen_def = function
 
 (* generate gen_<name>/1 functions *)
 let gen_def_1 x =
-  let name = ios (piqdef_mlname x) in
+  let name = ios (typedef_mlname x) in
   iol [
     ios "let gen_"; name; ios " x = ";
       ios"gen__"; name; ios " (-1) x";
@@ -348,7 +354,7 @@ let gen_def_1 x =
   ]
 
 
-let gen_defs (defs:T.piqdef list) =
+let gen_defs (defs:T.typedef list) =
   if defs = []
   then iol []
   else
@@ -377,4 +383,4 @@ let gen_defs (defs:T.piqdef list) =
 
 
 let gen_piqi (piqi:T.piqi) =
-  gen_defs piqi.P#resolved_piqdef
+  gen_defs piqi.P#resolved_typedef

@@ -1,6 +1,6 @@
 % testing enums and aliases imports and functino paraemters -- also see ea.piqi
 
-%.proto-package "tt"
+%.protobuf-package "tt"
 
 .import [ .module ea .name t ]
 

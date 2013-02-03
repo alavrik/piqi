@@ -1,6 +1,6 @@
 
 all:
-	cat ../piqi_packed/packed.piqi | sed -e 's/\.wire-packed//' > unpacked.piqi
+	cat ../piqi_packed/packed.piqi | sed -e 's/\.protobuf-packed//' > unpacked.piqi
 	cat ../piqi_packed/test-all.piq | sed -e 's/:packed/:unpacked/' > test-all-unpacked.piq
 
 	$(MAKE) -f Makefile.ocaml

@@ -1,4 +1,4 @@
-%% Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+%% Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -33,8 +33,9 @@
 %
 % json_omit_null_fields
 %
-%      Omit missing optional fields from JSON output instead of representing
-%      them as {"field_name": null} JSON fields (default = true)
+%      Omit missing optional and empty repeated fields from JSON
+%      output instead of representing them as {"field_name": null} and
+%      {"field_name", []} JSON fields (default = true)
 %
 % use_strict_parsing
 %

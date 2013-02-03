@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,19 +19,11 @@
 module C = Piqi_common
 open C
 
-
-module R = Piqobj.Record
-module F = Piqobj.Field
-module V = Piqobj.Variant
-module E = Piqobj.Variant
-module O = Piqobj.Option
-module A = Piqobj.Alias
-module Any = Piqobj.Any
-module L = Piqobj.List
+open Piqobj_common
 
 
-type xml = Piqi_xml.xml
-type xml_elem = Piqi_xml.xml_elem
+type xml = Piqi_xml_type.xml
+type xml_elem = Piqi_xml_type.xml_elem
 
 
 let uint64_to_string x =
@@ -70,7 +62,7 @@ let rec gen_obj (x:Piqobj.obj) :xml list =
     | `float x -> gen_scalar xml_string_of_float x
     | `bool x -> gen_scalar Pervasives.string_of_bool x (* "true" | "false" *)
     | `binary x -> gen_scalar Piqi_base64.encode x
-    | `string x | `word x | `text x  -> gen_scalar escape_xml_text x
+    | `string x -> gen_scalar escape_xml_text x
     | `any x -> gen_any x
     (* custom types *)
     | `record x -> gen_record x
@@ -82,25 +74,47 @@ let rec gen_obj (x:Piqobj.obj) :xml list =
 
 and gen_any x =
   let open Any in
-  (* NOTE: converting only typed and fully resolved piq objects to xml *)
-  match x.obj with
-    | None -> [`Elem ("undefined", [])] (* XXX: will it be always present? *)
-    | Some obj -> gen_obj obj
+  if not !Piqi_config.gen_extended_piqi_any
+  then
+    match Piqobj.xml_of_any x with
+      | None -> [] (* no element members *)
+      | Some xml_list -> xml_list
+  else (* non-sybolic piqi-any representation *)
+    let make_xml_field name value f =
+      match value with
+        | None -> []
+        | Some x ->
+            [`Elem (name, f x)]
+    in
+    let typename = make_xml_field "type" x.typename (fun name -> [`Data name])
+    in
+    let protobuf = make_xml_field "protobuf" (Piqobj.pb_of_any x) (fun pb ->
+      [`Data (Piqi_base64.encode pb)])
+    in
+    let json = make_xml_field "xml" (Piqobj.xml_of_any x) (fun xml_list ->
+      xml_list)
+    in
+    (* this field indicates that this is an extended piqi-any representation
+     * (it is necessary for detecting which variant of piqi-any represenation
+     * is used and to make either representation automatically reversible) *)
+    `Elem ("piqi-type", [`Data "piqi-any"]) ::
+    (* actual content *)
+    (typename @ protobuf @ json)
 
 
 and gen_record x =
   let open R in
-  let field_types = x.piqtype.T.Record.field in
+  let field_types = x.t.T.Record.field in
   (* generate fields and order them according to the order of fields in the
    * original Piqi record specification *)
-  flatmap (gen_field x.field) field_types
+  U.flatmap (gen_field x.field) field_types
 
 
 and gen_field fields t =
   let open F in
   let name = C.name_of_field t in
   (* find all fields of the given type *)
-  let fields = List.find_all (fun f -> f.piqtype == t) fields in
+  let fields = List.find_all (fun f -> f.t == t) fields in
   (* generate fields *)
   List.map (fun f -> gen_obj_element name f.obj) fields
 
@@ -118,18 +132,18 @@ and gen_variant x =
 
 and gen_option x =
   let open O in
-  let name = C.name_of_option x.piqtype in
+  let name = C.name_of_option x.t in
   gen_obj_element name x.obj
 
 
 and gen_enum x =
-  let open V in
+  let open E in
   gen_scalar gen_enum_option x.option
 
 
 and gen_enum_option x =
   let open O in
-  let name = C.name_of_option x.piqtype in
+  let name = C.name_of_option x.t in
   name
 
 
@@ -145,9 +159,16 @@ and gen_alias x =
     | x -> gen_obj x
 
 
+let gen_obj obj = gen_obj obj
+
+
+let _ =
+  Piqobj.to_xml := gen_obj
+
+
 (* gen top-level XML element *)
-let gen_obj (obj: Piqobj.obj) :xml =
-  let piqtype = Piqobj_common.type_of obj in
-  let name = C.piqi_typename piqtype in
-  make_element name (gen_obj obj)
+let gen_toplevel_obj (obj: Piqobj.obj) :xml =
+  (* always using <value> as a top-level element; we don't really care what this
+   * names is, but it is better to pick one name and stick to it *)
+  make_element "value" (gen_obj obj)
 

@@ -1,5 +1,5 @@
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ let usage = "Usage: piqi check [options] <.piqi|.piq file>\nOptions:"
 let speclist = Main.common_speclist @
   [
     Piqi_main.arg__strict;
-    Piqi_convert_cmd.arg__piqtype;
+    Piqi_convert_cmd.arg__type;
     Piqi_main.arg__include_extension;
   ]
 
@@ -42,16 +42,11 @@ let check_piqi filename =
   ignore (Piqi.load_piqi filename)
 
 
+(* TODO: add support for checking .pib and, possibly, json and xml as well *)
 let check_piq filename =
-  let piq_parser = Piq.open_piq filename in
-  try
-    while true
-    do
-      let piqtype = Piqi_convert_cmd.resolve_typename () in
-      ignore (Piq.load_piq_obj piqtype piq_parser)
-    done
-  with
-    Piq.EOF -> ()
+  let reader = Piqi_convert_cmd.make_reader "piq" in
+  (* read Piq objects one by one, but don't output them anywhere *)
+  Piqi_convert_cmd.do_convert reader
 
 
 let check_file filename =

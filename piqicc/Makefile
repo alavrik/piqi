@@ -1,3 +1,4 @@
+include ../Makefile.config
 include $(PIQI_ROOT)/make/Makefile.ocaml
 include $(PIQI_ROOT)/piqilib/Makefile.piqi_common
 
@@ -32,7 +33,7 @@ $(PIQIC_LIB_SOURCES): %.ml: $(PIQI_ROOT)/piqic/%.ml
 	ln -s $< $@
 
 
-piqi_piqi.ml: boot/piqi_piqi.ml
+piqi_lang_piqi.ml: boot/piqi_lang_piqi.ml
 	cp $< $@
 
 
@@ -40,14 +41,14 @@ piqi_piqi.ml: boot/piqi_piqi.ml
 
 
 reboot:
-	./piqicc $(PIQICC_FLAGS) -o piqi_piqi.tmp.ml \
-		--boot piqi-boot.piqi --lang piqi-lang.piqi --impl piqi-impl.piqi
-	$(CAMLP4_O) -o boot/piqi_piqi.ml piqi_piqi.tmp.ml
-	rm -f piqi_piqi.tmp.ml
+	./piqicc $(PIQICC_FLAGS) -o piqi_lang_piqi.tmp.ml \
+		--spec piqi.piqi --lang piqi-lang.piqi --impl piqi-impl.piqi
+	$(CAMLP4_O) -o boot/piqi_lang_piqi.ml piqi_lang_piqi.tmp.ml
+	rm -f piqi_lang_piqi.tmp.ml
 
 
 clean::
-	rm -f piqi_piqi.tmp.ml
+	rm -f piqi_lang_piqi.tmp.ml
 
 
 include $(OCAMLMAKEFILE)

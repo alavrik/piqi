@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -37,29 +37,13 @@ let read_piq_obj piq_parser =
   res
 
 
-let map_words (x:T.ast) f =
-  let rec aux = function
-    | `word s -> `word (f s)
-    | `name s -> `name (f s)
-    | `named ({T.Named.value = v} as x) ->
-        `named {x with T.Named.value = aux v}
-    | `typed ({T.Typed.value = v} as x) ->
-        let ast = some_of v.T.Any.ast in
-        let v = {v with T.Any.ast = Some (aux ast)} in
-       `typed {x with T.Typed.value = v}
-    | `list l -> `list (List.map aux l)
-    | `control l -> `control (List.map aux l)
-    | x -> x
-  in aux x
-
-
-let normalize ast =
-  map_words ast Piqi_name.normalize_name
+let normalize_ast ast =
+  Piq_ast.map_words ast Piqi_name.normalize_name
 
 
 let transform_ast ast =
   if !flag_normalize
-  then normalize ast
+  then normalize_ast ast
   else ast
 
 

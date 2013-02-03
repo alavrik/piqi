@@ -70,7 +70,7 @@
 
 .enum [
     .name e
-    .option [ .name a .proto-name "e_a" ]
+    .option [ .name a .protobuf-name "e_a" ]
     .option [ .name b ]
     .option [ .name c ]
 ]

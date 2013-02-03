@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,25 +16,17 @@
 *)
 
 
-open Piqi_json_common
-
-
 module C = Piqi_common
 open C
 
+open Piqobj_common
 
-module R = Piqobj.Record
-module F = Piqobj.Field
-module V = Piqobj.Variant
-module E = Piqobj.Variant
-module O = Piqobj.Option
-module A = Piqobj.Alias
-module Any = Piqobj.Any
-module L = Piqobj.List
+
+type json = Piqi_json_type.json
 
 
 let error_duplicate obj name =
-  error obj ("duplicate field: " ^ quote name)
+  error obj ("duplicate field: " ^ U.quote name)
 
 
 let handle_unknown_field ((n, _) as x) =
@@ -43,7 +35,7 @@ let handle_unknown_field ((n, _) as x) =
     then error
     else warning
   in
-  f x ("unknown field: " ^ quote n)
+  f x ("unknown field: " ^ U.quote n)
 
 
 let parse_int (obj:json) = match obj with
@@ -89,8 +81,6 @@ let rec parse_obj (t:T.piqtype) (x:json) :Piqobj.obj =
     | `bool -> `bool (parse_bool x)
     | `string -> `string (parse_string x)
     | `binary -> `binary (parse_binary x)
-    | `word -> `word (parse_string x)
-    | `text -> `text (parse_string x)
     | `any -> `any (parse_any x)
     (* custom types *)
     | `record t -> `record (parse_record t x)
@@ -100,12 +90,44 @@ let rec parse_obj (t:T.piqtype) (x:json) :Piqobj.obj =
     | `alias t -> `alias (parse_alias t x)
 
 
-and parse_any x =
-  (* store JSON parse tree in the object store; it will be retrieved later when
-   * needed by the referece *)
-  let ref = Piqi_objstore.put x in
-  let piq_any = T.Any#{T.default_any() with ref = Some ref} in
-  Any#{ any = piq_any; obj = None }
+and parse_any (x:json) :Piqobj.any =
+  (* detect extended piqi-any format *)
+  match x with
+    | `Assoc (("piqi_type", `String "piqi-any") :: rem) -> (* extended piqi-any format *)
+        (* manually parsing the piqi-any record, so that we could extract the
+         * symbolic json representation *)
+        (* XXX: check correspondence between typed protobuf and typed json? *)
+        let typename_obj, rem = parse_optional_field "type" `string None rem in
+        let protobuf_obj, rem = parse_optional_field "protobuf" `binary None rem in
+        let json_obj, rem = parse_optional_field "json" `any None rem in
+        (* issue warnings on unparsed fields *)
+        List.iter handle_unknown_field rem;
+        let typename =
+          match typename_obj with
+            | Some (`string x) -> Some x
+            | _ -> None
+        in
+        let protobuf =
+          match protobuf_obj with
+            | Some (`binary x) -> Some x
+            | _ -> None
+        in
+        let json_ast =
+          match json_obj with
+            | Some (`any {Any.json_ast = json_ast}) -> json_ast
+            | _ -> None
+        in
+        Any#{
+          Piqobj.default_any with
+          typename = typename;
+          pb = protobuf;
+          json_ast = json_ast;
+        }
+    | json_ast -> (* regular symbolic piqi-any *)
+        Any#{
+          Piqobj.default_any with
+          json_ast = Some json_ast;
+        }
 
 
 and parse_record t = function
@@ -119,19 +141,19 @@ and parse_record t = function
 
 
 and do_parse_record loc t l =
-  debug "do_parse_record: %s\n" t.T.Record#name;
+  debug "do_parse_record: %s\n" (some_of t.T.Record#name);
   let fields_spec = t.T.Record#field in
   let fields, rem =
     List.fold_left (parse_field loc) ([], l) fields_spec in
   (* issue warnings on unparsed fields *)
   List.iter handle_unknown_field rem;
   (* put required fields back at the top *)
-  R#{ piqtype = t; field = List.rev fields}
+  R#{ t = t; field = List.rev fields; unparsed_piq_fields_ref = None}
 
 
 and parse_field loc (accu, rem) t =
   let fields, rem =
-    match t.T.Field#typeref with
+    match t.T.Field#piqtype with
       | None -> do_parse_flag t rem
       | Some _ -> do_parse_field loc t rem
   in
@@ -146,7 +168,7 @@ and do_parse_flag t l =
   match res with
     | [] -> [], rem
     | [x] ->
-        let res = F#{ piqtype = t; obj = None } in
+        let res = F#{ t = t; obj = None } in
         [res], rem
     | _::o::_ -> error_duplicate o name
 
@@ -155,7 +177,7 @@ and do_parse_field loc t l =
   let open T.Field in
   let name = some_of t.json_name in
   debug "do_parse_field: %s\n" name;
-  let field_type = piqtype (some_of t.typeref) in
+  let field_type = some_of t.piqtype in
   let values, rem =
     match t.mode with
       | `required -> 
@@ -169,7 +191,7 @@ and do_parse_field loc t l =
           parse_repeated_field name field_type l
   in
   let fields =
-    List.map (fun x -> F#{ piqtype = t; obj = Some x }) values
+    List.map (fun x -> F#{ t = t; obj = Some x }) values
   in
   fields, rem
   
@@ -177,7 +199,7 @@ and do_parse_field loc t l =
 and parse_required_field loc name field_type l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> error loc ("missing field " ^ quote name)
+    | [] -> error loc ("missing field " ^ U.quote name)
     | [x] -> parse_obj field_type x, rem
     | _::o::_ -> error_duplicate o name
 
@@ -199,7 +221,7 @@ and find_flags (name:string) (l:(string*json) list) :(string list * (string*json
     | (n, `Bool true)::t when n = name -> aux (n::accu) rem t
     | (n, `Null ())::t when n = name -> aux accu rem t (* skipping *)
     | (n, _)::t when n = name ->
-        error n ("value can not be specified for flag " ^ quote n)
+        error n ("value can not be specified for flag " ^ U.quote n)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
@@ -208,7 +230,7 @@ and find_flags (name:string) (l:(string*json) list) :(string list * (string*json
 and parse_optional_field name field_type default l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> Piqobj_of_wire.parse_default field_type default, rem
+    | [] -> Piqobj_common.parse_default field_type default, rem
     | [`Null ()] -> None, rem
     | [x] -> Some (parse_obj field_type x), rem
     | _::o::_ -> error_duplicate o name
@@ -228,7 +250,7 @@ and parse_repeated_field name field_type l =
 
 
 and parse_variant t x =
-  debug "parse_variant: %s\n" t.T.Variant#name;
+  debug "parse_variant: %s\n" (some_of t.T.Variant#name);
   match x with
     | `Assoc [name, value] ->
         let options = t.T.Variant#option in
@@ -240,9 +262,9 @@ and parse_variant t x =
             in
             parse_option o value
           with Not_found ->
-            error x ("unknown variant option: " ^ quote name)
+            error x ("unknown variant option: " ^ U.quote name)
         in
-        V#{ piqtype = t; option = option }
+        V#{ t = t; option = option }
     | `Assoc l ->
         let l = List.filter (fun (n, v) -> v <> `Null ()) l in
         (match l with
@@ -255,30 +277,29 @@ and parse_variant t x =
 
 and parse_option t x =
   let open T.Option in
-  match t.typeref, x with
+  match t.piqtype, x with
     | None, `Bool true ->
-        O#{ piqtype = t; obj = None }
+        O#{ t = t; obj = None }
     | None, _ ->
         error x "true value expected"
-    | Some typeref, _ ->
-        let option_type = piqtype typeref in
+    | Some option_type, _ ->
         let obj = parse_obj option_type x in
-        O#{ piqtype = t; obj = Some obj }
+        O#{ t = t; obj = Some obj }
 
 
 and parse_enum t x =
-  debug "parse_enum: %s\n" t.T.Variant#name;
+  debug "parse_enum: %s\n" (some_of t.T.Enum#name);
   match x with
     | `String name ->
-        let options = t.T.Variant#option in
+        let options = t.T.Enum#option in
         let option =
           try
-            let o = List.find (fun o -> some_of o.T.Option#name = name) options in
-            O#{ piqtype = o; obj = None }
+            let o = List.find (fun o -> some_of o.T.Option#json_name = name) options in
+            O#{ t = o; obj = None }
           with Not_found ->
-            error x ("unknown enum option: " ^ quote name)
+            error x ("unknown enum option: " ^ U.quote name)
         in
-        V#{ piqtype = t; option = option }
+        E#{ t = t; option = option }
     | _ ->
         error x "string enum value expected"
 
@@ -286,10 +307,10 @@ and parse_enum t x =
 and parse_list t x =
   match x with
     | `List l ->
-        debug "parse_list: %s\n" t.T.Piqlist#name;
-        let obj_type = piqtype t.T.Piqlist#typeref in
+        debug "parse_list: %s\n" (some_of t.T.Piqi_list#name);
+        let obj_type = some_of t.T.Piqi_list#piqtype in
         let contents = List.map (parse_obj obj_type) l in
-        L#{ piqtype = t; obj = contents }
+        L#{ t = t; obj = contents }
     | _ ->
         error x "array expected"
 
@@ -297,8 +318,12 @@ and parse_list t x =
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias t x =
   let open T.Alias in
-  let obj_type = piqtype t.typeref in
-  debug "parse_alias: %s\n" t.T.Alias#name;
+  let obj_type = some_of t.piqtype in
+  debug "parse_alias: %s\n" (some_of t.T.Alias#name);
   let obj = parse_obj obj_type x in
-  A#{ piqtype = t; obj = obj }
+  A#{ t = t; obj = obj }
+
+
+let _ =
+  Piqobj.of_json := parse_obj
 

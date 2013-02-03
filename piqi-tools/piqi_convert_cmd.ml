@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -38,11 +38,11 @@ let usage = "Usage: piqi convert [options] [input file] [output file]\nOptions:"
 
 let arg__t =
     "-t", Arg.Set_string output_encoding,
-    "piq|wire|pb|json|piq-json|xml output encoding (piq is used by default)"
+    "pb|json|xml|piq|pib output encoding (piq is used by default)"
 
-let arg__piqtype =
-    "--piqtype", Arg.Set_string typename,
-    "<typename> type of converted object when converting from .pb, plain .json or .xml"
+let arg__type =
+    "--type", Arg.Set_string typename,
+    "<typename> type of converted object"
 
 let arg__add_defaults =
     "--add-defaults", Arg.Set flag_add_defaults,
@@ -52,6 +52,10 @@ let arg__json_omit_null_fields =
     "--json-omit-null-fields", Arg.Bool (fun x -> flag_json_omit_null_fields := x),
     "true|false omit null fields in JSON output (default=true)"
 
+let arg__gen_extended_piqi_any =
+    "--gen-extended-piqi-any", Arg.Set Piqi_config.gen_extended_piqi_any,
+    "use extended representation of piqi-any values in XML and JSON output"
+
 
 let speclist = Main.common_speclist @
   [
@@ -59,12 +63,13 @@ let speclist = Main.common_speclist @
     arg_o;
 
     "-f", Arg.Set_string input_encoding,
-    "piq|wire|pb|json|piq-json|xml input encoding";
+    "pb|json|xml|piq|pib input encoding";
 
     arg__t;
-    arg__piqtype;
+    arg__type;
     arg__add_defaults;
     arg__json_omit_null_fields;
+    arg__gen_extended_piqi_any;
 
     "--embed-piqi", Arg.Set flag_embed_piqi,
     "embed Piqi dependencies, i.e. Piqi specs which the input depends on";
@@ -98,12 +103,12 @@ let resolve_typename () =
 
 
 (* ensuring that Piq.load_pb is called exactly one time *)
-let load_pb piqtype wireobj :Piq.obj =
+let load_pb piqtype protobuf :Piq.obj =
   if !first_load
   then
     begin
       first_load := false;
-      Piq.load_pb piqtype wireobj
+      Piq.load_pb piqtype protobuf
     end
   else
     (* XXX: print a warning if there are more input objects? *)
@@ -124,11 +129,20 @@ let write_pb ch (obj: Piq.obj) =
 
 
 (* write only data and skip Piqi specifications and data hints *)
-let write_plain ~is_piqi_input writer ch (obj: Piq.obj) =
+let write_data ~is_piqi_input writer ch (obj: Piq.obj) =
   match obj with
     | Piq.Piqi _ when not is_piqi_input ->
         (* ignore embedded Piqi specs if we are not converting .piqi *)
         ()
+    | Piq.Piqtype _ ->
+        (* ignore default type names *)
+        ()
+    | _ ->writer ch obj
+
+
+(* write data and Piqi specifications and data hints *)
+let write_data_and_piqi writer ch (obj: Piq.obj) =
+  match obj with
     | Piq.Piqtype _ ->
         (* ignore default type names *)
         ()
@@ -142,18 +156,18 @@ let make_reader load_f input_param =
 let make_reader input_encoding =
   match input_encoding with
     | "pb" when !typename = "" ->
-        piqi_error "--piqtype parameter must be specified for \"pb\" input encoding"
+        piqi_error "--type parameter must be specified for \"pb\" input encoding"
     | "pb" ->
         let piqtype = some_of (resolve_typename ()) in
-        let wireobj = Piq.open_pb !ifile in
-        make_reader (load_pb piqtype) wireobj
+        let protobuf = Piq.open_pb !ifile in
+        make_reader (load_pb piqtype) protobuf
 
-    | "json" | "piq-json" ->
+    | "json" ->
         let json_parser = Piqi_json.open_json !ifile in
-        make_reader (Piq.load_piq_json_obj (resolve_typename ())) json_parser
+        make_reader (Piq.load_json_obj (resolve_typename ())) json_parser
 
     | "xml" when !typename = "" ->
-        piqi_error "--piqtype parameter must be specified for \"xml\" input encoding"
+        piqi_error "--type parameter must be specified for \"xml\" input encoding"
     | "xml" ->
         let piqtype = some_of (resolve_typename ()) in
         let xml_parser = Piqi_xml.open_xml !ifile in
@@ -164,15 +178,17 @@ let make_reader input_encoding =
         make_reader (Piq.load_piq_obj (resolve_typename ())) piq_parser
 
     | "piqi" when !typename <> "" ->
-        piqi_error "--piqtype parameter is not applicable to \"piqi\" input encoding"
+        piqi_error "--type parameter is not applicable to \"piqi\" input encoding"
     | "piqi" ->
         make_reader load_piqi !ifile
 
-    | "wire" ->
-        let buf = Piq.open_wire !ifile in
-        make_reader (Piq.load_wire_obj (resolve_typename ())) buf
+    | "pib" ->
+        let buf = Piq.open_pib !ifile in
+        make_reader (Piq.load_pib_obj (resolve_typename ())) buf
+    | "" ->
+        piqi_error "can't determine input encoding; use -f option to specify it explicitly"
     | x ->
-        piqi_error ("unknown input encoding: " ^ x)
+        piqi_error ("unknown input encoding: " ^ U.quote x)
 
 
 let make_writer ?(is_piqi_input=false) output_encoding =
@@ -182,22 +198,20 @@ let make_writer ?(is_piqi_input=false) output_encoding =
    * if the field is missing. *)
   C.resolve_defaults := !flag_add_defaults ||
     (match output_encoding with
-      | "json" | "piq-json" | "xml" -> true
+      | "json" | "xml" -> true
       | _ -> false);
   match output_encoding with
     | "" (* default output encoding is "piq" *)
     | "piq" -> Piq.write_piq
-    | "wire" -> Piq.write_wire
+    | "pib" -> Piq.write_pib
     | "json" ->
-        write_plain Piq.write_json ~is_piqi_input
-    | "piq-json" ->
-        Piq.write_piq_json
+        write_data_and_piqi Piq.write_json
     | "pb" ->
-        write_plain write_pb ~is_piqi_input
+        write_data write_pb ~is_piqi_input
     | "xml" ->
-        write_plain Piq.write_xml ~is_piqi_input
-    | _ ->
-        piqi_error "unknown output encoding"
+        write_data Piq.write_xml ~is_piqi_input
+    | x ->
+        piqi_error ("unknown output encoding " ^ U.quote x)
 
 
 let seen = ref [] (* the list of seen elements *)
@@ -217,31 +231,38 @@ let remove_update_seen l =
 
 
 let rec get_piqi_deps piqi ~only_imports =
-  if C.is_boot_piqi piqi
-  then [] (* boot Piqi is not a dependency *)
+  if Piqi.is_boot_piqi piqi
+  then [] (* boot Piqi (a parent of built-in types) is not a dependency *)
   else
-    (* get all includes and includes from all included modules -- only *)
-    let includes = if only_imports then [piqi] else piqi.P#included_piqi in
+    (* get all includes and includes from all included modules *)
+    let include_deps =
+      if only_imports
+      then []
+      else
+        (* remove the module itself from the list of included deps (it is always
+         * at the end of the list) *)
+        List.filter (fun x -> x != piqi) piqi.P#included_piqi
+    in
     (* get all dependencies from imports *)
     let import_deps =
-      flatmap (fun x ->
+      U.flatmap (fun x ->
           let piqi = some_of x.T.Import#piqi in
-          flatmap (get_piqi_deps ~only_imports) piqi.P#included_piqi)
+          U.flatmap (get_piqi_deps ~only_imports) piqi.P#included_piqi)
         piqi.P#resolved_import
     in
-    (* NOTE: imports go first in the list of dependencies *)
-    let l = import_deps @ includes in
+    (* NOTE: includes go first in the list of dependencies *)
+    let l = include_deps @ import_deps @ [piqi] in
     (* remove duplicate entries *)
-    C.uniqq l
+    U.uniqq l
 
 
 let get_parent_piqi (t: T.piqtype) =
-  let piqdef =
+  let typedef =
     match t with
-      | #T.piqdef as x -> x
+      | #T.typedef as x -> x
       | _ -> assert false
   in
-  C.get_parent_piqi piqdef
+  C.get_parent_piqi typedef
 
 
 let get_dependencies (obj :Piq.obj) ~only_imports =
@@ -250,9 +271,7 @@ let get_dependencies (obj :Piq.obj) ~only_imports =
       | Piq.Piqi piqi ->
           (* add piqi itself to the list of seen *)
           add_seen piqi;
-          let deps = get_piqi_deps piqi ~only_imports in
-          (* remove the Piqi itself from the list of deps *)
-          List.filter (fun x -> x != piqi) deps
+          get_piqi_deps piqi ~only_imports
       | _ -> (
           let piqtype =
             match obj with
@@ -274,21 +293,113 @@ let get_dependencies (obj :Piq.obj) ~only_imports =
 
 
 let validate_options input_encoding =
+  let typename_str =
+    if !typename = ""
+    then ""
+    else "values of type " ^ U.quote !typename ^ " "
+  in
+  let output_encoding_str =
+    if !output_encoding = ""
+    then "piq" (* default output encoding is "piq" *)
+    else !output_encoding
+  in
+  trace "converting %sfrom .%s to .%s\n" typename_str input_encoding output_encoding_str;
+
   if !flag_embed_piqi
   then (
-    if input_encoding = "piqi"
-    then (
-      if !output_encoding = "pb"
-      then piqi_error "can't --embed-piqi when converting .piqi to .pb"
-    )
-    else ( (* input_encoding <> "piqi" *)
-      match !output_encoding with
-        | "json" | "xml" | "pb" ->
-          piqi_warning
-            "--embed-piqi doesn't have any effect when converting to .pb, .json or .xml; use .wire or .piq-json"
-        | _ -> ()
-    )
+    match !output_encoding with
+      | "pb" | "xml" ->
+          if input_encoding = "piqi"
+          then
+            piqi_error "can't --embed-piqi when converting .piqi to .pb or .xml"
+          else
+            piqi_warning "--embed-piqi doesn't have any effect when converting to .pb or .xml"
+      | _ -> ()
   )
+
+
+let do_convert ?writer ?(is_piq_output=false) reader =
+  (* read next object to the input channel *)
+  let read_obj () =
+    try
+      let obj = reader () in
+      Some obj
+    with
+      Piq.EOF -> None
+  in
+  (* write the object to the output channel *)
+  let do_write_obj obj =
+    match writer with
+      | None -> ()
+      | Some f -> f obj
+  in
+  (* write the object to the output, possibly including its Piqi dependencies *)
+  let write_obj obj =
+    (* write object's Piqi dependencies *)
+    if !flag_embed_piqi
+    then (
+      (* write yet unwirtten object's dependencies *)
+      let deps = get_dependencies obj ~only_imports:(not is_piq_output) in
+      List.iter (fun x ->
+        trace "piqi convert: embedding dependency module %s\n" (some_of x.P#modname);
+        do_write_obj (Piq.Piqi x)
+      ) deps
+    );
+    (* finally, write the object itself *)
+    do_write_obj obj
+  in
+  let process_and_write_piqi piqi_list =
+    List.iter (fun modname ->
+      let piqi = Piqi_db.find_piqi modname in
+      (* process piqi if it hasn't been fully processed yet by this point *)
+      let piqi = Piqi.process_piqi piqi ~cache:false in
+      Piqloc.preserve ();
+      (* finally, write it to the output channel *)
+      trace "piqi convert: writing module %s\n" modname;
+      write_obj (Piq.Piqi piqi)
+    )
+    (List.rev piqi_list)
+  in
+  let rec aux piqi_list =
+    (* resetting source location tracking back to "enabled" state; we don't
+     * carefully call matching Piqloc.resume () for every Piqloc.pause () if we
+     * get exceptions in between *)
+    Piqloc.is_paused := 0;
+    match read_obj () with
+      | None ->
+          (* flush all yet unwritten piqi modules at EOF *)
+          process_and_write_piqi piqi_list
+      | Some obj ->
+          let piqi_list =
+            match obj with
+              | Piq.Piqi piqi ->
+                  Piqi_db.add_piqi piqi;
+                  (* Preserve location information so that exising location info for
+                   * Piqi modules won't be discarded by subsequent Piqloc.reset()
+                   * calls. *)
+                  Piqloc.preserve ();
+                  if Piqi.is_processed piqi
+                  then
+                    (* if it has been processed, ready to write it right away *)
+                    (write_obj obj; [])
+                  else
+                    let modname = some_of piqi.P#modname in
+                    modname :: piqi_list (* add to the list of unprocessed modules *)
+              | _ ->
+                  (* reset location db to allow GC collect previously read
+                   * objects *)
+                  Piqloc.reset ();
+                  (* once we read a non-piqi object, fully process and flush all
+                   * yet unwrittent piqi modules *)
+                  process_and_write_piqi piqi_list;
+                  (* finally write the object we've just read *)
+                  write_obj obj;
+                  (* return empty list as a new value of piqi_list *)
+                  []
+          in
+          aux piqi_list
+  in
+  aux []
 
 
 let convert_file () =
@@ -305,19 +416,16 @@ let convert_file () =
     else Piqi_file.get_extension !ifile
   in
   validate_options input_encoding;
+
   let reader = make_reader input_encoding in
-  let is_piqi_input = (input_encoding = "piqi") in
+  let is_piqi_input = (input_encoding = "piqi" || !typename = "piqi") in
   let writer = make_writer !output_encoding ~is_piqi_input in
   (* open output file *)
   let ofile =
     match !ofile with
       | "" when !output_encoding = "" -> "" (* print "piq" to stdout by default *)
       | "" when !ifile <> "" && !ifile <> "-" ->
-          let output_extension =
-            match !output_encoding with
-              | "piq-json" -> "json"
-              | x -> x
-          in
+          let output_extension = !output_encoding in
           !ifile ^ "." ^ output_extension
       | x -> x
   in
@@ -329,38 +437,8 @@ let convert_file () =
       | _ -> false
   in
   (* main convert cycle *)
-  try 
-    trace "piqi convert: main loop\n";
-    while true
-    do
-      let obj = reader () in
-
-      (match obj with
-        | Piq.Piqi piqi ->
-            Piqi_db.add_piqi piqi;
-            (* Preserve location information so that exising location info for
-             * Piqi modules won't be discarded by subsequent Piqloc.reset()
-             * calls. *)
-            Piqloc.preserve ();
-        | _ ->
-            (* reset location db to allow GC to collect previously read objects
-             *)
-            Piqloc.reset ()
-      );
-
-      if !flag_embed_piqi
-      then (
-        trace "piqi convert: embedding Piqi\n";
-        (* write yet unwirtten object's dependencies *)
-        let deps = get_dependencies obj ~only_imports:(not is_piq_output) in
-        List.iter (fun x -> writer och (Piq.Piqi x)) deps
-      );
-
-      (* write the output object *)
-      writer och obj
-    done
-  with
-    Piq.EOF -> ()
+  trace "piqi convert: main loop\n";
+  do_convert reader ~writer:(writer och) ~is_piq_output
 
 
 let run () =
@@ -370,5 +448,5 @@ let run () =
  
 let _ =
   Main.register_command run "convert"
-    "convert data files between various encodings (piq, wire, pb, json, piq-json, xml)"
+    "convert data files between various encodings (pb, json, xml, piq, pib)"
 

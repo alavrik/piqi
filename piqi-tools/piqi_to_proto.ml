@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ let gen_name parent name =
     | `piqi _ -> name (* local module *)
     | `import x ->
         let piqi = some_of x.Import#piqi in
-        match piqi.P#proto_package with
+        match piqi.P#protobuf_package with
           | None -> name (* no .proto package => use flat .proto namespace *)
           | Some package ->
               (* build fully-qualified name *)
@@ -81,13 +81,11 @@ let rec typename ?parent (t:T.piqtype) =
     | `float -> "double"
     | `bool -> "bool"
     | `string -> "string"
-    | `word -> "string"
     | `binary -> "bytes"
-    | `text -> "string"
-    | `record t -> gen_name t.R#parent t.R#proto_name
-    | `variant t -> gen_name t.V#parent t.V#proto_name
-    | `enum t -> gen_name t.E#parent t.E#proto_name
-    | `list t -> gen_name t.L#parent t.L#proto_name
+    | `record t -> gen_name t.R#parent t.R#protobuf_name
+    | `variant t -> gen_name t.V#parent t.V#protobuf_name
+    | `enum t -> gen_name t.E#parent t.E#protobuf_name
+    | `list t -> gen_name t.L#parent t.L#protobuf_name
     | `alias t ->
         (* unwind aliases to their original type *)
         gen_alias_typename t ?parent
@@ -101,18 +99,18 @@ let rec typename ?parent (t:T.piqtype) =
            * ::piqi::piqi::wire_type. Non-fully qualified name in case of
            * repeated namespace parts confuses g++
            *
-           * Thus, adding "_org" suffix to the top namespace for now.
+           * For this reason, adding "_org" suffix to the top namespace for now.
            *)
           ".piqi_org.piqi.any"
 
 
 and gen_alias_typename ?parent x =
   let open Alias in
-  match x.proto_type with
+  match x.protobuf_type with
     | Some x -> x
     | None ->
         let parent = recalc_import_parent ?parent x.parent in
-        match piqtype x.typeref with
+        match some_of x.piqtype with
           | `alias x ->
               gen_alias_typename x ?parent
           | x ->
@@ -127,40 +125,40 @@ and gen_alias_typename ?parent x =
               typename x ?parent
 
 
-let gen_typeref ?parent t =
-  ios (typename (piqtype t) ?parent)
+let gen_piqtype ?parent t =
+  ios (typename t ?parent)
 
 
-let gen_typeref' ?parent = function
+let gen_piqtype' ?parent = function
   | None -> ios "bool"
-  | Some t -> gen_typeref t ?parent
+  | Some t -> gen_piqtype t ?parent
 
 
-let piqdef_proto_name = function
-  | `record t -> some_of t.R#proto_name
-  | `variant t -> some_of t.V#proto_name
-  | `enum t -> some_of t.E#proto_name
-  | `alias t -> some_of t.A#proto_name
-  | `list t -> some_of t.L#proto_name
+let typedef_proto_name = function
+  | `record t -> some_of t.R#protobuf_name
+  | `variant t -> some_of t.V#protobuf_name
+  | `enum t -> some_of t.E#protobuf_name
+  | `alias t -> some_of t.A#protobuf_name
+  | `list t -> some_of t.L#protobuf_name
   | _ ->
-      (* this function will be called only for named types (i.e. piqdefs) *)
+      (* this function will be called only for named types (i.e. typedefs) *)
       assert false
 
 
-let protoname_of name typeref =
-  match name, typeref with
+let protoname_of name piqtype =
+  match name, piqtype with
     | Some n, _ -> ios n
     | None, Some t ->
-        ios (piqdef_proto_name t)
+        ios (typedef_proto_name t)
     | _ -> assert false
 
 
 let protoname_of_field f =
-  let open F in protoname_of f.proto_name f.typeref
+  let open F in protoname_of f.protobuf_name f.piqtype
 
 
 let protoname_of_option o =
-  let open O in protoname_of o.proto_name o.typeref
+  let open O in protoname_of o.protobuf_name o.piqtype
 
 
 let gen_proto_custom proto_custom =
@@ -196,15 +194,15 @@ let rec gen_default_obj (x:Piqobj.obj) =
         make_default (Piq_gen.string_of_float x)
     | `bool true -> make_default "true"
     | `bool false -> make_default "false"
-    | `string x | `word x | `text x ->
+    | `string x ->
         (* NOTE: Piqi escapes is a subset of C escapes used by Protobuf *)
         make_default_io (ioq (Piq_lexer.escape_string x))
     | `binary x ->
         make_default_io (ioq (Piq_lexer.escape_binary x))
     | `enum x ->
-        let o = x.Piqobj.Variant#option in
-        let o = o.Piqobj.Option#piqtype in
-        make_default (some_of o.O#proto_name)
+        let o = x.Piqobj.Enum#option in
+        let o = o.Piqobj.Option#t in
+        make_default (some_of o.O#protobuf_name)
     | `alias x ->
         gen_default_obj x.Piqobj.Alias#obj (* recurse *)
     | `any _ | `record _ | `variant _ | `list _ ->
@@ -216,9 +214,9 @@ let rec gen_default_obj (x:Piqobj.obj) =
 (* using the same technique as in Piqi.resolve_field_default *)
 let gen_default x =
   let open F in
-  match x.default, x.typeref with
-    | Some {T.Any.ast = Some ast }, Some typeref ->
-        let piqtype = C.piqtype typeref in
+  match x.default, x.piqtype with
+    | Some any, Some piqtype ->
+        let ast = Piqobj.piq_of_piqi_any any in
         let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
         gen_default_obj piqobj
     | _, _ -> iol [] (* there is no default *)
@@ -234,7 +232,7 @@ let gen_field parent f =
   let fdef = iod " " (* field definition *)
     [
       ios (string_of_mode f.mode);
-      gen_typeref' f.typeref ?parent;
+      gen_piqtype' f.piqtype ?parent;
       protoname_of_field f; ios "=";
         gen_code f.code ^^ gen_default f ^^ ios packed ^^ ios ";";
     ]
@@ -245,7 +243,7 @@ let gen_field parent f =
 let gen_record ?name ?parent r =
   let open R in
   let parent = recalc_import_parent ?parent r.parent in
-  let name = recalc_name ?name r.proto_name in
+  let name = recalc_name ?name r.protobuf_name in
   (* field definition list *) 
   let fdefs = List.map (gen_field parent) r.field in
   let rdef = iol
@@ -253,29 +251,36 @@ let gen_record ?name ?parent r =
       ios "message "; ios name;
       ios " {"; indent;
         iod "\n" fdefs;
-        gen_proto_custom r.proto_custom;
+        gen_proto_custom r.protobuf_custom;
         unindent; eol;
       ios "}"; eol;
     ]
   in rdef
 
 
-let gen_const c =
+let gen_const prefix c =
   let open O in
+  let name = ios (some_of c.protobuf_name) in
+  let prefixed_name =
+    match prefix with
+      | None -> name
+      | Some p -> ios p ^^ name
+  in
   iod " " [
-    ios (some_of c.proto_name); ios "="; gen_code c.code ^^ ios ";";
+    prefixed_name; ios "="; gen_code c.code ^^ ios ";";
   ]
 
 
 let gen_enum e =
   let open E in
-  let enum_name = some_of e.proto_name in
-  let const_defs = List.map gen_const e.option in
+  let enum_name = some_of e.protobuf_name in
+  let prefix = e.protobuf_prefix in
+  let const_defs = List.map (gen_const prefix) e.option in
   let make_enum_def name =
     iol [
       ios "enum "; ios name; ios " {"; indent;
         iod "\n" const_defs;
-        gen_proto_custom e.proto_custom;
+        gen_proto_custom e.protobuf_custom;
         unindent; eol;
       ios "}";
     ]
@@ -298,7 +303,7 @@ let gen_enum e =
 let gen_option parent o =
   let open Option in
   iod " " [
-    ios "optional"; gen_typeref' o.typeref ?parent;
+    ios "optional"; gen_piqtype' o.piqtype ?parent;
       protoname_of_option o; ios "="; gen_code o.code ^^ ios ";";
   ]
 
@@ -306,7 +311,7 @@ let gen_option parent o =
 let gen_variant ?name ?parent v =
   let open Variant in
   let parent = recalc_import_parent ?parent v.parent in
-  let name = recalc_name ?name v.proto_name in
+  let name = recalc_name ?name v.protobuf_name in
   (* field definition list *) 
   let vdefs = List.map (gen_option parent) v.option in
   let vdef = iol
@@ -314,7 +319,7 @@ let gen_variant ?name ?parent v =
       ios "message "; ios name;
       ios " {"; indent;
         iod "\n" vdefs;
-        gen_proto_custom v.proto_custom;
+        gen_proto_custom v.protobuf_custom;
         unindent; eol;
       ios "}"; eol;
     ]
@@ -324,7 +329,7 @@ let gen_variant ?name ?parent v =
 let gen_list ?name ?parent l =
   let open L in
   let parent = recalc_import_parent ?parent l.parent in
-  let name = recalc_name ?name l.proto_name in
+  let name = recalc_name ?name l.protobuf_name in
   let packed =
     if l.wire_packed
     then " [packed = true]"
@@ -334,8 +339,8 @@ let gen_list ?name ?parent l =
     [
       ios "message "; ios name;
       ios " {"; indent;
-        ios "repeated "; gen_typeref l.typeref ?parent; ios " elem = 1"; ios packed; ios ";";
-        gen_proto_custom l.proto_custom;
+        ios "repeated "; gen_piqtype (some_of l.piqtype) ?parent; ios " elem = 1"; ios packed; ios ";";
+        gen_proto_custom l.protobuf_custom;
         unindent; eol;
       ios "}"; eol;
     ]
@@ -363,8 +368,8 @@ and gen_alias ?name ?parent ?(is_func_param=false) a =
   let open A in
   let is_func_param = is_func_param || a.is_func_param in
   let parent = recalc_import_parent ?parent a.parent in
-  let name = recalc_name ?name a.proto_name in
-  match piqtype a.typeref with
+  let name = recalc_name ?name a.protobuf_name in
+  match some_of a.piqtype with
     | `record _ | `variant _ | `alias _ | `list _ as def ->
         (* generate the original definition with the new name *)
         (* XXX: make such generation optional, just to be able to have less
@@ -379,7 +384,7 @@ and gen_alias ?name ?parent ?(is_func_param=false) a =
             iol [
               ios "message "; ios name;
               ios " {"; indent;
-              ios "required "; gen_typeref a.typeref ?parent; ios " elem = 1;";
+              ios "required "; gen_piqtype (some_of a.piqtype) ?parent; ios " elem = 1;";
               unindent; eol;
               ios "}"; eol;
             ]
@@ -390,18 +395,14 @@ and gen_alias ?name ?parent ?(is_func_param=false) a =
           []
 
 
-let gen_defs (defs:T.piqdef list) =
-  let defs = flatmap gen_def defs in
+let gen_defs (defs:T.typedef list) =
+  let defs = U.flatmap gen_def defs in
   iod "\n" defs
 
 
 (* gen import path based on piqi modname *)
 let gen_import_path modname =
   let _dir, fname = Piqi_file.find_piqi_file modname in
-  (*
-  (* XXX: revert slashes on Windows *)
-  let fname = Piqi_file.make_os_path fname in
-  *)
   let fname =
     if Filename.check_suffix fname ".piqi"
     then fname ^ ".proto"
@@ -426,24 +427,24 @@ let gen_imports l =
   let modnames = List.map (fun x -> x.Import#modname) l in
   (* using C.uniq to prevent importing a module more than once, otherwise protoc
    * will fail to compile *)
-  let l = List.map gen_import (C.uniq modnames) in
+  let l = List.map gen_import (U.uniq modnames) in
   iol l
 
 
 let gen_piqi (piqi:T.piqi) =
   let open P in
   let package =
-    match piqi.P.proto_package with
+    match piqi.P.protobuf_package with
       | None -> iol [] (* no package name *)
       | Some n -> iol [ios "package "; ios n; ios ";"; eol; eol]
   in
 
-  (* add import "piqi.org/piqtype.piqi.proto" if 'any' typeref is used *)
+  (* add import "piqi.org/piqtype.piqi.proto" if 'any' piqtype is used *)
   is_self_spec := C.is_self_spec piqi;
 
-  let defs = gen_defs piqi.P#resolved_piqdef in
+  let defs = gen_defs piqi.P#resolved_typedef in
   let piqi_import =
-    if C.depends_on_piq_any piqi && not !is_self_spec
+    if C.depends_on_piqi_any piqi && not !is_self_spec
     then
       iol [
         ios "import \"piqi.org/piqi.piqi.proto\";";
@@ -452,7 +453,7 @@ let gen_piqi (piqi:T.piqi) =
     else iol []
   in
   let proto_custom =
-    List.map (fun x -> iol [ios x; eol; eol]) piqi.P#proto_custom
+    List.map (fun x -> iol [ios x; eol; eol]) piqi.P#protobuf_custom
   in
   iol [
     package;
@@ -472,7 +473,7 @@ let gen_piqi (piqi:T.piqi) =
 (* proto name of piqi name *)
 let proto_name n =
   let n = Piqi_name.get_local_name n in (* cut module path *)
-  dashes_to_underscores n
+  U.dashes_to_underscores n
 
 
 let protoname n =
@@ -486,45 +487,132 @@ let protoname' n =
     | Some n -> protoname n
 
 
+let proto_custom_warning l =
+  List.iter (fun x ->
+    C.warning x ".proto-custom is deprecated; use .protobuf-custom instead"
+  ) l
+
+
+let proto_name_warning = function
+  | None -> ()
+  | Some x ->
+      C.warning x ".proto-name is deprecated; use .protobuf-name instead"
+
+
 let protoname_field x =
-  let open Field in
-  if x.proto_name = None then x.proto_name <- protoname' x.name
+  let open Field in (
+    if x.proto_name <> None
+    then (
+      proto_name_warning x.proto_name;
+      if x.protobuf_name = None
+      then x.protobuf_name <- x.proto_name;
+    );
+    if x.protobuf_name = None then x.protobuf_name <- protoname' x.name;
+  )
 
 
 let protoname_record x =
-  let open Record in
-  (if x.proto_name = None then x.proto_name <- protoname x.name;
-   List.iter protoname_field x.field)
+  let open Record in (
+    if x.proto_name <> None
+    then (
+      proto_name_warning x.proto_name;
+      if x.protobuf_name = None
+      then x.protobuf_name <- x.proto_name;
+    );
+    if x.proto_custom <> []
+    then (
+      proto_custom_warning x.proto_custom;
+      x.protobuf_custom <- x.protobuf_custom @ x.proto_custom;
+    );
+
+    if x.protobuf_name = None then x.protobuf_name <- protoname (some_of x.name);
+    List.iter protoname_field x.field;
+  )
 
 
 let protoname_option x =
-  let open Option in
-  if x.proto_name = None then x.proto_name <- protoname' x.name
+  let open Option in (
+    if x.proto_name <> None
+    then (
+      proto_name_warning x.proto_name;
+      if x.protobuf_name = None
+      then x.protobuf_name <- x.proto_name;
+    );
+
+    if x.protobuf_name = None then x.protobuf_name <- protoname' x.name;
+  )
 
 
 let protoname_variant x =
-  let open Variant in
-  (if x.proto_name = None then x.proto_name <- protoname x.name;
-   List.iter protoname_option x.option)
+  let open Variant in (
+    if x.proto_name <> None
+    then (
+      proto_name_warning x.proto_name;
+      if x.protobuf_name = None
+      then x.protobuf_name <- x.proto_name;
+    );
+    if x.proto_custom <> []
+    then (
+      proto_custom_warning x.proto_custom;
+      x.protobuf_custom <- x.protobuf_custom @ x.proto_custom;
+    );
+
+    if x.protobuf_name = None then x.protobuf_name <- protoname (some_of x.name);
+    List.iter protoname_option x.option;
+  )
 
 
 let protoname_enum x =
-  let open Enum in
-  (if x.proto_name = None then x.proto_name <- protoname x.name;
-   List.iter protoname_option x.option)
+  let open Enum in (
+    if x.proto_name <> None
+    then (
+      proto_name_warning x.proto_name;
+      if x.protobuf_name = None
+      then x.protobuf_name <- x.proto_name;
+    );
+    if x.proto_custom <> []
+    then (
+      proto_custom_warning x.proto_custom;
+      x.protobuf_custom <- x.protobuf_custom @ x.proto_custom;
+    );
+
+    if x.protobuf_name = None then x.protobuf_name <- protoname (some_of x.name);
+    List.iter protoname_option x.option;
+  )
 
 
 let protoname_alias x =
-  let open Alias in
-  if x.proto_name = None then x.proto_name <- protoname x.name
+  let open Alias in (
+    if x.proto_name <> None
+    then (
+      proto_name_warning x.proto_name;
+      if x.protobuf_name = None
+      then x.protobuf_name <- x.proto_name;
+    );
+
+    if x.protobuf_name = None then x.protobuf_name <- protoname (some_of x.name);
+  )
 
 
 let protoname_list x =
-  let open L in
-  if x.proto_name = None then x.proto_name <- protoname x.name
+  let open L in (
+    if x.proto_name <> None
+    then (
+      proto_name_warning x.proto_name;
+      if x.protobuf_name = None
+      then x.protobuf_name <- x.proto_name;
+    );
+    if x.proto_custom <> []
+    then (
+      proto_custom_warning x.proto_custom;
+      x.protobuf_custom <- x.protobuf_custom @ x.proto_custom;
+    );
+
+    if x.protobuf_name = None then x.protobuf_name <- protoname (some_of x.name);
+  )
 
 
-let protoname_piqdef = function
+let protoname_typedef = function
   | `record x -> protoname_record x
   | `variant x -> protoname_variant x
   | `enum x -> protoname_enum x
@@ -532,8 +620,8 @@ let protoname_piqdef = function
   | `list x -> protoname_list x
 
 
-let protoname_defs (defs:T.piqdef list) =
-  List.iter protoname_piqdef defs
+let protoname_defs (defs:T.typedef list) =
+  List.iter protoname_typedef defs
 
 
 (*
@@ -551,14 +639,32 @@ let proto_modname n =
 *)
 
 
+(* generate warning when deprecated fiels are used and provde some backwards
+ * compatibiliy *)
+let check_transform_piqi piqi =
+  (* handle deprecated .proto-package *)
+  (match piqi.P#proto_package with
+    | None -> ()
+    | Some proto_package ->
+        C.warning proto_package ".proto-package is deprecated; use .protobuf-package instead";
+        if piqi.P#protobuf_package = None
+        then piqi.P#protobuf_package <- Some proto_package
+  );
+  (* handle deprecated top-level .proto-custom *)
+  let proto_custom = piqi.P#proto_custom in
+  if proto_custom <> []
+  then (
+    proto_custom_warning proto_custom;
+    piqi.P#protobuf_custom <- piqi.P#protobuf_custom @ proto_custom;
+  )
+
+
 let rec protoname_piqi (piqi:T.piqi) =
   let open P in
   begin
-    (*
-    if piqi.proto_package = None then piqi.proto_package <- proto_modname piqi.modname;
-    *)
-    protoname_defs piqi.P#resolved_piqdef;
-    protoname_defs piqi.P#imported_piqdef;
+    check_transform_piqi piqi;
+    protoname_defs piqi.P#resolved_typedef;
+    protoname_defs piqi.P#imported_typedef;
     protoname_imports piqi.P#resolved_import;
   end
 
@@ -574,14 +680,8 @@ and protoname_import import =
 
 
 let piqi_to_proto (piqi: T.piqi) ch =
-  (* implicitly add definitions (aliases) from the boot module to the current
-   * module *)
-  let boot_defs =
-    match !C.piqi_boot with
-      | None -> []
-      | Some x -> x. P#resolved_piqdef
-  in
-  piqi.P#resolved_piqdef <- boot_defs @ piqi.P#resolved_piqdef;
+  (* add built-in type definitions to the current module *)
+  piqi.P#resolved_typedef <- !C.builtin_typedefs @ piqi.P#resolved_typedef;
 
   (* set proto names which are not specified by user *)
   protoname_piqi piqi;

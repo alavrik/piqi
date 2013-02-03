@@ -17,3 +17,6 @@
 
 
 :function/l-input [1 2 3]
+
+
+:function/a-input # foo

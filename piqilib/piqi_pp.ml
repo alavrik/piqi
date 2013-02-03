@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,13 +19,6 @@
 open Piqi_common 
 
 
-(* old method for pretty-printing:
-let prettyprint_ast ast =
-  let code = Piq_gen.print_ast ast in
-  Iolist.to_channel ch code
-*)
-
-
 let prettyprint_ast ch ast =
   Piq_gen.to_channel ch ast
 
@@ -41,43 +34,14 @@ let rec prettyprint_list ch ast_list =
   in aux ast_list
 
 
-let prettyprint_piqi_ast ch ast =
-  match ast with
-    | `list l -> prettyprint_list ch l
-    | _ -> assert false
-
-
-let transform_ast path f (ast:T.ast) =
-  let rec aux p = function
-    | `list l when p = [] -> (* leaf node *)
-        (* f replaces, removes element, or splices elements of the list *)
-        let res = flatmap f l in
-        `list res
-    | x when p = [] -> (* leaf node *)
-        (* expecting f to replace the existing value, no other modifications
-         * such as removal or splicing is allowed in this context *)
-        (match f x with [res] -> res | _ -> assert false)
-    | `list l ->
-        (* haven't reached the leaf node => continue tree traversal *)
-        let res = List.map (aux p) l in
-        `list res
-    | `named {T.Named.name = n; T.Named.value = v} when List.hd p = n ->
-        (* found path element => continue tree traversal *)
-        let res = T.Named#{name = n; value = aux (List.tl p) v} in
-        `named res
-    | x -> x
-  in
-  aux path ast
-
-
 (* simplify piqi ast: *)
-let simplify_piqi_ast (ast:T.ast) =
-  let tr = transform_ast in
-  (* map piqdef.x -> x *)
-  let rm_piqdef =
+let simplify_piqi_ast (ast:piq_ast) =
+  let tr = Piq_ast.transform_ast in
+  (* map typedef.x -> x *)
+  let rm_typedef =
     tr [] (
       function
-        | `named {T.Named.name = "piqdef"; T.Named.value = v} -> [v]
+        | `named {Piq_ast.Named.name = "typedef"; Piq_ast.Named.value = v} -> [v]
         | x -> [x]
     )
   (* del .../mode.required *)
@@ -85,40 +49,39 @@ let simplify_piqi_ast (ast:T.ast) =
   and tr_field_mode path =
     tr path (
       function
-        | `named {T.Named.name = "mode"; T.Named.value = `name "required"} -> []
-        | `named {T.Named.name = "mode"; T.Named.value = (`name _) as x} -> [x]
+        | `named {Piq_ast.Named.name = "mode"; Piq_ast.Named.value = `name "required"} -> []
+        | `named {Piq_ast.Named.name = "mode"; Piq_ast.Named.value = (`name _) as x} -> [x]
         | x -> [x]
     )
-  (* map extend/.piq-any x -> x *)
+  (* map extend/.piqi-any x -> x *)
+  (* TODO: this method of specifying extensions will be eventually deprecated *)
   and tr_extend_piq_any =
     tr ["extend"] (
       function
-        | `named {T.Named.name = "piq-any"; T.Named.value = v} -> [v]
+        | `named {Piq_ast.Named.name = "piqi-any"; Piq_ast.Named.value = v} -> [v]
         | x -> [x]
     )
   (* map extend/.what x -> x *)
   and tr_extend_what =
     tr ["extend"] (
       function
-        | `named {T.Named.name = "what"; T.Named.value = v} -> [v]
+        | `named {Piq_ast.Named.name = "what"; Piq_ast.Named.value = v} -> [v]
         | x -> [x]
     )
-  (* .../type.name x -> type.x *)
-  and tr_type_name_common path =
-    tr path (
-      function
-        | `named ({T.Named.name = "type"; T.Named.value = `named {T.Named.name = "name"; T.Named.value = v}} as x) ->
-            let res = `named T.Named#{x with value = v} in
-            [res]
-        | x -> [x]
-    )
-  (* map ../anonymous-record.x -> x *)
+  (* map ../record.x -> x *)
   (* map ../name.x -> x *)
   and rm_param_extra path =
     tr path (
       function
-        | `named {T.Named.name = "record"; T.Named.value = v} -> [v]
-        | `named {T.Named.name = "name"; T.Named.value = v} -> [v]
+        | `named {Piq_ast.Named.name = "record"; Piq_ast.Named.value = v} -> [v]
+        | `named {Piq_ast.Named.name = "name"; Piq_ast.Named.value = v} -> [v]
+        | x -> [x]
+    )
+  (* strip :<type> from a field's default value *)
+  and tr_field_default_value path =
+    tr path (
+      function
+        | `typed {Piq_ast.Typed.value = v} -> [v]
         | x -> [x]
     )
   in
@@ -127,53 +90,43 @@ let simplify_piqi_ast (ast:T.ast) =
     ast
     |> rm_param_extra ["function"; param]
     |> tr_field_mode ["function"; param; "field"]
-    |> tr_type_name_common ["function"; param; "field"]
-    |> tr_type_name_common ["function"; param; "variant"; "option"]
-    |> tr_type_name_common ["function"; param; "enum"; "option"]
-    |> tr_type_name_common ["function"; param; "list"]
+    |> tr_field_default_value ["function"; param; "field"; "default"]
   in
   ast
-  |> rm_piqdef
+  |> rm_typedef
   |> tr_field_mode ["record"; "field"]
+  |> tr_field_default_value ["record"; "field"; "default"]
   |> tr_extend_piq_any
   |> tr_extend_what
-  (* .../type.name x -> type.x *)
-  |> tr_type_name_common ["record"; "field"]
-  |> tr_type_name_common ["variant"; "option"]
-  |> tr_type_name_common ["enum"; "option"]
-  |> tr_type_name_common ["alias"]
-  |> tr_type_name_common ["list"]
   (* functions *)
   |> simplify_function_param "input"
-  |> simplify_function_param"output"
+  |> simplify_function_param "output"
   |> simplify_function_param "error"
 
 
 let compare_piqi_items a b =
   let name_of = function
     | `name x -> x
-    | `named x -> x.T.Named#name
+    | `named x -> x.Piq_ast.Named#name
     | `typename x -> x
-    | `typed x -> x.T.Typed#typename
+    | `typed x -> x.Piq_ast.Typed#typename
     | _ -> assert false
   in
   let rank x =
     match name_of x with
       | "module" -> 0
-      | "proto-package" -> 1
+      | "protobuf-package" -> 1
       | "include" -> 2
       | "import" -> 3
-      (* skipping custom-field, see below
-       * | "custom-field" -> 4
-       *)
-      | "piqdef" -> 5
+      | "typedef" -> 4
+      | "function" -> 5
       | "extend" -> 6
       | _ -> 100
   in
   rank a - rank b
 
 
-let sort_piqi_items (ast:T.ast) =
+let sort_piqi_items (ast:piq_ast) =
   match ast with
     | `list l ->
         let l = List.stable_sort compare_piqi_items l in
@@ -181,19 +134,19 @@ let sort_piqi_items (ast:T.ast) =
     | _ -> assert false
 
 
-let piqi_to_ast ?(simplify=false) piqi =
-  (* removing custom-field specifications as Piqi doesn't contain any
-   * custom-fields at this stage *)
-  let piqi = P#{piqi with custom_field = []} in
-  (* XXX, TODO: move this call to Piqi.gen_piqi? *)
-  let ast = Piqi.mlobj_to_ast !Piqi.piqi_lang_def T.gen__piqi piqi in
+let prettify_piqi_ast ast =
   let ast = sort_piqi_items ast in
-  if simplify
-  then simplify_piqi_ast ast
-  else ast
+  simplify_piqi_ast ast
+
+
+let prettyprint_piqi_ast ch ast =
+  let ast = prettify_piqi_ast ast in
+  match ast with
+    | `list l -> prettyprint_list ch l
+    | _ -> assert false
 
 
 let prettyprint_piqi ch (piqi:T.piqi) =
-  let ast = piqi_to_ast piqi ~simplify:true in
+  let ast = Piqi.piqi_to_ast piqi in
   prettyprint_piqi_ast ch ast
 

@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -127,7 +127,7 @@ let do_run name f x =
   try f x
   with exn ->
     let response = return_rpc_error
-      (`internal_error ("error while running function " ^ quote name ^ ": " ^ string_of_exn exn))
+      (`internal_error ("error while running function " ^ U.quote name ^ ": " ^ string_of_exn exn))
     in
     raise (Break response)
 

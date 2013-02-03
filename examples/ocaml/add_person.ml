@@ -4,6 +4,9 @@
 module A = Addressbook_piqi
 
 
+let default_phone_number = A.default_person_phone_number ()
+
+
 let read_phone_type () =
   print_endline "Is this a mobile, home, or work phone? ";
   match read_line () with
@@ -12,10 +15,7 @@ let read_phone_type () =
     | "work" -> `work
     | _ ->
         print_endline "Unknown phone type.  Using default.";
-        (* NOTE: there's no way to find out the default value for OCaml
-         * field (at least in current implementation).
-         * Therefore setting it by hand: *)
-        `mobile
+        default_phone_number.A.Person_phone_number#phone_type
 
 
 let read_phone_numbers () =

@@ -17,7 +17,7 @@ package. It is maintained in a separate GitHub repository:
         https://github.com/alavrik/piqi-erlang
 
 
-[1] Rebar is a build system for Erlang projects: https://github.com/basho/rebar
+[1] Rebar is a build system for Erlang projects: https://github.com/rebar/rebar
 
 
 INSTALLING PIQI FROM SOURCE CODE

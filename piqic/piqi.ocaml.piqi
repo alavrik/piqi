@@ -1,48 +1,74 @@
 
+.include [ .module piqi/piqi ]
 
-.include [ .module piqi.org/piqi ]
 
+%
+% types
+%
 
 .extend [
-    (.typedef record field variant option alias list import function)
+    (.typedef int uint)
+    .with.ocaml-type "int"
+]
 
-    .with.field [
-        .name ocaml-name
-        .type string
-        .optional
-    ]
+.extend [
+    (.typedef int32 uint32)
+    .with.ocaml-type "int32"
+]
+
+.extend [
+    (.typedef int64 uint64)
+    .with.ocaml-type "int64"
+]
+
+.extend [
+    (.typedef float64 float32)
+    .with.ocaml-type "float"
 ]
 
 
-.extend [
-    .typedef piqi
+%
+% names
+%
 
-    .with.field [
-        .name ocaml-module
-        .type string
-        .optional
-    ]
+.extend [
+    .option typedef.list
+
+    .with.ocaml-name "list"
+]
+
+.extend [
+    .typedef type
+    .field any.type
+
+    .with.ocaml-name "typename"
+]
+
+.extend [
+    .typedef list
+
+    .with.ocaml-name "piqi_list"
+]
+
+.extend [
+    (.field piqi.module import.module)
+
+    .with.ocaml-name "modname"
+]
+
+.extend [
+    .typedef function
+
+    .with.ocaml-name "func"
+]
+
+.extend [
+    .typedef piqi-list
+
+    % ocaml-name "piqi-list" is already defined for record "list"
+    .with.ocaml-name "piqi_bundle"
 ]
 
 
-.extend [
-    .typedef alias
-
-    .with.field [
-        .name ocaml-type
-        .type string
-        .optional
-    ]
-]
-
-
-% flag for representing repeated fields and lists as OCaml arrays
-.extend [
-    (.typedef field list)
-
-    .with.field [
-        .name ocaml-array
-        .optional
-    ]
-]
+(.custom-field ocaml-type ocaml-name)
 

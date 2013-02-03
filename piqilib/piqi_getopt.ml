@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -108,7 +108,7 @@ open C
 
 let check_getopt_letter s =
   let error err =
-    error s ("invalid getopt-letter " ^ quote s ^ ": " ^ err)
+    error s ("invalid getopt-letter " ^ U.quote s ^ ": " ^ err)
   in
   (* NOTE: getopt-letter is a Piq word and, therefore, it can't be empty -- so
    * there's no need to check for that *)
@@ -148,20 +148,24 @@ let getopt_name_record x =
 let getopt_name_variant x =
    List.iter getopt_name_option x.V#option
 
-let getopt_name_piqdef = function
+let getopt_name_enum x =
+   List.iter getopt_name_option x.E#option
+
+let getopt_name_typedef = function
   | `record x -> getopt_name_record x
-  | `variant x | `enum x -> getopt_name_variant x
+  | `variant x -> getopt_name_variant x
+  | `enum x -> getopt_name_enum x
   | _ -> ()
 
 
 let getopt_name_defs defs =
     (* name fields and options *)
-    List.iter getopt_name_piqdef defs
+    List.iter getopt_name_typedef defs
 
 
 let getopt_name_piqi _idtable (piqi:T.piqi) =
   let open P in
-  getopt_name_defs piqi.resolved_piqdef
+  getopt_name_defs piqi.resolved_typedef
 
 
 (* NOTE: this function is called only in case if a getopt-related operation is
@@ -227,7 +231,7 @@ let parse_name_arg s =
     s.[0] <- '.'; (* replace '-' with '.' to turn it into a Piq name *)
     Piq_lexer.Word s
   )
-  else error ("invalid name: " ^ quote s)
+  else error ("invalid name: " ^ U.quote s)
 
 
 let read_file filename =
@@ -359,7 +363,7 @@ let arg__rest =
     "separator between piqi command-line arguments and data arguments"
 
 
-let getopt_piq () :T.ast list =
+let getopt_piq () :piq_ast list =
   let start =
     if !argv_start_index = 0 (* "--" is not present in the list of arguments *)
     then Array.length Sys.argv
@@ -371,7 +375,7 @@ let getopt_piq () :T.ast list =
   piq_ast_list
 
 
-let parse_args (piqtype: T.piqtype) (args: T.ast list) :Piqobj.obj =
+let parse_args (piqtype: T.piqtype) (args: piq_ast list) :Piqobj.obj =
   let is_scalar_type = not (C.is_container_type piqtype) in
   let is_piqany_type = (unalias piqtype = `any) in
   let ast =
@@ -382,7 +386,7 @@ let parse_args (piqtype: T.piqtype) (args: T.ast list) :Piqobj.obj =
       | _ when is_scalar_type && (not is_piqany_type) ->
           piqi_error
             ("a scalar value expected for type " ^
-              quote (full_piqi_typename piqtype))
+              U.quote (full_piqi_typename piqtype))
       | l ->
           let res = `list l in
           (* set the location *)

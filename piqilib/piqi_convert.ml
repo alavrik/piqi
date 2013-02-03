@@ -1,6 +1,6 @@
 (*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
-   Copyright 2009, 2010, 2011, 2012 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -75,28 +75,28 @@ let gen_piq obj =
   Piq_gen.to_string ast
 
 
-let parse_wire piqtype s ~is_piqi_input =
+let parse_pib piqtype s ~is_piqi_input =
   let buf = Piqirun.IBuf.of_string s in
-  let get_next () = Piq.load_wire_obj (Some piqtype) buf in
+  let get_next () = Piq.load_pib_obj (Some piqtype) buf in
   let obj = parse_piq_common get_next ~is_piqi_input in
   (* XXX: check eof? *)
   obj
 
 
-let gen_wire obj =
-  let buf = Piq.gen_wire obj in
+let gen_pib obj =
+  let buf = Piq.gen_pib obj in
   Piqirun.to_string buf
 
 
 let parse_json piqtype s =
   let json_parser = Piqi_json_parser.init_from_string ~fname s in
-  let obj = Piq.load_json_obj piqtype json_parser in
+  let obj = Piq.load_plain_json_obj piqtype json_parser in
   (* XXX: check eof? *)
   obj
 
 
 let gen_json ?(pretty_print=true) obj =
-  let json = Piq.gen_json obj in
+  let json = Piq.gen_plain_json obj in
   if pretty_print
   then
     Piqi_json_gen.pretty_to_string json
@@ -138,7 +138,7 @@ let parse_obj piqtype input_format data =
       | `pb -> parse_pb piqtype data
       | `xml -> parse_xml piqtype data
       (* XXX *)
-      | `wire -> parse_wire piqtype data ~is_piqi_input
+      | `pib -> parse_pib piqtype data ~is_piqi_input
   in piqobj
 
 
@@ -149,7 +149,7 @@ let gen_obj ~pretty_print output_format piqobj =
     | `pb -> gen_pb piqobj
     | `xml -> gen_xml piqobj ~pretty_print
     (* XXX *)
-    | `wire -> gen_wire piqobj
+    | `pib -> gen_pib piqobj
 
 
 type options =
@@ -189,7 +189,6 @@ let convert_piqtype ~opts piqtype input_format output_format data =
     C.with_resolve_defaults
       (output_format = `json || output_format = `xml)
       (fun () -> parse_obj piqtype input_format data)
-      ()
   in
   (* reset location db to allow GC to collect previously read objects *)
   Piqloc.reset ();
