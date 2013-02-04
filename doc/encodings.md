@@ -9,8 +9,8 @@ Piqi supports 5 data formats:
 -   XML
 -   [Piq](/doc/piq/)
 
-    [Piq](/doc/piq/) is a human-friendly data representation language designed
-    as part of the Piqi project.
+    Piq is a human-friendly data representation language designed as part of the
+    Piqi project.
 
 -   pib
 
