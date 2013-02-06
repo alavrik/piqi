@@ -1,0 +1,10 @@
+#!/bin/sh
+
+
+ERL_PATH=$PIQI_ROOT/piqi-erlang/ebin
+
+
+erl -pa $ERL_PATH -noshell -s piqi start -run test run person.piq -s erlang halt
+erl -pa $ERL_PATH -noshell -s piqi start -run test run person-xml.piq -s erlang halt
+erl -pa $ERL_PATH -s piqi start < test.escript
+
