@@ -5,19 +5,18 @@ serialization system for OCaml.
 INSTALLING USING OPAM
 =====================
 
-The latest development version of Piqi can be installed using
-[OPAM](http://opam.ocamlpro.com/) in two steps:
-
-1. Add the following repository as a _remote_
-
-        opam remote add piqi git://github.com/alavrik/piqi-opam-repo.git
-
-2. After that, run
+In order to install Piqi using [OPAM](http://opam.ocamlpro.com/), run the
+following command:
 
         opam install piqi
 
-This command will install the latest development version of Piqi, including
-`piqi` and `piqic` executables and piqi libraries for OCaml.
+This command will install the latest stable version of Piqi that includes `piqi`
+and `piqic` executables and runtime libraries for OCaml.
+
+The latest development Piqi version can be installed by adding the following
+OPAM repository as a remote before running `opam install piqi`.
+
+        opam remote add piqi git://github.com/alavrik/piqi-opam-repo.git
 
 
 INSTALLING FROM SOURCE CODE
