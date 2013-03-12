@@ -225,10 +225,16 @@ let can_be_packed t =
     | _ -> false
 
 
-let check_packed_type obj t =
-  if not (can_be_packed (some_of t))
-  then
-    error obj "packed representation can be used only for numeric, bool and enum types"
+let check_packed_type obj piqtype =
+  match piqtype with
+     | None ->
+         (* Piqi_protobuf.process_defs can be called from branches where
+            types are not fully resolved, e.g. from Piqi.piqi_to_piqobj *)
+         ()
+     | Some t ->
+         if not (can_be_packed t)
+         then
+           error obj "packed representation can be used only for numeric, bool and enum types"
 
 
 let wire_packed_warning x =

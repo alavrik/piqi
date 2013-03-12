@@ -2046,6 +2046,9 @@ let expand_piqi ~extensions ~functions piqi =
   let res_piqi = {
     orig_piqi with
     includ = [];
+    (* we need this to include unparsed piq asts from all included piq modules
+     * not just the original module *)
+    unparsed_piq_ast = piqi.unparsed_piq_ast;
   }
   in
   let res_piqi =

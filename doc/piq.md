@@ -62,7 +62,7 @@ in UTF-8. Other Unicode encodings are not supported.
 ### Ignored whitespace
 
 Whitespace is one or more of the following characters sequences:
-` `, `\t`, `\n`, `\r\n`.
+`\x20` (space), `\t` (tab), `\n`, `\r\n`.
 
 Whitespace serves as a token separator.
 
