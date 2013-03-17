@@ -1,3 +1,11 @@
+Piqi 0.6.2 (March 17, 2013)
+===========================
+
+Piqi tools:
+
+- Fix: assertiton failure in "piqi compile --normalize-names ..."
+
+
 Piqi 0.6.1 (March 11, 2013)
 ===========================
 

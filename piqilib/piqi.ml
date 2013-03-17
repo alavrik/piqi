@@ -2150,16 +2150,20 @@ let normalize_typedef_names = function
 
 
 let normalize_function_param_name = function
-  | Some (`name x) -> `name (Piqi_name.normalize_name x)
-  | _ -> assert false
+  | Some (`name x) ->
+      Some (`name (Piqi_name.normalize_name x))
+  | None ->
+      None
+  | _ ->
+      assert false
 
 
 let normalize_function_names func =
   let open T.Func in (
     func.name <- Piqi_name.normalize_name func.name;
-    func.input <- Some (normalize_function_param_name func.input);
-    func.output <- Some (normalize_function_param_name func.output);
-    func.error <- Some (normalize_function_param_name func.error);
+    func.input <- normalize_function_param_name func.input;
+    func.output <- normalize_function_param_name func.output;
+    func.error <- normalize_function_param_name func.error;
   )
 
 
