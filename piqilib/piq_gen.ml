@@ -314,6 +314,29 @@ let format_text l ~is_labeled ~is_first =
         )
 
 
+(* we need to take `name in parenthesis unless followed by `named or another
+ * `name *)
+let preprocess_names l =
+  let rec aux l =
+    match l with
+      | [] | [_] -> l
+      | (`name _) as name :: t ->
+          let t = aux t in  (* we need to process the list from right to left *)
+          (match List.hd t with
+            | `name _ | `named _ | `typename _ | `typed _ ->
+                (* leave unchanged *)
+                name :: t
+            | _ ->
+                (* if followed by anything else, we need to take the name in
+                 * parenthesis *)
+                `form (name, []) :: t
+          )
+      | h :: t ->
+          h :: (aux t)
+  in
+  aux l
+
+
 let format_ast (x :piq_ast) =
   let rec aux ?(is_labeled=false) ?(is_first=false) = function
     | `int x -> make_atom (Int64.to_string x)
@@ -389,8 +412,11 @@ let format_ast (x :piq_ast) =
   and map_aux l =
     match l with
       | [] -> []
-      | h::t ->
-          (aux h ~is_first:true)::(List.map aux t)
+      | l ->
+          (* we need to take `name in parenthesis unless followed by `named or
+           * another `name *)
+          let l = preprocess_names l in
+          (aux (List.hd l) ~is_first:true)::(List.map aux (List.tl l))
 
   and format_labeled_ast = function
     | `name n ->

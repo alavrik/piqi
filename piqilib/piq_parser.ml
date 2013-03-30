@@ -264,6 +264,10 @@ let expand_forms (x: piq_ast) :piq_ast =
       | _ ->
           obj
   and expand_list_elem = function
+    | `form ((`name _) as name , []) | `form ((`typename _) as name , []) ->
+        (* a single name or typename enclosed in parenthesis to control
+         * associativity -- removing parenthesis *)
+        [name]
     | `form ((`name _) as name , args) | `form ((`typename _) as name , args) ->
         let expanded_form = List.map (cons_named_or_typed name) args in
         List.map aux expanded_form
