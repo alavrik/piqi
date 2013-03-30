@@ -226,18 +226,25 @@ let cons_named_or_typed name v =
 let expand_forms (x: piq_ast) :piq_ast =
   let rec aux0 obj =
     match obj with
-      | `form ((`name _) as name, args) | `form ((`typename _) as name, args) ->
+      | `form (name, args) when args = [] ->
+          (* a single name, typename or other ast element enclosed in
+           * parenthesis to control associativity -- removing parenthesis *)
+          (match name with
+            | `word _ | `raw_word _ ->
+                (* we can't remove parenthesis around words, because it can be a
+                 * 0-aritity function or macro application *)
+                obj
+            | _ ->
+                aux0 name
+          )
+      | `form ((`name _) as name, args) | `form ((`typename _) as name, args) when args <> [] ->
           (match args with
-            | [] ->
-                (* a single name or typename enclosed in parenthesis to control
-                 * associativity -- removing parenthesis *)
-                name
             | [v] ->
                 (* this is, in fact, typed or named -- it is time to convert
                  * whatever we have to them *)
-                cons_named_or_typed name v
+                cons_named_or_typed name (aux v)
             | _ ->
-                error obj "named and typed forms are allowed only in lists"
+                error obj "named and typed forms are allowed only inside lists"
           )
       | `named ({Piq_ast.Named.name = n; Piq_ast.Named.value = v} as named) ->
           let v' = aux v in
@@ -254,7 +261,7 @@ let expand_forms (x: piq_ast) :piq_ast =
            *)
           obj
       | `list l ->
-          if List.exists (function `form (`name _, _) -> true | `form (`typename _, _) -> true | _ -> false) l
+          if List.exists (function `form (`name _, _) | `form (`typename _, _) -> true | _ -> false) l
           then
             (* expand and splice the results of named and typed form expansion *)
             `list (U.flatmap expand_list_elem l)
@@ -264,16 +271,12 @@ let expand_forms (x: piq_ast) :piq_ast =
       | _ ->
           obj
   and expand_list_elem = function
-    | `form ((`name _) as name , []) | `form ((`typename _) as name , []) ->
-        (* a single name or typename enclosed in parenthesis to control
-         * associativity -- removing parenthesis *)
-        [name]
-    | `form ((`name _) as name , args) | `form ((`typename _) as name , args) ->
+    | `form ((`name _) as name, args) | `form ((`typename _) as name, args) when args <> [] ->
         let expanded_form = List.map (cons_named_or_typed name) args in
         List.map aux expanded_form
     | x ->
         [aux x]
-  and aux obj = 
+  and aux obj =
     piq_reference aux0 obj
   in aux x
 
@@ -440,25 +443,14 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
     let startloc = loc () in
     (* parse form name *)
     let t = next_token () in
-    let name_ast =
+    let name =
       match t with
-        | L.Word _ | L.Raw_word _ ->
-            (* specify that we don't want to chain `typename and `name and turn
-             * them into `typed and `named *)
-            parse_common t ~chain:false
         | L.EOF ->
             error "unexpected end of input while reading a form"
         | _ ->
-            error "invalid form: form name expected"
-    in
-    (* check that this is one of `typename, `name or `word and for example not a
-     * number *)
-    let name =
-      match name_ast with
-        | (#Piq_ast.form_name as x) -> x
-        | obj ->
-            Piqi_common.error obj
-              "invalid form name: only words, names and typenames are allowed"
+            (* specify that we don't want to chain `typename and `name and turn
+             * them into `typed and `named *)
+            parse_common t ~chain:false
     in
     (* parse form args *)
     let rec aux accu =
@@ -468,6 +460,19 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
         | _ -> aux ((parse_common t)::accu)
     in
     let args = aux [] in
+    (* check that this is one of `typename, `name or `word and for example not a
+     * number *)
+    (match name with
+      | #Piq_ast.form_name -> () (* this is valid form *)
+      | obj when args <> [] ->
+          Piqi_common.error obj
+            "invalid form name: only words, names and typenames are allowed"
+      | _ ->
+          (* this is an ast element in parenthesis -- passing it through; we
+           * allow use of parenthesis for explicit control of associativity
+           * and to be consisten with "identity" forms like (.foo) *)
+          ()
+    );
     (* contruct a resulting form from name and args *)
     let pair = (name, args) in
     let res = `form pair in

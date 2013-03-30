@@ -22,6 +22,7 @@ open Piqi_common
 (* command-line parameters *)
 let flag_normalize = ref false
 let flag_expand_abbr = ref false
+let flag_parse_literals = ref false
 
 
 let open_piq fname =
@@ -65,8 +66,12 @@ open Main
 
 let prettyprint_file filename =
   let ch = Main.open_output !ofile in
-  (* switch piq lexer and generator to pretty-printing mode *)
-  Config.pp_mode := true;
+
+  (* switch piq lexer and generator to pretty-printing mode that preserves the
+   * original formatting of string and number literals *)
+  if not !flag_parse_literals
+  then Config.pp_mode := true;
+
   let piq_parser = open_piq filename in
   prettyprint_piq ch piq_parser
 
@@ -83,6 +88,9 @@ let speclist = Main.common_speclist @
 
     "--expand-abbr", Arg.Set flag_expand_abbr,
     "expand built-in syntax abbreviations";
+
+    "--parse-literals", Arg.Set flag_parse_literals,
+    "parse string and number Piq literals instead of preserving their original formatting";
 
     arg__;
   ]
