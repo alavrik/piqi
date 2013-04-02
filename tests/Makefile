@@ -42,6 +42,7 @@ DIRS = \
        piqi_misc \
        piqi_server \
        piqi_compile \
+       piqi_pp \
        $(DIRS_OCAML) \
        $(DIRS_PROTO)
 
