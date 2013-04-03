@@ -118,7 +118,7 @@ primitive types.
 
 Note that mapping of Piqi primitive types to Protobuf types is not hard-coded.
 It it specified in the Piqi self-specification file:
-[piqi.protobuf.piqi](http://github.com/alavrik/piqi/blob/dev/piqi/piqi.protobuf.piqi).
+[piqi.protobuf.piqi](http://github.com/alavrik/piqi/blob/master/piqi/piqi.protobuf.piqi).
 
 ### Extensions
 

@@ -334,7 +334,7 @@ Primitive types
     In addition to `int`, there are some other variations of integer types
     supported by default. They are defined as *aliases* of `int` type in Piqi
     self-definition:
-    [piqi.piqi](http://github.com/alavrik/piqi/blob/dev/piqi/piqi.piqi). Each
+    [piqi.piqi](http://github.com/alavrik/piqi/blob/master/piqi/piqi.piqi). Each
     Piqi mapping should provide support for these types.
 
     Below is the full list of Piqi integer types. Their names reflect some
@@ -838,8 +838,8 @@ Protocol Buffers properties:
 Similarly, support for OCaml-specific Piqi properties is provided by these two
 specifications:
 
-[piqi.ocaml.piqi](http://github.com/alavrik/piqi/blob/dev/piqic/piqi.ocaml.piqi),
-[piqi.ocaml-extensions.piqi](http://github.com/alavrik/piqi/blob/dev/piqic/piqi.ocaml-extensions.piqi)
+[piqi.ocaml.piqi](http://github.com/alavrik/piqi/blob/master/piqic/piqi.ocaml.piqi),
+[piqi.ocaml-extensions.piqi](http://github.com/alavrik/piqi/blob/master/piqic/piqi.ocaml-extensions.piqi)
 
 
 Functions

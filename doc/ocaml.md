@@ -12,7 +12,7 @@ A typical Piqi usage scenario involves the following steps:
     dependencies. Builds have been tested on all major platforms.
 
     The build instructions are available
-    [here](https://github.com/alavrik/piqi/blob/dev/INSTALL.ocaml).
+    [here](https://github.com/alavrik/piqi/blob/master/INSTALL.ocaml).
 
 **2. Describe data structures using the Piqi data definition language**
 :   The [Piqi](/doc/piqi/) data definition language can describe many OCaml
