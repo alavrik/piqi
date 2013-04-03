@@ -1,3 +1,16 @@
+Piqi 0.6.3 (April 3, 2013)
+==========================
+
+Erlang:
+
+- Piqi for Erlang was removed from the source code tree, because its development
+  moved to https://github.com/alavrik/piqi-erlang
+
+Piqi tools:
+
+- Fix inconsistencies in Piq syntax
+
+
 Piqi 0.6.2 (March 17, 2013)
 ===========================
 
