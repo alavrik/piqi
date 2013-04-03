@@ -37,7 +37,13 @@ type ast =
    | `typename of string
    | `typed of Typed.t (* TODO: string * ast *)
    | `list of ast list
-   | `form of form_name * ast list (* name, args *)
+
+   (* typically, from is represented as (name, args) where name has type
+    * form_name defined below; however we are also reusing this element for
+    * single ast elements enclosed in parenthesis: (<ast>); such form is rarely
+    * used in practice (mostly, for associativity control or for generated
+    * code), but we decided to support it for consistency *)
+   | `form of ast * ast list
 
    (* These two token types are used only in several special cases, and can't be
     * represented in Piq text format directly *)
@@ -117,24 +123,19 @@ let transform_ast path f (ast:ast) =
 
 let map_words (ast:ast) f :ast =
   let rec aux = function
-    | (#form_name as x) ->
-        (* avoiding code duplication for tree traversal: form_name is actually
-         * a subset of ast *)
-        ((map_form_name x) :> ast)
+    | `word s -> `word (f s)
+    | `raw_word s -> `raw_word (f s)
+    | `name s -> `name (f s)
+    (* TODO, XXX: apply function to the last segment of the type name? *)
+    | `typename s -> `typename s
     | `named {Named.name = n; Named.value = v} ->
         `named {Named.name = f n; Named.value = aux v}
     | `typed ({Typed.value = ast} as x) ->
         let ast = aux ast in
        `typed {x with Typed.value = ast}
     | `list l -> `list (List.map aux l)
-    | `form (name, args) -> `form ((map_form_name name),(List.map aux args))
+    | `form (name, args) -> `form (aux name, List.map aux args)
     | x -> x
-  and map_form_name = function
-    | `word s -> `word (f s)
-    | `raw_word s -> `raw_word (f s)
-    | `name s -> `name (f s)
-    (* TODO, XXX: apply function to the last segment of the type name? *)
-    | `typename s -> `typename s
   in
   aux ast
 

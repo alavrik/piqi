@@ -226,27 +226,35 @@ let make_list l =
   Fmt.List (("[", "", "]", fmt), l)
 
 
+let make_form_fmt args =
+  (* TODO: unify this with similar code in make_list *)
+  match args with
+    | [] ->
+        single_form_list
+    | [x] ->
+        if has_list x
+        then multi_form_list
+        else single_form_list
+    | l ->
+        if List.for_all is_atom l
+        then atom_form_list
+        else multi_form_list
+
+
 let make_form name args =
-  let fmt =
-    (* TODO: unify this with similar code in make_list *)
-    match args with
-      | [] ->
-          single_form_list
-      | [x] ->
-          if has_list x
-          then multi_form_list
-          else single_form_list
-      | l ->
-          if List.for_all is_atom l
-          then atom_form_list
-          else multi_form_list
-  in
+  let fmt = make_form_fmt args in
   let extra_space = (* add space after name it is followed by args *)
     if args <> []
     then " "
     else ""
   in
   Fmt.List (("(" ^ name ^ extra_space, "", ")", fmt), args)
+
+
+(* parenthesis around an ast element *)
+let make_parens ast =
+  let fmt = make_form_fmt [ast] in
+  Fmt.List (("(", "", ")", fmt), [ast])
 
 
 let make_label label node =
@@ -314,6 +322,29 @@ let format_text l ~is_labeled ~is_first =
         )
 
 
+(* we need to take `name in parenthesis unless followed by `named or another
+ * `name *)
+let preprocess_names l =
+  let rec aux l =
+    match l with
+      | [] | [_] -> l
+      | (`name _) as name :: t ->
+          let t = aux t in  (* we need to process the list from right to left *)
+          (match List.hd t with
+            | `name _ | `named _ | `typename _ | `typed _ ->
+                (* leave unchanged *)
+                name :: t
+            | _ ->
+                (* if followed by anything else, we need to take the name in
+                 * parenthesis *)
+                `form (name, []) :: t
+          )
+      | h :: t ->
+          h :: (aux t)
+  in
+  aux l
+
+
 let format_ast (x :piq_ast) =
   let rec aux ?(is_labeled=false) ?(is_first=false) = function
     | `int x -> make_atom (Int64.to_string x)
@@ -376,21 +407,29 @@ let format_ast (x :piq_ast) =
     | `list l ->
         make_list (map_aux l)
     | `form (name, args) ->
-        let name =
-          match name with
-            | `word s | `raw_word s -> s
-            | `name s -> "." ^ s
-            | `typename s -> ":" ^ s
-        in
-        make_form name (map_aux args)
+        (match name with
+          | (#Piq_ast.form_name as form_name) -> (* this is a form *)
+              let name =
+                match form_name with
+                  | `word s | `raw_word s -> s
+                  | `name s -> "." ^ s
+                  | `typename s -> ":" ^ s
+              in
+              make_form name (map_aux args)
+          | ast -> (* this is an ast element in parenthesis *)
+              make_parens (aux ast)
+        )
     | `any _ -> (* shouldn't happen except when C.debug_level > 0 *)
         make_atom "!PIQI-ANY!"
 
   and map_aux l =
     match l with
       | [] -> []
-      | h::t ->
-          (aux h ~is_first:true)::(List.map aux t)
+      | l ->
+          (* we need to take `name in parenthesis unless followed by `named or
+           * another `name *)
+          let l = preprocess_names l in
+          (aux (List.hd l) ~is_first:true)::(List.map aux (List.tl l))
 
   and format_labeled_ast = function
     | `name n ->

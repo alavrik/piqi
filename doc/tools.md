@@ -171,6 +171,9 @@ Options:
 `--expand-abbr`
 :   Expand built-in syntax abbreviations. See Piq documentation for details.
 
+`--parse-literals`
+:   Parse string and number Piq literals instead of preserving their original formatting.
+
 
 ### piqi json-pp
 

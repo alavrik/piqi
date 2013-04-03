@@ -86,7 +86,7 @@ Piqi-RPC can be built and installed from source code or it can be installed as a
 #### Piqi-RPC source code
 
 Piqi-RPC source code is available in "piqi-rpc" directory of the Piqi GitHub
-[repository](http://github.com/alavrik/piqi/tree/dev/piqi-rpc).
+[repository](http://github.com/alavrik/piqi/tree/master/piqi-rpc).
 
 #### Piqi-RPC rebar package
 
