@@ -15,14 +15,6 @@ To build, run and re-run the tests:
     make
 
 
-3. (optional) Run Erlang tests
-
-    make erlang
-
-    NOTE: Erlang tests depend on Piqi runtime library, which can be built by
-    running "make erlang" command from the top-level directory.
-
-
 Prerequisites
 =============
 

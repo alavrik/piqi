@@ -207,8 +207,6 @@ imported definitions using Piqi extensions. It works as follows.
 
 *TODO: example*
 
-In theory, such transformation can be automated and implemented as a part of
-`piqic` (Piq interface compiler).
 
 #### Nested extensions
 

@@ -6,5 +6,4 @@
 % extensions:
 
 .include [ .module piqic/piqi.ocaml-extensions ]
-.include [ .module piqic/piqi.erlang-extensions ]
 

@@ -91,7 +91,6 @@ FILES
   setenv-mingw.sh       environment configuration for Windows/MinGW builds
   LICENSE               license
   NOTICE                copyright notice
-  AUTHORS               Piqi authors
   CHANGES               release history
   VERSION               current version
   configure             configure script
@@ -99,17 +98,14 @@ FILES
   make/                 makefiles and build scripts
   deps/                 third-party components (see NOTICE for details)
   piqi-camlp4/          Piqi syntax extensions for OCaml
-  piqicc/               Piqi compiler compiler
-  piqic/                Piq interface compiler for OCaml and Erlang
+  piqicc/               Piqi compiler compiler (used only during boostrap)
+  piqic/                Piq interface compiler(s) for OCaml
   piqi-tools/           "piqi" command-line utility (piqi tools)
   piqi                  Piqi self-specification
   piqilib/              Piqi common library
   piqirun-ocaml/        Piqi runtime library for OCaml
-  piqi-erlang/          Piqi runtime library and Piqi tools bindings for Erlang
-  piqi-rpc/             Piqi-RPC -- an RPC-over-HTTP system for Erlang
   examples/             examples
   tests/                tests for various piqi functionality; see tests/README
   doc/                  Piqi documentation
   editors/              text editor plugins for .piq and .piqi files
-  src/                  makes rebar happy (rebar is a build tool for Erlang)
 

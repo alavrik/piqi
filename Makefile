@@ -15,7 +15,6 @@ DIRS = \
 
 .PHONY: deps build-dir install distclean \
 	ocaml ocaml-install ocaml-uninstall \
-	erlang erlang-clean
 
 
 # export installation and search path for OCaml dependencies
@@ -69,16 +68,7 @@ ocaml-uninstall:
 	$(MAKE) -C deps uninstall
 
 
-erlang:
-	$(MAKE) -C piqi-erlang
-
-
-erlang-clean:
-	$(MAKE) -C piqi-erlang clean
-	$(MAKE) -C piqi-rpc clean
-
-
-clean:: erlang-clean
+clean::
 	$(MAKE) -C deps clean
 	$(MAKE) -C tests clean
 

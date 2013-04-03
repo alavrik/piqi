@@ -303,7 +303,7 @@ All operations applicable to regular Piqi modules are also supported for
 extension modules. The difference is that extension modules can be included
 automatically in the modules which they extend.
 
-For instance, `piqic ocaml` and `piqic erlang` Piqi compilers try to
+For instance, `piqic ocaml` and `piqic-erlang` Piqi compilers try to
 automatically include `<m>.ocaml.piqi` and `<m>.erlang.piqi` respectively for
 every loaded module `<m>.piqi`.
 

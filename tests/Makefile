@@ -14,16 +14,6 @@ DIRS_PROTO = \
 endif
 
 
-DIRS_ERLANG = \
-	erlang_addressbook \
-	erlang_piqi \
-	erlang_perf \
-	erlang_packed \
-	erlang_misc \
-	erlang_import \
-	erlang_piqi_any \
-
-
 DIRS_OCAML = \
        ocaml_addressbook \
        ocaml_piqi \
@@ -47,7 +37,7 @@ DIRS = \
        $(DIRS_PROTO)
 
 
-.PHONY: ocaml ocaml-clean erlang erlang-clean proto proto-clean
+.PHONY: ocaml ocaml-clean proto proto-clean
 
 
 proto:
@@ -76,18 +66,5 @@ ocaml-clean:
 	done
 
 
-erlang:
-	set -e; \
-	for i in $(DIRS_ERLANG); do \
-		$(MAKE) -C $$i; \
-	done
-
-
-erlang-clean:
-	for i in $(DIRS_ERLANG); do \
-		$(MAKE) -C $$i clean; \
-	done
-
-
-clean:: erlang-clean
+clean::
 
