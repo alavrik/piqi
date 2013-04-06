@@ -1,0 +1,11 @@
+#!/bin/sh -xe
+
+export OCAMLPATH=
+./configure --prefix=/usr
+make deps
+make
+. ./setenv.sh
+make erlang
+
+make -C tests
+make -C tests erlang
