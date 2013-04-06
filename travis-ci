@@ -1,0 +1,9 @@
+#!/bin/sh -xe
+
+export OCAMLPATH=
+./configure --prefix=/usr
+make deps
+make
+
+. ./setenv.sh
+make -C tests
