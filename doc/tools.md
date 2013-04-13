@@ -1,8 +1,19 @@
-piqi command-line utility
--------------------------
+% PIQI(1) Piqi User Manuals
+% Anton Lavrik <alavrik@piqi.org>
+% April 12, 2013
 
-`piqi` is a single executable program with command-line interface. It implements
-a set of subcommands which are described below.
+# NAME
+
+piqi - a set of tools for working with structured data
+
+# SYNOPSIS
+
+piqi [*command*] [*options*]
+
+# DESCRIPTION
+
+`piqi` is an executable program with command-line interface. It implements a
+set of subcommands which are described below.
 
 ### Common options
 
@@ -417,7 +428,7 @@ Usage: `Usage: piqi version`
 Prints Piqi version.
 
 
-### Environment variables
+# ENVIRONMENT VARIABLES
 
 `PIQI_TRACE`
 :   Definition of this environment variable has the same effect as specifying
@@ -430,8 +441,7 @@ Prints Piqi version.
     You can also specify search paths using the `-I` command-line option.
 
 
-Known problems
---------------
+# KNOWN PROBLEMS
 
 -   Currently there are no checks for integer overflows while reading and
     writing Piq data in various formats. If an integer value doesn't fit into
@@ -447,8 +457,7 @@ Known problems
         piqi of-proto google/protobuf/unittest_custom_options.proto
 
 
-Examples
---------
+# EXAMPLES
 
 For examples of Piqi tools usage, visit [Examples](/examples/) page or take a
 look at `test_piq`, `test_piqi` and `test_piqi_proto` shell scripts from
