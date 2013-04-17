@@ -1,3 +1,17 @@
+Piqi 0.6.4 (April 17, 2013)
+===========================
+
+Preparation for OS packaging (thanks to Motiejus Jakštys and Spilgames):
+
+- scripts for building piqi(1) man page and offline HTML documentation
+- improvements in build scripts
+- fixed tests compilation on recent Ubuntu versions
+
+Miscellaneous:
+
+- travis-ci integration (thanks to Motiejus Jakštys and Spilgames)
+
+
 Piqi 0.6.3 (April 3, 2013)
 ==========================
 
@@ -5,6 +19,11 @@ Erlang:
 
 - Piqi for Erlang was removed from the source code tree, because its development
   moved to https://github.com/alavrik/piqi-erlang
+
+Piqi-RPC
+
+- piqi-rpc was removed from the source code tree, because its development moved
+  to https://github.com/alavrik/piqi-rpc
 
 Piqi tools:
 
