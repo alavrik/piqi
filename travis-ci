@@ -7,3 +7,18 @@ make
 
 . ./setenv.sh
 make -C tests
+
+# Check if internal documentation linking is correct
+make -sC doc html
+
+cd doc
+python -m SimpleHTTPServer &
+SERVER=$!
+sleep 1s
+cd ..
+
+RET=0
+wget -q --spider -rl3 http://127.0.0.1:8000 || RET=1
+kill $SERVER
+
+exit $RET
