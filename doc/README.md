@@ -5,3 +5,17 @@ is published on the [project's website](http:/piqi.org/doc/).
 
 Note that documents are written using
 [Pandoc](http://johnmacfarlane.net/pandoc/) variation of Markdown syntax.
+
+
+Building documentation
+----------------------
+
+**NOTE:** you need to have `pandoc` installed before running these commands.
+
+`make man` command makes `piqi(1)` man page.
+
+`make html` command makes cross-linked offline HTML documentation with
+`index.html` as a front page.
+
+Running `make` is equivalent to `make man html`.
+

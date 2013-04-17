@@ -1,5 +1,5 @@
 This document describes various data encodings supported by Piqi and the mapping
-between data structured defined by the [Piqi(/doc/piqi/) language and the
+between data structured defined by the [Piqi](/doc/piqi/) language and the
 supported encodings.
 
 Piqi supports 5 data formats:
