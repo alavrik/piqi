@@ -29,6 +29,9 @@ CHANGES.html: ../CHANGES
 	if [ "$@" = "tools-patched.md" ]; then \
 		sed -i 's|#environmentvariables|#environment-variables|g' $@; \
 	fi
+	if [ "$@" = "index-patched.md" ]; then \
+		sed -i 's|https://github.com/alavrik/piqi/blob/master/CHANGES|CHANGES.html|' $@; \
+	fi
 
 %.html: %-patched.md
 	pandoc -s $< -o $@
