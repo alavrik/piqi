@@ -2,4 +2,4 @@ language: c
 script: "./travis-ci"
 before_install:
     - sudo apt-get install ocaml-nox camlp4-extra libfindlib-ocaml-dev
-    - sudo apt-get install libprotoc-dev protobuf-compiler
+    - sudo apt-get install libprotoc-dev protobuf-compiler pandoc
