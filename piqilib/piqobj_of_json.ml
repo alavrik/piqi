@@ -162,7 +162,7 @@ and parse_field loc (accu, rem) t =
 
 and do_parse_flag t l =
   let open T.Field in
-  let name = some_of t.json_name in
+  let name = some_of t.name in
   debug "do_parse_flag: %s\n" name;
   let res, rem = find_flags name l in
   match res with
@@ -175,7 +175,7 @@ and do_parse_flag t l =
 
 and do_parse_field loc t l =
   let open T.Field in
-  let name = some_of t.json_name in
+  let name = some_of t.name in
   debug "do_parse_field: %s\n" name;
   let field_type = some_of t.piqtype in
   let values, rem =
@@ -258,7 +258,7 @@ and parse_variant t x =
           try
             let o =
               List.find (fun o ->
-                some_of o.T.Option.json_name = name) options
+                some_of o.T.Option.name = name) options
             in
             parse_option o value
           with Not_found ->
@@ -294,7 +294,7 @@ and parse_enum t x =
         let options = t.T.Enum#option in
         let option =
           try
-            let o = List.find (fun o -> some_of o.T.Option#json_name = name) options in
+            let o = List.find (fun o -> some_of o.T.Option#name = name) options in
             O#{ t = o; obj = None }
           with Not_found ->
             error x ("unknown enum option: " ^ U.quote name)

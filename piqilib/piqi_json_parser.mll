@@ -214,7 +214,7 @@ let number = '-'? positive_int (frac | exp | frac exp)?
 
 let hex = [ '0'-'9' 'a'-'f' 'A'-'F' ]
 
-let ident = ['a'-'z' 'A'-'Z' '_']['a'-'z' 'A'-'Z' '_' '0'-'9']*
+let ident = ['a'-'z' 'A'-'Z' '_']['a'-'z' 'A'-'Z' '_' '0'-'9' '-']*
 
 
 (* taken from http://www.w3.org/2005/03/23-lex-U *)
