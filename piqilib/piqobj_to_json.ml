@@ -101,7 +101,7 @@ and gen_record x =
 
 and gen_field fields t =
   let open T.Field in
-  let name = some_of t.json_name in
+  let name = some_of t.name in
   let open F in
   let pred f = f.t == t in
   match t.mode with
@@ -137,7 +137,7 @@ and gen_variant x =
 
 and gen_option x =
   let open O in
-  let name = some_of x.t.T.Option.json_name in
+  let name = some_of x.t.T.Option.name in
   match x.obj with
     | None -> make_name name
     | Some obj -> make_named name (gen_obj obj)
@@ -150,7 +150,7 @@ and gen_enum x =
 
 and gen_enum_option x =
   let open O in
-  let name = some_of x.t.T.Option.json_name in
+  let name = some_of x.t.T.Option.name in
   `String name
 
 
