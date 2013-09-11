@@ -374,4 +374,5 @@
 .include [ .module piqi.protobuf ]
 .include [ .module piqi.json ]
 .include [ .module piqi.getopt ]
+.include [ .module piqi.piqic ]
 

@@ -1709,6 +1709,8 @@ and load_piqi_file ?modname ?include_path fname =
   let cache = modname <> None in
   let piqi = load_piqi_ast ?modname ?include_path ~cache fname ast in
   trace_leave ();
+
+  piqi.P#file <- Some fname;
   piqi
 
 
@@ -1975,6 +1977,8 @@ let load_piqi fname :T.piqi =
 
   Piqi_config.paths := paths; (* restore the original search path setting *)
   trace_leave ();
+
+  piqi.P#file <- Some fname;
   piqi
 
 
@@ -2278,6 +2282,11 @@ let piqi_to_piqobj
   then Piqi_protobuf.add_hashcodes piqi_spec.P#typedef
   else if add_codes (* XXX: always add ordinal codes? *)
   then Piqi_protobuf.process_defs piqi_spec.P#typedef;
+
+  (* piqi compile mode? TODO: this is a hack; we need a more explicit way to
+   * determine whether it is a piqi compile mode *)
+  if add_codes
+  then piqi_spec.P#file <- piqi.P#file;
 
   (* we need to use external mode only when we normalize names, because we need
    * defaults to be fully expanded to piq ast before we normalize them; in all
