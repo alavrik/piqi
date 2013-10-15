@@ -345,6 +345,7 @@ and parse_any x :Piqobj.any =
         let any = Any#{
           Piqobj.default_any with
           json_ast = Some json_ast;
+          json_string = Some s;
         }
         in
         Piqloc.addrefret s any

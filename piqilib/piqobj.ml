@@ -126,6 +126,8 @@ and Any:
         (* external representation in various formats *)
         mutable pb : string option; (* protocol buffers binary *)
         mutable piq_ast : Piq_ast.ast option;
+        (* the original embedded json reprsented as a string *)
+        mutable json_string : string option;
         mutable json_ast : Piqi_json_type.json option;
         mutable xml_ast : Piqi_xml_type.xml_elem option;
 
@@ -144,6 +146,7 @@ let default_any =
     typename = None;
     pb = None;
     piq_ast = None;
+    json_string = None;
     json_ast = None;
     xml_ast = None;
     ref = None;
@@ -317,6 +320,19 @@ let pb_of_any (any: Piqobj.any) :string option =
 let json_of_any (any: Piqobj.any) :Piqi_json_type.json option =
   let open Any in
   match any.json_ast with
+    | Some _ when any.json_string <> None ->
+        (* TODO: this is rather inefficient and redundant -- a better solution
+         * would be to change that JSON AST representation and parse literals
+         * into intermediate representation (piqobj) format in piqobj_of_json.ml
+         *)
+        let s = C.some_of any.json_string in
+        (* already validated, we just need to parse it in pretty-printed mode so
+         * that we can print it nicely while preserving the original int, float
+         * and string literals *)
+        Piqloc.pause (); (* no need to preserve location information here *)
+        let json_ast = Piqi_util.with_bool Piqi_config.pp_mode true (fun () -> !json_of_string s) in
+        Piqloc.resume ();
+        Some json_ast
     | (Some _) as res -> res
     | _ -> (
         (* resolve obj if it wasn't resolved before *)

@@ -124,6 +124,8 @@ and parse_any (x:json) :Piqobj.any =
           json_ast = json_ast;
         }
     | json_ast -> (* regular symbolic piqi-any *)
+        (* TODO: preserve the original int, float and string literals -- see
+         * Piqobj.json_of_any *)
         Any#{
           Piqobj.default_any with
           json_ast = Some json_ast;

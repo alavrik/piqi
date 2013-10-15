@@ -151,7 +151,8 @@ and parse_any x =
           match json, xml with
             | Some s, _ ->
                 let json_ast = !Piqobj.json_of_string s in
-                any.Any#json_ast <- Some json_ast (* same as in Piqobj_of_piq.parse_any *)
+                any.Any#json_ast <- Some json_ast; (* same as in Piqobj_of_piq.parse_any *)
+                any.Any#json_string <- Some s
             | _, Some s ->
                 let xml_list = !Piqobj.xml_of_string s in
                 any.Any#xml_ast <- Some ("undefined", xml_list) (* same as in Piqobj_of_piq.parse_any *)
