@@ -110,6 +110,12 @@ JSON output entirely by using a special `json-omit-null-fields` conversion
 option. For usage details see correspondent sections of documentation (it is
 available in OCaml and Erlang serialization, command-line tools and Piqi-RPC).
 
+In addition to the `json-omit-null-fields` run-time setting, it it possible to
+control this behavior for individual optional and repeated fields by specifying
+the `.json-omit-missing true|false` field property in the schema definition. The
+schema-level setting, when specified, takes precedence over the run-time
+setting.
+
 Piqi flags, i.e. optional fields without associated values, are represented as a
 JSON boolean field set to `true` when the flag is present and excluded from the
 output when the flag is missing.

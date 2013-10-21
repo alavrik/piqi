@@ -19,3 +19,20 @@
     ]
 ]
 
+
+.extend [
+    .typedef field
+
+    .with.field [
+        % whether to omit missing fields from JSON output that would otherwise
+        % be represented as JSON NULL for missing optional and [] for missing
+        % repeated fields; if not specified, the default behavior is determined
+        % by the json_omit_null_fields run-time setting which is, in turn, set
+        % to true by default
+
+        .name json-omit-missing
+        .type bool
+        .optional
+    ]
+]
+

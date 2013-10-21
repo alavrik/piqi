@@ -33,6 +33,14 @@ type json = Piqi_json_type.json
 let omit_null_fields = ref true
 
 
+let omit_missing f =
+  (* use the per-field schema-level setting when specified, default to the
+   * run-time setting otherwise *)
+  match f.T.Field#json_omit_missing with
+    | Some x -> x
+    | None -> !omit_null_fields
+
+
 let make_named name value =
   name, value
 
@@ -115,13 +123,13 @@ and gen_field fields t =
           in [res]
         with
           Not_found ->
-            if !omit_null_fields
+            if omit_missing t
             then []
             else [make_named name (`Null ())]
         )
     | `repeated ->
         let fields = List.find_all pred fields in
-        if fields = [] && !omit_null_fields
+        if fields = [] && omit_missing t
         then []
         else
           let json_fields = List.map (fun f -> gen_obj (some_of f.obj)) fields in
