@@ -713,6 +713,7 @@ let usage = "Usage: piqi to-proto [options] <.piqi file>\nOptions:"
 
 let speclist = Main.common_speclist @
   [
+    Piqi_main.arg__strict;
     arg_o;
   ]
 

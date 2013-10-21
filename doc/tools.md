@@ -281,6 +281,9 @@ Options:
 :   Don't delete temporary files created during command execution. This option
     is useful for debugging.
 
+`--strict`
+:   Treat unknown and duplicate fields as errors when parsing the Piqi spec
+
 
 ### piqi light
 
@@ -359,6 +362,9 @@ Options:
           "json": "required"
         },
 
+`--strict`
+:   Treat unknown and duplicate options as errors
+
 
 ### piqi call
 
@@ -419,6 +425,9 @@ Options:
 :   Similar to `--piqi`, but print command-line usage help for remote Piqi-RPC
     functions. Printed help is automatically generated from the Piqi
     specification.
+
+`--strict`
+:   Treat unknown and duplicate options as errors
 
 
 ### piqi version

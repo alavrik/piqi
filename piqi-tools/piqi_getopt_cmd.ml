@@ -74,6 +74,7 @@ let usage = "Usage: piqi getopt [options] -- [<data arguments>] \nOptions:"
 
 let speclist = Main.common_speclist @
   [
+    Piqi_main.arg__strict;
     arg_o;
 
     Piqi_convert_cmd.arg__t;
