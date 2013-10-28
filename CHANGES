@@ -1,3 +1,28 @@
+Piqi 0.6.5 (October 27, 2013)
+=============================
+
+Piqi language:
+
+  - add a new 'json-omit-missing' field property
+  - add a new 'piqi' filename as a field in the compiled spec
+
+Piqi tools:
+
+  - (piqi call, getopt, to-proto) add --strict flag (treat warnings as errors)
+  - (piqi compile) include .piqi filename as a field in the compiled spec
+
+Encodings:
+
+  - (piq, json, xml) Fix: incorrect parsing of large (> 2^63 - 1) unsigned
+    decimal literals
+  - (json) preserve the original int, float and string literals in embedded JSON
+
+Miscellaneous:
+
+  - automatic checking for broken links in the generated documentation during CI
+    build (thanks to Motiejus Jakštys)
+
+
 Piqi 0.6.4 (April 17, 2013)
 ===========================
 
