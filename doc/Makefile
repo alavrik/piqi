@@ -5,6 +5,9 @@ HTML=$(patsubst %.md,%.html,$(SRCS))
 
 all: man html
 
+test:
+	./check-links
+
 man: piqi.1
 
 html: $(HTML) CHANGES.html
