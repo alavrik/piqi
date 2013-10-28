@@ -10,7 +10,9 @@ DIRS_PROTO = \
        piqi_proto1 \
        piqi_packed \
        boot_proto2piqi \
-       cpp
+       cpp \
+       ocaml_riak_pb \
+
 endif
 
 
@@ -23,7 +25,6 @@ DIRS_OCAML = \
        ocaml_misc \
        ocaml_custom_types \
        ocaml_piq_config \
-       ocaml_riak_pb \
 
 
 DIRS = \
