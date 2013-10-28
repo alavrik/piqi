@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/alavrik/piqi.png)](https://travis-ci.org/alavrik/piqi)
+
+
 Piqi is a set of languages and open-source tools for working with structured
 data. It includes:
 
