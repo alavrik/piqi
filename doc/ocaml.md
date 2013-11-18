@@ -80,7 +80,15 @@ And, optionally, when the `--gen-defaults` flag is specified:
 
 -   `default_<typename>` -- returns the default value of this type
 
-Compiled `.ml` files should be linked with `piqi.runtime` findlib package.
+Compiled `.ml` files should be linked with `piqi.runtime` findlib package. For
+example:
+
+    # generate "test_piqi.ml"
+    piqic ocaml test.piqi
+
+    # compile and link it with the runtime library using findlib/ocamlfind
+    ocamlfind ocamlc  -linkpkg -package piqi.runtime test_piqi.ml
+
 
 ### `piqic ocaml-ext`
 
@@ -129,7 +137,15 @@ constructed using `Piqirun_ext.make_options`:
             ?use_strict_parsing:bool ->
             unit -> options
 
-Compiled `.ml` files should be linked with `piqi.lib` findlib package.
+Compiled `.ml` files should be linked with `piqi.lib` findlib package. For
+example:
+
+    # generate "test_piqi.ml" and "test_piqi_ext.ml"
+    piqic ocaml-ext test.piqi
+
+    # compile and link them with the runtime library using findlib/ocamlfind
+    ocamlfind ocamlc  -linkpkg -package piqi.lib test_piqi.ml test_piqi_ext.ml
+
 
 ### Command-line parameters
 
