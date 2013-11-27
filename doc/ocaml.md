@@ -130,12 +130,32 @@ constructed using `Piqirun_ext.make_options`:
      *
      *      Treat unknown and duplicate fields as errors when parsing JSON,
      *      XML and Piq formats (default = false)
+     *
+     * piq_frameless_output
+     *
+     *      Print a frame (i.e. :<typename> []) around a single output Piq object
+     *      (default=false)
+     *
+     * piq_frameless_input
+     *
+     *      Expect a frame around a single input Piq object (default=false)
+     *
+     * piq_relaxed_parsing
+     *
+     *      Parse Piq format using "relaxed" mode (default=false);
+     *
+     *      For instance, when set to `true`, single-word string literals don't have
+     *      to be quoted
      *)
     val make_options:
             ?pretty_print:bool ->
             ?json_omit_null_fields:bool ->
             ?use_strict_parsing:bool ->
+            ?piq_frameless_output:bool ->
+            ?piq_frameless_input:bool ->
+            ?piq_relaxed_parsing:bool ->
             unit -> options
+
 
 Compiled `.ml` files should be linked with `piqi.lib` findlib package. For
 example:

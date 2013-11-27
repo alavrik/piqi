@@ -365,6 +365,19 @@ Options:
 `--strict`
 :   Treat unknown and duplicate options as errors
 
+`--piq-frameless-output true|false`
+:   Print a frame (i.e. :<typename> []) around a single output Piq object
+    (default=false)
+
+`--piq-frameless-input true|false`
+:   Expect a frame around a single input Piq object (default=false)
+
+`--piq-relaxed-parsing true|false`
+:   Parse Piq format using "relaxed" mode (default=false)
+
+    For instance, when set to `true`, single-word string literals don't have to
+    be quoted.
+
 
 ### piqi call
 

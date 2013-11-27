@@ -82,6 +82,34 @@
             .optional
             .default false
         ]
+
+        .field [
+            % whether to print a frame around a single output Piq object
+
+            .name piq-frameless-output
+            .type bool
+            .optional
+            .default false
+        ]
+
+        .field [
+            % whether to expect a frame around a single input Piq object
+
+            .name piq-frameless-input
+            .type bool
+            .optional
+            .default false
+        ]
+
+        .field [
+            % whether to parse Piq format using "relaxed" mode; for instance,
+            % single-word string literals don't have to be quoted
+
+            .name piq-relaxed-parsing
+            .type bool
+            .optional
+            .default false
+        ]
     ]
 
     .output [

@@ -40,10 +40,32 @@ let open_piq fname =
 
 
 let read_piq_ast piq_parser :piq_ast =
-  let res = Piq_parser.read_next piq_parser in
-  match res with
-    | Some ast -> ast
-    | None -> raise EOF
+  let read_next () =
+    (* NOTE, TODO: this is a hack -- it would be great to have a cleaner
+     * solution *)
+    U.with_bool Piqi_config.pp_mode (!Piqi_config.piq_relaxed_parsing)
+    (fun () -> Piq_parser.read_next piq_parser)
+  in
+  let read_first () =
+    match read_next () with
+      | Some ast -> ast
+      | None -> raise EOF
+  in
+  let rec read_rest accu =
+    match read_next () with
+      | Some ast ->
+          read_rest (ast::accu)
+      | None ->
+          (* setting list location based on the location of the first element *)
+          let l = List.rev accu in
+          let ast = `list l in
+          Piqloc.addref (List.hd l) ast;
+          ast
+  in
+  let first = read_first () in
+  if not !Piqi_config.piq_frameless_input
+  then first
+  else read_rest [first]
 
 
 let default_piqtype = ref None
@@ -165,7 +187,15 @@ let gen_piq (obj :obj) =
 
 let write_piq ch (obj:obj) =
   let ast = gen_piq obj in
-  Piq_gen.to_channel ch ast;
+
+  (match ast with
+    | `typed {Piq_ast.Typed.value = `list l}
+    | `list l when !Piqi_config.piq_frameless_output ->
+        List.iter (Piq_gen.to_channel ch) l
+    | _ ->
+        Piq_gen.to_channel ch ast
+  );
+
   (* XXX: add one extra newline for better readability *)
   Pervasives.output_char ch '\n'
 

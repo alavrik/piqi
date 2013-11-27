@@ -81,3 +81,15 @@ let add_include_extension (name :string) =
  * typename and possibly something else *)
 let gen_extended_piqi_any = ref false
 
+
+(* whether to print a frame around a single output piq object *)
+let piq_frameless_output = ref false
+(* whether to expect a frame around a single input piq object *)
+let piq_frameless_input = ref false
+
+
+(* whether to parse piq in "relaxed" mode, e.g. treat words as string literals
+ * and some other convenient stuff; for instance, piqi_getopt indirectly uses
+ * relaxed parsing mode *)
+let piq_relaxed_parsing = ref false
+

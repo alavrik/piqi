@@ -31,6 +31,9 @@ let typename = ref ""
 let flag_add_defaults = ref false
 let flag_embed_piqi = ref false
 let flag_json_omit_null_fields = ref true
+let flag_piq_frameless_output = ref false
+let flag_piq_frameless_input = ref false
+let flag_piq_relaxed_parsing = ref false
 
 
 let usage = "Usage: piqi convert [options] [input file] [output file]\nOptions:"
@@ -52,6 +55,18 @@ let arg__json_omit_null_fields =
     "--json-omit-null-fields", Arg.Bool (fun x -> flag_json_omit_null_fields := x),
     "true|false omit null fields in JSON output (default=true)"
 
+let arg__piq_frameless_output =
+    "--piq-frameless-output", Arg.Bool (fun x -> flag_piq_frameless_output := x),
+    "true|false print a frame around a single output Piq object (default=false)"
+
+let arg__piq_frameless_input =
+    "--piq-frameless-input", Arg.Bool (fun x -> flag_piq_frameless_input := x),
+    "true|false expect a frame around a single input Piq object (default=false)"
+
+let arg__piq_relaxed_parsing =
+    "--piq-relaxed-parsing", Arg.Bool (fun x -> flag_piq_relaxed_parsing := x),
+    "true|false parse Piq format using \"relaxed\" mode (default=false)"
+
 let arg__gen_extended_piqi_any =
     "--gen-extended-piqi-any", Arg.Set Piqi_config.gen_extended_piqi_any,
     "use extended representation of piqi-any values in XML and JSON output"
@@ -69,6 +84,9 @@ let speclist = Main.common_speclist @
     arg__type;
     arg__add_defaults;
     arg__json_omit_null_fields;
+    arg__piq_frameless_output;
+    arg__piq_frameless_input;
+    arg__piq_relaxed_parsing;
     arg__gen_extended_piqi_any;
 
     "--embed-piqi", Arg.Set flag_embed_piqi,
@@ -84,16 +102,13 @@ let first_load = ref true
 
 let load_piqi fname :Piq.obj =
   if !first_load
-  then
-    begin
-      first_load := false;
-      (* NOTE, XXX: here also loading, processing and validating all the
-       * module's dependencies *)
-      let piqi = Piqi.load_piqi fname in
-      Piq.Piqi piqi
-    end
-  else
-    raise Piq.EOF (* mimic the behaviour of Piq. loaders *)
+  then first_load := false
+  else raise Piq.EOF; (* mimic the behaviour of Piq. loaders *)
+
+  (* NOTE, XXX: here also loading, processing and validating all the
+   * module's dependencies *)
+  let piqi = Piqi.load_piqi fname in
+  Piq.Piqi piqi
 
 
 let resolve_typename () =
@@ -105,27 +120,27 @@ let resolve_typename () =
 (* ensuring that Piq.load_pb is called exactly one time *)
 let load_pb piqtype protobuf :Piq.obj =
   if !first_load
-  then
-    begin
-      first_load := false;
-      Piq.load_pb piqtype protobuf
-    end
-  else
-    (* XXX: print a warning if there are more input objects? *)
-    raise Piq.EOF
+  then first_load := false
+  else raise Piq.EOF; (* XXX: print a warning if there are more input objects? *)
+  Piq.load_pb piqtype protobuf
 
 
-let first_write_pb = ref true
+let first_write = ref true
 
 let write_pb ch (obj: Piq.obj) =
-  if !first_write_pb
-  then
-    begin
-      first_write_pb := false;
-      Piq.write_pb ch obj
-    end
+  if !first_write
+  then first_write := false
+  else piqi_error "converting more than one object to \"pb\" is not allowed";
+  Piq.write_pb ch obj
+
+
+let write_piq ch (obj: Piq.obj) =
+  if !first_write
+  then first_write := false
   else
-    piqi_error "converting more than one object to \"pb\" is not allowed"
+    if !flag_piq_frameless_output
+    then piqi_error "converting more than one object to frameless \"piq\" is not allowed";
+  Piq.write_piq ch obj
 
 
 (* write only data and skip Piqi specifications and data hints *)
@@ -202,7 +217,7 @@ let make_writer ?(is_piqi_input=false) output_encoding =
       | _ -> false);
   match output_encoding with
     | "" (* default output encoding is "piq" *)
-    | "piq" -> Piq.write_piq
+    | "piq" -> write_piq
     | "pib" -> Piq.write_pib
     | "json" ->
         write_data_and_piqi Piq.write_json
@@ -407,6 +422,9 @@ let convert_file () =
   Piqi_convert.set_options
     (Piqi_convert.make_options
       ~json_omit_null_fields:!flag_json_omit_null_fields
+      ~piq_frameless_output:!flag_piq_frameless_output
+      ~piq_frameless_input:!flag_piq_frameless_input
+      ~piq_relaxed_parsing:!flag_piq_relaxed_parsing
       ~use_strict_parsing:!Piqi_config.flag_strict
       ()
     );

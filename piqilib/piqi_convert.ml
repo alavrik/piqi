@@ -157,6 +157,9 @@ type options =
     mutable json_omit_null_fields : bool;
     mutable pretty_print : bool;
     mutable use_strict_parsing : bool;
+    mutable piq_frameless_output : bool;
+    mutable piq_frameless_input : bool;
+    mutable piq_relaxed_parsing : bool;
   }
 
 
@@ -164,17 +167,26 @@ let make_options
         ?(pretty_print=true)
         ?(json_omit_null_fields=true)
         ?(use_strict_parsing=false)
+        ?(piq_frameless_output=false)
+        ?(piq_frameless_input=false)
+        ?(piq_relaxed_parsing=false)
         () =
   {
     json_omit_null_fields = json_omit_null_fields;
     pretty_print = pretty_print;
     use_strict_parsing = use_strict_parsing;
+    piq_frameless_output = piq_frameless_output;
+    piq_frameless_input = piq_frameless_input;
+    piq_relaxed_parsing = piq_relaxed_parsing;
   }
 
 
 let set_options opts =
   Piqobj_to_json.omit_null_fields := opts.json_omit_null_fields;
   Piqi_config.flag_strict := opts.use_strict_parsing;
+  Piqi_config.piq_frameless_output := opts.piq_frameless_output;
+  Piqi_config.piq_frameless_input := opts.piq_frameless_input;
+  Piqi_config.piq_relaxed_parsing := opts.piq_relaxed_parsing;
   ()
 
 
