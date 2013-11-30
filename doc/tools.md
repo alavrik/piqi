@@ -123,7 +123,7 @@ Options:
     If the flag is used when converting from `.piqi`, all dependencies of the
     converted module will be included in the stream.
 
-`--json-omit-null-fields true|false`
+`--json-omit-missing-fields true|false`
 :   Whether to omit missing optional and empty repeated fields from JSON output
     instead of representing them as {"field_name": null} and {"field_name", []}
     JSON fields. Default setting is `true`.

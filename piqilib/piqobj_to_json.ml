@@ -27,10 +27,11 @@ type json = Piqi_json_type.json
 
 (* configuration/command-line option:
  *
- * omit undefined fields in JSON output; if false, they will be present in the
- * output with their values set to "null", e.g. {"foo":null}
+ * omit missing fields in JSON output; if false, they will be present in the
+ * output with their values set to "null" for optional fields and "[]" for
+ * repeated fields
  *)
-let omit_null_fields = ref true
+let omit_missing_fields = ref true
 
 
 let omit_missing f =
@@ -38,7 +39,7 @@ let omit_missing f =
    * run-time setting otherwise *)
   match f.T.Field#json_omit_missing with
     | Some x -> x
-    | None -> !omit_null_fields
+    | None -> !omit_missing_fields
 
 
 let make_named name value =
@@ -77,7 +78,7 @@ and gen_any x =
   else (* non-sybolic piqi-any representation *)
     let make_json_field name value f =
       match value with
-        | None when !omit_null_fields -> []
+        | None when !omit_missing_fields -> []
         | None ->
             [name, `Null ()]
         | Some x ->

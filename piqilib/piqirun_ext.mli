@@ -42,7 +42,7 @@ val find_piqtype : string -> piqtype
  *
  *      Pretty-print generated JSON and XML output (default = true)
  *
- * json_omit_null_fields
+ * json_omit_missing_fields
  *
  *      Omit missing optional and empty repeated fields from JSON
  *      output instead of representing them as {"field_name": null} and
@@ -71,7 +71,8 @@ val find_piqtype : string -> piqtype
  *)
 val make_options:
         ?pretty_print:bool ->
-        ?json_omit_null_fields:bool ->
+        ?json_omit_missing_fields:bool ->
+        ?json_omit_null_fields:bool -> (* deprecated: use json_omit_missing_fields instead *)
         ?use_strict_parsing:bool ->
         ?piq_frameless_output:bool ->
         ?piq_frameless_input:bool ->

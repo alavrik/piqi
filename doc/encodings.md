@@ -106,11 +106,11 @@ property to the Piqi field definition.
 
 It is possible to remove missing optional fields (which values are represented
 as `null`) and empty repeated fields (which values are represented as `[]`) from
-JSON output entirely by using a special `json-omit-null-fields` conversion
+JSON output entirely by using a special `json-missing-null-fields` conversion
 option. For usage details see correspondent sections of documentation (it is
 available in OCaml and Erlang serialization, command-line tools and Piqi-RPC).
 
-In addition to the `json-omit-null-fields` run-time setting, it it possible to
+In addition to the `json-omit-missing-fields` run-time setting, it it possible to
 control this behavior for individual optional and repeated fields by specifying
 the `.json-omit-missing true|false` field property in the schema definition. The
 schema-level setting, when specified, takes precedence over the run-time

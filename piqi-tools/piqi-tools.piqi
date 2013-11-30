@@ -57,10 +57,12 @@
             .default true
         ]
 
-        % omit undefined fields in JSON output; if false, they will be present
-        % in the output with their values set to "null", e.g. {"foo":null}
         .field [
-            .name json-omit-null-fields
+            % omit missing fields in JSON output; if false, they will be present in the
+            % output with their values set to "null" for optional fields and "[]" for
+            % repeated fields
+
+            .name json-omit-missing-fields
             .type bool
             .optional
             .default true

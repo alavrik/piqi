@@ -33,8 +33,8 @@ let _ =
   assert (address_book' = address_book);
 
   (* Serialize addressbook to pretty-printed JSON format and include "null" JSON
-   * fields for missing optional fields *)
-  let opts = Piqirun_ext.make_options ~json_omit_null_fields:false () in
+   * fields for missing optional and [] for missing required fields *)
+  let opts = Piqirun_ext.make_options ~json_omit_missing_fields:false () in
   let json = Ab.gen_address_book address_book `json ~opts in
   Printf.printf "\n\nJSON with null fields: \n\n%s\n" json;
   (* Read back from JSON *)

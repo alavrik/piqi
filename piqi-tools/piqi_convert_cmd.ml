@@ -30,7 +30,7 @@ let output_encoding = ref ""
 let typename = ref ""
 let flag_add_defaults = ref false
 let flag_embed_piqi = ref false
-let flag_json_omit_null_fields = ref true
+let flag_json_omit_missing_fields = ref true
 let flag_piq_frameless_output = ref false
 let flag_piq_frameless_input = ref false
 let flag_piq_relaxed_parsing = ref false
@@ -51,9 +51,13 @@ let arg__add_defaults =
     "--add-defaults", Arg.Set flag_add_defaults,
     "add default field values to converted records"
 
+let arg__json_omit_missing_fields =
+    "--json-omit-missing-fields", Arg.Bool (fun x -> flag_json_omit_missing_fields := x),
+    "true|false omit null and [] fields in JSON output (default=true)"
+
 let arg__json_omit_null_fields =
-    "--json-omit-null-fields", Arg.Bool (fun x -> flag_json_omit_null_fields := x),
-    "true|false omit null fields in JSON output (default=true)"
+    "--json-omit-null-fields", Arg.Bool (fun x -> flag_json_omit_missing_fields := x),
+    "deprecated: use json-omit-missing-fields instead"
 
 let arg__piq_frameless_output =
     "--piq-frameless-output", Arg.Bool (fun x -> flag_piq_frameless_output := x),
@@ -83,6 +87,7 @@ let speclist = Main.common_speclist @
     arg__t;
     arg__type;
     arg__add_defaults;
+    arg__json_omit_missing_fields;
     arg__json_omit_null_fields;
     arg__piq_frameless_output;
     arg__piq_frameless_input;
@@ -421,7 +426,7 @@ let convert_file () =
   Piqi_convert.init ();
   Piqi_convert.set_options
     (Piqi_convert.make_options
-      ~json_omit_null_fields:!flag_json_omit_null_fields
+      ~json_omit_missing_fields:!flag_json_omit_missing_fields
       ~piq_frameless_output:!flag_piq_frameless_output
       ~piq_frameless_input:!flag_piq_frameless_input
       ~piq_relaxed_parsing:!flag_piq_relaxed_parsing
