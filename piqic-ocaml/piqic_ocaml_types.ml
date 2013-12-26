@@ -25,7 +25,6 @@ open C
 open Iolist
 
 
-
 let gen_builtin_type context piqi_type =
   match piqi_type with
     | `any ->
@@ -36,7 +35,7 @@ let gen_builtin_type context piqi_type =
         C.gen_builtin_type_name t
 
 
-let gen_typedef_type context import typedef =
+let gen_typedef_type ?import context typedef =
   let ocaml_name = C.typedef_mlname typedef in
   match import with
     | None ->  (* local typedef *)
@@ -57,9 +56,9 @@ let rec gen_type context typename =
         let ocaml_type = gen_alias_type context a in
         if ocaml_name = ocaml_type (* cyclic type abbreviation? *)
         then ocaml_type
-        else gen_typedef_type context import typedef
+        else gen_typedef_type context typedef ?import
     | _ ->  (* record | variant | list | enum *)
-        gen_typedef_type context import typedef
+        gen_typedef_type context typedef ?import
 
 
 and gen_alias_type context a =
@@ -262,15 +261,13 @@ let gen_typedefs context (typedefs:T.typedef list) =
     ]
   in
   let modules = [other_defs_mod] @ mod_defs in
-  let code = iol
-    [
-      ios "module rec ";
-      iod " and " modules;
-    ]
+  let code = iol [
+    ios "module rec ";
+    iod " and " modules;
+  ]
   in
   iod " " [
     code;
-    ios "include"; ios top_modname;
     eol;
   ]
 
@@ -330,6 +327,11 @@ let order_aliases l =
   let rank def =
     match def with
       | `alias x ->
+          (* TODO: once we lift aliases, this will have to change to
+             x.A#piqi_type <> None && x.A#typename = None; perhaps we'll need to
+             standardize on what built-in type is across piqilib, piqic-ocaml,
+             piqic-erlang and potentially do type-lifting in "piqi compile"
+           *)
           if C.is_builtin_alias x
           then
             (* aliases of built-in OCaml types go first *)

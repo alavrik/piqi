@@ -96,7 +96,7 @@ let gen_code = function
   | Some code -> ios (Int32.to_string code)
 
 (* polymorphic variant name starting with a ` *)
-let gen_pvar_name name = 
+let gen_pvar_name name =
   ios "`" ^^ ios name
 
 
@@ -288,7 +288,7 @@ let is_builtin_alias x =
      * of built-in types *)
     x.A#piqi_type <> None
 
- 
+
 let make_idtable l =
     List.fold_left (fun accu (k, v) -> Idtable.add accu k v) Idtable.empty l
 
@@ -355,7 +355,7 @@ let rec get_used_builtin_typedefs typedefs builtins_index =
     let builtin_typenames = List.filter (Idtable.mem builtins_index) typenames in
     let builtin_typedefs = List.map (Idtable.find builtins_index) builtin_typenames in
     (* get built-in types' dependencies (that are also built-in types) -- usually
-     * no more than 2-3 recursion steps is needed *) 
+     * no more than 2-3 recursion steps is needed *)
     let res = (get_used_builtin_typedefs builtin_typedefs builtins_index) @ builtin_typedefs in
     U.uniqq res
 
@@ -448,6 +448,14 @@ let scoped_name context name =
   top_modname context ^ "." ^ name
 
 
+let gen_parent_mod import =
+  match import with
+    | None -> iol []
+    | Some x ->
+        let ocaml_modname = some_of x.Import#ocaml_name in
+        ios ocaml_modname ^^ ios "."
+
+
 let resolve_import context import =
   Idtable.find context.module_index import.Import#modname
 
@@ -515,13 +523,154 @@ let mlname_of_option context x =
   mlname_of context x.ocaml_name x.typename
 
 
-let gen_builtin_type_name (piqi_type :T.piqi_type) =
+let gen_builtin_type_name ?(ocaml_type: string option) (piqi_type :T.piqi_type) =
+  match ocaml_type with
+    | Some x -> x
+    | None ->
+        match piqi_type with
+          | `int -> "int"
+          | `float -> "float"
+          | `bool -> "bool"
+          | `string | `binary -> "string"
+          | `any ->
+              (* must be handled separately *)
+              assert false
+
+
+(* TODO: rename Erlang functions to match these function names *)
+let typedef_can_be_protobuf_packed context typedef =
+  let piqi, resolved_type = unalias context typedef in
+  match resolved_type with
+    | `int | `float | `bool -> true
+    | `enum _ -> true  (* enum values can be packed in Protobuf *)
+    | _ -> false
+
+
+let type_can_be_protobuf_packed context typename =
+  let parent_piqi, typedef = resolve_typename context typename in
+  let parent_context = switch_context context parent_piqi in
+  typedef_can_be_protobuf_packed parent_context typedef
+
+
+(* custom types handling: used by piqic_ocaml_out, piqic_ocaml_in *)
+let gen_convert_value typename ocaml_type direction value =
+  match typename, ocaml_type with
+    | Some typename, Some ocaml_type -> (* custom OCaml type *)
+        iol [
+          ios "(";
+            ios ocaml_type;
+            ios direction;
+            ios typename;
+            ios "("; value; ios ")";
+          ios ")"
+        ]
+    | _ ->
+        value
+
+
+let get_default_wire_type piqi_type =
   match piqi_type with
-    | `int -> "int"
-    | `float -> "float"
-    | `bool -> "bool"
-    | `string | `binary -> "string"
-    | `any ->
-        (* must be handled separately *)
-        assert false
+    | `int -> `zigzag_varint
+    | `float -> `fixed64
+    | `bool -> `varint
+    | _ -> `block
+
+
+let gen_wire_type_name piqi_type wire_type =
+  let wire_type =
+    match wire_type with
+      | Some x -> x
+      | None ->
+          get_default_wire_type piqi_type
+  in
+  match wire_type with
+    | `varint -> "varint"
+    | `zigzag_varint -> "zigzag_varint"
+    | `fixed32 -> "fixed32"
+    | `fixed64 -> "fixed64"
+    | `signed_varint -> "signed_varint"
+    | `signed_fixed32 -> "signed_fixed32"
+    | `signed_fixed64 -> "signed_fixed64"
+    | `block -> "block"
+
+
+(* this is similar to unalias, but instead of returning resolved_type it returns
+ * resolved protobuf wire type *)
+let rec get_wire_type context typename =
+  let parent_piqi, typedef = resolve_typename context typename in
+  let parent_context = switch_context context parent_piqi in
+  get_typedef_wire_type parent_context typedef
+
+and get_typedef_wire_type context typedef =
+  match typedef with
+    | `alias {A.protobuf_wire_type = Some wire_type} ->
+        (* NOTE: top-level aliases override protobuf_wire_type for lower-level
+         * aliases *)
+        Some wire_type
+    | `alias {A.typename = Some typename} ->
+        get_wire_type context typename
+    | `alias {A.piqi_type = Some piqi_type} ->
+        Some (get_default_wire_type piqi_type)
+    | _ ->
+        None
+
+
+(* gen wire type width in bits if it is a fixed-sized type *)
+let gen_wire_type_width wt =
+  match wt with
+    | `fixed32 | `signed_fixed32 -> "32"
+    | `fixed64 | `signed_fixed64 -> "64"
+    | _ -> ""
+
+
+(* calculates and generates the width of a packed wire element in bits:
+ * generated value can be 32, 64 or empty *)
+let gen_elem_wire_width context typename is_packed =
+  let open L in
+  if not is_packed
+  then ""
+  else
+    match get_wire_type context typename with
+      | None -> ""
+      | Some x ->
+          gen_wire_type_width x
+
+
+let gen_field_mode context f =
+  let open F in
+  match f.mode with
+    | `required -> "required"
+    | `optional when f.default <> None && (not f.ocaml_optional) ->
+        "required" (* optional + default *)
+    | `optional -> "optional"
+    | `repeated ->
+        let mode =
+          if f.protobuf_packed
+          then "packed_repeated"
+          else "repeated"
+        in
+        if f.ocaml_array
+        then
+          let typename = some_of f.typename in  (* always defined for repeated fields *)
+          let width = gen_elem_wire_width context typename f.protobuf_packed in
+          mode ^ "_array" ^ width
+        else
+          mode
+
+
+(* generate: (packed_)?(list|array|array32|array64) *)
+let gen_list_repr context l =
+  let open L in
+  let packed = ios (if l.protobuf_packed then "packed_" else "") in
+  let repr =
+    if l.ocaml_array
+    then ios "array" ^^ ios (gen_elem_wire_width context l.typename l.protobuf_packed)
+    else ios "list"
+  in
+  packed ^^ repr
+
+
+(* TODO *)
+let gen_cc s =
+  ios ""
 

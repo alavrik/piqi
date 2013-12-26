@@ -27,7 +27,7 @@ open Iolist
 
 (* command-line flags *)
 let flag_pp = ref false
-let flag_gen_defaults = ref false
+let flag_gen_defaults = ref true  (* deprecated -- always enabled by default *)
 let flag_embed_piqi = ref false
 let flag_strict = ref false
 
@@ -43,7 +43,7 @@ let arg__normalize_names =
 
 let arg__gen_defaults =
   "--gen-defaults", Arg.Set flag_gen_defaults,
-    "generate default value constructors for generated types"
+    "(depreacted) always enabled: generate default value constructors for generated types"
 
 let arg__embed_piqi =
   "--embed-piqi", Arg.Set flag_embed_piqi,
@@ -57,24 +57,31 @@ let arg__strict =
   (name, Arg.Set flag_strict, descr)
 
 
-let gen_ml context =
+(* build a list of all import dependencies including the specified module and
+ * encode each Piqi module in the list using Protobuf encoding *)
+let gen_embedded_piqi piqi_list =
+  let l = List.map (fun x -> Piqirun.to_string (Piqi_piqi.gen_piqi x)) piqi_list in
+  let l = List.map (fun s -> ioq (String.escaped s)) l in
+  iol [
+    ios "let piqi = ["; iod ";" l; ios "]"
+  ]
 
-  (* NOTE: generating them in this order explicitly in order to avoid
-   * right-to-left evaluation if we put this code inside the list *)
-  let c1 = Piqic_ocaml_types.gen_piqi context in
-  (*
-  let c2 = Piqic_ocaml_in.gen_piqi piqi in
-  let c3 = Piqic_ocaml_out.gen_piqi piqi in
-  let c4 =
-    if !Piqic_common.flag_gen_defaults
-    then Piqic_ocaml_defaults.gen_piqi piqi
-    else iol []
-  in
-  let code = iol [ c1; c2; c3; c4 ] in
-  code
-  *)
-  let code = iol [ c1; ] in
-  code
+
+let gen_ml context =
+  let top_modname = C.top_modname context in
+  iol [
+    Piqic_ocaml_types.gen_piqi context;
+    Piqic_ocaml_in.gen_piqi context;
+    Piqic_ocaml_out.gen_piqi context;
+
+    ios "include "; ios top_modname; eol;
+
+    Piqic_ocaml_defaults.gen_piqi context;
+
+    if !flag_embed_piqi
+    then iol [ gen_embedded_piqi context.modules ]
+    else iol [];
+  ]
 
 
 let ocaml_pretty_print ifile ofile =
@@ -86,17 +93,6 @@ let ocaml_pretty_print ifile ofile =
   let res = Sys.command cmd in
   if res <> 0
   then Piqi_common.piqi_error ("command execution failed: " ^ cmd)
-
-
-
-(* build a list of all import dependencies including the specified module and
- * encode each Piqi module in the list using Protobuf encoding *)
-let gen_embedded_piqi piqi_list =
-  let l = List.map (fun x -> Piqirun.to_string (Piqi_piqi.gen_piqi x)) piqi_list in
-  let l = List.map (fun s -> ioq (String.escaped s)) l in
-  iol [
-    ios "let piqi = ["; iod ";" l; ios "]"
-  ]
 
 
 let gen_output_file ofile code =
@@ -121,13 +117,7 @@ let gen_output_file ofile code =
 
 
 let piqic context =
-  (* call piq interface compiler for ocaml *)
   let code = gen_ml context in
-  let code =
-    if !flag_embed_piqi
-    then iol [ code; gen_embedded_piqi context.modules ]
-    else code
-  in
 
   (* chdir to the output directory *)
   Piqi_main.chdir_output !Piqi_main.odir;
