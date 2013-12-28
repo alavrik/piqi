@@ -32,6 +32,7 @@ module Alias = T.Alias
 
 
 module Import = T.Import
+module Func = T.Func
 module Any = T.Any
 
 
@@ -126,15 +127,23 @@ let ocaml_ucname n = (* uppercase *)
   String.capitalize (ocaml_name n)
 
 
-let mlname n =
-  Some (ocaml_lcname n)
+let mlname target_name n =
+  match target_name with
+    | Some _ ->
+        target_name
+    | None ->
+        Some (ocaml_lcname n)
 
 
 (* variant of mlname for optional names *)
-let mlname_opt n =
-  match n with
-    | None -> n
-    | Some n -> mlname n
+let mlname_opt target_name n =
+  match target_name with
+    | Some _ -> target_name
+    | None ->
+        match n with
+          | None -> None
+          | Some n ->
+              Some (ocaml_lcname n)
 
 
 let mlname_field x =
@@ -145,85 +154,89 @@ let mlname_field x =
     if x.ocaml_optional && x.mode <> `optional
     then Piqi_common.error x ".ocaml-optional flag can be used only with optional fields";
 
-    if x.ocaml_name = None then x.ocaml_name <- mlname_opt x.name
+    {x with ocaml_name = mlname_opt x.ocaml_name x.name}
   )
 
 
 let mlname_record x =
-  let open Record in
-  (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
-   List.iter mlname_field x.field)
+  R#{
+    x with
+    ocaml_name = mlname x.ocaml_name x.name;
+    field = List.map mlname_field x.field;
+  }
 
 
-let mlname_option x =
-  let open Option in
-  if x.ocaml_name = None then x.ocaml_name <- mlname_opt x.name
+let mlname_option (x: T.option) :T.option =
+  O#{x with ocaml_name = mlname_opt x.ocaml_name x.name}
 
 
-let mlname_variant x =
-  let open Variant in
-  (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
-   List.iter mlname_option x.option)
+let mlname_variant (x: T.variant) :T.variant =
+  V#{
+    x with
+    ocaml_name = mlname x.ocaml_name x.name;
+    option = List.map mlname_option x.option;
+  }
 
 
 let mlname_enum x =
-  let open Enum in
-  (if x.ocaml_name = None then x.ocaml_name <- mlname x.name;
-   List.iter mlname_option x.option)
+  E#{
+    x with
+    ocaml_name = mlname x.ocaml_name x.name;
+    option = List.map mlname_option x.option;
+  }
 
 
 let mlname_alias x =
-  let open Alias in
-  if x.ocaml_name = None then x.ocaml_name <- mlname x.name
+  A#{x with ocaml_name = mlname x.ocaml_name x.name}
 
 
 let mlname_list x =
-  let open L in
-  if x.ocaml_name = None then x.ocaml_name <- mlname x.name
+  L#{x with ocaml_name = mlname x.ocaml_name x.name}
 
 
 let mlname_typedef = function
-  | `record x -> mlname_record x
-  | `variant x -> mlname_variant x
-  | `enum x -> mlname_enum x
-  | `alias x -> mlname_alias x
-  | `list x -> mlname_list x
+  | `record x -> `record (mlname_record x)
+  | `variant x -> `variant (mlname_variant x)
+  | `enum x -> `enum (mlname_enum x)
+  | `alias x -> `alias (mlname_alias x)
+  | `list x -> `list (mlname_list x)
 
 
 let mlname_func x =
-  let open T.Func in
-  if x.ocaml_name = None then x.ocaml_name <- mlname x.name
+  Func#{x with ocaml_name = mlname x.ocaml_name x.name}
 
 
-let mlname_import import =
+let mlname_import x =
   let open Import in
-  begin
-    if import.name = None
-    then import.name <- Some import.modname;
-
-    if import.ocaml_name = None
-    then import.ocaml_name <- Some (ocaml_ucname (some_of import.name))
-  end
-
-
-let mlmodname n =
-  let n = Piqi_name.get_local_name n in (* cut module path *)
-  Some (ocaml_ucname n ^ "_piqi")
+  if x.ocaml_name <> None
+  then x
+  else
+    let name =
+      match x.name with
+        | Some n -> n
+        | None -> x.modname
+    in
+    {x with ocaml_name = Some (ocaml_ucname name)}
 
 
 let mlname_piqi (piqi:T.piqi) =
   let open P in
-  begin
-    (* NOTE: modname is always define in "piqi compile" output *)
-    if piqi.ocaml_module = None
-    then piqi.ocaml_module <- mlmodname (some_of piqi.modname);
-
-    (* naming function parameters first, because otherwise they will be
-     * overriden in mlname_defs *)
-    List.iter mlname_func piqi.P#func;
-    List.iter mlname_typedef piqi.P#typedef;
-    List.iter mlname_import piqi.P#import;
-  end
+  let ocaml_module =
+    if piqi.ocaml_module <> None
+    then piqi.ocaml_module
+    else
+      (* NOTE: modname is always defined in "piqi compile" output *)
+      let modname = some_of piqi.modname in
+      let n = Piqi_name.get_local_name modname in (* strip module path *)
+      Some (ocaml_ucname n ^ "_piqi")
+  in
+  {
+    piqi with
+    ocaml_module = ocaml_module;
+    typedef = List.map mlname_typedef piqi.typedef;
+    func = List.map mlname_func piqi.func;
+    import = List.map mlname_import piqi.import;
+  }
 
 
 let typedef_name = function
@@ -284,13 +297,13 @@ let load_self_spec () =
 
 
 let is_builtin_alias x =
-    (* presence of piqi_type field means this alias typedef corresponds to one
-     * of built-in types *)
-    x.A#piqi_type <> None
+  (* presence of piqi_type field means this alias typedef corresponds to one
+   * of built-in types *)
+  x.A#piqi_type <> None
 
 
 let make_idtable l =
-    List.fold_left (fun accu (k, v) -> Idtable.add accu k v) Idtable.empty l
+  List.fold_left (fun accu (k, v) -> Idtable.add accu k v) Idtable.empty l
 
 
 (* index typedefs by name *)
@@ -306,15 +319,15 @@ let make_import_name x =
 
 (* index imports by name *)
 let index_imports l =
-    make_idtable (List.map (fun x -> make_import_name x, x) l)
+  make_idtable (List.map (fun x -> make_import_name x, x) l)
 
 
 (* generate an index of all imports and definitions of a given module *)
 let index_module piqi =
   {
-      i_piqi = piqi;
-      import = index_imports piqi.P#import;
-      typedef = index_typedefs piqi.P#typedef;
+    i_piqi = piqi;
+    import = index_imports piqi.P#import;
+    typedef = index_typedefs piqi.P#typedef;
   }
 
 
@@ -375,11 +388,11 @@ let add_builtin_typedefs piqi builtins_index =
 
 
 let init piqi_list =
-  List.iter mlname_piqi piqi_list;
+  let named_piqi_list = List.map mlname_piqi piqi_list in
 
   (* the module being compiled is the last element of the list; preceding
    * modules are imported dependencies *)
-  let l = List.rev piqi_list in
+  let l = List.rev named_piqi_list in
   let piqi = List.hd l in
   let imports = List.rev (List.tl l) in
 
@@ -387,11 +400,9 @@ let init piqi_list =
   let self_spec =
     if is_self_spec
     then piqi
-    else (
+    else
       let piqi = load_self_spec () in
-      mlname_piqi piqi;
-      piqi
-    )
+      mlname_piqi piqi
   in
   let builtin_typedefs =
     if is_self_spec

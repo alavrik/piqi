@@ -34,13 +34,11 @@ debug: dc top
 
 
 # recompile piqi self-spec into piqi_piqi.ml
-PIQIC = ../piqic/piqic ocaml
+#PIQIC = ../piqic/piqic ocaml
+PIQIC = ./$(RESULT)
 PIQIC_FLAGS = -I $(PIQI_ROOT) --embed-piqi --gen-defaults --pp #--trace
 
-#PIQIC = ./$(RESULT)
-#PIQIC_FLAGS = #--trace
 reboot:
-	$(PIQI) cc -o piqi.piqi
 	$(PIQIC) $(PIQIC_FLAGS) piqi.piqi
 
 
