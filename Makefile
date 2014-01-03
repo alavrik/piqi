@@ -10,7 +10,7 @@ endif
 DIRS = \
 	piqi-camlp4 \
 	piqirun-ocaml \
-	piqicc piqic piqilib piqi-tools \
+	piqilib piqic-ocaml piqi-tools \
 
 
 .PHONY: deps build-dir install distclean \

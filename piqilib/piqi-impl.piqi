@@ -1,10 +1,8 @@
 
 .include [ .module piqi/piqi-lang ]
 
-% we need OCaml names and built-in types definitions that map to OCaml types
-% correctly
-.include [ .module piqic/piqi.ocaml ]
-.include [ .module piqic/piqi-lang.ocaml ]
+.include [ .module piqic-ocaml/piqi.ocaml ]
+.include [ .module piqi-lang.ocaml ]
 
 
 .extend [
@@ -226,4 +224,7 @@
         .code 3
     ]
 ]
+
+
+.custom-field ocaml-type
 

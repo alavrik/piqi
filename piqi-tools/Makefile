@@ -44,9 +44,9 @@ PIQI_ML_SOURCES = descriptor_piqi.ml piqi_tools_piqi.ml piqi_rpc_piqi.ml
 
 PRE_TARGETS += \
 	$(PIQI_SOURCES) $(PIQI_PIQI) $(PIQI_ML_SOURCES)
-	
 
-PIQIC = ../piqic/piqic
+
+PIQIC = ../piqic-ocaml/piqic-ocaml
 # TODO: we don't need to embed piqi in descriptor.ml
 PIQIC_FLAGS = -I $(PIQI_ROOT) --embed-piqi
 
@@ -64,7 +64,7 @@ $(PIQI_ML_SOURCES): $(PIQI_MODULES)
 	set -e; \
 	for i in $^; \
 	do \
-		$(PIQIC) ocaml $(PIQIC_FLAGS) --pp $$i; \
+		$(PIQIC) $(PIQIC_FLAGS) --pp $$i; \
 	done
 
 

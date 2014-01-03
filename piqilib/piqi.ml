@@ -1892,11 +1892,11 @@ let boot () =
   (* don't cache them as we are adding the spec to the DB explicitly below *)
 
   trace "boot(1)\n";
-  let lang = process_piqi T.piqi_lang ~cache:false in
+  let lang = process_piqi Piqi_boot.piqi_lang ~cache:false in
   piqi_lang := Some lang;
 
   trace "boot(2)\n";
-  let spec = process_piqi T.piqi_spec ~cache:false in
+  let spec = process_piqi Piqi_boot.piqi_spec ~cache:false in
   piqi_spec := Some spec;
 
   trace "boot(3)\n";

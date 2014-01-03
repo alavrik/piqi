@@ -16,7 +16,7 @@
 *)
 
 
-module T = Piqi_lang_piqi
+module T = Piqi_impl_piqi
 
 
 module Record = T.Record

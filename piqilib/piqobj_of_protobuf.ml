@@ -139,8 +139,8 @@ and parse_any x =
         (* external mode *)
         let any = Any#{
           Piqobj.default_any with
-          typename = piqi_any.Piqi_lang_piqi.Any.typename;
-          pb = piqi_any.Piqi_lang_piqi.Any.protobuf;
+          typename = piqi_any.Piqi_impl_piqi.Any.typename;
+          pb = piqi_any.Piqi_impl_piqi.Any.protobuf;
         }
         in
         (* if there's no typed protobuf, look for untyped JSON or XML values *)

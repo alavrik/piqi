@@ -1,1 +1,3 @@
 .include [ .module piqi/piqi ]
+
+.include [ .module piqi.ocaml-extensions ]
