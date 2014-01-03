@@ -30,6 +30,7 @@ let flag_pp = ref false
 let flag_gen_defaults = ref true  (* deprecated -- always enabled by default *)
 let flag_embed_piqi = ref false
 let flag_strict = ref false
+let flag_multi_format = ref false
 
 
 let arg__pp =
@@ -48,6 +49,10 @@ let arg__embed_piqi =
   "--embed-piqi", Arg.Set flag_embed_piqi,
     "embed Piqi modules encoded in binary format in the generated code"
 
+let arg__multi_format =
+  "--multi-format", Arg.Set flag_multi_format,
+    "generate extended OCaml stubs for multi-format (JSON/XML/Piq/Pb) serialization"
+
 let arg__cc =
   "--cc", Arg.Set C.flag_cc,
     "compiler compiler mode -- used only for building piqilib"
@@ -58,32 +63,6 @@ let arg__strict =
    * we do this, because although it means the same, it is applied at a later
    * stage -- we control it manually below *)
   (name, Arg.Set flag_strict, descr)
-
-
-(* build a list of all import dependencies including the specified module and
- * encode each Piqi module in the list using Protobuf encoding *)
-let gen_embedded_piqi piqi_list =
-  let l = List.map (fun x -> Piqirun.to_string (Piqi_piqi.gen_piqi x)) piqi_list in
-  let l = List.map (fun s -> ioq (String.escaped s)) l in
-  iol [
-    ios "let piqi = ["; iod ";" l; ios "]"
-  ]
-
-
-let gen_ml context =
-  let top_modname = C.top_modname context in
-  iol [
-    Piqic_ocaml_types.gen_piqi context;
-    Piqic_ocaml_in.gen_piqi context;
-    Piqic_ocaml_out.gen_piqi context;
-    Piqic_ocaml_defaults.gen_piqi context;
-
-    if !flag_embed_piqi
-    then iol [ gen_embedded_piqi context.modules ]
-    else iol [];
-
-    ios "include "; ios top_modname; eol;
-  ]
 
 
 let ocaml_pretty_print ifile ofile =
@@ -114,16 +93,53 @@ let gen_output_file ofile code =
     end
 
 
-let piqic context =
-  let code = gen_ml context in
+(* build a list of all import dependencies including the specified module and
+ * encode each Piqi module in the list using Protobuf encoding *)
+let gen_embedded_piqi piqi_list =
+  let l = List.map (fun x -> Piqirun.to_string (Piqi_piqi.gen_piqi x)) piqi_list in
+  let l = List.map (fun s -> ioq (String.escaped s)) l in
+  iol [
+    ios "let piqi = ["; iod ";" l; ios "]"
+  ]
 
+
+let gen_piqi_ml context =
+  let modname = C.top_modname context in
+  let code = iol [
+    Piqic_ocaml_types.gen_piqi context;
+    Piqic_ocaml_in.gen_piqi context;
+    Piqic_ocaml_out.gen_piqi context;
+    Piqic_ocaml_defaults.gen_piqi context;
+
+    (* NOTE: --multi-format serialization depends on --embded-piqi *)
+    if !flag_embed_piqi || !flag_multi_format
+    then iol [ gen_embedded_piqi context.modules ]
+    else iol [];
+
+    ios "include "; ios modname; eol;
+  ]
+  in
+  let ofile = String.uncapitalize modname ^ ".ml" in
+  gen_output_file ofile code
+
+
+let gen_piqi_ext_ml context =
+  let code = Piqic_ocaml_ext.gen_piqi context in
+
+  let modname = C.top_modname context in
+  let ofile = String.uncapitalize modname ^ "_ext.ml" in
+
+  gen_output_file ofile code
+
+
+let piqic context =
   (* chdir to the output directory *)
   Piqi_main.chdir_output !Piqi_main.odir;
 
-  let piqi = context.piqi in
-  let modname = some_of piqi.P#ocaml_module in
-  let ofile = String.uncapitalize modname ^ ".ml" in
-  gen_output_file ofile code
+  gen_piqi_ml context;
+
+  if !flag_multi_format
+  then gen_piqi_ext_ml context
 
 
 let load_self_spec () =
@@ -182,9 +198,8 @@ let speclist = Piqi_main.common_speclist @
     arg__gen_defaults;
     Piqi_main.arg__leave_tmp_files;
     arg__embed_piqi;
+    arg__multi_format;
     arg__cc;
-
-    (* TODO: multiformat serialization --ext | --multiformat | --mf *)
   ]
 
 

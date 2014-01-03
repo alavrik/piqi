@@ -306,6 +306,12 @@ let is_builtin_alias x =
   x.A#piqi_type <> None
 
 
+let is_builtin_typedef typedef =
+  match typedef with
+    | `alias a -> is_builtin_alias a
+    | _ -> false
+
+
 let make_idtable l =
   List.fold_left (fun accu (k, v) -> Idtable.add accu k v) Idtable.empty l
 
@@ -415,12 +421,7 @@ let init piqi_list =
        * XXX: remove unused built-in typedefs from generated self-spec? *)
       []
     else
-      List.filter
-        (function
-          | `alias a -> is_builtin_alias a
-          | _ -> false
-        )
-        self_spec.P#typedef
+      List.filter is_builtin_typedef self_spec.P#typedef
   in
   let builtins_index = index_typedefs builtin_typedefs in
   let piqi = add_builtin_typedefs piqi builtins_index in
