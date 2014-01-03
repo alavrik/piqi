@@ -37,9 +37,8 @@ let arg__pp =
     "pretty-print output using CamlP4 (camlp4o)"
 
 let arg__normalize_names =
-  "--normalize-names", Arg.Bool (fun x -> Piqic_common.flag_normalize_names := x),
+  "--normalize-names", Arg.Bool (fun x -> C.flag_normalize_names := x),
     "true|false turn CamlCase-style names into \"camel-case\" (default = true)"
-
 
 let arg__gen_defaults =
   "--gen-defaults", Arg.Set flag_gen_defaults,
@@ -48,6 +47,10 @@ let arg__gen_defaults =
 let arg__embed_piqi =
   "--embed-piqi", Arg.Set flag_embed_piqi,
     "embed Piqi modules encoded in binary format in the generated code"
+
+let arg__cc =
+  "--cc", Arg.Set C.flag_cc,
+    "compiler compiler mode -- used only for building piqilib"
 
 let arg__strict =
   let (name, _setter, descr) = Piqi_main.arg__strict in
@@ -73,23 +76,18 @@ let gen_ml context =
     Piqic_ocaml_types.gen_piqi context;
     Piqic_ocaml_in.gen_piqi context;
     Piqic_ocaml_out.gen_piqi context;
-
-    ios "include "; ios top_modname; eol;
-
     Piqic_ocaml_defaults.gen_piqi context;
 
     if !flag_embed_piqi
     then iol [ gen_embedded_piqi context.modules ]
     else iol [];
+
+    ios "include "; ios top_modname; eol;
   ]
 
 
 let ocaml_pretty_print ifile ofile =
-  let cmd =
-    if ofile = "-"
-    then Printf.sprintf "camlp4o %s" ifile
-    else Printf.sprintf "camlp4o -o %s %s" ofile ifile 
-  in
+  let cmd = Printf.sprintf "camlp4o -o %s %s" ofile ifile in
   let res = Sys.command cmd in
   if res <> 0
   then Piqi_common.piqi_error ("command execution failed: " ^ cmd)
@@ -184,6 +182,7 @@ let speclist = Piqi_main.common_speclist @
     arg__gen_defaults;
     Piqi_main.arg__leave_tmp_files;
     arg__embed_piqi;
+    arg__cc;
 
     (* TODO: multiformat serialization --ext | --multiformat | --mf *)
   ]

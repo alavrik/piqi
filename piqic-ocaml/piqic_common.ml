@@ -107,6 +107,7 @@ let gen_pvar_name name =
 
 (* command-line flags *)
 let flag_normalize_names = ref false
+let flag_cc = ref false
 
 
 (* ocaml name of piqi name *)
@@ -263,12 +264,15 @@ let typedef_mlname = function
  * can't know this for sure, because information about included modules is, by
  * design, not preserved in "piqi compile" output *)
 let is_self_spec piqi =
-  let basename = Piqi_name.get_local_name (some_of piqi.P#modname) in
-  match U.string_split basename '.' with
-    | "piqi"::_ ->
-        true
-    | _ ->
-        false
+  if !flag_cc
+  then true
+  else
+    let basename = Piqi_name.get_local_name (some_of piqi.P#modname) in
+    match U.string_split basename '.' with
+      | "piqi"::_ ->
+          true
+      | _ ->
+          false
 
 
 (* check whether the piqi module depends on "piqi-any" type (i.e. one of its
@@ -681,7 +685,8 @@ let gen_list_repr context l =
   packed ^^ repr
 
 
-(* TODO *)
 let gen_cc s =
-  ios ""
+  if !flag_cc
+  then ios s
+  else ios ""
 

@@ -50,6 +50,8 @@ let gen_builtin_type context piqi_type ocaml_type wire_type is_packed =
         let packed_prefix = ios (if is_packed then "packed_" else "") in
         let typename = C.gen_builtin_type_name piqi_type ?ocaml_type in
         let wire_typename = C.gen_wire_type_name piqi_type wire_type in
+        (* XXX: packed isn't used in cc mode, we can safely remove generation of
+         * reference1 *)
         iol [
           (if is_packed then gen_cc "(reference1 " else gen_cc "(reference ");
             ios "Piqirun.";

@@ -28,7 +28,7 @@ open Iolist
 let gen_builtin_type context piqi_type =
   match piqi_type with
     | `any ->
-        if C.is_self_spec context.piqi
+        if context.is_self_spec
         then C.scoped_name context "any"
         else "Piqi_piqi.any"
     | t ->

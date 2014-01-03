@@ -47,12 +47,12 @@ let gen_builtin_type context piqi_type ocaml_type wire_type is_packed =
         let typename = C.gen_builtin_type_name piqi_type ?ocaml_type in
         let wire_typename = C.gen_wire_type_name piqi_type wire_type in
         iol [
-          (if is_packed then gen_cc "(reference1 " else gen_cc "(reference ");
+          gen_cc "(fun x -> let count = next_count() in refer count (";
             ios "Piqirun.";
             ios typename;
             ios "_of_"; packed_prefix;
             ios wire_typename;
-          gen_cc ")";
+          gen_cc " x))";
         ]
 
 
@@ -229,7 +229,8 @@ let gen_option context varname o =
 let gen_variant context v =
   let open Variant in
   let name = some_of v.ocaml_name in
-  let options = List.map (gen_option context name) v.option in
+  let scoped_name = C.scoped_name context name in
+  let options = List.map (gen_option context scoped_name) v.option in
   iod " " [
     ios "parse_" ^^ ios name; ios "x =";
     ios "let code, x = Piqirun.parse_variant x in";

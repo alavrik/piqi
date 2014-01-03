@@ -193,8 +193,9 @@ let gen_option context varname o =
 let gen_variant context v =
   let open Variant in
   let name = some_of v.ocaml_name in
+  let scoped_name = C.scoped_name context name in
   (* there must be at least one option *)
-  let opt = gen_option context name (List.hd v.option) in
+  let opt = gen_option context scoped_name (List.hd v.option) in
   iod " " [
     ios "default_" ^^ ios name; ios "() ="; opt;
   ]
