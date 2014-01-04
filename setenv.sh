@@ -7,7 +7,7 @@ export PIQI_ROOT="`pwd`"
 # temporary build directory
 export PIQI_BUILD="$PIQI_ROOT/build"
 
-# path to piqi and piqic executables
+# path to piqi and piqic-ocaml executables
 export PATH="$PIQI_ROOT/bin:$PATH"
 
 # path to .piqi files

@@ -2,7 +2,8 @@ test: init test_cc test_compile
 
 
 init:
-	ln -sf ../../piqic/piqi.piqi piqi.piqi
+	ln -sf ../../piqic-ocaml/piqi.piqi
+	ln -sf ../../piqic-ocaml/piqi.ocaml-extensions.piqi
 
 
 test_cc:

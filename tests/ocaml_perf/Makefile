@@ -9,7 +9,7 @@ ocaml: piqi-obj.piqi
 
 
 piqi-obj.piqi: ../../piqi/piqi.piqi
-	ln -sf ../../piqic/piqi.ocaml.piqi
+	ln -sf ../../piqic-ocaml/piqi.ocaml.piqi
 	piqi expand -e ocaml piqi.piqi > $@
 
 

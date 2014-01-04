@@ -1,6 +1,6 @@
 % This is an extension for addressbook.proto.piqi module.
 %
-% This file will be automatically included by "piqic ocaml" when it loads
+% This file will be automatically included by "piqic-ocaml" when it loads
 % addressbook.proto.piqi
 %
 % After converting addressbook.proto to addressbook.proto.piqi, we need to add

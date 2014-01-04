@@ -92,7 +92,7 @@ INSTALLATION INSTRUCTIONS
 
         make
 
-4. Install "piqi" and "piqic" binaries (optional)
+4. Install "piqi" binary
 
         make install
 

@@ -61,7 +61,7 @@ ocaml-install: ocaml-uninstall
 	ocamlfind install piqi `ls $(PIQI_BUILD)/lib/ocaml/piqi/*`
 	$(MAKE) -C deps install
 	-install -d $(DESTDIR)$(PIQI_PREFIX)/bin
-	install piqic/piqic $(DESTDIR)$(PIQI_PREFIX)/bin
+	install piqic-ocaml/piqic-ocaml $(DESTDIR)$(PIQI_PREFIX)/bin
 
 
 ocaml-uninstall:

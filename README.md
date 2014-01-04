@@ -95,12 +95,11 @@ Files
     Makefile              top-level Makefile
     make/                 makefiles and build scripts
     deps/                 third-party components (see NOTICE for details)
-    piqi-camlp4/          Piqi syntax extensions for OCaml
-    piqicc/               Piqi compiler compiler (used only during boostrap)
-    piqic/                Piq interface compiler(s) for OCaml
-    piqi-tools/           "piqi" command-line utility (piqi tools)
     piqi                  Piqi self-specification
-    piqilib/              Piqi common library
+    piqilib/              Piqi common library used by piqi-tools and piqic-ocaml
+    piqi-tools/           "piqi" command-line utility (piqi tools)
+    piqi-camlp4/          Piqi syntax extensions for OCaml
+    piqic-ocaml/          Piq interface compiler(s) for OCaml
     piqirun-ocaml/        Piqi runtime library for OCaml
     examples/             examples
     tests/                tests for various piqi functionality; see tests/README

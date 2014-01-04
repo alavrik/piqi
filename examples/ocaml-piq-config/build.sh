@@ -1,6 +1,6 @@
 
 set -ex
-piqic ocaml-ext --pp config.piqi
+piqic-ocaml --multi-format --pp config.piqi
 ocamlfind ocamlopt -package piqi.lib -c config_piqi.ml
 ocamlfind ocamlopt -package piqi.lib -c config_piqi_ext.ml
 ocamlfind ocamlopt -package piqi.lib -c config.ml

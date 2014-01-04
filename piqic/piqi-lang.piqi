@@ -1,4 +1,0 @@
-.include [ .module piqi/piqi-lang ]
-.include [ .module piqic/piqi ]
-
-.include [ .module piqic/piqi-lang.ocaml ]
