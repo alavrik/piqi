@@ -53,6 +53,10 @@ let arg__multi_format =
   "--multi-format", Arg.Set flag_multi_format,
     "generate extended OCaml stubs for multi-format (JSON/XML/Piq/Pb) serialization"
 
+let arg__ext =
+  "--ext", Arg.Set flag_multi_format,
+    "same as --multi-format"
+
 let arg__cc =
   "--cc", Arg.Set C.flag_cc,
     "compiler compiler mode -- used only for building piqilib"
@@ -187,6 +191,7 @@ let speclist = Piqi_main.common_speclist @
     Piqi_main.arg__leave_tmp_files;
     arg__embed_piqi;
     arg__multi_format;
+    arg__ext;
     arg__cc;
   ]
 
