@@ -21,15 +21,15 @@ PACKS = piqi.runtime
 # LIBDIRS = $(PIQI_ROOT)/piqirun-ocaml
 # INCDIRS = $(PIQI_ROOT)/piqirun-ocaml
 
-PIQIC = piqic
-PIQIC_FLAGS = --pp --leave-tmp-files --gen-defaults
+PIQIC = piqic-ocaml
+PIQIC_FLAGS = --pp #--leave-tmp-files
 
 
 all: native-code #byte-code
 
 
 addressbook_piqi.ml: addressbook.proto.piqi
-	$(PIQIC) ocaml $(PIQIC_FLAGS) -o $@ $<
+	$(PIQIC) $(PIQIC_FLAGS) $<
 
 
 clean::

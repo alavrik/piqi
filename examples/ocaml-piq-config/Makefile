@@ -21,8 +21,8 @@ PIQI_ML_FILES = config_piqi.ml config_piqi_ext.ml
 PRE_TARGETS = $(PIQI_ML_FILES)
 
 
-PIQIC = piqic
-PIQIC_FLAGS = --pp --leave-tmp-files
+PIQIC = piqic-ocaml
+PIQIC_FLAGS = --multi-format --pp #--leave-tmp-files
 
 
 all: native-code #byte-code debug-code
@@ -31,7 +31,7 @@ all: native-code #byte-code debug-code
 $(PIQI_ML_FILES): $(PIQI_FILES)
 	set -e; \
 	for i in $^; do \
-		$(PIQIC) ocaml-ext $(PIQIC_FLAGS) $$i ; \
+		$(PIQIC) $(PIQIC_FLAGS) $$i ; \
 	done
 
 

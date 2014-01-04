@@ -21,8 +21,8 @@ PACKS = piqi.runtime
 # INCDIRS = $(PIQI_ROOT)/piqirun-ocaml
 
 
-PIQIC = piqic ocaml
-PIQIC_FLAGS = --pp --leave-tmp-files
+PIQIC = piqic-ocaml
+PIQIC_FLAGS = --pp #--leave-tmp-files
 
 
 PRE_TARGETS = $(PIQI_FILES) $(PIQI_ML_FILES)

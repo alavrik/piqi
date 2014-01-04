@@ -25,8 +25,8 @@ PIQI_ML_FILES = \
 PRE_TARGETS = $(PIQI_ML_FILES)
 
 
-PIQIC = piqic ocaml
-PIQIC_FLAGS = --pp --gen-defaults
+PIQIC = piqic-ocaml
+PIQIC_FLAGS = --pp
 
 
 PACKS = piqi.runtime
