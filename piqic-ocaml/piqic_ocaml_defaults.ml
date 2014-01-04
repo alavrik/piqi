@@ -207,7 +207,7 @@ let gen_alias context a =
    * piqic-erlang *)
   iod " " [
     ios "default_" ^^ ios (some_of a.ocaml_name); ios "() =";
-    C.gen_convert_value a.typename a.ocaml_type "_of_" (gen_alias_type context a);
+    C.gen_convert_value context a.ocaml_type "_of_" a.typename (gen_alias_type context a);
   ]
 
 

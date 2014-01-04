@@ -221,7 +221,7 @@ let gen_unpacked_alias context a =
     ios "gen__"; ios (some_of a.ocaml_name); ios " code x = ";
       gen_alias_type context a ?wire_type:a.protobuf_wire_type;
       ios " code";
-      C.gen_convert_value a.typename a.ocaml_type "_to_" (ios " x");
+      C.gen_convert_value context a.ocaml_type "_to_" a.typename (ios " x");
   ]
 
 
@@ -230,7 +230,7 @@ let gen_packed_alias context a =
   iol [
     ios "packed_gen__"; ios (some_of a.ocaml_name); ios " x = ";
       gen_alias_type context a ?wire_type:a.protobuf_wire_type ~is_packed:true;
-      C.gen_convert_value a.typename a.ocaml_type "_to_" (ios " x");
+      C.gen_convert_value context a.ocaml_type "_to_" a.typename (ios " x");
   ]
 
 

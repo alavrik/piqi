@@ -569,14 +569,16 @@ let type_can_be_protobuf_packed context typename =
 
 
 (* custom types handling: used by piqic_ocaml_out, piqic_ocaml_in *)
-let gen_convert_value typename ocaml_type direction value =
+let gen_convert_value context ocaml_type direction typename value =
   match typename, ocaml_type with
     | Some typename, Some ocaml_type -> (* custom OCaml type *)
+        let parent_piqi, typedef = resolve_typename context typename in
+        let name = typedef_mlname typedef in
         iol [
           ios "(";
             ios ocaml_type;
             ios direction;
-            ios typename;
+            ios name;
             ios "("; value; ios ")";
           ios ")"
         ]

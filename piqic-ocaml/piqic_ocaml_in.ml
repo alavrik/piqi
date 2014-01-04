@@ -247,7 +247,7 @@ let gen_alias context a ~is_packed =
   let packed_prefix = ios (if is_packed then "packed_" else "") in
   iol [
     packed_prefix; ios "parse_"; ios (some_of a.ocaml_name); ios " x = ";
-    C.gen_convert_value a.typename a.ocaml_type "_of_" (
+    C.gen_convert_value context a.ocaml_type "_of_" a.typename (
       iol [
         gen_alias_type context a ?wire_type:a.protobuf_wire_type ~is_packed;
         ios " x";
