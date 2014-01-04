@@ -73,52 +73,14 @@ let speclist = Piqi_main.common_speclist @
   ]
 
 
-let get_self_spec_piqtype self_spec typename =
-  let piqi_def =
-    try Piqi_db.find_local_typedef self_spec.P#resolved_typedef typename
-    with Not_found ->
-      Printf.eprintf
-        "invalid self-spec read from %s: no definition named %s\n"
-        !input_self_spec (U.quote typename);
-      piqi_error "piqi compile: invalid self-spec"
-  in
-  (piqi_def: T.typedef :> T.piqtype)
-
-
-(* make piqi/piqi-list top-level record from the list of piqi piqobjs; we do it
- * by converting the list of piqobjs to the binary representation of piqi-list
- * and then reading it back and piqobj *)
-let make_piqi_list_piqobj piqi_list_piqtype (piqi_piqobj_list: Piqobj.obj list) :Piqobj.obj =
-  trace "making piqi-list\n";
-  trace_enter ();
-  trace "converting piqi piqobj list to protobuf piqi-list\n";
-  let piqi_binobj_list = List.map
-    (fun piqobj ->
-      let obuf = Piq.piqobj_to_protobuf (-1) piqobj in
-      Piqirun.to_string obuf
-    )
-    piqi_piqobj_list
-  in
-  let obuf = Piqirun.gen_list Piqirun.gen_string_field (-1) piqi_binobj_list in
-  let s = Piqirun.to_string obuf in
-  let ibuf = Piqirun.init_from_string s in
-  trace "converting piqi-list from protobuf to piqobj\n";
-  let piqi_list_piqobj =
-    (* don't resolve defaults -- they should be resolved already *)
-    C.with_resolve_defaults false
-    (fun () -> Piqobj_of_protobuf.parse_obj piqi_list_piqtype ibuf)
-  in
-  trace_leave ();
-  piqi_list_piqobj
-
-
 let compile self_spec piqi och =
   trace "getting all imported dependencies\n";
-  let piqi_list = Piqi_convert_cmd.get_piqi_deps piqi ~only_imports:true in
+  let piqi_list = Piqi_compile.get_piqi_deps piqi in
 
   (* get necessary piqtypes from the self-spec *)
-  let piqi_piqtype = get_self_spec_piqtype self_spec "piqi" in
-  let piqi_list_piqtype = get_self_spec_piqtype self_spec "piqi-list" in
+  let filename = !input_self_spec in
+  let piqi_piqtype = Piqi_compile.get_self_spec_piqtype self_spec "piqi" ~filename in
+  let piqi_list_piqtype = Piqi_compile.get_self_spec_piqtype self_spec "piqi-list" ~filename in
 
   trace "converting modules to internal representation\n";
   (* We need to resolve all defaults before converting to JSON or XML because
@@ -160,33 +122,24 @@ let compile self_spec piqi och =
             | "xml" -> Piq.write_xml
             | x -> piqi_error ("unknown output format " ^ U.quote x)
         in
-        let piqobj = make_piqi_list_piqobj piqi_list_piqtype piqobj_list in
+        let piqobj = Piqi_compile.make_piqi_list_piqobj piqi_list_piqtype piqobj_list in
         writer och (Piq.Piqobj piqobj)
+
+
+let load_self_spec filename =
+  let ich = Piqi_main.open_input filename in
+  let buf = Piqirun.init_from_channel ich in
+  Piqi_compile.load_self_spec buf ~filename
 
 
 let run_c ifile och =
   let piqi = Piqi.load_piqi ifile in
+  Piqi_main.close_input ();
+
   let self_spec =
     if !input_self_spec <> "" (* regular compilation mode mode with explicit --self-spec *)
     then (
-      trace "reading self-spec from %s\n" !input_self_spec;
-      trace_enter ();
-      Piqi_main.close_input ();
-      let ich = Piqi_main.open_input !input_self_spec in
-      let buf = Piqirun.init_from_channel ich in
-      let self_spec =
-        try
-          (* TODO: we can read piqi directly using Piqi_piqi.parse_piqi, because
-           * self-spec is guaranteed to not have any incompatibilities with
-           * piqi_lang including functions and other parts. This makes "piqi
-           * compile" start faster than if we used "Piqi.piqi_of_pb buf" *)
-          Piqi.piqi_of_pb buf (* NOTE: not caching the loaded module *)
-        with exn ->
-          Printf.eprintf "error: failed to read self-spec from %s:\n" !input_self_spec;
-          raise exn (* try to give more details about what when wrong *)
-      in
-      trace_leave ();
-      self_spec
+      load_self_spec !input_self_spec
     )
     else (
       trace "--self-spec argument is missing; using the default embedded self-spec to compile\n";

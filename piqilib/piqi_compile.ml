@@ -15,21 +15,40 @@
    limitations under the License.
 *)
 
-(* TODO: this is a copy-paste from piqi-tools/piqi_compile.ml: we need to move
- * this to the piqilib library *)
+(*
+ * common piqi compiler interfaces used by "piqi compile" and piqic-ocaml
+ *)
 
 
-module C = Piqi_common  
+module C = Piqi_common
 open C
 
 
-let get_self_spec_piqtype self_spec typename =
+let load_self_spec ?(filename="") buf =
+  trace "piqi_compile: loading self-spec from %s\n" (U.quote filename);
+  trace_enter ();
+  let self_spec =
+    try
+      (* TODO: we can read piqi directly using Piqi_piqi.parse_piqi, because
+       * self-spec is guaranteed to not have any incompatibilities with
+       * piqi_lang including functions and other parts. This makes "piqi
+       * compile" start faster than if we used "Piqi.piqi_of_pb buf" *)
+      Piqi.piqi_of_pb buf (* NOTE: not caching the loaded module *)
+    with exn ->
+      Printf.eprintf "error: failed to load self-spec from %s:\n" (U.quote filename);
+      raise exn (* try to give more details about what when wrong *)
+  in
+  trace_leave ();
+  self_spec
+
+
+let get_self_spec_piqtype ?(filename="") self_spec typename =
   let piqi_def =
     try Piqi_db.find_local_typedef self_spec.P#resolved_typedef typename
     with Not_found ->
       Printf.eprintf
-        "invalid self-spec read from: no definition named %s\n"
-        (U.quote typename);
+        "invalid self-spec read from %s: no definition named %s\n"
+        (U.quote filename) (U.quote typename);
       piqi_error "piqi compile: invalid self-spec"
   in
   (piqi_def: T.typedef :> T.piqtype)
@@ -62,7 +81,8 @@ let make_piqi_list_piqobj piqi_list_piqtype (piqi_piqobj_list: Piqobj.obj list) 
   piqi_list_piqobj
 
 
-(* NOTE: we also have a similar but more general code in piqi_convert_cmd.ml *)
+(* TODO: this is very similar to the code in piqi_convert_cmd.ml -- think of
+ * unifying this; maybe moving to piqi.ml *)
 let rec get_piqi_deps piqi =
   let imports =
     List.map (fun x -> some_of x.T.Import#piqi) piqi.P#resolved_import
@@ -78,7 +98,11 @@ let rec get_piqi_deps piqi =
   deps @ [piqi]
 
 
-let compile ?(strict=false) self_spec piqi =
+(* TODO: not sure how to unify this with a very similar code in
+ * piqi_convert_cmd.ml *)
+let compile_to_pb ?(strict=false) self_spec piqi =
+  trace "compile_to_pb:\n";
+  trace_enter ();
   trace "getting all imported dependencies\n";
   let piqi_list = get_piqi_deps piqi in
 
@@ -100,5 +124,7 @@ let compile ?(strict=false) self_spec piqi =
   trace "generating pb\n";
   let piqobj = make_piqi_list_piqobj piqi_list_piqtype piqobj_list in
   let buf = Piq.gen_pb (Piq.Piqobj piqobj) in
-  Piqirun.to_string buf
+  let res = Piqirun.to_string buf in
+  trace_leave ();
+  res
 

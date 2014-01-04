@@ -82,6 +82,7 @@ SOURCES = \
 	\
 	piq.ml \
 	piqi_convert.ml \
+	piqi_compile.ml \
 	\
 	piqirun_ext.mli \
 	piqirun_ext.ml \

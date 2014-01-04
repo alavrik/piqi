@@ -143,31 +143,21 @@ let piqic context =
 
 
 let load_self_spec () =
-  Piqi_common.trace "reading embedded self-spec\n";
-  Piqi_common.trace_enter ();
   let self_spec_bin = List.hd Piqi_piqi.piqi in
   let buf = Piqirun.init_from_string self_spec_bin in
-  let self_spec =
-    try
-      (* TODO: we can read piqi directly using Piqi_piqi.parse_piqi, because
-       * self-spec is guaranteed to not have any incompatibilities with
-       * piqi_lang including functions and other parts. This makes "piqi
-       * compile" start faster than if we used "Piqi.piqi_of_pb buf" *)
-      Piqi.piqi_of_pb buf (* NOTE: not caching the loaded module *)
-    with exn ->
-      Printf.eprintf "error: failed to load embedded self-spec\n";
-      raise exn (* try to give more details about what when wrong *)
-  in
-  Piqi_common.trace_leave ();
-  self_spec
+  Piqi_compile.load_self_spec buf
 
 
 (* this is the same as calling "piqi compile ..." and reading its output but,
  * instead, we are just using the library functions *)
 let piqi_compile_piqi ifile =
   let self_spec = load_self_spec () in
+
+  (* tell the library to automatically load *.ocaml.piqi extension modules *)
+  Piqi_config.add_include_extension "ocaml";
+
   let piqi = Piqi.load_piqi ifile in
-  Piqi_compile.compile self_spec piqi ~strict:!flag_strict
+  Piqi_compile.compile_to_pb self_spec piqi ~strict:!flag_strict
 
 
 let load_piqi_list ifile =
@@ -180,8 +170,6 @@ let load_piqi_list ifile =
 
 
 let piqic_file ifile =
-  Piqi_config.add_include_extension "ocaml";
-
   (* load input .piqi file and its dependencies *)
   let piqi_list = load_piqi_list ifile in
   let context = C.init piqi_list in

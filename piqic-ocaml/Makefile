@@ -9,8 +9,6 @@ RESULT = piqic-ocaml
 
 
 SOURCES = \
-	piqi_compile.ml \
-	\
 	piqi_piqi.ml \
 	piqic_common.ml \
 	\

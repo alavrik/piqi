@@ -27,7 +27,7 @@ SOURCES = \
 	piqi_server.ml \
 	piqi_call.ml \
 	\
-	piqi_compile.ml \
+	piqi_compile_cmd.ml \
 	piqi_cc.ml \
 	\
 	piqi_run.ml \
