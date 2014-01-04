@@ -96,7 +96,7 @@ let gen_output_file ofile code =
 (* build a list of all import dependencies including the specified module and
  * encode each Piqi module in the list using Protobuf encoding *)
 let gen_embedded_piqi piqi_list =
-  let l = List.map (fun x -> Piqirun.to_string (Piqi_piqi.gen_piqi x)) piqi_list in
+  let l = List.map (fun x -> Piqirun.to_string (T.gen_piqi x)) piqi_list in
   let l = List.map (fun s -> ioq (String.escaped s)) l in
   iol [
     ios "let piqi = ["; iod ";" l; ios "]"
@@ -143,7 +143,7 @@ let piqic context =
 
 
 let load_self_spec () =
-  let self_spec_bin = List.hd Piqi_piqi.piqi in
+  let self_spec_bin = List.hd T.piqi in
   let buf = Piqirun.init_from_string self_spec_bin in
   Piqi_compile.load_self_spec buf
 
@@ -164,9 +164,9 @@ let load_piqi_list ifile =
   let bin = piqi_compile_piqi ifile in
   (* read the compiled piqi bundle *)
   let buf = Piqirun.init_from_string bin in
-  let bundle = Piqi_piqi.parse_piqi_bundle buf in
+  let bundle = T.parse_piqi_bundle buf in
   (* return the list of piqi modules: list of dependencies @ [input module] *)
-  bundle.Piqi_piqi.Piqi_bundle.piqi
+  bundle.T.Piqi_bundle.piqi
 
 
 let piqic_file ifile =

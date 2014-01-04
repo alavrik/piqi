@@ -2,14 +2,11 @@ include ../Makefile.config
 include $(PIQI_ROOT)/make/Makefile.ocaml
 
 
-PIQI ?= piqi
-
-
 RESULT = piqic-ocaml
 
 
 SOURCES = \
-	piqi_piqi.ml \
+	piqic_piqi.ml \
 	piqic_common.ml \
 	\
 	piqic_ocaml_types.ml \
@@ -31,7 +28,7 @@ all: nc
 debug: dc top
 
 
-# recompile piqi self-spec into piqi_piqi.ml
+# recompile piqi self-spec into piqic_piqi.ml
 PIQIC = ./$(RESULT)
 PIQIC_FLAGS = -I $(PIQI_ROOT) --embed-piqi --pp #--trace
 
