@@ -351,7 +351,6 @@ let option_to_list = function
   | Some x -> [x]
 
 
-(* TODO: match this function in Erlang *)
 let get_used_typenames typedef =
   let l =
     match typedef with
@@ -553,7 +552,6 @@ let gen_builtin_type_name ?(ocaml_type: string option) (piqi_type :T.piqi_type) 
               assert false
 
 
-(* TODO: rename Erlang functions to match these function names *)
 let typedef_can_be_protobuf_packed context typedef =
   let piqi, resolved_type = unalias context typedef in
   match resolved_type with
