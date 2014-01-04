@@ -27,7 +27,7 @@ open Iolist
 
 (* command-line flags *)
 let flag_pp = ref false
-let flag_gen_defaults = ref true  (* deprecated -- always enabled by default *)
+let flag_gen_defaults = ref false  (* deprecated -- always enabled by default *)
 let flag_embed_piqi = ref false
 let flag_strict = ref false
 let flag_multi_format = ref false
@@ -196,6 +196,10 @@ let usage = "Usage: piqic-ocaml [options] <.piqi file>\nOptions:"
 
 let run () =
   Piqi_main.parse_args () ~usage ~speclist;
+
+  if !flag_gen_defaults
+  then Piqi_common.piqi_warning "--gen-defaults flag is deprecated: always generating defaults";
+
   piqic_file !Piqi_main.ifile
 
  
