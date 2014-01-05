@@ -26,8 +26,8 @@ open Iolist
 
 
 let gen_type ?(is_packed=false) context typename =
-  let import, parent_piqi, typedef = resolve_typename_ext context typename in
-  let packed_prefix = ios (if is_packed then "packed_" else "") in
+  let import, parent_piqi, typedef = C.resolve_typename context typename in
+  let packed_prefix = C.gen_packed_prefix is_packed in
   let parent_mod = C.gen_parent_mod import in
   iol [
     parent_mod;
@@ -43,7 +43,7 @@ let gen_builtin_type context piqi_type ocaml_type wire_type is_packed =
         then ios "parse_any" (* XXX: handle the case when ocaml_type <> None *)
         else ios "Piqi_piqi.parse_any"
     | _ ->
-        let packed_prefix = ios (if is_packed then "packed_" else "") in
+        let packed_prefix = C.gen_packed_prefix is_packed in
         let typename = C.gen_builtin_type_name piqi_type ?ocaml_type in
         let wire_typename = C.gen_wire_type_name piqi_type wire_type in
         iol [
@@ -64,7 +64,7 @@ let rec gen_alias_type ?wire_type ?(is_packed=false) context a =
         let piqi_type = some_of a.piqi_type in
         gen_builtin_type context piqi_type a.ocaml_type wire_type is_packed
     | Some typename ->
-        let parent_piqi, typedef = resolve_typename context typename in
+        let import, parent_piqi, typedef = C.resolve_typename context typename in
         match typedef with
           | `alias a when wire_type <> None ->
               (* need special handing in case when higher-level alias overrides
@@ -171,7 +171,7 @@ let gen_const c =
 let gen_enum e ~is_packed =
   let open Enum in
   let consts = List.map gen_const e.option in
-  let packed_prefix = ios (if is_packed then "packed_" else "") in
+  let packed_prefix = C.gen_packed_prefix is_packed in
   iol [
     packed_prefix; ios "parse_"; ios (some_of e.ocaml_name); ios " x = ";
     gen_cc "let count = next_count() in refer count (";
@@ -204,7 +204,7 @@ let gen_option context varname o =
             C.gen_pvar_name name;
         ]
     | Some typename ->
-        let import, parent_piqi, typedef = resolve_typename_ext context typename in
+        let import, parent_piqi, typedef = C.resolve_typename context typename in
         match o.ocaml_name, typedef with
           | None, `variant _ | None, `enum _ ->
               (* handle variant and enum subtyping cases by lifting their labels
@@ -244,7 +244,7 @@ let gen_variant context v =
 
 let gen_alias context a ~is_packed =
   let open Alias in
-  let packed_prefix = ios (if is_packed then "packed_" else "") in
+  let packed_prefix = C.gen_packed_prefix is_packed in
   iol [
     packed_prefix; ios "parse_"; ios (some_of a.ocaml_name); ios " x = ";
     C.gen_convert_value context a.ocaml_type "_of_" a.typename (
@@ -258,7 +258,7 @@ let gen_alias context a ~is_packed =
 
 let gen_alias context a =
   let open Alias in
-  if C.typedef_can_be_protobuf_packed context (`alias a)
+  if C.can_be_protobuf_packed context (`alias a)
   then
     (* if a value can be packed, we need to generate two functions: one for
      * parsing regular (unpacked) representation, and another one for

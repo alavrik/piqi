@@ -482,7 +482,7 @@ let resolve_local_typename ?import index name =
 
 (* resolve type name to its type definition and the module where it was defined
  * and the import its module was imported with *)
-let resolve_typename_ext context typename =
+let resolve_typename context typename =
   let index = context.index in
   match Piqi_name.split_name typename with
     | None, name ->  (* local type *)
@@ -494,13 +494,6 @@ let resolve_typename_ext context typename =
         resolve_local_typename imported_index name ~import
 
 
-(* resolve type name to its type definition and the module where it was defined
- *)
-let resolve_typename context typename =
-  let import, parent_piqi, typedef = resolve_typename_ext context typename in
-  (parent_piqi, typedef)
-
-
 (* unwind aliases to the lowest-level non-alias typedef or one of the built-in
  * primitive Piqi types *)
 type resolved_type = [ T.typedef | T.piqi_type]
@@ -508,7 +501,7 @@ type resolved_type = [ T.typedef | T.piqi_type]
 let rec unalias context typedef :(T.piqi * resolved_type) =
   match typedef with
     | `alias {A.typename = Some typename} ->
-        let parent_piqi, aliased_typedef = resolve_typename context typename in
+        let import, parent_piqi, aliased_typedef = resolve_typename context typename in
         let parent_context = switch_context context parent_piqi in
         unalias parent_context aliased_typedef
     | `alias {A.piqi_type = Some piqi_type} ->
@@ -522,7 +515,7 @@ let mlname_of context ocaml_name typename =
   match ocaml_name, typename with
     | Some n, _ -> n
     | None, Some typename  ->
-        let parent_piqi, typedef = resolve_typename context typename in
+        let import, parent_piqi, typedef = resolve_typename context typename in
         typedef_mlname typedef
     | _ ->
         assert false
@@ -552,7 +545,7 @@ let gen_builtin_type_name ?(ocaml_type: string option) (piqi_type :T.piqi_type) 
               assert false
 
 
-let typedef_can_be_protobuf_packed context typedef =
+let can_be_protobuf_packed context typedef =
   let piqi, resolved_type = unalias context typedef in
   match resolved_type with
     | `int | `float | `bool -> true
@@ -560,17 +553,11 @@ let typedef_can_be_protobuf_packed context typedef =
     | _ -> false
 
 
-let type_can_be_protobuf_packed context typename =
-  let parent_piqi, typedef = resolve_typename context typename in
-  let parent_context = switch_context context parent_piqi in
-  typedef_can_be_protobuf_packed parent_context typedef
-
-
 (* custom types handling: used by piqic_ocaml_out, piqic_ocaml_in *)
 let gen_convert_value context ocaml_type direction typename value =
   match typename, ocaml_type with
     | Some typename, Some ocaml_type -> (* custom OCaml type *)
-        let parent_piqi, typedef = resolve_typename context typename in
+        let import, parent_piqi, typedef = resolve_typename context typename in
         let name = typedef_mlname typedef in
         iol [
           ios "(";
@@ -613,7 +600,7 @@ let gen_wire_type_name piqi_type wire_type =
 (* this is similar to unalias, but instead of returning resolved_type it returns
  * resolved protobuf wire type *)
 let rec get_wire_type context typename =
-  let parent_piqi, typedef = resolve_typename context typename in
+  let import, parent_piqi, typedef = resolve_typename context typename in
   let parent_context = switch_context context parent_piqi in
   get_typedef_wire_type parent_context typedef
 
@@ -674,16 +661,20 @@ let gen_field_mode context f =
           mode
 
 
+let gen_packed_prefix is_packed =
+  ios (if is_packed then "packed_" else "")
+
+
 (* generate: (packed_)?(list|array|array32|array64) *)
 let gen_list_repr context l =
   let open L in
-  let packed = ios (if l.protobuf_packed then "packed_" else "") in
+  let packed_prefix = gen_packed_prefix l.protobuf_packed in
   let repr =
     if l.ocaml_array
     then ios "array" ^^ ios (gen_elem_wire_width context l.typename l.protobuf_packed)
     else ios "list"
   in
-  packed ^^ repr
+  packed_prefix ^^ repr
 
 
 let gen_cc s =

@@ -33,7 +33,7 @@ open Iolist
 
 
 let gen_type context typename =
-  let import, parent_piqi, typedef = resolve_typename_ext context typename in
+  let import, parent_piqi, typedef = C.resolve_typename context typename in
   let parent_mod = C.gen_parent_mod import in
   parent_mod ^^ ios "default_" ^^ ios (C.typedef_mlname typedef) ^^ ios "()"
 
@@ -105,7 +105,7 @@ let rec gen_alias_type ?wire_type context a =
         let piqi_type = some_of a.piqi_type in
         gen_builtin_type context piqi_type a.ocaml_type wire_type
     | Some typename ->
-        let parent_piqi, typedef = resolve_typename context typename in
+        let import, parent_piqi, typedef = C.resolve_typename context typename in
         match typedef with
           | `alias a when wire_type <> None ->
               (* need special handing in case when higher-level alias overrides
@@ -177,7 +177,7 @@ let gen_option context varname o =
     | None ->  (* this is a flag, i.e. option without a type *)
         C.gen_pvar_name name
     | Some typename ->
-        let import, parent_piqi, typedef = resolve_typename_ext context typename in
+        let import, parent_piqi, typedef = C.resolve_typename context typename in
         match o.ocaml_name, typedef with
           | None, `variant _ | None, `enum _ ->
               iod " " [

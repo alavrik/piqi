@@ -47,7 +47,7 @@ let gen_typedef_type ?import context typedef =
 
 (* XXX: check type compatibility *)
 let rec gen_type context typename = 
-  let import, parent_piqi, typedef = C.resolve_typename_ext context typename in
+  let import, parent_piqi, typedef = C.resolve_typename context typename in
   match typedef with
     | `alias a ->
         let context = C.switch_context context parent_piqi in
@@ -137,7 +137,7 @@ let gen_option context o =
   let open Option in
   match o.ocaml_name, o.typename with
     | ocaml_name, Some typename -> (
-        let import, parent_piqi, typedef = C.resolve_typename_ext context typename in
+        let import, parent_piqi, typedef = C.resolve_typename context typename in
         match ocaml_name, typedef with
           | None, `variant x ->
               (* NOTE: for some reason, ocaml complains about fully qualified
@@ -304,7 +304,7 @@ let order_variants context l =
         U.flatmap (fun o ->
           match o.O#typename with
             | Some typename when o.O#ocaml_name = None ->
-                let import, parent_piqi, typedef = C.resolve_typename_ext context typename in
+                let import, parent_piqi, typedef = C.resolve_typename context typename in
                 (match typedef with
                   | ((`variant _) as typedef)
                   | ((`enum _) as typedef) ->
@@ -327,11 +327,6 @@ let order_aliases l =
   let rank def =
     match def with
       | `alias x ->
-          (* TODO: once we lift aliases, this will have to change to
-             x.A#piqi_type <> None && x.A#typename = None; perhaps we'll need to
-             standardize on what built-in type is across piqilib, piqic-ocaml,
-             piqic-erlang and potentially do type-lifting in "piqi compile"
-           *)
           if C.is_builtin_alias x
           then
             (* aliases of built-in OCaml types go first *)

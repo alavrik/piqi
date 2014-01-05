@@ -26,8 +26,8 @@ open Iolist
 
 
 let gen_type ?(is_packed=false) context typename =
-  let import, parent_piqi, typedef = resolve_typename_ext context typename in
-  let packed_prefix = ios (if is_packed then "packed_" else "") in
+  let import, parent_piqi, typedef = C.resolve_typename context typename in
+  let packed_prefix = C.gen_packed_prefix is_packed in
   let parent_mod = C.gen_parent_mod import in
   iol [
     parent_mod;
@@ -47,7 +47,7 @@ let gen_builtin_type context piqi_type ocaml_type wire_type is_packed =
         else
           ios "(fun code x -> Piqi_piqi.gen__any code x)"
     | _ ->
-        let packed_prefix = ios (if is_packed then "packed_" else "") in
+        let packed_prefix = C.gen_packed_prefix is_packed in
         let typename = C.gen_builtin_type_name piqi_type ?ocaml_type in
         let wire_typename = C.gen_wire_type_name piqi_type wire_type in
         (* XXX: packed isn't used in cc mode, we can safely remove generation of
@@ -69,7 +69,7 @@ let rec gen_alias_type ?wire_type ?(is_packed=false) context a =
         let piqi_type = some_of a.piqi_type in
         gen_builtin_type context piqi_type a.ocaml_type wire_type is_packed
     | Some typename ->
-        let parent_piqi, typedef = C.resolve_typename context typename in
+        let import, parent_piqi, typedef = C.resolve_typename context typename in
         match typedef with
           | `alias a when wire_type <> None ->
               (* need special handing in case when higher-level alias overrides
@@ -186,7 +186,7 @@ let gen_option context o =
           ios "Piqirun.gen_bool_field"; code; ios "true";
         ]
     | Some typename ->
-        let import, parent_piqi, typedef = resolve_typename_ext context typename in
+        let import, parent_piqi, typedef = C.resolve_typename context typename in
         match o.ocaml_name, typedef with
           | None, `variant _ | None, `enum _ ->
               (* handle variant and enum subtyping cases by lifting their labels
@@ -236,7 +236,7 @@ let gen_packed_alias context a =
 
 let gen_alias context a =
   let open Alias in
-  if C.typedef_can_be_protobuf_packed context (`alias a)
+  if C.can_be_protobuf_packed context (`alias a)
   then
     (* if a value can be packed, we need to generate two functions: one for
      * generating regular (unpacked) representation, and another one for
