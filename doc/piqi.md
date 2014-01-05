@@ -171,7 +171,7 @@ including
     .custom-field ocaml-name
 
 will tell [Piqi tools](/doc/tools/) to ignore properties like `.ocaml-name
-"foo"` as they are only meaningful to `piqic ocaml`.
+"foo"` as they are only meaningful to `piqic-ocaml`.
 
 
 ### Module names
@@ -303,7 +303,7 @@ All operations applicable to regular Piqi modules are also supported for
 extension modules. The difference is that extension modules can be included
 automatically in the modules which they extend.
 
-For instance, `piqic ocaml` and `piqic-erlang` Piqi compilers try to
+For instance, `piqic-ocaml` and `piqic-erlang` Piqi compilers try to
 automatically include `<m>.ocaml.piqi` and `<m>.erlang.piqi` respectively for
 every loaded module `<m>.piqi`.
 
@@ -838,8 +838,8 @@ Protocol Buffers properties:
 Similarly, support for OCaml-specific Piqi properties is provided by these two
 specifications:
 
-[piqi.ocaml.piqi](http://github.com/alavrik/piqi/blob/master/piqic/piqi.ocaml.piqi),
-[piqi.ocaml-extensions.piqi](http://github.com/alavrik/piqi/blob/master/piqic/piqi.ocaml-extensions.piqi)
+[piqi.ocaml.piqi](http://github.com/alavrik/piqi/blob/master/piqic-ocaml/piqi.ocaml.piqi),
+[piqi.ocaml-extensions.piqi](http://github.com/alavrik/piqi/blob/master/piqic-ocaml/piqi.ocaml-extensions.piqi)
 
 
 Functions
