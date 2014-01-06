@@ -26,7 +26,6 @@ open C
 let output_format = ref ""
 let input_self_spec = ref ""
 let flag_strict = ref false
-let flag_normalize_names = ref false
 
 
 (* NOTE: "piqi compile" command-line interface should be idealy as stable
@@ -47,13 +46,6 @@ let arg__self_spec =
   "--self-spec", Arg.Set_string input_self_spec,
   "<.pb file> input self-spec in .pb format; use '-' for stdin"
 
-(* convert names into lowercase name which words are separated by dashes; for
- * example "CamelCase" will become "camel-case"; already lowercased names will
- * remain intact *)
-let arg__normalize_names =
-  "--normalize-names", Arg.Set flag_normalize_names,
-  "turn CamlCase-style names into \"camel-case\" (lowercase & separate words with dashes)"
-
 let arg__strict =
   let (name, _setter, descr) = Piqi_main.arg__strict in
   (* overrid the original setter but keep the option name and the description;
@@ -69,7 +61,6 @@ let speclist = Piqi_main.common_speclist @
     arg__t;
     Piqi_main.arg__include_extension;
     arg__self_spec;
-    arg__normalize_names;
   ]
 
 
@@ -95,7 +86,7 @@ let compile self_spec piqi och =
   let piqobj_list = List.map (fun piqi ->
       Piqi.piqi_to_piqobj piqi
         ~custom_piqtype:piqi_piqtype
-        ~add_codes:true ~normalize_names:!flag_normalize_names
+        ~add_codes:true
     ) piqi_list
   in
 
