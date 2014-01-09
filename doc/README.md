@@ -12,7 +12,7 @@ Building documentation
 
 **NOTE:** you need to have `pandoc` installed before running these commands.
 
-`make man` command makes `piqi(1)` man page.
+`make man` command rebuilds `piqi(1)` man page.
 
 `make html` command makes cross-linked offline HTML documentation with
 `index.html` as a front page.

@@ -50,6 +50,8 @@ build-dir:
 install:
 	-install -d $(DESTDIR)$(PIQI_PREFIX)/bin
 	install piqi-tools/piqi $(DESTDIR)$(PIQI_PREFIX)/bin
+	-install -d $(DESTDIR)$(PIQI_PREFIX)/share/man/man1
+	install -m 644 doc/piqi.1 $(DESTDIR)$(PIQI_PREFIX)/share/man/man1
 
 
 ocaml:
