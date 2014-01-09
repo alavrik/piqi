@@ -3,7 +3,16 @@ HTML=$(patsubst %.md,%.html,$(SRCS))
 
 .PHONY: all clean man html
 
+
+ifneq ($(shell which pandoc), )
 all: man html
+
+else
+$(warning "WARNING: skipping building Piqi documentation, because couldn't find 'pandoc'")
+all:
+
+endif
+
 
 test:
 	./check-links

@@ -15,6 +15,7 @@ DIRS = \
 
 .PHONY: deps build-dir install distclean \
 	ocaml ocaml-install ocaml-uninstall \
+	doc
 
 
 # export installation and search path for OCaml dependencies
@@ -45,6 +46,10 @@ deps: build-dir
 
 build-dir:
 	mkdir -p $(PIQI_BUILD)/lib/ocaml
+
+
+doc:
+	$(MAKE) -C doc
 
 
 install:
