@@ -98,7 +98,6 @@ Files
     piqi                  Piqi self-specification
     piqilib/              Piqi common library used by piqi-tools and piqic-ocaml
     piqi-tools/           "piqi" command-line utility (piqi tools)
-    piqi-camlp4/          Piqi syntax extensions for OCaml
     piqic-ocaml/          Piq interface compiler(s) for OCaml
     piqirun-ocaml/        Piqi runtime library for OCaml
     examples/             examples

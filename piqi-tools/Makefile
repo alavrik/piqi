@@ -5,7 +5,7 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 RESULT = piqi
 
 
-PACKS = piqi.lib unix
+PACKS = piqirun piqi.lib unix
 
 SOURCES = \
 	piqi_json_pp.ml \
@@ -34,7 +34,7 @@ SOURCES = \
 
 
 # make sure piqi gets rebuilt when we change the library
-RESULTDEPS = ../piqilib/piqilib.cmxa $(wildcard ../piqilib/piqilib.cma)
+RESULTDEPS = ../piqilib/piqi.cmxa $(wildcard ../piqilib/piqi.cma)
 
 
 PIQI_MODULES = descriptor.proto.piqi piqi-tools.piqi piqi-rpc.piqi

@@ -8,7 +8,6 @@ endif
 
 
 DIRS = \
-	piqi-camlp4 \
 	piqirun-ocaml \
 	piqilib piqic-ocaml piqi-tools \
 

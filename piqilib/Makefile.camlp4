@@ -1,0 +1,26 @@
+
+CAMLP4_SOURCES = pa_labelscope.ml pa_openin.ml
+
+
+# latest officially supported OCAML version
+LATEST_SUPPORTED_OCAML = 4.00
+
+OCAML_VERSION ?= $(shell ocamlfind ocamlc -version | sed -e 's/^\([0-9]*\.[0-9]*\)\..*/\1/')
+
+
+
+all: pre_target camlp4/$(OCAML_VERSION) $(CAMLP4_SOURCES)
+
+
+pre_target::
+	@echo "choosing CamlP4 extensions for OCaml $(OCAML_VERSION)"
+
+
+camlp4/$(OCAML_VERSION):
+	@echo "There is no library for OCaml $(OCAML_VERSION), trying $(LATEST_SUPPORTED_OCAML) ..."
+	$(MAKE) OCAML_VERSION=$(LATEST_SUPPORTED_OCAML) all
+
+
+%.ml: camlp4/$(OCAML_VERSION)/%.ml
+	ln -s $< $@
+

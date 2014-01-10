@@ -3,7 +3,6 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 
 
 RESULT = piqirun
-PIQI_LIB_NAME = runtime
 
 
 SOURCES = piqirun.ml
@@ -35,9 +34,9 @@ all: dcl ncl test #top
 post_target:: install
 
 
-#NOTE: when installing, uninstall first to avoid "already installed" error
+# NOTE: when installing, uninstall first to avoid "already installed" error
 install: uninstall libinstall
-	$(PIQI_ROOT)/make/piqi-fix-libinstall $(RESULT) $(PIQI_LIB_NAME)
+
 
 uninstall: libuninstall
 

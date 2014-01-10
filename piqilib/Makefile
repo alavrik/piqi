@@ -2,16 +2,18 @@ include ../Makefile.config
 include $(PIQI_ROOT)/make/Makefile.ocaml
 
 
-RESULT = piqilib
-PIQI_LIB_NAME = lib
+RESULT = piqi
+
 LIBINSTALL_FILES = \
+	$(CAMLP4_TARGETS) \
 	$(RESULT).cmxa \
 	$(RESULT).$(EXT_LIB) $(RES_CLIB) \
 	$(shell ls *.cmi 2>/dev/null) \
 	piqirun_ext.mli
 
+
 # we're not building byte-code library by default, only when requested
-# explicitly, e.g. from top-level Makefile
+# explicitly, e.g. from the top-level Makefile
 ifneq ($(findstring bcl,$(MAKECMDGOALS)),)
 LIBINSTALL_FILES += $(RESULT).cma
 endif
@@ -24,6 +26,12 @@ endif
 STATIC = 1 # force creation of static library (don't create dlls)
 
 PACKS = piqirun ulex easy-format xmlm
+INCDIRS = +camlp4  # for building camlp4 extensions
+
+
+CAMLP4_SOURCES = pa_labelscope.ml pa_openin.ml
+CAMLP4_TARGETS = pa_labelscope.cmo pa_openin.cmo
+
 
 SOURCES = \
 	piqi_version.ml \
@@ -91,7 +99,7 @@ SOURCES = \
 	piqi_getopt.ml \
 
 
-PRE_TARGETS = piqi_version.ml
+PRE_TARGETS = piqi_version.ml $(CAMLP4_SOURCES) $(CAMLP4_TARGETS)
 
 
 all: ncl
@@ -103,9 +111,8 @@ debug: dcl install
 post_target:: install
 
 
-#NOTE: when installing, uninstall first to avoid "already installed" error
-install: uninstall libinstall
-	$(PIQI_ROOT)/make/piqi-fix-libinstall $(RESULT) $(PIQI_LIB_NAME)
+# NOTE: when installing, uninstall first to avoid "already installed" error
+install: uninstall META libinstall
 
 
 uninstall: libuninstall
@@ -113,6 +120,15 @@ uninstall: libuninstall
 
 piqi_version.ml: $(PIQI_ROOT)/VERSION
 	echo "let version = \"`head -1 $<`\"" >$@
+
+
+META: $(PIQI_ROOT)/VERSION META.tmpl
+	echo "version = \"`head -1 $<`\"" >$@
+	cat META.tmpl >>$@
+
+
+$(CAMLP4_SOURCES):
+	$(MAKE) -f Makefile.camlp4
 
 
 # re-generate piqi_piqi.ml piqi_impl_piqi.ml and piqi_boot.ml
