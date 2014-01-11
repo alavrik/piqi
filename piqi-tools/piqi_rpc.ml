@@ -22,6 +22,9 @@
  *)
 
 
+module Piqirun = Piqi_piqirun
+
+
 (* write 16-bit integer in big-endian format to a channel *)
 let write_int16_be ch i =
   assert (i >= 0 && i <= 0xffff);

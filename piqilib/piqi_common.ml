@@ -16,6 +16,8 @@
 *)
 
 
+module Piqirun = Piqi_piqirun
+
 module T = Piqi_impl_piqi
 
 

@@ -12,7 +12,7 @@ let main () =
   let piqi_lang_binobj = load_file "piqi-lang.piqi.pb" in
   let piqi_spec_binobj = load_file "piqi.piqi.pb" in
 
-  Printf.printf "let parse_piqi_binobj x = Piqirun.parse_binobj Piqi_impl_piqi.parse_piqi x\n\n";
+  Printf.printf "let parse_piqi_binobj x = Piqi_piqirun.parse_binobj Piqi_impl_piqi.parse_piqi x\n\n";
 
   Printf.printf "let piqi_lang =\n";
   Printf.printf "  let piqi_lang_binobj =\n";

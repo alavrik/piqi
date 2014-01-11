@@ -651,8 +651,9 @@ let proto_to_wire ifile ofile =
 
 
 let read_proto_wire ifile =
-  let protobuf = Piq.open_pb ifile in
-  let proto_set = D.parse_file_descriptor_set protobuf in
+  let ch = Piqi_main.open_input ifile in
+  let buf = Piqirun.init_from_channel ch in
+  let proto_set = D.parse_file_descriptor_set buf in
   proto_set
 
 

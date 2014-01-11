@@ -5,7 +5,7 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 RESULT = piqi
 
 
-PACKS = piqirun piqi.lib unix
+PACKS = piqi.lib unix
 
 SOURCES = \
 	piqi_json_pp.ml \
@@ -38,7 +38,6 @@ RESULTDEPS = ../piqilib/piqi.cmxa $(wildcard ../piqilib/piqi.cma)
 
 
 PIQI_MODULES = descriptor.proto.piqi piqi-tools.piqi piqi-rpc.piqi
-
 PIQI_ML_SOURCES = descriptor_piqi.ml piqi_tools_piqi.ml piqi_rpc_piqi.ml
 
 
@@ -47,11 +46,7 @@ PRE_TARGETS += \
 
 
 PIQIC = ../piqic-ocaml/piqic-ocaml
-# TODO: we don't need to embed piqi in descriptor.ml
-PIQIC_FLAGS = -I $(PIQI_ROOT) --embed-piqi
-
-
-#OCAMLBLDFLAGS = -custom
+PIQIC_FLAGS = -I $(PIQI_ROOT) --pp --runtime Piqi_piqirun
 
 
 all: nc
@@ -61,11 +56,9 @@ debug: dc top
 
 
 $(PIQI_ML_SOURCES): $(PIQI_MODULES)
-	set -e; \
-	for i in $^; \
-	do \
-		$(PIQIC) $(PIQIC_FLAGS) --pp $$i; \
-	done
+	$(PIQIC) $(PIQIC_FLAGS) descriptor.proto.piqi
+	$(PIQIC) $(PIQIC_FLAGS) piqi-rpc.piqi
+	$(PIQIC) $(PIQIC_FLAGS) --embed-piqi piqi-tools.piqi
 
 
 # rule for re-creating descriptor.proto.piqi from a (newer) descriptor.proto
@@ -76,9 +69,6 @@ descriptor: descriptor.proto
 
 
 .PHONY: descriptor
-
-
-clean::
 
 
 include $(OCAMLMAKEFILE)

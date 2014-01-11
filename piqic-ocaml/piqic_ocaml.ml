@@ -31,6 +31,7 @@ let flag_gen_defaults = ref false  (* deprecated -- always enabled by default *)
 let flag_embed_piqi = ref false
 let flag_strict = ref false
 let flag_multi_format = ref false
+let flag_runtime = ref ""
 
 
 let arg__pp =
@@ -56,6 +57,10 @@ let arg__multi_format =
 let arg__ext =
   "--ext", Arg.Set flag_multi_format,
     "same as --multi-format"
+
+let arg__runtime =
+  "--runtime", Arg.Set_string flag_runtime,
+    "<module> name of the Protobuf serialization runtime module (default = Piqirun)"
 
 let arg__cc =
   "--cc", Arg.Set C.flag_cc,
@@ -107,9 +112,17 @@ let gen_embedded_piqi piqi_list =
   ]
 
 
+let gen_custom_runtime () =
+  if !flag_runtime <> ""
+  then iol [ios "module Piqirun = "; ios !flag_runtime; eol; eol]
+  else iol []
+
+
 let gen_piqi_ml context =
   let modname = C.top_modname context in
   let code = iol [
+    gen_custom_runtime ();
+
     Piqic_ocaml_types.gen_piqi context;
     Piqic_ocaml_in.gen_piqi context;
     Piqic_ocaml_out.gen_piqi context;
@@ -128,8 +141,11 @@ let gen_piqi_ml context =
 
 
 let gen_piqi_ext_ml context =
-  let code = Piqic_ocaml_ext.gen_piqi context in
-
+  let code = iol [
+    gen_custom_runtime ();
+    Piqic_ocaml_ext.gen_piqi context;
+  ]
+  in
   let modname = C.top_modname context in
   let ofile = String.uncapitalize modname ^ "_ext.ml" in
 
@@ -148,7 +164,7 @@ let piqic context =
 
 let load_self_spec () =
   let self_spec_bin = List.hd T.piqi in
-  let buf = Piqirun.init_from_string self_spec_bin in
+  let buf = Piqi_piqirun.init_from_string self_spec_bin in
   Piqi_compile.load_self_spec buf
 
 
@@ -192,6 +208,7 @@ let speclist = Piqi_main.common_speclist @
     arg__embed_piqi;
     arg__multi_format;
     arg__ext;
+    arg__runtime;
     arg__cc;
   ]
 

@@ -2,22 +2,29 @@ PIQI = $(PIQI_ROOT)/piqi-tools/piqi
 PIQIC = $(PIQI_ROOT)/piqic-ocaml/piqic-ocaml
 
 PIQI_FLAGS = -I $(PIQI_ROOT)
-PIQIC_FLAGS = $(PIQI_FLAGS)
+PIQIC_FLAGS = $(PIQI_FLAGS) --runtime Piqi_piqirun
 
 
-all: piqi_piqi piqi_impl_piqi gen_piqi_boot expand_piqi_boot
-	mv piqi_piqi.ml piqi_impl_piqi.ml piqi_boot.ml ..
+BOOT_FILES = piqi_piqi.ml piqi_impl_piqi.ml piqi_boot.ml
 
 
-piqi_impl_piqi:
+all: remove_boot_files $(BOOT_FILES) expand_piqi_boot
+	mv $(BOOT_FILES) ..
+
+
+remove_boot_files:
+	rm -f $(BOOT_FILES)
+
+
+piqi_impl_piqi.ml:
 	$(PIQIC) $(PIQIC_FLAGS) --cc --pp piqi-impl.piqi
 
 
-piqi_piqi:
+piqi_piqi.ml:
 	$(PIQIC) $(PIQIC_FLAGS) --pp piqi.piqi
 
 
-gen_piqi_boot:
+piqi_boot.ml:
 	$(PIQI) convert -t pb piqi-lang.piqi
 	$(PIQI) convert -t pb piqi.piqi
 	ocaml gen_piqi_boot.ml > piqi_boot.ml

@@ -5,14 +5,18 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 RESULT = piqirun
 
 
-SOURCES = piqirun.ml
+PACKS = piqi.lib  # piqirun_ext.ml depends on it
+
+
+SOURCES = \
+	piqirun.ml \
+	piqirun_ext.ml piqirun_ext.mli
 
 
 LIBINSTALL_FILES = \
-	$(RESULT).cmi \
-	$(RESULT).cma $(RESULT).cmxa \
-	$(RESULT).$(EXT_LIB) \
-	# $(RESULT).mli -- TODO
+	piqirun.cmi piqirun.cmo piqirun.cmx piqirun.o \
+	piqirun_ext.mli piqirun_ext.cmi piqirun_ext.cmo piqirun_ext.cmx piqirun_ext.o \
+	# TODO: piqirun.mli
 
 
 STATIC = 1  # build a static library (don't build dlls)
@@ -35,21 +39,26 @@ post_target:: install
 
 
 # NOTE: when installing, uninstall first to avoid "already installed" error
-install: uninstall libinstall
+install: uninstall META libinstall
 
 
 uninstall: libuninstall
 
 
+META: ../VERSION META.tmpl
+	echo "version = \"`head -1 $<`\"" >$@
+	cat META.tmpl >>$@
+
+
 test:
-	ocaml piqirun.cma test.ml
+	ocaml piqirun.cmo test.ml
 
 
 # these commands are useful for debugging:
-#ocamlc -c -g piqirun.cma test.ml 
-#ocaml -init test.ocaml piqirun.cma test.cmo 
+#ocamlc -c -g piqirun.cmo test.ml 
+#ocaml -init test.ocaml piqirun.cmo test.cmo 
 #
-#ocamlc -g piqirun.cma test.ml 
+#ocamlc -g piqirun.cmo test.ml 
 #OCAMLRUNPARAM=b ./a.out
 
 

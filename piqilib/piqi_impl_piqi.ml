@@ -1,3 +1,5 @@
+module Piqirun = Piqi_piqirun
+  
 module rec Piqi_impl_piqi :
              sig
                type uint = int

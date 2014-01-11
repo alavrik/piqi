@@ -9,7 +9,6 @@ LIBINSTALL_FILES = \
 	$(RESULT).cmxa \
 	$(RESULT).$(EXT_LIB) $(RES_CLIB) \
 	$(shell ls *.cmi 2>/dev/null) \
-	piqirun_ext.mli
 
 
 # we're not building byte-code library by default, only when requested
@@ -25,7 +24,7 @@ endif
 
 STATIC = 1 # force creation of static library (don't create dlls)
 
-PACKS = piqirun ulex easy-format xmlm
+PACKS = ulex easy-format xmlm
 INCDIRS = +camlp4  # for building camlp4 extensions
 
 
@@ -35,6 +34,8 @@ CAMLP4_TARGETS = pa_labelscope.cmo pa_openin.cmo
 
 SOURCES = \
 	piqi_version.ml \
+	\
+	piqi_piqirun.ml \
 	piqi_piqi.ml \
 	\
 	piqloc.ml \
@@ -92,9 +93,6 @@ SOURCES = \
 	piqi_convert.ml \
 	piqi_compile.ml \
 	\
-	piqirun_ext.mli \
-	piqirun_ext.ml \
-	\
 	piqi_light.ml \
 	piqi_getopt.ml \
 
@@ -118,11 +116,11 @@ install: uninstall META libinstall
 uninstall: libuninstall
 
 
-piqi_version.ml: $(PIQI_ROOT)/VERSION
+piqi_version.ml: ../VERSION
 	echo "let version = \"`head -1 $<`\"" >$@
 
 
-META: $(PIQI_ROOT)/VERSION META.tmpl
+META: ../VERSION META.tmpl
 	echo "version = \"`head -1 $<`\"" >$@
 	cat META.tmpl >>$@
 
@@ -139,6 +137,7 @@ $(CAMLP4_SOURCES):
 reboot:
 	$(MAKE) bcl install
 	unset REAL_OCAMLFIND && $(MAKE) -C boot
+	cp ../piqirun-ocaml/piqirun.ml piqi_piqirun.ml
 
 
 include $(OCAMLMAKEFILE)
