@@ -15,7 +15,7 @@ endif
 
 PRE_TARGETS = addressbook_piqi.ml
 
-PACKS = piqi.runtime
+PACKS = piqirun.pb
 
 # LIBS = piqirun
 # LIBDIRS = $(PIQI_ROOT)/piqirun-ocaml

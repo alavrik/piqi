@@ -10,7 +10,7 @@ SOURCES = \
 	$(PIQI_ML_FILES2) \
 
 
-PACKS = piqi.lib num
+PACKS = piqirun.pb num
 
 
 PIQI_FILES = example.piqi skvl.piqi

@@ -9,7 +9,7 @@ SOURCES = \
 	io_json_xml_pb.ml
 
 
-PACKS = piqi.lib
+PACKS = piqirun.ext
 
 
 PIQI_FILES = addressbook.proto.piqi

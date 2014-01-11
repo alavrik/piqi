@@ -14,7 +14,7 @@ PIQI_FILES = $(PROTO_FILES:%=%.piqi)
 PIQI_ML_FILES = $(PROTO_FILES:%.proto=%_piqi.ml)
 
 
-PACKS = piqi.runtime
+PACKS = piqirun.pb
 
 # LIBS = piqirun
 # LIBDIRS = $(PIQI_ROOT)/piqirun-ocaml

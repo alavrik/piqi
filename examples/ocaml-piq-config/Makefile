@@ -11,7 +11,7 @@ SOURCES = \
 	config.ml
 
 
-PACKS = piqi.lib
+PACKS = piqirun.ext
 
 
 PIQI_FILES = config.piqi

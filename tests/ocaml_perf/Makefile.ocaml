@@ -9,7 +9,7 @@ SOURCES = \
 	test.ml
 
 
-PACKS = unix piqi.lib
+PACKS = unix piqirun.ext
 
 
 PIQI_FILES = addressbook.proto.piqi piqi.piqi piqi-obj.piqi

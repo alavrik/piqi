@@ -29,7 +29,7 @@ PIQIC = piqic-ocaml
 PIQIC_FLAGS = --pp
 
 
-PACKS = piqi.runtime
+PACKS = piqirun.pb
 
 # LIBS = piqirun
 # LIBDIRS = $(PIQI_ROOT)/piqirun-ocaml
