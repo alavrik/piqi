@@ -65,15 +65,18 @@ ocaml:
 
 ocaml-install: ocaml-uninstall
 	test -d $(PIQI_OCAML_DESTDIR) || mkdir -p $(PIQI_OCAML_DESTDIR)
-	ocamlfind install piqi `ls $(PIQI_BUILD)/lib/ocaml/piqi/*`
 	$(MAKE) -C deps install
+	ocamlfind install piqi `ls $(PIQI_BUILD)/lib/ocaml/piqi/*`
+	ocamlfind install piqirun `ls $(PIQI_BUILD)/lib/ocaml/piqirun/*`
 	-install -d $(DESTDIR)$(PIQI_PREFIX)/bin
 	install piqic-ocaml/piqic-ocaml $(DESTDIR)$(PIQI_PREFIX)/bin
 
 
 ocaml-uninstall:
-	ocamlfind remove piqi
 	$(MAKE) -C deps uninstall
+	ocamlfind remove piqi
+	ocamlfind remove piqirun
+	rm -f $(DESTDIR)$(PIQI_PREFIX)/bin/piqic-ocaml
 
 
 clean::
