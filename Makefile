@@ -45,7 +45,9 @@ deps: build-dir
 
 
 build-dir:
-	mkdir -p $(PIQI_BUILD)/lib/ocaml
+	mkdir -p build/lib/ocaml
+	cd build/lib/ocaml && test -L piqi || ln -sf ../../../piqilib piqi
+	cd build/lib/ocaml && test -L piqirun || ln -sf ../../../piqirun-ocaml piqirun
 
 
 doc:

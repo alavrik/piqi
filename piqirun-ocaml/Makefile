@@ -21,25 +21,18 @@ LIBINSTALL_FILES = \
 
 STATIC = 1  # build a static library (don't build dlls)
 
-# LIBS =
-# LIBDIRS = 
-# INCDIRS =
-# RESULTDEPS =
 
-# PACKS = 
-# ANNOTATE = yes
-# INCDIRS = +camlp4
-# USE_CAMLP4 = yes
+PRE_TARGETS = META
 
 
-all: dcl ncl test #top
+all: bcl ncl test
 
 
-post_target:: install
+debug: dcl top
 
 
 # NOTE: when installing, uninstall first to avoid "already installed" error
-install: uninstall META libinstall
+install: uninstall libinstall
 
 
 uninstall: libuninstall

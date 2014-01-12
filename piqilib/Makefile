@@ -97,7 +97,7 @@ SOURCES = \
 	piqi_getopt.ml \
 
 
-PRE_TARGETS = piqi_version.ml $(CAMLP4_SOURCES) $(CAMLP4_TARGETS)
+PRE_TARGETS = piqi_version.ml META $(CAMLP4_SOURCES) $(CAMLP4_TARGETS)
 
 
 PIQI = ../piqi-tools/piqi
@@ -110,14 +110,11 @@ PIQIC_FLAGS = $(PIQI_FLAGS) --runtime Piqi_piqirun
 all: ncl
 
 
-debug: dcl install
-
-
-post_target:: install
+debug: dcl top
 
 
 # NOTE: when installing, uninstall first to avoid "already installed" error
-install: uninstall META libinstall
+install: uninstall libinstall
 
 
 uninstall: libuninstall
