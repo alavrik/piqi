@@ -9,7 +9,6 @@ DIRS_PROTO = \
        piqi_proto \
        piqi_proto1 \
        piqi_packed \
-       boot_proto2piqi \
        cpp \
        ocaml_riak_pb \
 

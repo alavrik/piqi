@@ -23,10 +23,10 @@ downloaded from here:
 
     http://code.google.com/p/protobuf/downloads/list
 
-"boot_proto2piqi" and "cpp" tests require Protocol Buffers headers and .so
-libraries. If they are installed to a non-standard path, use "export CXXFLAGS=
--I <headers path> -L <library path>" command to specify their locations. For
-example, if Protobuf is installed to "/opt/local", the command will be:
+"cpp" test requires Protocol Buffers headers and .so libraries. If they are
+installed to a non-standard path, use "export CXXFLAGS= -I <headers path> -L
+<library path>" command to specify their locations. For example, if Protobuf is
+installed to "/opt/local", the command will be:
 
     export CXXFLAGS="-I/opt/local/include/ -L/opt/local/lib"
 
