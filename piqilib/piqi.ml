@@ -2101,7 +2101,7 @@ let lang_to_spec piqi =
   let open P in
   (* expand includes, extensions and functions *)
   let piqi = expand_piqi piqi ~extensions:true ~functions:true in
-  (* remove custom fields *)
+  (* remove custom fields -- this property is not a part of the piqi spec *)
   {
     piqi with
     custom_field = [];
@@ -2147,9 +2147,11 @@ let transform_piqi_ast (ast: piq_ast) =
   |> rm_param_extra ["function"; "error"]
 
 
+(* the 'piqi_piqtype' and 'add_codes' options are used by piqi_compiler *)
 let piqi_to_piqobj
-        ?custom_piqtype
-        ?(add_codes=false) piqi =
+        ?(piqi_piqtype: T.piqtype option)  (* type of a custom self-spec *)
+        ?(add_codes=false)  (* whether to add field/option integer codes *)
+        piqi =
   debug "piqi_to_piqobj(0)\n";
   Piqloc.pause ();
 
@@ -2181,17 +2183,19 @@ let piqi_to_piqobj
     debug "\n\nEND piqi_to_piqobj ast\n";
   );
 
+  (* turn the piq ast back to piqobj
+   *
+   * NOTE: ignoring unknown fields -- they don't matter because we are
+   * transforming the spec that has been validated and warnings already printed
+   * if any *)
+  let piqi_piqtype =
+    match piqi_piqtype with
+      | Some x -> x
+      | None -> !piqi_spec_def
+  in
   let piqobj =
-    match custom_piqtype with
-      | Some piqtype ->
-          (* this will generate warnings on unknown fields *)
-          Piqobj_of_piq.parse_obj piqtype ast
-      | None ->
-          (* ignore unknown fields -- they don't matter because we are
-           * transforming the spec that has been validated (and warnings
-           * printed) already *)
-          U.with_bool C.Config.flag_no_warnings true
-          (fun () -> Piqobj_of_piq.parse_obj !piqi_spec_def ast)
+    U.with_bool C.Config.flag_no_warnings true
+    (fun () -> Piqobj_of_piq.parse_obj piqi_piqtype ast)
   in
   Piqloc.resume ();
   debug "piqi_to_piqobj(1)\n";

@@ -114,11 +114,9 @@ let compile_to_pb ?(strict=false) self_spec piqi =
   Config.flag_strict := strict;
 
   (* convert all modules to internal representation *)
-  let piqobj_list = List.map (fun piqi ->
-      Piqi.piqi_to_piqobj piqi
-        ~custom_piqtype:piqi_piqtype
-        ~add_codes:true
-    ) piqi_list
+  let piqobj_list = List.map
+    (fun piqi -> Piqi.piqi_to_piqobj piqi ~piqi_piqtype ~add_codes:true)
+    piqi_list
   in
 
   trace "generating pb\n";
