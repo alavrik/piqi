@@ -17,7 +17,7 @@ SOURCES = \
 	piqi_light_cmd.ml \
 	piqi_getopt_cmd.ml \
 	\
-	$(PIQI_ML_SOURCES) \
+	$(PIQI_ML_FILES) \
 	\
 	piqi_to_proto.ml \
 	piqi_of_proto.ml \
@@ -37,12 +37,12 @@ SOURCES = \
 RESULTDEPS = ../piqilib/piqi.cmxa $(wildcard ../piqilib/piqi.cma)
 
 
-PIQI_MODULES = descriptor.proto.piqi piqi-tools.piqi piqi-rpc.piqi
-PIQI_ML_SOURCES = descriptor_piqi.ml piqi_tools_piqi.ml piqi_rpc_piqi.ml
+PIQI_FILES = descriptor.proto.piqi piqi_tools.piqi piqi_rpc.piqi
+PIQI_ML_FILES = descriptor_piqi.ml piqi_tools_piqi.ml piqi_rpc_piqi.ml
 
 
 PRE_TARGETS += \
-	$(PIQI_SOURCES) $(PIQI_PIQI) $(PIQI_ML_SOURCES)
+	$(PIQI_SOURCES) $(PIQI_PIQI) $(PIQI_ML_FILES)
 
 
 PIQIC = ../piqic-ocaml/piqic-ocaml
@@ -55,10 +55,10 @@ all: nc
 debug: dc top
 
 
-$(PIQI_ML_SOURCES): $(PIQI_MODULES)
+$(PIQI_ML_FILES): $(PIQI_FILES)
 	$(PIQIC) $(PIQIC_FLAGS) descriptor.proto.piqi
-	$(PIQIC) $(PIQIC_FLAGS) piqi-rpc.piqi
-	$(PIQIC) $(PIQIC_FLAGS) --embed-piqi piqi-tools.piqi
+	$(PIQIC) $(PIQIC_FLAGS) piqi_rpc.piqi
+	$(PIQIC) $(PIQIC_FLAGS) --embed-piqi piqi_tools.piqi
 
 
 # rule for re-creating descriptor.proto.piqi from a (newer) descriptor.proto
