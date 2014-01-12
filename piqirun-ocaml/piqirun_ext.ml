@@ -21,14 +21,11 @@
  *)
 
 
-open Piqi_common
-
-
 type input_format = [ `piq | `json | `xml | `pb | `pib ]
 
 type output_format = [ input_format | `json_pretty | `xml_pretty ]
 
-type piqtype = T.piqtype
+type piqtype = Piqi_common.T.piqtype
 
 type options = Piqi_convert.options
 
@@ -38,7 +35,7 @@ let _ =
 
 
 let add_piqi (piqi_bin: string) =
-  let buf = Piqirun.init_from_string piqi_bin in
+  let buf = Piqi_piqirun.init_from_string piqi_bin in
   let piqi = Piqi.piqi_of_pb buf in
   Piqi_db.add_piqi piqi;
   ()

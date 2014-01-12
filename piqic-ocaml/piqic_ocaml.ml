@@ -78,7 +78,7 @@ let ocaml_pretty_print ifile ofile =
   let cmd = Printf.sprintf "camlp4o -o %s %s" ofile ifile in
   let res = Sys.command cmd in
   if res <> 0
-  then Piqi_common.piqi_error ("command execution failed: " ^ cmd)
+  then C.error ("command execution failed: " ^ cmd)
 
 
 let gen_output_file ofile code =
@@ -96,7 +96,7 @@ let gen_output_file ofile code =
         Iolist.to_channel tmp_ch code;
         close_out tmp_ch;
       with Sys_error s ->
-        Piqi_common.piqi_error ("error writing temporary file: " ^ s));
+        C.error ("error writing temporary file: " ^ s));
       ocaml_pretty_print tmp_file ofile;
       Piqi_command.add_tmp_file tmp_file;
     end
@@ -221,7 +221,7 @@ let run () =
   Piqi_command.parse_args () ~usage ~speclist;
 
   if !flag_gen_defaults
-  then Piqi_common.piqi_warning "--gen-defaults flag is deprecated: always generating defaults";
+  then C.warning "--gen-defaults flag is deprecated: always generating defaults";
 
   piqic_file !Piqi_command.ifile
 

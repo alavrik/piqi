@@ -53,7 +53,30 @@ module Iolist = Piqi_iolist
 open Iolist
 
 
-module Idtable = Piqi_db.Idtable
+(* idtable implemented as map: string -> 'a *)
+module Idtable =
+  struct
+    module M = Map.Make(String)
+
+    type 'a t = 'a M.t
+
+    let empty = M.empty
+
+    let add idtable name entry =
+      M.add name entry idtable
+
+    let find idtable name =
+      M.find name idtable
+
+    let remove idtable name =
+      M.remove name idtable
+
+    let mem idtable name =
+      M.mem name idtable
+
+    let fold f accu idtable =
+      M.fold f idtable accu
+  end
 
 
 (* indexes of Piqi module contents *)
@@ -92,9 +115,14 @@ let some_of = function
   | None -> assert false
 
 
+let error = Piqi_common.piqi_error
+let warning = Piqi_common.piqi_warning
+
+
 let gen_code = function
   | None -> assert false
   | Some code -> ios (Int32.to_string code)
+
 
 (* polymorphic variant name starting with a ` *)
 let gen_pvar_name name =
@@ -150,10 +178,10 @@ let mlname_opt target_name n =
 let mlname_field x =
   let open Field in (
     if x.ocaml_array && x.mode <> `repeated
-    then Piqi_common.error x ".ocaml-array flag can be used only with repeated fields";
+    then error ".ocaml-array flag can be used only with repeated fields";
 
     if x.ocaml_optional && x.mode <> `optional
-    then Piqi_common.error x ".ocaml-optional flag can be used only with optional fields";
+    then error ".ocaml-optional flag can be used only with optional fields";
 
     {x with ocaml_name = mlname_opt x.ocaml_name x.name}
   )

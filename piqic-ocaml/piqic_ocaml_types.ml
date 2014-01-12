@@ -295,8 +295,7 @@ let gen_imports context l =
 let order_variants context l =
   (* topologically sort local variant defintions *)
   let cycle_visit def =
-    Piqi_common.error def
-      ("cyclic OCaml variant definition: " ^ typedef_name def)
+    C.error ("cyclic OCaml variant definition: " ^ typedef_name def)
   in
   let get_adjacent_vertixes = function
     | `variant v ->
