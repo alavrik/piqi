@@ -43,6 +43,7 @@ let find_command name =
 let usage () =
   prerr_endline "\
 Usage: piqi <command> [<command-options>]
+       piqi [--version]
 
 Commands:";
 
