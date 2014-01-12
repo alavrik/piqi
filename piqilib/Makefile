@@ -114,9 +114,9 @@ piqi_version.ml: ../VERSION
 	echo "let version = \"`head -1 $<`\"" >$@
 
 
-META: ../VERSION META.tmpl
+META: ../VERSION META.in
 	echo "version = \"`head -1 $<`\"" >$@
-	cat META.tmpl >>$@
+	cat META.in >>$@
 
 
 $(CAMLP4_SOURCES):

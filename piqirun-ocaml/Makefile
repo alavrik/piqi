@@ -38,9 +38,9 @@ install: bcl uninstall libinstall
 uninstall: libuninstall
 
 
-META: ../VERSION META.tmpl
+META: ../VERSION META.in
 	echo "version = \"`head -1 $<`\"" >$@
-	cat META.tmpl >>$@
+	cat META.in >>$@
 
 
 test: bcl
