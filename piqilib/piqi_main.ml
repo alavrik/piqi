@@ -179,11 +179,8 @@ let common_speclist =
   ]
 
 
-let common_usage = "Usage: piqi <command> [options] <.piqi file>\nOptions:"
-
-
 let parse_args
-    ?(speclist=common_speclist) ?(usage=common_usage)
+    ?(speclist=common_speclist) ~usage
     ?(min_arg_count=1) ?(max_arg_count=1) ?(custom_anon_fun=default_anon_fun) () =
   (* XXX
   (* overwrite argv[1] to contain piqi command *)
@@ -231,19 +228,21 @@ let register_command f name descr =
   commands := cmd :: !commands
 
 
-let usage_string = ref "Usage: piqi <command> [--help] [options] ..."
-
-
 let usage () =
-  prerr_endline !usage_string;
-  prerr_endline "Commands:";
-  let print_cmd = Printf.eprintf "  %-15s%s\n" in
+  prerr_endline "\
+usage: piqi <command> [<command-options>]
+
+Commands:";
+
   List.iter
-    (fun cmd -> print_cmd cmd.name cmd.descr)
+    (fun cmd -> Printf.eprintf "  %-15s%s\n" cmd.name cmd.descr)
     (List.rev !commands);
-  print_cmd "version" "print version";
-  prerr_endline 
-    "\nMore information is available at http://piqi.org/doc/\n"
+
+prerr_endline "\n\
+See 'piqi <command> --help' for more information on a specific command.
+
+Options:
+  --version  Print Piqi version and exit\n"
 
 
 let exit_usage () =
@@ -279,19 +278,15 @@ let run_command cmd =
         die ("uncaught system error: " ^ s)
 
 
-let print_version () = 
-  print_endline Piqi_version.version
-
-
-let run_subcommand cmd_name =
-  match cmd_name with
-    | "version" | "--version" ->
-        print_version ()
+let run_subcommand argv1 =
+  match argv1 with
+    | "--version" ->
+        print_endline Piqi_version.version
     | "help" | "--help" | "-h" ->
         usage ()
     | _ ->
         (* find command by command name passed as the first argument *)
-        let cmd = find_command cmd_name in
+        let cmd = find_command argv1 in
         Arg.current := 1; (* subcommand -- skip argv[0] *)
         run_command cmd
 

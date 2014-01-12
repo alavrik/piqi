@@ -49,6 +49,9 @@ subcommands.
 `--help`
 :   Display the list of options.
 
+`--version`
+:   Print Piqi version and exit.
+
 `--`
 :   This sequence delimits the list of options, the remaining arguments will be
     treated as positional arguments.
@@ -441,13 +444,6 @@ Options:
 
 `--strict`
 :   Treat unknown and duplicate options as errors
-
-
-### piqi version
-
-Usage: `Usage: piqi version`
-
-Prints Piqi version.
 
 
 # ENVIRONMENT VARIABLES
