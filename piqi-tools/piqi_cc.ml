@@ -48,7 +48,8 @@ let speclist = Piqi_main.common_speclist @
 
 
 let load_piqi ifile =
-  let piqi = Piqi.load_piqi ifile in
+  let ch = Piqi_command.open_input ifile in
+  let piqi = Piqi.load_piqi ifile ch in
   (* perform some checks
    *
    * TODO: it would be useful to have more more checks verifying that this is
@@ -71,11 +72,11 @@ let load_piqi ifile =
   piqi
 
 
-let run_cc ifile och =
+let run_cc () =
   let piqi =
-    if ifile <> ""
+    if !Piqi_main.ifile <> ""
     then
-      load_piqi ifile
+      load_piqi !Piqi_main.ifile
     else (
       trace "input file is missing; printing the default embedded self-spec\n";
       C.some_of !Piqi.piqi_spec
@@ -83,6 +84,8 @@ let run_cc ifile och =
   in
   let piqi = {piqi with P#modname = Some "piqi"} in
   let obj = Piq.Piqi piqi in
+
+  let och = Piqi_main.open_output !Piqi_main.ofile in
   match !output_format with
     | "json" ->
         Piq.write_json och obj
@@ -108,8 +111,7 @@ let run () =
    * unnecessary choices *)
   Piqi_config.gen_extended_piqi_any := true;
 
-  let och = Piqi_main.open_output !Piqi_main.ofile in
-  run_cc !Piqi_main.ifile och
+  run_cc ()
 
  
 let _ =

@@ -32,13 +32,6 @@ type obj =
   | Piqi of T.piqi
 
 
-let open_piq fname =
-  trace "opening .piq file: %s\n" fname;
-  let ch = Piqi_main.open_input fname in
-  let piq_parser = Piq_parser.init_from_channel fname ch in
-  piq_parser
-
-
 let read_piq_ast piq_parser :piq_ast =
   let read_next () =
     (* NOTE, TODO: this is a hack -- it would be great to have a cleaner
@@ -198,13 +191,6 @@ let write_piq ch (obj:obj) =
 
   (* XXX: add one extra newline for better readability *)
   Pervasives.output_char ch '\n'
-
-
-let open_pib fname =
-  trace "opening .pib file: %s\n" fname;
-  let ch = Piqi_main.open_input fname in
-  let buf = Piqirun.IBuf.of_channel ch in
-  buf
 
 
 let read_pib_field buf =
@@ -381,13 +367,6 @@ let gen_pib (obj :obj) =
 let write_pib ch (obj :obj) =
   let data = gen_pib obj in
   Piqirun.to_channel ch data
-
-
-let open_pb fname =
-  trace "opening .pb file: %s\n" fname;
-  let ch = Piqi_main.open_input fname in
-  let buf = Piqirun.init_from_channel ch in
-  buf
 
 
 let load_pb (piqtype:T.piqtype) protobuf :obj =

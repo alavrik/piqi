@@ -123,9 +123,10 @@ let load_self_spec filename =
   Piqi_compile.load_self_spec buf ~filename
 
 
-let run_c ifile och =
-  let piqi = Piqi.load_piqi ifile in
-  Piqi_main.close_input ();
+let run_c () =
+  let ich = Piqi_command.open_input !Piqi_main.ifile in
+  let piqi = Piqi.load_piqi !Piqi_main.ifile ich in
+  Piqi_command.close_input ();
 
   let self_spec =
     if !input_self_spec <> "" (* regular compilation mode mode with explicit --self-spec *)
@@ -137,6 +138,7 @@ let run_c ifile och =
       C.some_of !Piqi.piqi_spec
     )
   in
+  let och = Piqi_command.open_output !Piqi_main.ofile in
   compile self_spec piqi och
 
 
@@ -150,8 +152,7 @@ let run () =
    * unnecessary choices *)
   Piqi_config.gen_extended_piqi_any := true;
 
-  let och = Piqi_main.open_output !Piqi_main.ofile in
-  run_c !Piqi_main.ifile och
+  run_c ()
 
  
 let _ =

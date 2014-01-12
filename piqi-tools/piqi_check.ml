@@ -36,23 +36,24 @@ let speclist = Main.common_speclist @
   ]
 
 
-let check_piqi filename =
+let check_piqi fname =
   (* in order to check JSON names: *)
   Piqi_json.init ();
-  ignore (Piqi.load_piqi filename)
+  let ch = Piqi_command.open_input fname in
+  ignore (Piqi.load_piqi fname ch)
 
 
 (* TODO: add support for checking .pib and, possibly, json and xml as well *)
-let check_piq filename =
+let check_piq () =
   let reader = Piqi_convert_cmd.make_reader "piq" in
   (* read Piq objects one by one, but don't output them anywhere *)
   Piqi_convert_cmd.do_convert reader
 
 
-let check_file filename =
-  match Piqi_file.get_extension filename with
-    | "piq" -> check_piq filename
-    | "piqi" -> check_piqi filename
+let check_file fname =
+  match Piqi_file.get_extension fname with
+    | "piq" -> check_piq ()
+    | "piqi" -> check_piqi fname
     | x -> piqi_error ("unknown input file extension: " ^ x)
 
 

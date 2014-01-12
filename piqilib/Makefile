@@ -43,7 +43,7 @@ SOURCES = \
 	piqi_name.ml \
 	piqi_common.ml \
 	piqi_file.ml \
-	piqi_main.ml \
+	piqi_command.ml \
 	piqi_protobuf.ml \
 	piqi_db.ml \
 	\

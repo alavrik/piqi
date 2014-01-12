@@ -8,16 +8,18 @@ RESULT = piqi
 PACKS = piqi.lib unix
 
 SOURCES = \
-	piqi_json_pp.ml \
+	$(PIQI_ML_FILES) \
+	piqi_main.ml \
 	\
+	piqi_json_pp.ml \
 	piqi_pp_cmd.ml \
 	piqi_convert_cmd.ml \
 	piqi_check.ml \
 	piqi_expand.ml \
 	piqi_light_cmd.ml \
 	piqi_getopt_cmd.ml \
-	\
-	$(PIQI_ML_FILES) \
+	piqi_compile_cmd.ml \
+	piqi_cc.ml \
 	\
 	piqi_to_proto.ml \
 	piqi_of_proto.ml \
@@ -27,10 +29,7 @@ SOURCES = \
 	piqi_server.ml \
 	piqi_call.ml \
 	\
-	piqi_compile_cmd.ml \
-	piqi_cc.ml \
-	\
-	piqi_run.ml \
+	piqi_run.ml
 
 
 # make sure piqi gets rebuilt when we change the library

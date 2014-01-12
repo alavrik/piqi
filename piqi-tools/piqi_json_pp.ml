@@ -58,17 +58,18 @@ let prettyprint_json ch json_parser =
   in aux ()
 
 
-let prettyprint_file filename =
-  let ch = Main.open_output !ofile in
+let prettyprint_file () =
+  let ich = Main.open_input !ifile in
+  let och = Main.open_output !ofile in
   (* switch parser/generator to pretty-print mode *)
   Config.pp_mode := true;
-  let json_parser = Piqi_json.open_json filename in
-  prettyprint_json ch json_parser
+  let json_parser = Piqi_json_parser.init_from_channel ich ~fname:!ifile in
+  prettyprint_json och json_parser
 
 
 let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:2;
-  prettyprint_file !ifile
+  prettyprint_file ()
 
  
 let _ =

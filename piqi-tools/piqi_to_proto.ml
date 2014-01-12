@@ -693,20 +693,21 @@ module Main = Piqi_main
 open Main
 
 
-let piqi_to_proto_file ifile =
-  let piqi = Piqi.load_piqi ifile in
+let piqi_to_proto_file () =
+  let ich = Piqi_command.open_input !ifile in
+  let piqi = Piqi.load_piqi !ifile ich in
 
-  if not (Filename.check_suffix ifile ".piqi")
+  if not (Filename.check_suffix !ifile ".piqi")
   then piqi_error "input file name must have '.piqi' extension";
 
   let ofile =
     if !ofile <> ""
     then !ofile
-    else ifile ^ ".proto"
+    else !ifile ^ ".proto"
   in
-  let ch = Main.open_output ofile in
+  let och = Main.open_output ofile in
 
-  piqi_to_proto piqi ch
+  piqi_to_proto piqi och
 
 
 let usage = "Usage: piqi to-proto [options] <.piqi file>\nOptions:"
@@ -720,7 +721,7 @@ let speclist = Main.common_speclist @
 
 let run () =
   Main.parse_args () ~speclist ~usage;
-  piqi_to_proto_file !ifile
+  piqi_to_proto_file ()
 
  
 let _ =

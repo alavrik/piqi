@@ -15,7 +15,11 @@
 *)
 
 
+(*
+ * "piqi" command entry point
+ *)
+
+
 let _ =
   Piqi_main.run ()
-
 

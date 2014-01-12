@@ -21,13 +21,17 @@
  *)
 
 
-let print_piqi_file ch filename =
-  let piqi = Piqi.load_piqi filename in
-  Piqi_light.gen_piqi ch piqi
-
-
 module Main = Piqi_main
 open Main
+
+
+let print_piqi_file () =
+  let ich = Piqi_command.open_input !ifile in
+  let piqi = Piqi.load_piqi !ifile ich in
+
+  let och = Main.open_output !ofile in
+  Piqi_light.gen_piqi och piqi
+
 
 let usage = "Usage: piqi light [options] [<.piqi file>] [output-file]\nOptions:"
 
@@ -39,8 +43,7 @@ let speclist = Main.common_speclist @
 
 let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:2;
-  let ch = Main.open_output !ofile in
-  print_piqi_file ch !ifile
+  print_piqi_file ()
 
 
 let _ =

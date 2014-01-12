@@ -66,13 +66,6 @@ let init_from_string ?fname s =
   init_xml_parser source ?fname
 
 
-(**)
-
-let open_xml fname =
-  let ch = Piqi_main.open_input fname in
-  init_from_channel ch ~fname
-
-
 (* XML input *)
 
 (* custom whitespace stripper, that srips only formatting whitespace and leaves

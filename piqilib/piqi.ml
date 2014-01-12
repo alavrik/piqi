@@ -1953,17 +1953,11 @@ let _ =
   )
 
 
-(* public interface: read piqi file *)
-let read_piqi fname :piq_ast =
-  let ch = Piqi_main.open_input fname in
-  read_piqi_channel fname ch
-
-
 (* public interface: load piqi file *)
-let load_piqi fname :T.piqi =
+let load_piqi fname ch :T.piqi =
   trace "loading piqi file: %s\n" fname;
   trace_enter ();
-  let ast = read_piqi fname in
+  let ast = read_piqi_channel fname ch in
 
   (* for scoped filename, add its dirname as a .piqi search path instead of
    * curent working directory, which is always the first element of the search

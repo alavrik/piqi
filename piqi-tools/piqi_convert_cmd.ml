@@ -112,7 +112,8 @@ let load_piqi fname :Piq.obj =
 
   (* NOTE, XXX: here also loading, processing and validating all the
    * module's dependencies *)
-  let piqi = Piqi.load_piqi fname in
+  let ch = Piqi_command.open_input fname in
+  let piqi = Piqi.load_piqi fname ch in
   Piq.Piqi piqi
 
 
@@ -174,27 +175,30 @@ let make_reader load_f input_param =
 
 
 let make_reader input_encoding =
+  let fname = !ifile in
+  let ch = Piqi_command.open_input fname in
+
   match input_encoding with
     | "pb" when !typename = "" ->
         piqi_error "--type parameter must be specified for \"pb\" input encoding"
     | "pb" ->
         let piqtype = some_of (resolve_typename ()) in
-        let protobuf = Piq.open_pb !ifile in
-        make_reader (load_pb piqtype) protobuf
+        let buf = Piqirun.init_from_channel ch in
+        make_reader (load_pb piqtype) buf
 
     | "json" ->
-        let json_parser = Piqi_json.open_json !ifile in
+        let json_parser = Piqi_json_parser.init_from_channel ch ~fname in
         make_reader (Piq.load_json_obj (resolve_typename ())) json_parser
 
     | "xml" when !typename = "" ->
         piqi_error "--type parameter must be specified for \"xml\" input encoding"
     | "xml" ->
         let piqtype = some_of (resolve_typename ()) in
-        let xml_parser = Piqi_xml.open_xml !ifile in
+        let xml_parser = Piqi_xml.init_from_channel ch ~fname in
         make_reader (Piq.load_xml_obj piqtype) xml_parser
 
     | "piq" ->
-        let piq_parser = Piq.open_piq !ifile in
+        let piq_parser = Piq_parser.init_from_channel fname ch in
         make_reader (Piq.load_piq_obj (resolve_typename ())) piq_parser
 
     | "piqi" when !typename <> "" ->
@@ -203,7 +207,7 @@ let make_reader input_encoding =
         make_reader load_piqi !ifile
 
     | "pib" ->
-        let buf = Piq.open_pib !ifile in
+        let buf = Piqirun.IBuf.of_channel ch in
         make_reader (Piq.load_pib_obj (resolve_typename ())) buf
     | "" ->
         piqi_error "can't determine input encoding; use -f option to specify it explicitly"

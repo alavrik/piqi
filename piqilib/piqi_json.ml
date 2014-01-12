@@ -177,12 +177,6 @@ let init () =
 (**)
 
 
-let open_json fname =
-  let ch = Piqi_main.open_input fname in
-  let json_parser = Piqi_json_parser.init_from_channel ~fname ch in
-  json_parser
-
-
 let read_json_obj json_parser =
   let res = Piqi_json_parser.read_next json_parser in
   res

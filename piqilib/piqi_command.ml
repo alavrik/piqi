@@ -15,6 +15,11 @@
 *)
 
 
+(*
+ * utilities for running piqi in command-line mode
+ *)
+
+
 open Piqi_common 
 
 
@@ -180,13 +185,8 @@ let common_speclist =
 
 
 let parse_args
-    ?(speclist=common_speclist) ~usage
-    ?(min_arg_count=1) ?(max_arg_count=1) ?(custom_anon_fun=default_anon_fun) () =
-  (* XXX
-  (* overwrite argv[1] to contain piqi command *)
-  let cmd = "piqi " ^ Sys.argv.(1) in
-  Sys.argv.(1) <- cmd;
-  *)
+    ~speclist ~usage
+    ?(min_arg_count=1) ?(max_arg_count=1) ?(custom_anon_fun=default_anon_fun)() =
   Arg.parse speclist (anon_fun custom_anon_fun) usage;
   if !arg_count < min_arg_count || !arg_count > max_arg_count
   then
@@ -204,67 +204,17 @@ let parse_args
     end
 
 
-type command = 
-  {
-    name : string;
-    descr : string;
-    run : (unit -> unit);
-  }
-
-(* top-level command *)
-let command :command option ref = ref None
-
-(* sub-command *)
-let commands :command list ref = ref []
-
-
-let register f descr =
-  let cmd = { name = ""; descr = descr; run = f } in
-  command := Some cmd
-
-
-let register_command f name descr =
-  let cmd = { name = name; descr = descr; run = f } in
-  commands := cmd :: !commands
-
-
-let usage () =
-  prerr_endline "\
-usage: piqi <command> [<command-options>]
-
-Commands:";
-
-  List.iter
-    (fun cmd -> Printf.eprintf "  %-15s%s\n" cmd.name cmd.descr)
-    (List.rev !commands);
-
-prerr_endline "\n\
-See 'piqi <command> --help' for more information on a specific command.
-
-Options:
-  --version  Print Piqi version and exit\n"
-
-
-let exit_usage () =
-  usage ();
-  exit 2
-
-
-let find_command name =
-  try
-    List.find (function x when x.name = name -> true | _ -> false) !commands
-  with Not_found ->
-    exit_usage ()
-
-
 let die s =
   prerr_endline s;
   exit 1
 
 
-let run_command cmd =
+let run_command f =
+  (* set .piqi search path to contain CWD and $PIQI_PATH *)
+  Config.init_paths ();
+
   try
-    cmd.run ();
+    f ();
     cleanup ();
   with
     | Piqi_error s ->
@@ -276,33 +226,4 @@ let run_command cmd =
     | Sys_error s ->
         cleanup_on_error ();
         die ("uncaught system error: " ^ s)
-
-
-let run_subcommand argv1 =
-  match argv1 with
-    | "--version" ->
-        print_endline Piqi_version.version
-    | "help" | "--help" | "-h" ->
-        usage ()
-    | _ ->
-        (* find command by command name passed as the first argument *)
-        let cmd = find_command argv1 in
-        Arg.current := 1; (* subcommand -- skip argv[0] *)
-        run_command cmd
-
-
-let run () =
-  (* set .piqi search path to contain CWD and $PIQI_PATH *)
-  Config.init_paths ();
-
-  if !Sys.interactive
-  then () (* don't do anything in interactive (toplevel) mode *)
-  else
-    match !command with
-      | Some cmd -> (* top-level command *)
-          run_command cmd
-      | None -> (* subcommand *)
-          if Array.length Sys.argv < 2
-          then exit_usage ()
-          else run_subcommand Sys.argv.(1)
 

@@ -57,9 +57,9 @@ let speclist = Main.common_speclist @
   ]
 
 
-let expand_file filename =
-  let ch = Main.open_output !ofile in
-  let piqi = Piqi.load_piqi filename in
+let expand_file () =
+  let ich = Piqi_command.open_input !ifile in
+  let piqi = Piqi.load_piqi !ifile ich in
 
   if !flag_functions
   then flag_extensions := false;
@@ -78,12 +78,13 @@ let expand_file filename =
   if !flag_add_module_name && res_piqi.P#modname = None
   then res_piqi.P#modname <- piqi.P#modname;
 
-  Piqi_pp.prettyprint_piqi ch res_piqi
+  let och = Main.open_output !ofile in
+  Piqi_pp.prettyprint_piqi och res_piqi
 
 
 let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:1 ~max_arg_count:2;
-  expand_file !ifile
+  expand_file ()
 
  
 let _ =

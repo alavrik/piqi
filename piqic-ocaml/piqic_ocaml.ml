@@ -67,7 +67,7 @@ let arg__cc =
     "compiler compiler mode -- used only for building piqilib"
 
 let arg__strict =
-  let (name, _setter, descr) = Piqi_main.arg__strict in
+  let (name, _setter, descr) = Piqi_command.arg__strict in
   (* override the original setter but keep the option name and the description;
    * we do this, because although it means the same, it is applied at a later
    * stage -- we control it manually below *)
@@ -84,9 +84,9 @@ let ocaml_pretty_print ifile ofile =
 let gen_output_file ofile code =
   if not !flag_pp
   then
-    let ch = Piqi_main.open_output ofile in
+    let ch = Piqi_command.open_output ofile in
     Iolist.to_channel ch code;
-    Piqi_main.close_output ()
+    Piqi_command.close_output ()
   else
     begin
       (* prettyprint generated OCaml code using Camlp4 *)
@@ -98,7 +98,7 @@ let gen_output_file ofile code =
       with Sys_error s ->
         Piqi_common.piqi_error ("error writing temporary file: " ^ s));
       ocaml_pretty_print tmp_file ofile;
-      Piqi_main.add_tmp_file tmp_file;
+      Piqi_command.add_tmp_file tmp_file;
     end
 
 
@@ -154,7 +154,7 @@ let gen_piqi_ext_ml context =
 
 let piqic context =
   (* chdir to the output directory *)
-  Piqi_main.chdir_output !Piqi_main.odir;
+  Piqi_command.chdir_output !Piqi_command.odir;
 
   gen_piqi_ml context;
 
@@ -176,7 +176,8 @@ let piqi_compile_piqi ifile =
   (* tell the library to automatically load *.ocaml.piqi extension modules *)
   Piqi_config.add_include_extension "ocaml";
 
-  let piqi = Piqi.load_piqi ifile in
+  let ch = Piqi_command.open_input ifile in
+  let piqi = Piqi.load_piqi ifile ch in
   Piqi_compile.compile_to_pb self_spec piqi ~strict:!flag_strict
 
 
@@ -196,15 +197,15 @@ let piqic_file ifile =
   piqic context
 
 
-let speclist = Piqi_main.common_speclist @
+let speclist = Piqi_command.common_speclist @
   [
-    Piqi_main.arg_C;
+    Piqi_command.arg_C;
     arg__strict;
-    Piqi_main.arg__include_extension;  (* -e *)
+    Piqi_command.arg__include_extension;  (* -e *)
     arg__normalize_names;
     arg__pp;
     arg__gen_defaults;
-    Piqi_main.arg__leave_tmp_files;
+    Piqi_command.arg__leave_tmp_files;
     arg__embed_piqi;
     arg__multi_format;
     arg__ext;
@@ -213,19 +214,18 @@ let speclist = Piqi_main.common_speclist @
   ]
 
 
-let usage = "Usage: piqic-ocaml [options] <.piqi file>\nOptions:"
+let usage = "Usage: piqic-ocaml [options] <.piqi file>\n\nOptions:"
 
 
 let run () =
-  Piqi_main.parse_args () ~usage ~speclist;
+  Piqi_command.parse_args () ~usage ~speclist;
 
   if !flag_gen_defaults
   then Piqi_common.piqi_warning "--gen-defaults flag is deprecated: always generating defaults";
 
-  piqic_file !Piqi_main.ifile
+  piqic_file !Piqi_command.ifile
 
- 
+
 let _ =
-  Piqi_main.register run "generate OCaml stubs from %.piqi";
-  Piqi_main.run ()
+  Piqi_command.run_command run
 
