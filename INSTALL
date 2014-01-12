@@ -6,8 +6,6 @@ The following files contain more specific information:
 
         INSTALL.ocaml -- building and installing Piqi for OCaml
 
-        piqi-rpc/README -- building and installing Piqi-RPC
-
         INSTALL.windows -- building Piqi on Windows
 
 
@@ -92,9 +90,13 @@ INSTALLATION INSTRUCTIONS
 
         make
 
-4. Install "piqi" binary
+4. Install the "piqi" binary along with the "piqi.1" man page
 
         make install
+
+5. (Optional) build HTML documentation -- see doc/README.md for more details
+
+        make doc
 
 
 RUNNING TESTS

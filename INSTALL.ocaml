@@ -41,7 +41,7 @@ INSTALLING FROM SOURCE CODE
         make ocaml-install
 
 
-To uninstall previously installed libraries:
+To uninstall:
 
         make ocaml-uninstall
 
