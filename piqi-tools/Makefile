@@ -50,9 +50,10 @@ all: nc
 debug: dc top
 
 
-# rebuilding *_piqi.ml from .piqi -- called manually as "make reboot" when there
-# are new versions of piqic-ocaml or the piqirun.pb runtime library
-reboot:
+# rebuilding *_piqi.ml from .piqi -- called manually as "make piqi" when there
+# were changes in the .piqi files or to take advantage of new versions of
+# piqic-ocaml and the piqirun.pb runtime library
+piqi:
 	$(PIQIC) $(PIQIC_FLAGS) descriptor.proto.piqi
 	$(PIQIC) $(PIQIC_FLAGS) piqi_rpc.piqi
 	$(PIQIC) $(PIQIC_FLAGS) --embed-piqi piqi_tools.piqi
@@ -60,14 +61,14 @@ reboot:
 
 # re-creating descriptor.proto.piqi from a (newer) descriptor.proto
 # -- called as manually "make descriptor" when when there are changes in the
-# upstream descriptor.proto; should be followed by "make reboot" to generate
+# upstream descriptor.proto; should be followed by "make piqi" to generate
 # descriptor_piqi.ml
 descriptor: descriptor.proto
 	./piqi of-proto --normalize $<
-	$(MAKE) reboot
+	$(MAKE) piqi
 
 
-.PHONY: descriptor reboot
+.PHONY: descriptor piqi
 
 
 include $(OCAMLMAKEFILE)

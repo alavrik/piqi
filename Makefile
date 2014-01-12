@@ -11,8 +11,8 @@ DIRS = piqilib piqi-tools
 
 
 .PHONY: deps build-dir install distclean \
-	ocaml ocaml-install ocaml-uninstall \
-	doc
+	ocaml ocaml-install ocaml-uninstall ocaml-clean \
+	doc piqi
 
 
 # export installation and search path for OCaml dependencies
@@ -52,6 +52,15 @@ install:
 	install piqi-tools/piqi $(DESTDIR)$(PIQI_PREFIX)/bin
 	-install -d $(DESTDIR)$(PIQI_PREFIX)/share/man/man1
 	install -m 644 doc/piqi.1 $(DESTDIR)$(PIQI_PREFIX)/share/man/man1
+
+
+# re-generate _piqi.ml from .piqi and copy the latest version of piqilib.ml  --
+# called manually as "make piqi" when there were changes in the .piqi files or
+# to take advantage of new versions of piqic-ocaml and the piqirun.pb runtime
+# library
+piqi:
+	$(MAKE) -C piqilib piqi
+	$(MAKE) -C piqi-tools piqi
 
 
 ocaml:

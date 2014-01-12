@@ -125,15 +125,15 @@ $(CAMLP4_SOURCES):
 
 # re-generate piqi_piqi.ml piqi_impl_piqi.ml and piqi_boot.ml from .piqi and
 # also copying the latest version of piqilib.ml  -- called manually as "make
-# reboot" when there are new versions of piqic-ocaml or the piqirun.pb runtime
-# library
+# piqi" when there were changes in the .piqi files or to take advantage of new
+# versions of piqic-ocaml and the piqirun.pb runtime library
 #
 # NOTE: expand_piqi_boot is optional and can be safely turned off if it is
 # giving troubles
-reboot: reboot_piqi piqi_boot expand_piqi_boot
+piqi: piqi_ml piqi_boot expand_piqi_boot
 
 
-reboot_piqi:
+piqi_ml:
 	cp ../piqirun-ocaml/piqirun.ml piqi_piqirun.ml
 	$(PIQIC) $(PIQIC_FLAGS) --cc --pp piqi-impl.piqi
 	$(PIQIC) $(PIQIC_FLAGS) --pp piqi.piqi
@@ -161,7 +161,7 @@ expand_piqi_boot:
 	$(MAKE) -f Makefile.expand_piqi_boot clean
 
 
-.PHONY: reboot reboot_piqi piqi_boot expand_piqi_boot
+.PHONY: piqi piqi_ml piqi_boot expand_piqi_boot
 
 
 include $(OCAMLMAKEFILE)
