@@ -100,6 +100,13 @@ SOURCES = \
 PRE_TARGETS = piqi_version.ml $(CAMLP4_SOURCES) $(CAMLP4_TARGETS)
 
 
+PIQI = ../piqi-tools/piqi
+PIQIC = ../piqic-ocaml/piqic-ocaml
+
+PIQI_FLAGS = -I $(PIQI_ROOT)
+PIQIC_FLAGS = $(PIQI_FLAGS) --runtime Piqi_piqirun
+
+
 all: ncl
 
 
@@ -129,15 +136,48 @@ $(CAMLP4_SOURCES):
 	$(MAKE) -f Makefile.camlp4
 
 
-# re-generate piqi_piqi.ml piqi_impl_piqi.ml and piqi_boot.ml
+# re-generate piqi_piqi.ml piqi_impl_piqi.ml and piqi_boot.ml from .piqi and
+# also copying the latest version of piqilib.ml  -- called manually as "make
+# reboot" when there are new versions of piqic-ocaml or the piqirun.pb runtime
+# library
 #
-# NOTE: we need to the bytecode version of the library (bcl) for reboot toplevel
-# -- see Makefile.reboot for details; also, we need to unset REAL_OCAMLFIND,
-# because OCamlMakefile is not re-entrant otherwise
-reboot:
-	$(MAKE) bcl install
-	unset REAL_OCAMLFIND && $(MAKE) -C boot
+# NOTE: expand_piqi_boot is optional and can be safely turned off if it is
+# giving troubles
+reboot: reboot_piqi piqi_boot expand_piqi_boot
+
+
+reboot_piqi:
 	cp ../piqirun-ocaml/piqirun.ml piqi_piqirun.ml
+	$(PIQIC) $(PIQIC_FLAGS) --cc --pp piqi-impl.piqi
+	$(PIQIC) $(PIQIC_FLAGS) --pp piqi.piqi
+
+
+piqi_boot:
+	$(PIQI) convert -t pb piqi-lang.piqi
+	$(PIQI) convert -t pb piqi.piqi
+	ocaml gen_piqi_boot.ml > piqi_boot.ml
+	rm piqi-lang.piqi.pb piqi.piqi.pb
+
+
+# turn piqi specs serialized as Protobuf into OCaml data structures (optional)
+#
+# NOTE: we need to unset REAL_OCAMLFIND, because OCamlMakefile is not re-entrant
+# otherwise
+expand_piqi_boot:
+	$(MAKE) -f Makefile.expand_piqi_boot top
+	echo "#print_length 1000000;; #print_depth 1000000;;" > expand_piqi_boot.ocaml
+	(set -e; \
+	 echo "let piqi_spec ="; \
+	 echo "Piqi_boot.piqi_spec;;" | ./expand_piqi_boot.top -noprompt -init expand_piqi_boot.ocaml | sed -e '1,3d'; \
+	 echo "let piqi_lang ="; \
+	 echo "Piqi_boot.piqi_lang;;" | ./expand_piqi_boot.top -noprompt -init expand_piqi_boot.ocaml | sed -e '1,3d'; \
+	) > piqi_boot_expanded.ml
+	mv piqi_boot_expanded.ml piqi_boot.ml
+	rm -f expand_piqi_boot.ocaml
+	$(MAKE) -f Makefile.expand_piqi_boot clean
+
+
+.PHONY: reboot reboot_piqi piqi_boot expand_piqi_boot
 
 
 include $(OCAMLMAKEFILE)
