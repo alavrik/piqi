@@ -160,9 +160,6 @@ piqi_boot:
 
 
 # turn piqi specs serialized as Protobuf into OCaml data structures (optional)
-#
-# NOTE: we need to unset REAL_OCAMLFIND, because OCamlMakefile is not re-entrant
-# otherwise
 expand_piqi_boot:
 	$(MAKE) -f Makefile.expand_piqi_boot top
 	echo "#print_length 1000000;; #print_depth 1000000;;" > expand_piqi_boot.ocaml
