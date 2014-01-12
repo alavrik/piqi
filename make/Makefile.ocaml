@@ -1,14 +1,11 @@
 OCAMLMAKEFILE := $(PIQI_ROOT)/make/OCamlMakefile
 
 
-OCAMLFIND_DESTDIR = $(PIQI_BUILD)/lib/ocaml
-OCAMLPATH = $(OCAMLFIND_DESTDIR)
-export OCAMLFIND_DESTDIR OCAMLPATH
+export OCAMLPATH = $(PIQI_BUILD)/lib/ocaml
 
 
 # make sure camlp4o produces pretty-printed text instead of AST
-CAMLP4_O = $(CAMLP4)o -printer o
-export OCAMLP4_O
+export CAMLP4_O = $(CAMLP4)o -printer o
 
 
 .PHONY: piqi-all pre_target post_target
@@ -16,8 +13,8 @@ export OCAMLP4_O
 
 piqi-all: pre_target all post_target
 
-pre_target::
 
+pre_target::
 post_target::
 
 

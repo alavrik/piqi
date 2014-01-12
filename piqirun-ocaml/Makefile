@@ -12,11 +12,10 @@ SOURCES = \
 	piqirun.ml \
 	piqirun_ext.ml piqirun_ext.mli
 
-
 LIBINSTALL_FILES = \
 	piqirun.cmi piqirun.cmo piqirun.cmx piqirun.o \
 	piqirun_ext.mli piqirun_ext.cmi piqirun_ext.cmo piqirun_ext.cmx piqirun_ext.o \
-	# TODO: piqirun.mli
+	piqirun.ml # TODO: piqirun.mli
 
 
 STATIC = 1  # build a static library (don't build dlls)
@@ -25,14 +24,15 @@ STATIC = 1  # build a static library (don't build dlls)
 PRE_TARGETS = META
 
 
-all: bcl ncl test
+all: ncl test
 
 
 debug: dcl top
 
 
 # NOTE: when installing, uninstall first to avoid "already installed" error
-install: uninstall libinstall
+# also, make sure we have the byte-code version of the library built as well
+install: bcl uninstall libinstall
 
 
 uninstall: libuninstall
@@ -43,7 +43,7 @@ META: ../VERSION META.tmpl
 	cat META.tmpl >>$@
 
 
-test:
+test: bcl
 	ocaml piqirun.cmo test.ml
 
 

@@ -10,11 +10,11 @@ DIRS_PROTO = \
        piqi_proto1 \
        piqi_packed \
        cpp \
-       ocaml_riak_pb \
 
 endif
 
 
+ifneq ($(shell which piqic-ocaml), )
 DIRS_OCAML = \
        ocaml_addressbook \
        ocaml_piqi \
@@ -24,6 +24,11 @@ DIRS_OCAML = \
        ocaml_misc \
        ocaml_custom_types \
        ocaml_piq_config \
+
+ifdef DIRS_PROTO
+DIRS_OCAML += ocaml_riak_pb
+endif
+endif
 
 
 DIRS = \

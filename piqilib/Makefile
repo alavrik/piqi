@@ -4,22 +4,11 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 
 RESULT = piqi
 
-LIBINSTALL_FILES = \
+LIBINSTALL_FILES += \
 	$(CAMLP4_TARGETS) \
-	$(RESULT).cmxa \
+	$(RESULT).cma $(RESULT).cmxa \
 	$(RESULT).$(EXT_LIB) $(RES_CLIB) \
 	$(shell ls *.cmi 2>/dev/null) \
-
-
-# we're not building byte-code library by default, only when requested
-# explicitly, e.g. from the top-level Makefile
-ifneq ($(findstring bcl,$(MAKECMDGOALS)),)
-LIBINSTALL_FILES += $(RESULT).cma
-endif
-
-ifneq ($(findstring debug,$(MAKECMDGOALS)),)
-LIBINSTALL_FILES += $(RESULT).cma
-endif
 
 
 STATIC = 1 # force creation of static library (don't create dlls)
@@ -114,7 +103,8 @@ debug: dcl top
 
 
 # NOTE: when installing, uninstall first to avoid "already installed" error
-install: uninstall libinstall
+# also, make sure we have the byte-code version of the library built as well
+install: bcl uninstall libinstall
 
 
 uninstall: libuninstall
