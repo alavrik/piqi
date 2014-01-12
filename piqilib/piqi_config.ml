@@ -62,6 +62,15 @@ let flag_trace =
     ref false
 
 
+let init_debug () =
+  (* check location DB consistency on all debug levels *)
+  if !debug_level >= 1 then Piqloc.check := true;
+  (* turn on extra debugging about source line number tracking *)
+  if !debug_level >= 3 then Piqloc.trace := true;
+  if !debug_level >= 4 then Piqloc.crash_on_error := true;
+  ()
+
+
 (* this variable controls whether we parse and generate piq AST
  * for/during pretty-printing or for real use *)
 let pp_mode = ref false

@@ -20,7 +20,7 @@
  *)
 
 
-open Piqi_common 
+module C = Piqi_common
 
 
 (* command-line parameters *)
@@ -44,7 +44,7 @@ let open_input = function
         ifile := f;
         ich := c; c
       with Sys_error s ->
-        piqi_error ("failed to open input file: " ^ s)
+        C.piqi_error ("failed to open input file: " ^ s)
 
 
 let open_output = function
@@ -55,7 +55,7 @@ let open_output = function
         ofile := f;
         och := c; c
       with Sys_error s ->
-        piqi_error ("failed to open output file: " ^ s)
+        C.piqi_error ("failed to open output file: " ^ s)
 
 
 (* close previously opened output channel *)
@@ -107,7 +107,7 @@ let chdir_output dir =
         | _ -> Sys.chdir dir
     end
   with Sys_error s ->
-    piqi_error ("failed to chdir to output directory: " ^ dir)
+    C.piqi_error ("failed to chdir to output directory: " ^ dir)
 
 
 let arg_count = ref 0
@@ -130,7 +130,7 @@ let anon_fun f s =
 
 
 let arg_I =
-  "-I", Arg.String Config.add_path,
+  "-I", Arg.String Piqi_config.add_path,
     "<dir> add directory to the list of imported .piqi search paths"
 
 let arg_o =
@@ -150,27 +150,27 @@ let arg__leave_tmp_files =
      "don't delete temporary files created during command execution"
 
 let arg__no_warnings =
-   "--no-warnings", Arg.Set Config.flag_no_warnings,
+   "--no-warnings", Arg.Set Piqi_config.flag_no_warnings,
      "don't print warnings"
 
 let arg__trace =
-   "--trace", Arg.Set Config.flag_trace,
+   "--trace", Arg.Set Piqi_config.flag_trace,
      "turn on tracing"
 
 let arg__debug =
-   "--debug", Arg.Set_int Config.debug_level,
+   "--debug", Arg.Set_int Piqi_config.debug_level,
      "<level> debug level; any number greater than 0 turns on debug messages"
 
 let arg__no_builtin_types =
-   "--no-builtin-types", Arg.Set Config.flag_no_builtin_types,
+   "--no-builtin-types", Arg.Set Piqi_config.flag_no_builtin_types,
      "don't include built-in type definitions while processing .piqi"
 
 let arg__strict =
-   "--strict", Arg.Set Config.flag_strict,
+   "--strict", Arg.Set Piqi_config.flag_strict,
      "treat unknown and duplicate fields as errors"
 
 let arg__include_extension =
-   "-e", Arg.String Config.add_include_extension,
+   "-e", Arg.String Piqi_config.add_include_extension,
      "<name> try including extension <name> for all loaded modules (can be used several times)"
 
 
@@ -189,19 +189,10 @@ let parse_args
     ?(min_arg_count=1) ?(max_arg_count=1) ?(custom_anon_fun=default_anon_fun)() =
   Arg.parse speclist (anon_fun custom_anon_fun) usage;
   if !arg_count < min_arg_count || !arg_count > max_arg_count
-  then
-    begin
-      Arg.usage speclist usage;
-      exit 3;
-    end
-  else
-    begin
-      (* check location DB consistency on all debug levels *)
-      if !Piqi_config.debug_level >= 1 then Piqloc.check := true;
-      (* turn on extra debugging about source line number tracking *)
-      if !Piqi_config.debug_level >= 3 then Piqloc.trace := true;
-      if !Piqi_config.debug_level >= 4 then Piqloc.crash_on_error := true;
-    end
+  then (
+    Arg.usage speclist usage;
+    exit 3;
+  )
 
 
 let die s =
@@ -211,13 +202,15 @@ let die s =
 
 let run_command f =
   (* set .piqi search path to contain CWD and $PIQI_PATH *)
-  Config.init_paths ();
+  Piqi_config.init_paths ();
+  (* init various stuff related to --debug <level> *)
+  Piqi_config.init_debug ();
 
   try
     f ();
     cleanup ();
   with
-    | Piqi_error s ->
+    | C.Piqi_error s ->
         cleanup_on_error ();
         die s
     | Piqi_common.Error (loc, s) ->
