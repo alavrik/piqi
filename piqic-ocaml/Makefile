@@ -14,13 +14,15 @@ SOURCES = \
 	piqic_ocaml_in.ml \
 	piqic_ocaml_defaults.ml \
 	piqic_ocaml_ext.ml \
+	\
+	piqic_ocaml_version.ml \
 	piqic_ocaml.ml \
 
 
 PACKS = piqi.lib piqirun.pb
 
 
-PRE_TARGETS =
+PRE_TARGETS = piqic_ocaml_version.ml
 
 
 all: nc
@@ -34,6 +36,10 @@ PIQIC_FLAGS = -I $(PIQI_ROOT) --embed-piqi --pp #--trace
 
 reboot:
 	$(PIQIC) $(PIQIC_FLAGS) piqi.piqi
+
+
+piqic_ocaml_version.ml: ../VERSION
+	echo "let version = \"`head -1 $<`\"" >$@
 
 
 include $(OCAMLMAKEFILE)

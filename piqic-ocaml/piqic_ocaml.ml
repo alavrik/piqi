@@ -16,7 +16,7 @@
 *)
 
 
-(* 
+(*
  * Piqi compiler for OCaml
  *)
 
@@ -32,6 +32,8 @@ let flag_embed_piqi = ref false
 let flag_strict = ref false
 let flag_multi_format = ref false
 let flag_runtime = ref ""
+let flag_version = ref false
+let flag_piqi_version = ref false
 
 
 let arg__pp =
@@ -65,6 +67,14 @@ let arg__runtime =
 let arg__cc =
   "--cc", Arg.Set C.flag_cc,
     "compiler compiler mode -- used only for building piqilib"
+
+let arg__version =
+  "--version", Arg.Set flag_version,
+    "print piqi-ocaml version and exit"
+
+let arg__piqi_version =
+  "--piqi-version", Arg.Set flag_piqi_version,
+    "print piqi version and exit"
 
 let arg__strict =
   let (name, _setter, descr) = Piqi_command.arg__strict in
@@ -211,13 +221,38 @@ let speclist = Piqi_command.common_speclist @
     arg__ext;
     arg__runtime;
     arg__cc;
+    arg__version;
+    arg__piqi_version;
   ]
 
 
-let usage = "Usage: piqic-ocaml [options] <.piqi file>\n\nOptions:"
+let usage = "\
+Usage: piqic-ocaml [options] <.piqi file>
+       piqic-ocaml [--version | --Piqi-version]
+
+Options:"
+
+
+let print_and_exit s =
+  print_endline s;
+  exit 0
 
 
 let run () =
+  (* handle --version and --piqi-version; doing it separately from the rest of
+   * args, because normally we expect one positional arg and this is
+   * automatically handled by Piqi_command.parse_args () *)
+  let argv1 =
+    if Array.length Sys.argv > 1
+    then Sys.argv.(1)
+    else ""
+  in
+  if argv1 = "--version"
+  then print_and_exit Piqic_ocaml_version.version
+  else if argv1 = "--piqi-version"
+  then print_and_exit Piqi_version.version;
+
+  (* normal invocation *)
   Piqi_command.parse_args () ~usage ~speclist;
 
   if !flag_gen_defaults
