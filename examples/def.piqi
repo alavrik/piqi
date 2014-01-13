@@ -40,7 +40,8 @@
     ]
 
     % this is a flag, its presence in the record is meaningful by itself, it
-    % doesn't carry any additional value
+    % doesn't carry any additional value; in fact, the value can be omitted or
+    % specified as true or false -- see flag.piq for examples and explanations
     .field [
         .name flag
 
@@ -49,6 +50,14 @@
         .optional 
     ]
 
+    % a boolean field
+    .field [
+        % in this case, the name of the field will be taken as the name of type
+        % which is "bool"
+
+        .type bool
+        .optional
+    ]
     
     % optional "self"
     .field [

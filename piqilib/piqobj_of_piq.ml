@@ -424,14 +424,25 @@ and do_parse_flag t l =
   let open T.Field in
   let name = name_of_field t in
   debug "do_parse_flag: %s\n" name;
+  (* NOTE: flags can't be positional so we only have to look for them by name *)
   let res, rem = find_flags name t.alt_name l in
   match res with
     | [] -> [], rem
     | x::tail ->
         check_duplicate name tail;
-        let res = F#{ t = t; obj = None } in
-        Piqloc.addref x res;
-        [res], rem
+        match x with
+          | `name _ | `named {Piq_ast.Named.value = `bool true} ->
+              (* flag is considered to be present when it is represented either
+               * as name w/o value or named boolean true value *)
+              let res = F#{ t = t; obj = None } in
+              Piqloc.addref x res;
+              [res], rem
+          | `named {Piq_ast.Named.value = `bool false} ->
+              (* flag is considered missing/unset when its value is false *)
+              [], rem
+          | _ ->
+              (* there are no other possible representations of flags *)
+              assert false
 
 
 and do_parse_field loc t l =
@@ -460,7 +471,7 @@ and do_parse_field loc t l =
   
 
 and parse_required_field f loc name field_type l =
-  let res, rem = find_fields name f.T.Field#alt_name l in
+  let res, rem = find_fields name f.T.Field#alt_name field_type l in
   match res with
     | [] ->
         (* try finding the first field which is successfully parsed by
@@ -486,30 +497,43 @@ and equals_name name alt_name x =
       | None -> false
 
 
-(* TODO: find_fields and find_flags are mostly identical -- combine them
- * together and avoid code duplication *)
-
 (* find field by name, return found fields and remaining fields *)
-and find_fields (name:string) (alt_name:string option) (l:piq_ast list) :(piq_ast list * piq_ast list) =
+and find_fields (name:string) (alt_name:string option) field_type (l:piq_ast list) :(piq_ast list * piq_ast list) =
   let equals_name = equals_name name alt_name in
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
     | (`named n)::t when equals_name n.Piq_ast.Named#name -> aux (n.Piq_ast.Named#value::accu) rem t
     | (`name n)::t when equals_name n ->
-        error n ("value must be specified for field " ^ U.quote n)
+        (match C.unalias field_type with
+          | `bool ->
+              (* allow omitting boolean constant for a boolean field by
+               * interpreting the missing value as "true" *)
+              let value = Piqloc.addrefret n (`bool true) in
+              aux (value::accu) rem t
+          | _ ->
+              error n ("value must be specified for field " ^ U.quote n)
+        )
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
 
 
 (* find flags by name, return found flags and remaining fields *)
-and find_flags (name:string) (alt_name:string option) (l:piq_ast list) :(string list * piq_ast list) =
+and find_flags (name:string) (alt_name:string option) (l:piq_ast list) :(piq_ast list * piq_ast list) =
   let equals_name = equals_name name alt_name in
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
-    | (`name n)::t when equals_name n -> aux (n::accu) rem t
-    | (`named n)::t when equals_name n.Piq_ast.Named#name ->
-        error n ("value can not be specified for flag " ^ U.quote n.Piq_ast.Named#name)
+    | ((`name n) as h)::t when equals_name n -> aux (h::accu) rem t
+    | ((`named n) as h)::t when equals_name n.Piq_ast.Named#name ->
+        (* allow specifying true or false as flag values: true will be
+         * interpreted as flag presence, false is treated as if the flag was
+         * missing *)
+        (match n.Piq_ast.Named#value with
+          | `bool _ ->
+              aux (h::accu) rem t
+          | _ ->
+              error h ("only true and false can be used as values for flag " ^ U.quote n.Piq_ast.Named#name)
+        )
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l
@@ -526,7 +550,7 @@ and find_first_parsed f field_type l =
 
 
 and parse_optional_field f name field_type default l =
-  let res, rem = find_fields name f.T.Field#alt_name l in
+  let res, rem = find_fields name f.T.Field#alt_name field_type l in
   match res with
     | [] ->
         (* try finding the first field which is successfully parsed by
@@ -549,7 +573,7 @@ and parse_optional_field f name field_type default l =
 (* parse repeated variant field allowing variant names if field name is
  * unspecified *) 
 and parse_repeated_field f name field_type l =
-  let res, rem = find_fields name f.T.Field#alt_name l in
+  let res, rem = find_fields name f.T.Field#alt_name field_type l in
   match res with
     | [] -> 
         (* XXX: ignore errors occuring when unknown element is present in the

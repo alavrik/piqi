@@ -4,3 +4,19 @@
     .flag
 ]
 
+
+:def/r [
+    .i 0
+
+    % same as .flag
+    .flag true
+]
+
+
+:def/r [
+    .i 0
+
+    % same as if the flag wasn't present
+    .flag false
+]
+
