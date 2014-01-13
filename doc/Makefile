@@ -49,4 +49,4 @@ CHANGES.html: ../CHANGES
 	pandoc -s $< -o $@
 
 clean:
-	rm -f $(HTML) CHANGES.html piqi.1
+	rm -f $(HTML) CHANGES.html
