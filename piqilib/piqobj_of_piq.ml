@@ -296,9 +296,14 @@ and parse_typed_obj ?piqtype x =
 and try_parse_obj f t x =
   (* unwind alias to obtain its real type *)
   match unalias t with
-    | `record _ | `list _ ->
-        (* NOTE: all records and lists should be labeled, so try-parsing them
-         * always fails *)
+    | _ when f.T.Field.piq_positional = Some false ->
+        (* this field must be always labeled according to the explicit
+         * ".piq-positional false" setting *)
+        None
+    | `record _ | `list _ when f.T.Field.piq_positional <> Some true ->
+        (* all records and lists should be labeled (i.e. can't be positional)
+         * unless explicitly overridden in the piqi spec by the .piq-positional
+         * setting *)
         None
     | `any when f.T.Field#name <> None ->
         (* NOTE, XXX: try-parsing of labeled `any always failes *)

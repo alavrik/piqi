@@ -287,7 +287,10 @@ let check_field f =
             then error f "flags must be optional");
 
             (if f.default <> None
-            then error f "flags may not specify default")
+            then error f "flags may not specify default");
+
+            (if f.piq_positional = Some true
+            then error f "flags can not be positional");
           end
       | _ ->
           ()

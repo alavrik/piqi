@@ -167,6 +167,7 @@ and
           mutable alt_name : Piqi_impl_piqi.word option;
           mutable unparsed_piq_ast : Piqi_impl_piqi.uint option;
           mutable piq_format : Piqi_impl_piqi.piq_format option;
+          mutable piq_positional : bool option;
           mutable protobuf_name : string option; mutable code : int32 option;
           mutable protobuf_packed : bool; mutable json_name : string option;
           mutable json_omit_missing : bool option;
@@ -729,6 +730,8 @@ and parse_field x =
          Piqirun.parse_optional_field 177782575 parse_word x in
        let (_protobuf_packed, x) =
          incr_count_if_true (Piqirun.parse_flag 179842426 x) in
+       let (_piq_positional, x) =
+         Piqirun.parse_optional_field 197354217 parse_bool x in
        let (_json_omit_missing, x) =
          Piqirun.parse_optional_field 201807079 parse_bool x in
        let (_getopt_letter, x) =
@@ -758,6 +761,7 @@ and parse_field x =
             Field.piqtype = _piqtype;
             Field.alt_name = _alt_name;
             Field.protobuf_packed = _protobuf_packed;
+            Field.piq_positional = _piq_positional;
             Field.json_omit_missing = _json_omit_missing;
             Field.getopt_letter = _getopt_letter;
             Field.typename = _typename;
@@ -1460,6 +1464,8 @@ and gen__field code x =
      Piqirun.gen_optional_field 177782575 gen__word x.Field.alt_name in
    let _protobuf_packed =
      reference_if_true Piqirun.gen_flag 179842426 x.Field.protobuf_packed in
+   let _piq_positional =
+     Piqirun.gen_optional_field 197354217 gen__bool x.Field.piq_positional in
    let _json_omit_missing =
      Piqirun.gen_optional_field 201807079 gen__bool x.Field.json_omit_missing in
    let _getopt_letter =
@@ -1480,8 +1486,8 @@ and gen__field code x =
      Piqirun.gen_record code
        [ _unparsed_piq_ast; _code; _deprecated; _protobuf_name; _proto_name;
          _mode; _name; _piqtype; _alt_name; _protobuf_packed;
-         _json_omit_missing; _getopt_letter; _typename; _piq_format;
-         _wire_packed; _getopt_doc; _default; _json_name ])
+         _piq_positional; _json_omit_missing; _getopt_letter; _typename;
+         _piq_format; _wire_packed; _getopt_doc; _default; _json_name ])
 and gen__field_mode code x =
   (refer x;
    Piqirun.int32_to_signed_varint code
@@ -1960,6 +1966,7 @@ and default_field () =
     Field.piqtype = None;
     Field.alt_name = None;
     Field.protobuf_packed = false;
+    Field.piq_positional = None;
     Field.json_omit_missing = None;
     Field.getopt_letter = None;
     Field.typename = None;

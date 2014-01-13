@@ -19,6 +19,23 @@
 ]
 
 
+.extend [
+    % allows to control explicitly whether to accept a field if it is specified
+    % without a label (arguments without a label are called "positional")
+    %
+    % the default behavior is to allow fields of primitive types to be
+    % positional but require labels for records and lists
+
+    .typedef field
+
+    .with.field [
+        .name piq-positional
+        .type bool
+        .optional
+    ]
+]
+
+
 % Piq-specific alternative representation format of Piqi types
 .variant [
     .name piq-format

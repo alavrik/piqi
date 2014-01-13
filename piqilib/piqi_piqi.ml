@@ -112,6 +112,7 @@ and
           mutable default : Piqi_piqi.piqi_any option;
           mutable deprecated : bool;
           mutable piq_format : Piqi_piqi.piq_format option;
+          mutable piq_positional : bool option;
           mutable protobuf_name : string option; mutable code : int32 option;
           mutable protobuf_packed : bool; mutable json_name : string option;
           mutable json_omit_missing : bool option;
@@ -361,6 +362,8 @@ and parse_field x =
       ~default: "\b\223\162\138\147\001" in
   let (_name, x) = Piqirun.parse_optional_field 150958667 parse_name x in
   let (_protobuf_packed, x) = Piqirun.parse_flag 179842426 x in
+  let (_piq_positional, x) =
+    Piqirun.parse_optional_field 197354217 parse_bool x in
   let (_json_omit_missing, x) =
     Piqirun.parse_optional_field 201807079 parse_bool x in
   let (_getopt_letter, x) =
@@ -383,6 +386,7 @@ and parse_field x =
        Field.mode = _mode;
        Field.name = _name;
        Field.protobuf_packed = _protobuf_packed;
+       Field.piq_positional = _piq_positional;
        Field.json_omit_missing = _json_omit_missing;
        Field.getopt_letter = _getopt_letter;
        Field.typename = _typename;
@@ -701,6 +705,8 @@ and gen__field code x =
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Field.name in
   let _protobuf_packed =
     Piqirun.gen_flag 179842426 x.Field.protobuf_packed in
+  let _piq_positional =
+    Piqirun.gen_optional_field 197354217 gen__bool x.Field.piq_positional in
   let _json_omit_missing =
     Piqirun.gen_optional_field 201807079 gen__bool x.Field.json_omit_missing in
   let _getopt_letter =
@@ -718,8 +724,8 @@ and gen__field code x =
   in
     Piqirun.gen_record code
       [ _code; _deprecated; _protobuf_name; _mode; _name; _protobuf_packed;
-        _json_omit_missing; _getopt_letter; _typename; _piq_format;
-        _getopt_doc; _default; _json_name ]
+        _piq_positional; _json_omit_missing; _getopt_letter; _typename;
+        _piq_format; _getopt_doc; _default; _json_name ]
 and gen__field_mode code x =
   Piqirun.int32_to_signed_varint code
     (match x with
@@ -989,6 +995,7 @@ and default_field () =
       parse_field_mode (Piqirun.parse_default "\b\223\162\138\147\001");
     Field.name = None;
     Field.protobuf_packed = false;
+    Field.piq_positional = None;
     Field.json_omit_missing = None;
     Field.getopt_letter = None;
     Field.typename = None;
