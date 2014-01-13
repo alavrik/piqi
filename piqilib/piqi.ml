@@ -2158,6 +2158,9 @@ let piqi_to_piqobj
   debug "piqi_to_piqobj(0)\n";
   Piqloc.pause ();
 
+  (* we'll need them later *)
+  let custom_fields = piqi.P#custom_field in
+
   let piqi_spec = lang_to_spec piqi in
   (* make sure that the module's name is defined *)
   let piqi_spec = P#{piqi_spec with modname = piqi.P#modname} in
@@ -2186,19 +2189,35 @@ let piqi_to_piqobj
     debug "\n\nEND piqi_to_piqobj ast\n";
   );
 
-  (* turn the piq ast back to piqobj
-   *
-   * NOTE: ignoring unknown fields -- they don't matter because we are
-   * transforming the spec that has been validated and warnings already printed
-   * if any *)
-  let piqi_piqtype =
-    match piqi_piqtype with
-      | Some x -> x
-      | None -> !piqi_spec_def
-  in
+  (* turn the piq ast back to piqobj *)
   let piqobj =
-    U.with_bool C.Config.flag_no_warnings true
-    (fun () -> Piqobj_of_piq.parse_obj piqi_piqtype ast)
+    match piqi_piqtype with
+      | None ->
+          U.with_bool C.Config.flag_no_warnings true
+          (fun () -> Piqobj_of_piq.parse_obj !piqi_spec_def ast)
+      | Some piqi_piqtype ->
+          (* NOTE: normally, we would ignore unknown fields here as well -- they don't
+           * matter because we are transforming the spec that has been validated and
+           * warnings already printed (if any)...
+           *
+           * HOWEVER, there's a case in which we want to be very careful: this is when
+           * the custom piqi spec falls behind or somehow becomes incompatible with our
+           * own piqi spec; in this case, the need to print the unknown field warning or
+           * even an error, because some core Piqi properties may be silently dropped as
+           * a result of this conversion *)
+          let piqobj =
+            U.with_bool C.is_inside_parse_piqi true
+            (fun () -> Piqobj_of_piq.parse_obj piqi_piqtype ast)
+          in
+          let unknown_fields = Piqobj_of_piq.get_unknown_fields () in
+          (* TODO: don't print the same warnings twice -- we may have printed some of
+           * them when we were initially loading piqi; also fix the location -- it is
+           * not being reported correctly *)
+          check_unknown_fields unknown_fields custom_fields
+            ~prepend:(fun () ->
+              C.piqi_warning "the following property is not recognized by the custom self-spec and will be ignored:"
+            );
+          piqobj
   in
   Piqloc.resume ();
   debug "piqi_to_piqobj(1)\n";

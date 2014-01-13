@@ -70,7 +70,12 @@ let compile self_spec piqi och =
 
   (* get necessary piqtypes from the self-spec *)
   let filename = !input_self_spec in
-  let piqi_piqtype = Piqi_compile.get_self_spec_piqtype self_spec "piqi" ~filename in
+
+  let piqi_piqtype =
+    if self_spec == C.some_of !Piqi.piqi_spec  (* is it the default embedded self-spec? *)
+    then None
+    else Some (Piqi_compile.get_self_spec_piqtype self_spec "piqi" ~filename)
+  in
   let piqi_list_piqtype = Piqi_compile.get_self_spec_piqtype self_spec "piqi-list" ~filename in
 
   trace "converting modules to internal representation\n";
@@ -84,7 +89,7 @@ let compile self_spec piqi och =
 
   (* convert all modules to internal representation *)
   let piqobj_list = List.map
-    (fun piqi -> Piqi.piqi_to_piqobj piqi ~piqi_piqtype ~add_codes:true)
+    (fun piqi -> Piqi.piqi_to_piqobj piqi ?piqi_piqtype ~add_codes:true)
     piqi_list
   in
 
