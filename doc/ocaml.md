@@ -35,7 +35,7 @@ A typical Piqi usage scenario involves the following steps:
     format at runtime.
 
 **5. Link the user's program with the Piqi runtime library**
-:   There are two Piqi runtime libraries: `piqi.runtime` and `piqi.lib`. The
+:   There are two Piqi runtime libraries: `piqirun.pb` and `piqirun.ext`. The
     first one is for Protocol Buffers serialization. The second one is used for
     multi-format serialization. See the next section for more details.
 
@@ -53,7 +53,7 @@ flavor can be used for serializing multiple formats, including Protobuf, XML,
 JSON and Piq.
 
 Multi-format serialization is an extension of the basic Protocol Buffers
-serialization mode. It requires a different runtime library.
+serialization mode. It requires linking with a different runtime library.
 
 
 ### Protocol Buffers serialization
@@ -86,14 +86,29 @@ functions:
 -   `default_<typename>` -- type constructor: returns a minimally serializable
     value of this type
 
-Compiled `.ml` files should be linked with `piqi.runtime` findlib package. For
+Compiled `.ml` files should be linked with the `piqilib.pb` findlib package. For
 example:
 
     # generate "test_piqi.ml"
     piqic-ocaml test.piqi
 
     # compile and link it with the runtime library using findlib/ocamlfind
-    ocamlfind ocamlc -linkpkg -package piqi.runtime test_piqi.ml
+    ocamlfind ocamlc -linkpkg -package piqilib.pb test_piqi.ml
+
+
+### Customized runtime library for Protocol Buffers serialization
+
+Under the hood, the `piqilib.pb` package resolves to a single compiled module
+named `Piqirun`. This is the module the generated `_piqi.ml` OCaml code uses.
+
+Sometimes, it may be useful to use a modified version of the `Piqirun` module.
+For example, a customized version could have extra optimizations, improve error
+handling or implement serialization code for [Custom OCaml
+types](#customocamltypes).
+
+To swap the default runtime for a customized one, call `piqic-ocaml` with
+`--runtime <module-name>` option, where `<module-name>` is the name of the
+module to use instead of `Piqirun`.
 
 
 ### Multi-format serialization
@@ -163,14 +178,14 @@ constructed using `Piqirun_ext.make_options`:
             unit -> options
 
 
-Compiled `.ml` files should be linked with the `piqi.lib` findlib package. For
-example:
+Compiled `.ml` files should be linked with the `piqirun.ext` findlib package.
+For example:
 
     # generate "test_piqi.ml" and "test_piqi_ext.ml"
     piqic-ocaml --multi-format test.piqi
 
     # compile and link them with the runtime library using findlib/ocamlfind
-    ocamlfind ocamlc -linkpkg -package piqi.lib test_piqi.ml test_piqi_ext.ml
+    ocamlfind ocamlc -linkpkg -package piqirun.ext test_piqi.ml test_piqi_ext.ml
 
 
 ### Command-line parameters
