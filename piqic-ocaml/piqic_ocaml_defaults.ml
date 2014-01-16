@@ -152,7 +152,12 @@ let gen_record context r =
   let fconsl = (* field constructor list *)
     if fields <> []
     then List.map (gen_field_cons context rname) fields
-    else [ios rname; ios "."; ios "_dummy = ()"]
+    else [ios rname; ios "._dummy = ();"]
+  in
+  let fconsl =
+    if !C.flag_gen_preserve_unknown_fields
+    then fconsl @ [iol [ios rname; ios ".piqi_unknown_pb = [];"]]
+    else fconsl
   in (* fake_<record-name> function delcaration *)
   iod " " [
     ios "default_" ^^ ios (some_of r.R#ocaml_name); ios "() =";

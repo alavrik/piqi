@@ -50,18 +50,19 @@ let error obj s =
   buf_error loc s
 
 
+type string_slice =
+  {
+    s : string;
+    start_pos : int;  (* position of `s` in the input stream *)
+    len :int;
+    mutable pos : int;
+  }
+
+
 module IBuf =
   struct
-    type string_buf = 
-      {
-        s : string;
-        start_pos : int;
-        len :int;
-        mutable pos : int; 
-      }
-
     type t =
-      | String of string_buf
+      | String of string_slice
       | Channel of in_channel
 
 
@@ -944,6 +945,7 @@ module OBuf =
       | Iol of t list
       | Iol_size of int * (t list) (* iolist with known size *)
       | Iob of char
+      | IBuf of IBuf.t
 
 
     let ios x = Ios x
@@ -957,6 +959,8 @@ module OBuf =
         | Ios s -> Buffer.add_string buf s
         | Iol l | Iol_size (_, l) -> List.iter aux l
         | Iob b -> Buffer.add_char buf b
+        | IBuf (IBuf.String x) -> Buffer.add_substring buf x.s x.pos (x.len - x.pos)
+        | IBuf (IBuf.Channel x) -> assert false
       in aux l
 
 
@@ -966,6 +970,7 @@ module OBuf =
       | Iol l -> List.fold_left (fun accu x -> accu + (size x)) 0 l
       | Iol_size (size, _) -> size
       | Iob _ -> 1
+      | IBuf x -> IBuf.size x
 
 
     let iol_size l =
@@ -1283,6 +1288,31 @@ let string_to_block = gen_string_field
 let binary_to_block = gen_string_field (* binaries use the same encoding as strings *)
 let word_to_block = gen_string_field (* word is encoded as string *)
 let text_to_block = gen_string_field (* text is encoded as string *)
+
+
+(* the inverse of parse_field *)
+let gen_parsed_field (code, value) =
+  match value with
+    | Varint x ->
+        gen_varint_field code x
+    | Varint64 x ->
+        gen_varint64_field code x
+    | Int32 x ->
+        gen_fixed32_field code x
+    | Int64 x ->
+        gen_fixed64_field code x
+    | Block x ->
+        iol [
+          gen_primitive_key 2 code;
+          gen_unsigned_varint_value (IBuf.size x);
+          IBuf x
+        ]
+    | Top_block x ->  (* impossible clause *)
+        assert false
+
+
+let gen_parsed_field_list l =
+  List.map gen_parsed_field l
 
 
 (*

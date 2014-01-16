@@ -124,13 +124,20 @@ let gen_record context r =
   let fgens_code = List.map
     (fun (name, gen) -> iol [ ios "let "; esc name; ios " = "; gen; ios " in "])
     fgens
+  in
+  let unknown_fields =
+    if !C.flag_gen_preserve_unknown_fields
+    then [iol [ios "(Piqirun.gen_parsed_field_list "; ios "x."; ios rname; ios ".piqi_unknown_pb)"]]
+    else [ios "[]"]
   in (* gen_<record-name> function delcaration *)
   iod " " [
     ios "gen__" ^^ ios (some_of r.R#ocaml_name); ios "code x =";
       gen_cc "refer x;";
       iol fgens_code;
       ios "Piqirun.gen_record code"; 
-      ios "["; iod ";" (List.map esc fnames); ios "]";
+      ios "(";
+        iod " :: " ((List.map esc fnames) @ unknown_fields);
+      ios ")";
   ]
 
 

@@ -114,11 +114,16 @@ let gen_record_mod context r =
   let fields = r.R#field in
   let fdefs = (* field definition list *)
     if fields <> []
-    then iol (List.map (gen_field context) fields)
-    else ios "_dummy: unit"
+    then List.map (gen_field context) fields
+    else [ios "_dummy: unit;"]
+  in
+  let fdefs =
+    if !C.flag_gen_preserve_unknown_fields
+    then fdefs @ [ios "piqi_unknown_pb: (int * Piqirun.t) list;"]
+    else fdefs
   in
   let rcons = (* record def constructor *)
-    iol [ios "type t = "; ios "{"; fdefs; ios "}"]
+    iol [ios "type t = "; ios "{"; iol fdefs; ios "}"]
   in
   let rdef = iod " "
     [
