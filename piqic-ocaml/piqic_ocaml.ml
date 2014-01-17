@@ -219,6 +219,7 @@ let speclist = Piqi_command.common_speclist @
     arg__normalize_names;
     arg__pp;
     arg__gen_defaults;
+    arg__gen_preserve_unknown_fields;
     Piqi_command.arg__leave_tmp_files;
     arg__embed_piqi;
     arg__multi_format;
