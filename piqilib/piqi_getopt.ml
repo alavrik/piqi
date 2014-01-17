@@ -128,7 +128,7 @@ let getopt_name_field x =
     | None -> ()
     | Some n ->
         check_getopt_letter n;
-        x.alt_name <- letter
+        x.piq_alias <- letter
 
 
 let getopt_name_option x =
@@ -138,7 +138,7 @@ let getopt_name_option x =
     | None -> ()
     | Some n ->
         check_getopt_letter n;
-        x.alt_name <- letter
+        x.piq_alias <- letter
 
 
 (* name fields and options *)

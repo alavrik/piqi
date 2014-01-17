@@ -20,17 +20,35 @@
 
 
 .extend [
-    % allows to control explicitly whether to accept a field if it is specified
-    % without a label (arguments without a label are called "positional")
-    %
-    % the default behavior is to allow fields of primitive types to be
-    % positional but require labels for records and lists
-
     .typedef field
 
     .with.field [
+        % allows to control explicitly whether to accept a field if it is specified
+        % without a label (arguments without a label are called "positional")
+        %
+        % the default behavior is to allow fields of primitive types to be
+        % positional but require labels for records and lists
+
         .name piq-positional
         .type bool
+        .optional
+    ]
+]
+
+
+.extend [
+    (.typedef field option)
+
+    .with.field [
+        % this allows to specify an alternative name a field or an option; used
+        % only when parsing Piq; Field names specified via .name or derived from
+        % .type take precedence over names defined using .piq-alias
+        %
+        % the ability to use an alternative name is useful when Piq is used as
+        % as a syntax notation for DSLs
+
+        .name piq-alias
+        .type name
         .optional
     ]
 ]

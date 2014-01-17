@@ -430,7 +430,7 @@ and do_parse_flag t l =
   let name = name_of_field t in
   debug "do_parse_flag: %s\n" name;
   (* NOTE: flags can't be positional so we only have to look for them by name *)
-  let res, rem = find_flags name t.alt_name l in
+  let res, rem = find_flags name t.piq_alias l in
   match res with
     | [] -> [], rem
     | x::tail ->
@@ -476,7 +476,7 @@ and do_parse_field loc t l =
   
 
 and parse_required_field f loc name field_type l =
-  let res, rem = find_fields name f.T.Field#alt_name field_type l in
+  let res, rem = find_fields name f.T.Field#piq_alias field_type l in
   match res with
     | [] ->
         (* try finding the first field which is successfully parsed by
@@ -555,7 +555,7 @@ and find_first_parsed f field_type l =
 
 
 and parse_optional_field f name field_type default l =
-  let res, rem = find_fields name f.T.Field#alt_name field_type l in
+  let res, rem = find_fields name f.T.Field#piq_alias field_type l in
   match res with
     | [] ->
         (* try finding the first field which is successfully parsed by
@@ -578,7 +578,7 @@ and parse_optional_field f name field_type default l =
 (* parse repeated variant field allowing variant names if field name is
  * unspecified *) 
 and parse_repeated_field f name field_type l =
-  let res, rem = find_fields name f.T.Field#alt_name field_type l in
+  let res, rem = find_fields name f.T.Field#piq_alias field_type l in
   match res with
     | [] -> 
         (* XXX: ignore errors occuring when unknown element is present in the
@@ -676,7 +676,7 @@ and parse_covariant ~try_mode (o, v) x =
 and parse_name_option options name =
   let f o =
     let open T.Option in
-    let equals_name x = equals_name x o.alt_name name in
+    let equals_name x = equals_name x o.piq_alias name in
     match o.name, o.piqtype with
       | Some n, Some _ when equals_name n ->
           error name ("value expected for option " ^ U.quote n)
@@ -690,7 +690,7 @@ and parse_name_option options name =
 and parse_named_option options name x =
   let f o =
     let open T.Option in
-    let equals_name x = equals_name x o.alt_name name in
+    let equals_name x = equals_name x o.piq_alias name in
     match o.name, o.piqtype with
       | Some n, None when equals_name n ->
           error x ("value can not be specified for option " ^ n)
@@ -746,7 +746,7 @@ and parse_raw_word_option ~try_mode options x s =
     let f o =
       let open T.Option in
       match o.name, o.piqtype with
-        | Some n, None -> equals_name n o.alt_name s
+        | Some n, None -> equals_name n o.piq_alias s
         | _, _ -> false
     in
     let option = List.find f options in

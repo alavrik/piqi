@@ -113,6 +113,7 @@ and
           mutable deprecated : bool;
           mutable piq_format : Piqi_piqi.piq_format option;
           mutable piq_positional : bool option;
+          mutable piq_alias : Piqi_piqi.name option;
           mutable protobuf_name : string option; mutable code : int32 option;
           mutable protobuf_packed : bool; mutable json_name : string option;
           mutable json_omit_missing : bool option;
@@ -141,6 +142,7 @@ and
           mutable typename : Piqi_piqi.typename option;
           mutable deprecated : bool;
           mutable piq_format : Piqi_piqi.piq_format option;
+          mutable piq_alias : Piqi_piqi.name option;
           mutable protobuf_name : string option; mutable code : int32 option;
           mutable json_name : string option;
           mutable getopt_letter : Piqi_piqi.word option;
@@ -372,6 +374,8 @@ and parse_field x =
     Piqirun.parse_optional_field 218690234 parse_typename x in
   let (_piq_format, x) =
     Piqirun.parse_optional_field 296833484 parse_piq_format x in
+  let (_piq_alias, x) =
+    Piqirun.parse_optional_field 434682011 parse_name x in
   let (_getopt_doc, x) =
     Piqirun.parse_optional_field 442330184 parse_string x in
   let (_default, x) =
@@ -391,6 +395,7 @@ and parse_field x =
        Field.getopt_letter = _getopt_letter;
        Field.typename = _typename;
        Field.piq_format = _piq_format;
+       Field.piq_alias = _piq_alias;
        Field.getopt_doc = _getopt_doc;
        Field.default = _default;
        Field.json_name = _json_name;
@@ -438,6 +443,8 @@ and parse_option x =
     Piqirun.parse_optional_field 218690234 parse_typename x in
   let (_piq_format, x) =
     Piqirun.parse_optional_field 296833484 parse_piq_format x in
+  let (_piq_alias, x) =
+    Piqirun.parse_optional_field 434682011 parse_name x in
   let (_getopt_doc, x) =
     Piqirun.parse_optional_field 442330184 parse_string x in
   let (_json_name, x) = Piqirun.parse_optional_field 515275216 parse_string x
@@ -451,6 +458,7 @@ and parse_option x =
        Option.getopt_letter = _getopt_letter;
        Option.typename = _typename;
        Option.piq_format = _piq_format;
+       Option.piq_alias = _piq_alias;
        Option.getopt_doc = _getopt_doc;
        Option.json_name = _json_name;
      })
@@ -715,6 +723,8 @@ and gen__field code x =
     Piqirun.gen_optional_field 218690234 gen__typename x.Field.typename in
   let _piq_format =
     Piqirun.gen_optional_field 296833484 gen__piq_format x.Field.piq_format in
+  let _piq_alias =
+    Piqirun.gen_optional_field 434682011 gen__name x.Field.piq_alias in
   let _getopt_doc =
     Piqirun.gen_optional_field 442330184 gen__string x.Field.getopt_doc in
   let _default =
@@ -725,7 +735,7 @@ and gen__field code x =
     Piqirun.gen_record code
       [ _code; _deprecated; _protobuf_name; _mode; _name; _protobuf_packed;
         _piq_positional; _json_omit_missing; _getopt_letter; _typename;
-        _piq_format; _getopt_doc; _default; _json_name ]
+        _piq_format; _piq_alias; _getopt_doc; _default; _json_name ]
 and gen__field_mode code x =
   Piqirun.int32_to_signed_varint code
     (match x with
@@ -765,6 +775,8 @@ and gen__option code x =
     Piqirun.gen_optional_field 218690234 gen__typename x.Option.typename in
   let _piq_format =
     Piqirun.gen_optional_field 296833484 gen__piq_format x.Option.piq_format in
+  let _piq_alias =
+    Piqirun.gen_optional_field 434682011 gen__name x.Option.piq_alias in
   let _getopt_doc =
     Piqirun.gen_optional_field 442330184 gen__string x.Option.getopt_doc in
   let _json_name =
@@ -772,7 +784,7 @@ and gen__option code x =
   in
     Piqirun.gen_record code
       [ _code; _deprecated; _protobuf_name; _name; _getopt_letter; _typename;
-        _piq_format; _getopt_doc; _json_name ]
+        _piq_format; _piq_alias; _getopt_doc; _json_name ]
 and gen__enum code x =
   let _protobuf_name =
     Piqirun.gen_optional_field 90072013 gen__string x.Enum.protobuf_name in
@@ -1000,6 +1012,7 @@ and default_field () =
     Field.getopt_letter = None;
     Field.typename = None;
     Field.piq_format = None;
+    Field.piq_alias = None;
     Field.getopt_doc = None;
     Field.default = None;
     Field.json_name = None;
@@ -1022,6 +1035,7 @@ and default_option () =
     Option.getopt_letter = None;
     Option.typename = None;
     Option.piq_format = None;
+    Option.piq_alias = None;
     Option.getopt_doc = None;
     Option.json_name = None;
   }
