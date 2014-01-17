@@ -33,32 +33,28 @@ type obj =
 
 
 let read_piq_ast piq_parser :piq_ast =
-  let read_next () =
+  let with_pp_mode f =
     (* NOTE, TODO: this is a hack -- it would be great to have a cleaner
      * solution *)
     U.with_bool Piqi_config.pp_mode (!Piqi_config.piq_relaxed_parsing)
-    (fun () -> Piq_parser.read_next piq_parser)
+    (fun () -> f piq_parser)
   in
-  let read_first () =
-    match read_next () with
+  if not !Piqi_config.piq_frameless_input  (* regular (framed) mode *)
+  then
+    match with_pp_mode Piq_parser.read_next with
       | Some ast -> ast
       | None -> raise EOF
-  in
-  let rec read_rest accu =
-    match read_next () with
-      | Some ast ->
-          read_rest (ast::accu)
-      | None ->
+  else  (* frameless mode *)
+    match with_pp_mode Piq_parser.read_all with
+      | [] ->
+          let ast = `list [] in
+          let fname, _ = piq_parser in
+          let loc = (fname, 0, 0) in
+          Piqloc.addlocret loc ast
+      | h::_ as l ->
           (* setting list location based on the location of the first element *)
-          let l = List.rev accu in
           let ast = `list l in
-          Piqloc.addref (List.hd l) ast;
-          ast
-  in
-  let first = read_first () in
-  if not !Piqi_config.piq_frameless_input
-  then first
-  else read_rest [first]
+          Piqloc.addrefret h ast
 
 
 let default_piqtype = ref None
