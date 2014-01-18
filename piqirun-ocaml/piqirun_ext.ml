@@ -25,7 +25,7 @@ type input_format = [ `piq | `json | `xml | `pb | `pib ]
 
 type output_format = [ input_format | `json_pretty | `xml_pretty ]
 
-type piqtype = Piqi_common.T.piqtype
+type piqi_type = Piqi_common.T.piqtype
 
 type options = Piqi_convert.options
 
@@ -51,8 +51,8 @@ let init_piqi piqi_list =
   )
 
 
-let find_piqtype (typename :string) :piqtype =
-  Piqi_convert.find_piqtype typename
+let find_piqi_type (typename :string) :piqi_type =
+  Piqi_convert.find_type typename
 
 
 (* preallocate default convert options *)
@@ -70,17 +70,13 @@ let make_options = Piqi_convert.make_options
 
 let convert
         ?opts
-        (piqtype :piqtype)
+        (piqi_type :piqi_type)
         (input_format :input_format)
         (output_format :output_format)
         (data :string) :string =
   if output_format = (input_format :> output_format)
   then data
   else (
-    (* resetting source location tracking back to "enabled" state; we don't
-     * carefully call matching Piqloc.resume () for every Piqloc.pause () if we
-     * get exceptions in between *)
-    Piqloc.is_paused := 0;
     let output_format, default_opts =
       match output_format with
         | `json_pretty -> `json, default_options
@@ -92,6 +88,6 @@ let convert
         | None -> default_opts
         | Some x -> x
     in
-    Piqi_convert.convert_piqtype piqtype input_format output_format data ~opts
+    Piqi_convert.convert piqi_type input_format output_format data ~opts
   )
 

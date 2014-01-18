@@ -83,16 +83,16 @@ let run_cc () =
     )
   in
   let piqi = {piqi with P#modname = Some "piqi"} in
-  let obj = Piq.Piqi piqi in
+  let obj = Piqi_convert.Piqi piqi in
 
   let och = Piqi_main.open_output !Piqi_main.ofile in
   match !output_format with
     | "json" ->
-        Piq.write_json och obj
+        Piqi_convert.write_json och obj
     | "pb" ->
-        Piq.write_pb och obj
+        Piqi_convert.write_pb och obj
     | "xml" ->
-        Piq.write_xml och obj
+        Piqi_convert.write_xml och obj
     | "piqi" | "" ->
         let piqi = Piqi.lang_to_spec piqi in
         let piqi = {piqi with P#modname = Some "piqi"} in

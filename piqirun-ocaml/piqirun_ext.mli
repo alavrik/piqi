@@ -25,14 +25,14 @@ type input_format = [ `json | `pb | `piq | `pib | `xml ]
 
 type output_format = [ input_format | `json_pretty | `xml_pretty ]
 
-type piqtype
+type piqi_type
 
 type options
 
 
 val init_piqi : string list -> unit
 
-val find_piqtype : string -> piqtype
+val find_piqi_type : string -> piqi_type
 
 
 (* Construct serialization options to be passed as an optional argument to
@@ -81,5 +81,5 @@ val make_options:
 
 val convert:
   ?opts:options ->
-  piqtype -> input_format -> output_format -> string -> string
+  piqi_type -> input_format -> output_format -> string -> string
 

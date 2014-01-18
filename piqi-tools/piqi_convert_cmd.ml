@@ -105,66 +105,66 @@ let speclist = Main.common_speclist @
 
 let first_load = ref true
 
-let load_piqi fname :Piq.obj =
+let load_piqi fname :Piqi_convert.obj =
   if !first_load
   then first_load := false
-  else raise Piq.EOF; (* mimic the behaviour of Piq. loaders *)
+  else raise Piqi_convert.EOF; (* mimic the behaviour of Piqi_convert loaders *)
 
   (* NOTE, XXX: here also loading, processing and validating all the
    * module's dependencies *)
   let ch = Piqi_command.open_input fname in
   let piqi = Piqi.load_piqi fname ch in
-  Piq.Piqi piqi
+  Piqi_convert.Piqi piqi
 
 
 let resolve_typename () =
   if !typename <> ""
-  then Some (Piqi_convert.find_piqtype !typename)
+  then Some (Piqi_convert.find_type !typename)
   else None
 
 
-(* ensuring that Piq.load_pb is called exactly one time *)
-let load_pb piqtype protobuf :Piq.obj =
+(* ensuring that Piqi_convert.load_pb is called exactly one time *)
+let load_pb piqtype protobuf :Piqi_convert.obj =
   if !first_load
   then first_load := false
-  else raise Piq.EOF; (* XXX: print a warning if there are more input objects? *)
-  Piq.load_pb piqtype protobuf
+  else raise Piqi_convert.EOF; (* XXX: print a warning if there are more input objects? *)
+  Piqi_convert.load_pb piqtype protobuf
 
 
 let first_write = ref true
 
-let write_pb ch (obj: Piq.obj) =
+let write_pb ch (obj: Piqi_convert.obj) =
   if !first_write
   then first_write := false
   else piqi_error "converting more than one object to \"pb\" is not allowed";
-  Piq.write_pb ch obj
+  Piqi_convert.write_pb ch obj
 
 
-let write_piq ch (obj: Piq.obj) =
+let write_piq ch (obj: Piqi_convert.obj) =
   if !first_write
   then first_write := false
   else
     if !flag_piq_frameless_output
     then piqi_error "converting more than one object to frameless \"piq\" is not allowed";
-  Piq.write_piq ch obj
+  Piqi_convert.write_piq ch obj
 
 
 (* write only data and skip Piqi specifications and data hints *)
-let write_data ~is_piqi_input writer ch (obj: Piq.obj) =
+let write_data ~is_piqi_input writer ch (obj: Piqi_convert.obj) =
   match obj with
-    | Piq.Piqi _ when not is_piqi_input ->
+    | Piqi_convert.Piqi _ when not is_piqi_input ->
         (* ignore embedded Piqi specs if we are not converting .piqi *)
         ()
-    | Piq.Piqtype _ ->
+    | Piqi_convert.Piqtype _ ->
         (* ignore default type names *)
         ()
     | _ ->writer ch obj
 
 
 (* write data and Piqi specifications and data hints *)
-let write_data_and_piqi writer ch (obj: Piq.obj) =
+let write_data_and_piqi writer ch (obj: Piqi_convert.obj) =
   match obj with
-    | Piq.Piqtype _ ->
+    | Piqi_convert.Piqtype _ ->
         (* ignore default type names *)
         ()
     | _ -> writer ch obj
@@ -188,18 +188,18 @@ let make_reader input_encoding =
 
     | "json" ->
         let json_parser = Piqi_json_parser.init_from_channel ch ~fname in
-        make_reader (Piq.load_json_obj (resolve_typename ())) json_parser
+        make_reader (Piqi_convert.load_json_obj (resolve_typename ())) json_parser
 
     | "xml" when !typename = "" ->
         piqi_error "--type parameter must be specified for \"xml\" input encoding"
     | "xml" ->
         let piqtype = some_of (resolve_typename ()) in
         let xml_parser = Piqi_xml.init_from_channel ch ~fname in
-        make_reader (Piq.load_xml_obj piqtype) xml_parser
+        make_reader (Piqi_convert.load_xml_obj piqtype) xml_parser
 
     | "piq" ->
         let piq_parser = Piq_parser.init_from_channel fname ch in
-        make_reader (Piq.load_piq_obj (resolve_typename ())) piq_parser
+        make_reader (Piqi_convert.load_piq_obj (resolve_typename ())) piq_parser
 
     | "piqi" when !typename <> "" ->
         piqi_error "--type parameter is not applicable to \"piqi\" input encoding"
@@ -208,7 +208,7 @@ let make_reader input_encoding =
 
     | "pib" ->
         let buf = Piqirun.IBuf.of_channel ch in
-        make_reader (Piq.load_pib_obj (resolve_typename ())) buf
+        make_reader (Piqi_convert.load_pib_obj (resolve_typename ())) buf
     | "" ->
         piqi_error "can't determine input encoding; use -f option to specify it explicitly"
     | x ->
@@ -227,13 +227,13 @@ let make_writer ?(is_piqi_input=false) output_encoding =
   match output_encoding with
     | "" (* default output encoding is "piq" *)
     | "piq" -> write_piq
-    | "pib" -> Piq.write_pib
+    | "pib" -> Piqi_convert.write_pib
     | "json" ->
-        write_data_and_piqi Piq.write_json
+        write_data_and_piqi Piqi_convert.write_json
     | "pb" ->
         write_data write_pb ~is_piqi_input
     | "xml" ->
-        write_data Piq.write_xml ~is_piqi_input
+        write_data Piqi_convert.write_xml ~is_piqi_input
     | x ->
         piqi_error ("unknown output encoding " ^ U.quote x)
 
@@ -289,19 +289,19 @@ let get_parent_piqi (t: T.piqtype) =
   C.get_parent_piqi typedef
 
 
-let get_dependencies (obj :Piq.obj) ~only_imports =
+let get_dependencies (obj :Piqi_convert.obj) ~only_imports =
   let deps =
     match obj with
-      | Piq.Piqi piqi ->
+      | Piqi_convert.Piqi piqi ->
           (* add piqi itself to the list of seen *)
           add_seen piqi;
           get_piqi_deps piqi ~only_imports
       | _ -> (
           let piqtype =
             match obj with
-              | Piq.Piqtype name ->
+              | Piqi_convert.Piqtype name ->
                   Piqi_db.find_piqtype name
-              | Piq.Typed_piqobj obj | Piq.Piqobj obj ->
+              | Piqi_convert.Typed_piqobj obj | Piqi_convert.Piqobj obj ->
                   Piqobj_common.type_of obj
               | _ -> assert false
           in
@@ -349,7 +349,7 @@ let do_convert ?writer ?(is_piq_output=false) reader =
       let obj = reader () in
       Some obj
     with
-      Piq.EOF -> None
+      Piqi_convert.EOF -> None
   in
   (* write the object to the output channel *)
   let do_write_obj obj =
@@ -366,7 +366,7 @@ let do_convert ?writer ?(is_piq_output=false) reader =
       let deps = get_dependencies obj ~only_imports:(not is_piq_output) in
       List.iter (fun x ->
         trace "piqi convert: embedding dependency module %s\n" (some_of x.P#modname);
-        do_write_obj (Piq.Piqi x)
+        do_write_obj (Piqi_convert.Piqi x)
       ) deps
     );
     (* finally, write the object itself *)
@@ -380,7 +380,7 @@ let do_convert ?writer ?(is_piq_output=false) reader =
       Piqloc.preserve ();
       (* finally, write it to the output channel *)
       trace "piqi convert: writing module %s\n" modname;
-      write_obj (Piq.Piqi piqi)
+      write_obj (Piqi_convert.Piqi piqi)
     )
     (List.rev piqi_list)
   in
@@ -396,7 +396,7 @@ let do_convert ?writer ?(is_piq_output=false) reader =
       | Some obj ->
           let piqi_list =
             match obj with
-              | Piq.Piqi piqi ->
+              | Piqi_convert.Piqi piqi ->
                   Piqi_db.add_piqi piqi;
                   (* Preserve location information so that exising location info for
                    * Piqi modules won't be discarded by subsequent Piqloc.reset()

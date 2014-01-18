@@ -192,7 +192,7 @@ let piqi_compile_piqi ifile =
 
   let ch = Piqi_command.open_input ifile in
   let piqi = Piqi.load_piqi ifile ch in
-  Piqi_compile.compile_to_pb self_spec piqi ~strict:!flag_strict
+  Piqi_compile.compile self_spec piqi ~strict:!flag_strict
 
 
 let load_piqi_list ifile =

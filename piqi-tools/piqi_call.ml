@@ -173,7 +173,7 @@ let decode_response f output =
   trace "piqi_call: decoding response\n";
   let piqobj_of_bin piqtype data =
     let buf = Piqirun.init_from_string data in
-    Piq.piqobj_of_protobuf (piqtype :> T.piqtype) buf
+    Piqi_convert.piqobj_of_protobuf (piqtype :> T.piqtype) buf
   in
   match f.T.Func#resolved_output, output with
     | None, `ok_empty -> `ok_empty
@@ -320,10 +320,10 @@ let gen_result ch writer res =
   match res with
     | `ok_empty -> ()
     | `ok obj ->
-        writer ch (Piq.Piqobj obj)
+        writer ch (Piqi_convert.Piqobj obj)
     | `error obj ->
         trace "piqi_call: remote function returned error:\n";
-        writer stderr (Piq.Piqobj obj);
+        writer stderr (Piqi_convert.Piqobj obj);
         exit 1
 
 
@@ -571,12 +571,12 @@ let run_call url =
       let piqi = last piqi_list in
       if !output_encoding = ""
       then
-        Piqi_pp.prettyprint_piqi ch (Piq.original_piqi piqi)
+        Piqi_pp.prettyprint_piqi ch (Piqi_convert.original_piqi piqi)
       else
-        writer ch (Piq.Piqi piqi)
+        writer ch (Piqi_convert.Piqi piqi)
     else if !flag_piqi_all
     then
-      List.iter (fun piqi -> writer ch (Piq.Piqi piqi)) piqi_list
+      List.iter (fun piqi -> writer ch (Piqi_convert.Piqi piqi)) piqi_list
     else if !flag_piqi_light
     then
       let piqi = last piqi_list in
@@ -592,7 +592,7 @@ let usage = "Usage: piqi call [options] <URL> -- [call arguments]\nOptions:"
 
 (* URL: <server>/<method> *)
 let url = ref ""
-let custom_anon_fun s = url := s
+let anon_fun s = url := s
 
 
 let speclist = Main.common_speclist @
@@ -623,7 +623,7 @@ let speclist = Main.common_speclist @
 
 let run () =
   Main.parse_args ()
-    ~speclist ~usage ~min_arg_count:1 ~max_arg_count:1 ~custom_anon_fun;
+    ~speclist ~usage ~min_arg_count:1 ~max_arg_count:1 ~anon_fun;
 
   Piqi_convert.init ();
   Piqi_getopt.init ();

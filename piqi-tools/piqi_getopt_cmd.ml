@@ -62,11 +62,11 @@ let getopt_command () =
         Piqi_pp.prettyprint_ast och ast
     | _ ->
         let writer = Piqi_convert_cmd.make_writer !output_encoding in
-        let piqtype = Piqi_convert.find_piqtype !typename in
+        let piqtype = Piqi_convert.find_type !typename in
         let piqobj = Piqi_getopt.parse_args piqtype piq_ast_list in
 
         (* write the object *)
-        writer och (Piq.Typed_piqobj piqobj)
+        writer och (Piqi_convert.Typed_piqobj piqobj)
 
 
 let usage = "Usage: piqi getopt [options] -- [<data arguments>] \nOptions:"

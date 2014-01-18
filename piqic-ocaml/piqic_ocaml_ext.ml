@@ -42,21 +42,21 @@ let typedef_scoped_name context typedef =
   modname ^ "/" ^ name
 
 
-let gen_init_piqtype context typedef =
+let gen_init_piqi_type context typedef =
   let name = C.typedef_mlname typedef in
   let scoped_name = typedef_scoped_name context typedef in
   iod " " [
-    ios "let _" ^^ ios name ^^ ios "_piqtype =";
-      ios "Piqirun_ext.find_piqtype"; ioq scoped_name;
+    ios "let _" ^^ ios name ^^ ios "_piqi_type =";
+      ios "Piqirun_ext.find_piqi_type"; ioq scoped_name;
     eol;
   ]
 
 
 let gen_convert name input_format output_format data =
-  let piqtype = "_" ^ name ^ "_piqtype" in
+  let piqi_type = "_" ^ name ^ "_piqi_type" in
   iod " " [
     ios "Piqirun_ext.convert";
-      ios piqtype; ios input_format; ios output_format; ios data;
+      ios piqi_type; ios input_format; ios output_format; ios data;
   ]
 
 
@@ -110,7 +110,7 @@ let gen_piqi context =
    * for built-in types to work *)
   let typedefs = List.filter (fun x -> not (C.is_builtin_typedef x)) typedefs in
 
-  let type_initializers = List.map (gen_init_piqtype context) typedefs in
+  let type_initializers = List.map (gen_init_piqi_type context) typedefs in
   let parsers = List.map (gen_parse modname) typedefs in
   let generators = List.map (gen_gen modname) typedefs in
   let printers = List.map gen_print typedefs in

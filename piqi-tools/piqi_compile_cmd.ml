@@ -103,7 +103,7 @@ let compile self_spec piqi och =
             U.with_bool Piqobj_to_piq.is_external_mode true
             (fun () -> Piqobj_to_piq.gen_obj piqobj)
           in
-          let ast = Piq.piqi_ast_to_piq ast in
+          let ast = Piqi_convert.piqi_ast_to_piq ast in
           Piq_gen.to_channel och ast;
           Pervasives.output_char och '\n'
         in
@@ -111,13 +111,13 @@ let compile self_spec piqi och =
     | format ->
         let writer =
           match format with
-            | "json" -> Piq.write_json
-            | "pb" -> Piq.write_pb
-            | "xml" -> Piq.write_xml
+            | "json" -> Piqi_convert.write_json
+            | "pb" -> Piqi_convert.write_pb
+            | "xml" -> Piqi_convert.write_xml
             | x -> piqi_error ("unknown output format " ^ U.quote x)
         in
         let piqobj = Piqi_compile.make_piqi_list_piqobj piqi_list_piqtype piqobj_list in
-        writer och (Piq.Piqobj piqobj)
+        writer och (Piqi_convert.Piqobj piqobj)
 
 
 let load_self_spec filename =

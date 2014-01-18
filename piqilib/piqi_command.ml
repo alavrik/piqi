@@ -124,7 +124,8 @@ let default_anon_fun s =
         then ofile := s
     | _ -> ()
 
-let anon_fun f s =
+
+let anon_fun_wrapper f s =
   incr arg_count;
   f s
 
@@ -142,7 +143,7 @@ let arg_C =
     "<output directory> specify output directory"
 
 let arg__ =
-   "--", Arg.Rest (anon_fun default_anon_fun),
+   "--", Arg.Rest (anon_fun_wrapper default_anon_fun),
      "supply other arguments possibly including '-' for stdin input/output"
 
 let arg__leave_tmp_files =
@@ -186,8 +187,8 @@ let common_speclist =
 
 let parse_args
     ~speclist ~usage
-    ?(min_arg_count=1) ?(max_arg_count=1) ?(custom_anon_fun=default_anon_fun)() =
-  Arg.parse speclist (anon_fun custom_anon_fun) usage;
+    ?(min_arg_count=1) ?(max_arg_count=1) ?(anon_fun=default_anon_fun) () =
+  Arg.parse speclist (anon_fun_wrapper anon_fun) usage;
   if !arg_count < min_arg_count || !arg_count > max_arg_count
   then (
     Arg.usage speclist usage;

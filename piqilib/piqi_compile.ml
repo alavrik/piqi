@@ -63,7 +63,7 @@ let make_piqi_list_piqobj piqi_list_piqtype (piqi_piqobj_list: Piqobj.obj list) 
   trace "converting piqi piqobj list to protobuf piqi-list\n";
   let piqi_binobj_list = List.map
     (fun piqobj ->
-      let obuf = Piq.piqobj_to_protobuf (-1) piqobj in
+      let obuf = Piqi_convert.piqobj_to_protobuf (-1) piqobj in
       Piqirun.to_string obuf
     )
     piqi_piqobj_list
@@ -98,9 +98,11 @@ let rec get_piqi_deps piqi =
   deps @ [piqi]
 
 
-(* TODO: not sure how to unify this with a very similar code in
+(* called only from Piqic_ocaml
+ *
+ * TODO: not sure how to unify this with a very similar code in
  * piqi_convert_cmd.ml *)
-let compile_to_pb ?(strict=false) self_spec piqi =
+let compile ?(strict=false) self_spec piqi =
   trace "compile_to_pb:\n";
   trace_enter ();
   trace "getting all imported dependencies\n";
@@ -121,8 +123,7 @@ let compile_to_pb ?(strict=false) self_spec piqi =
 
   trace "generating pb\n";
   let piqobj = make_piqi_list_piqobj piqi_list_piqtype piqobj_list in
-  let buf = Piq.gen_pb (Piq.Piqobj piqobj) in
-  let res = Piqirun.to_string buf in
+  let res = Piqi_convert.gen_pb_string (Piqi_convert.Piqobj piqobj) in
   trace_leave ();
   res
 

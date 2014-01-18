@@ -63,6 +63,7 @@ SOURCES = \
 	piqobj_of_piq.ml \
 	\
 	piqi.ml \
+	piq.ml \
 	\
 	piqi_pp.ml \
 	\
@@ -78,7 +79,6 @@ SOURCES = \
 	piqobj_to_xml.ml \
 	piqobj_of_xml.ml \
 	\
-	piq.ml \
 	piqi_convert.ml \
 	piqi_compile.ml \
 	\

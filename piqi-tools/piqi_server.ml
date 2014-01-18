@@ -63,9 +63,9 @@ let set_convert_options args =
 (* "convert" call handler *)
 let convert args =
   let open I.Convert_input in
-  let piqtype = Piqi_convert.find_piqtype args.type_name in
+  let piqtype = Piqi_convert.find_type args.type_name in
   set_convert_options args;
-  let output = Piqi_convert.convert_piqtype
+  let output = Piqi_convert.convert
       piqtype args.input_format args.output_format args.data
       ~opts:convert_options
   in
@@ -85,9 +85,9 @@ let convert args =
 
 
 let add_one_piqi input_format data =
-  let piqtype = Piqi_convert.find_piqtype "piqi" in
+  let piqtype = Piqi_convert.find_type "piqi" in
   match Piqi_convert.parse_obj piqtype input_format data with
-    | Piq.Piqi piqi ->
+    | Piqi_convert.Piqi piqi ->
         (* cache Piqi spec and preserve its location info *)
         Piqi_db.add_piqi piqi;
         Piqloc.preserve ();
