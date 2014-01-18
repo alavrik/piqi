@@ -2,7 +2,13 @@
 % OCaml-specific Piqi extensions
 %
 
-.include [ .module piqi/piqi ]
+.include [ .module piqi ]
+
+
+% generate piqic_piqi.ml instead of piqi_piqi.ml so that we don't conflict with
+% piqi_piqi.ml that comes with the piqilib library
+.ocaml-module "Piqic_piqi"
+.custom-field ocaml-module
 
 
 .extend [

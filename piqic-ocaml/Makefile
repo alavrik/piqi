@@ -31,10 +31,12 @@ debug: dc top
 
 
 # recompile piqi self-spec into piqic_piqi.ml
+PIQI ?= ../piqi-tools/piqi
 PIQIC = ./$(RESULT)
-PIQIC_FLAGS = -I $(PIQI_ROOT) --embed-piqi --pp #--trace
+PIQIC_FLAGS = -e piqi-ocaml --embed-piqi --pp #--trace
 
-reboot:
+piqi:
+	$(PIQI) cc -o piqi.piqi
 	$(PIQIC) $(PIQIC_FLAGS) piqi.piqi
 
 

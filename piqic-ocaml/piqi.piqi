@@ -1,7 +1,0 @@
-.include [ .module piqi/piqi ]
-
-.include [ .module piqi.ocaml-extensions ]
-
-
-.ocaml-module "Piqic_piqi"
-.custom-field ocaml-module

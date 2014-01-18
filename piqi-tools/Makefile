@@ -40,8 +40,9 @@ PIQI_FILES = descriptor.proto.piqi piqi_tools.piqi piqi_rpc.piqi
 PIQI_ML_FILES = descriptor_piqi.ml piqi_tools_piqi.ml piqi_rpc_piqi.ml
 
 
-PIQIC = ../piqic-ocaml/piqic-ocaml
-PIQIC_FLAGS = -I $(PIQI_ROOT) --pp --runtime Piqi_piqirun
+PIQI_OCAML_DIR ?= ..
+PIQIC = $(PIQI_OCAML_DIR)/piqic-ocaml/piqic-ocaml
+PIQIC_FLAGS = --pp --runtime Piqi_piqirun
 
 
 all: nc

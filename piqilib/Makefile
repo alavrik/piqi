@@ -89,13 +89,6 @@ SOURCES = \
 PRE_TARGETS = piqi_version.ml META $(CAMLP4_SOURCES) $(CAMLP4_TARGETS)
 
 
-PIQI = ../piqi-tools/piqi
-PIQIC = ../piqic-ocaml/piqic-ocaml
-
-PIQI_FLAGS = -I $(PIQI_ROOT)
-PIQIC_FLAGS = $(PIQI_FLAGS) --runtime Piqi_piqirun
-
-
 all: ncl
 
 
@@ -130,11 +123,25 @@ $(CAMLP4_SOURCES):
 #
 # NOTE: expand_piqi_boot is optional and can be safely turned off if it is
 # giving troubles
-piqi: piqi_ml piqi_boot expand_piqi_boot
+
+PIQI = ../piqi-tools/piqi
+
+PIQI_OCAML_DIR ?= ..
+PIQIC = $(PIQI_OCAML_DIR)/piqic-ocaml/piqic-ocaml
+
+PIQI_FLAGS = -I $(PIQI_ROOT)
+PIQIC_FLAGS = $(PIQI_FLAGS) --runtime Piqi_piqirun
+
+
+piqi: piqi_files piqi_ml piqi_boot expand_piqi_boot
+
+
+piqi_files:
+	cp $(PIQI_OCAML_DIR)/piqic-ocaml/piqi.ocaml.piqi .
+	cp $(PIQI_OCAML_DIR)/piqirun-ocaml/piqirun.ml piqi_piqirun.ml
 
 
 piqi_ml:
-	cp ../piqirun-ocaml/piqirun.ml piqi_piqirun.ml
 	$(PIQIC) $(PIQIC_FLAGS) --cc --pp piqi-impl.piqi
 	$(PIQIC) $(PIQIC_FLAGS) --pp piqi.piqi
 
@@ -161,7 +168,7 @@ expand_piqi_boot:
 	$(MAKE) -f Makefile.expand_piqi_boot clean
 
 
-.PHONY: piqi piqi_ml piqi_boot expand_piqi_boot
+.PHONY: piqi piqi_files piqi_ml piqi_boot expand_piqi_boot
 
 
 include $(OCAMLMAKEFILE)
