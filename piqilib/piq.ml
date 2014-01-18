@@ -102,12 +102,42 @@ let process_typedef_piq_positional = function
   | _ -> ()
 
 
+let check_name x =
+  if not (Piqi_name.is_valid_name x)
+  then error x ("invalid piq alias name: " ^ U.quote x)
+  else ()
+
+
+let check_opt_name = function
+  | None -> ()
+  | Some x -> check_name x
+
+
+let check_field_piq_alias x =
+  check_opt_name x.F#piq_alias
+
+
+let check_option_piq_alias x =
+  check_opt_name x.O#piq_alias
+
+
+let check_typedef_piq_alias = function
+  | `record x ->
+      List.iter check_field_piq_alias x.R#field
+  | `variant x ->
+      List.iter check_option_piq_alias x.V#option
+  | _ -> ()
+
+
 let process_typedefs typedefs =
   (* resolve Piq representation format settings *)
   List.iter resolve_typedef_piq_format typedefs;
   (* stuff related to .piq-positional property *)
   List.iter process_typedef_piq_positional typedefs;
-  (* TODO: validate .piq-alias names *)
+  (* validate .piq-alias names
+   * TODO, XXX: check for all sorts of duplicates; warn if .name masks
+   * .piq-alias *)
+  List.iter check_typedef_piq_alias typedefs;
   ()
 
 
