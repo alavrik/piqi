@@ -32,8 +32,11 @@ SOURCES = \
 	piqi_run.ml
 
 
-# make sure piqi gets rebuilt when we change the library
-RESULTDEPS = ../piqilib/piqi.cmxa $(wildcard ../piqilib/piqi.cma)
+# make sure piqi gets re-linked when the piqilib library changes
+RESULTDEPS := $(wildcard ../piqilib/piqi.cm*a)
+
+# allow ocamldep to pick up ../piqilib/*.cm[ox] as dependencies for ./*.cm[ox]
+DINCDIRS := ../piqilib
 
 
 PIQI_FILES = descriptor.proto.piqi piqi_tools.piqi piqi_rpc.piqi
@@ -45,10 +48,16 @@ PIQIC = $(PIQI_OCAML_DIR)/piqic-ocaml/piqic-ocaml
 PIQIC_FLAGS = --pp --runtime Piqi_piqirun
 
 
-all: nc
+all: piqilib nc
 
 
-debug: dc top
+debug: piqilib dc top
+
+
+# NOTE: we have to unset these variables to prevent piqilib's OCamlMakefile from
+# inheriting them
+piqilib:
+	unset RESULTDEPS DINCDIRS REAL_OCAMLFIND && $(MAKE) -C ../piqilib $(MAKECMDGOALS)
 
 
 # rebuilding *_piqi.ml from .piqi -- called manually as "make piqi" when there
@@ -69,7 +78,7 @@ descriptor: descriptor.proto
 	$(MAKE) piqi
 
 
-.PHONY: descriptor piqi
+.PHONY: descriptor piqi piqilib
 
 
 include $(OCAMLMAKEFILE)
