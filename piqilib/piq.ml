@@ -87,18 +87,26 @@ let resolve_typedef_piq_format = function
       ()
 
 
-let process_field_piq_positional x =
+let process_field_piq_positional record_piq_positional x =
   let open F in
-  match x.name, x.typename with
-    | Some _, None ->  (* flag *)
-        if x.piq_positional = Some true
-        then error x "flags can not be positional"
-    | _ -> ()
+  begin
+    (match x.name, x.typename with
+      | Some _, None ->  (* flag *)
+          if x.piq_positional = Some true
+          then error x "flags can not be positional"
+      | _ -> ()
+    );
+
+    (* inherit the record-level setting when the local per-field setting is
+     * missing *)
+    if x.piq_positional = None
+    then x.piq_positional <- record_piq_positional
+  end
 
 
 let process_typedef_piq_positional = function
   | `record x ->
-      List.iter process_field_piq_positional x.R#field
+      List.iter (process_field_piq_positional x.R#piq_positional) x.R#field
   | _ -> ()
 
 

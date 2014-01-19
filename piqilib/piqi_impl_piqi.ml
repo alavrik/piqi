@@ -146,6 +146,7 @@ and
           mutable wire_field : Piqi_impl_piqi.field list;
           mutable is_func_param : bool;
           mutable unparsed_piq_ast : Piqi_impl_piqi.uint option;
+          mutable piq_positional : bool option;
           mutable protobuf_name : string option;
           mutable protobuf_custom : string list;
           mutable json_name : string option;
@@ -681,6 +682,8 @@ and parse_record x =
          Piqirun.parse_optional_field 139663632 parse_string x in
        let (_name, x) =
          Piqirun.parse_optional_field 150958667 parse_name x in
+       let (_piq_positional, x) =
+         Piqirun.parse_optional_field 197354217 parse_bool x in
        let (_parent, x) =
          Piqirun.parse_optional_field 226362666 parse_namespace x in
        let (_is_func_param, x) =
@@ -699,6 +702,7 @@ and parse_record x =
             Record.wire_field = _wire_field;
             Record.proto_name = _proto_name;
             Record.name = _name;
+            Record.piq_positional = _piq_positional;
             Record.parent = _parent;
             Record.is_func_param = _is_func_param;
             Record.proto_custom = _proto_custom;
@@ -1431,6 +1435,8 @@ and gen__record code x =
      Piqirun.gen_optional_field 139663632 gen__string x.Record.proto_name in
    let _name =
      Piqirun.gen_optional_field 150958667 gen__name x.Record.name in
+   let _piq_positional =
+     Piqirun.gen_optional_field 197354217 gen__bool x.Record.piq_positional in
    let _parent =
      Piqirun.gen_optional_field 226362666 gen__namespace x.Record.parent in
    let _is_func_param =
@@ -1442,8 +1448,8 @@ and gen__record code x =
    in
      Piqirun.gen_record code
        [ _unparsed_piq_ast; _field; _protobuf_name; _protobuf_custom;
-         _wire_field; _proto_name; _name; _parent; _is_func_param;
-         _proto_custom; _json_name ])
+         _wire_field; _proto_name; _name; _piq_positional; _parent;
+         _is_func_param; _proto_custom; _json_name ])
 and gen__field code x =
   (refer x;
    let _unparsed_piq_ast =
@@ -1948,6 +1954,7 @@ and default_record () =
     Record.wire_field = [];
     Record.proto_name = None;
     Record.name = None;
+    Record.piq_positional = None;
     Record.parent = None;
     Record.is_func_param = false;
     Record.proto_custom = [];
