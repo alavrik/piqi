@@ -2,8 +2,8 @@ test: init test_cc test_compile
 
 
 init:
-	ln -sf ../../piqic-ocaml/piqi.piqi
-	ln -sf ../../piqic-ocaml/piqi.ocaml-extensions.piqi
+	piqi cc -o piqi.piqi
+	ln -sf ../../piqic-ocaml/piqi.piqi-ocaml.piqi
 
 
 test_cc:
@@ -23,17 +23,17 @@ test_cc:
 
 
 test_compile:
-	piqi cc -t pb -o self-spec.pb piqi.piqi
+	piqi cc -e piqi-ocaml -t pb -o self-spec.pb piqi.piqi
 
-	piqi compile --self-spec self-spec.pb piqi.piqi >p.piqi
-	piqi compile --self-spec self-spec.pb -t json piqi.piqi >/dev/null
-	piqi compile --self-spec self-spec.pb -t xml piqi.piqi >/dev/null
-	piqi compile --self-spec self-spec.pb -t pb piqi.piqi >/dev/null
+	piqi compile --strict --self-spec self-spec.pb piqi.piqi >p.piqi
+	piqi compile --strict --self-spec self-spec.pb -t json piqi.piqi >/dev/null
+	piqi compile --strict --self-spec self-spec.pb -t xml piqi.piqi >/dev/null
+	piqi compile --strict --self-spec self-spec.pb -t pb piqi.piqi >/dev/null
 
-	piqi compile --self-spec self-spec.pb -e ocaml ../../piqi-tools/descriptor.proto.piqi >d.piqi
-	piqi compile --self-spec self-spec.pb -e ocaml -t json ../../piqi-tools/descriptor.proto.piqi >/dev/null
-	piqi compile --self-spec self-spec.pb -e ocaml -t xml ../../piqi-tools/descriptor.proto.piqi >/dev/null
-	piqi compile --self-spec self-spec.pb -e ocaml -t pb ../../piqi-tools/descriptor.proto.piqi >/dev/null
+	piqi compile --strict --self-spec self-spec.pb -e ocaml ../../piqi-tools/descriptor.proto.piqi >d.piqi
+	piqi compile --strict --self-spec self-spec.pb -e ocaml -t json ../../piqi-tools/descriptor.proto.piqi >/dev/null
+	piqi compile --strict --self-spec self-spec.pb -e ocaml -t xml ../../piqi-tools/descriptor.proto.piqi >/dev/null
+	piqi compile --strict --self-spec self-spec.pb -e ocaml -t pb ../../piqi-tools/descriptor.proto.piqi >/dev/null
 
 
 clean:

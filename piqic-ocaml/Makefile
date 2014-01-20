@@ -30,6 +30,10 @@ all: nc
 debug: dc top
 
 
+clean::
+	rm -f piqi.piqi
+
+
 # recompile piqi self-spec into piqic_piqi.ml
 PIQI ?= ../piqi-tools/piqi
 PIQIC = ./$(RESULT)
