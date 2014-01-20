@@ -39,7 +39,6 @@ SOURCES = \
 	\
 	piqi_config.ml \
 	piqi_iolist.ml \
-	piqi_graph.ml \
 	piqi_name.ml \
 	piqi_common.ml \
 	piqi_file.ml \

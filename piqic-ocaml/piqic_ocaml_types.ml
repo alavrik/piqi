@@ -293,6 +293,59 @@ let gen_imports context l =
   iol l
 
 
+let default_visitor _ = ()
+
+
+(* depth-first graph traversal *)
+let dfs
+    ?(pre_visit = default_visitor)
+    ?(cycle_visit = default_visitor)
+    ?(post_visit = default_visitor)
+    (nodes: 'a list)
+    (get_adjacent_vertixes: ('a -> 'a list)) =
+  let black = ref [] in (* visited nodes, i.e. after last_visit *)
+  let grey = ref [] in (* nodes between first_visit and last_visit *)
+  let set_color node = function
+    | `black -> black := node::!black
+    | `grey -> grey := node::!grey
+  in
+  let get_color node =
+    if List.memq node !black
+    then `black
+    else if List.memq node !grey
+    then `grey
+    else `white
+  in
+  let rec aux node =
+    match get_color node with
+      | `black -> () (* already processed -- nothing to do *)
+      | `grey -> (* found a cycle -- run a handler and return *)
+          cycle_visit node
+      | `white ->
+          set_color node `grey;
+          pre_visit node; (* run a pre-visit handler *)
+
+          List.iter aux (get_adjacent_vertixes node);
+
+          set_color node `black;
+          post_visit node (* run a post-visit handler *)
+  in
+  List.iter aux nodes
+
+
+(* topological sort of a graph *)
+let tsort
+    ?(cycle_visit = (fun _ -> failwith "found a cycle!"))
+    (nodes: 'a list)
+    (get_adjacent_vertixes: ('a -> 'a list)) : 'a list =
+  let stack = ref [] in
+  let post_visit node =
+    stack := node::!stack
+  in
+  dfs nodes get_adjacent_vertixes ~post_visit ~cycle_visit;
+  List.rev !stack
+
+
 (* NOTE: for some reason, ocaml complains about fully qualified polymorphic
  * variants in recursive modules, so instead of relying on OCaml, we need to
  * preorder variants ourselves without relying on OCaml to figure out the order
@@ -321,7 +374,7 @@ let order_variants context l =
         ) v.V#option
     | _ -> []
   in
-  Piqi_graph.tsort l get_adjacent_vertixes ~cycle_visit
+  tsort l get_adjacent_vertixes ~cycle_visit
 
 
 (* make sure we define aliases for built-in ocaml types first; some aliases
