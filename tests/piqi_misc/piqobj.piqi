@@ -117,7 +117,7 @@
     .name any 
     .field [
         .name t
-        .type piqi/alias
+        .type piqi/any
     ]
     .field [ .type obj .optional ]
 ]

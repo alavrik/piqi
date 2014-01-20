@@ -1,4 +1,5 @@
 .ocaml-module "Protocol"
+.custom-field ocaml-module
 
 .import [ .module Ad ]
 

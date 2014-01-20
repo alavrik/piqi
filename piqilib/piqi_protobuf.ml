@@ -101,7 +101,7 @@ let incr i =
     else ()
 
 
-let addcodes_field code f =
+let add_codes_field code f =
   let open T.Field in
   match f.code with
     | None -> (* assign previously unassigned code *)
@@ -109,7 +109,7 @@ let addcodes_field code f =
     | Some _ -> assert false
 
 
-let addcodes_option code o =
+let add_codes_option code o =
   let open T.Option in
   match o.code with
     | None -> (* assign previously unassigned code *)
@@ -117,7 +117,7 @@ let addcodes_option code o =
     | Some _ -> assert false
 
 
-let addcodes_enum_option code o =
+let add_codes_enum_option code o =
   let open T.Option in
   match o.code with
     | None -> (* assign previously unassigned code *)
@@ -156,7 +156,7 @@ let order_fields fields =
         | _ -> assert false) fields
 
 
-let addcodes_record r =
+let add_codes_record r =
   let open T.Record in
   let fields = r.field in
   if List.exists (fun x -> x.T.Field#code <> None) fields
@@ -173,12 +173,12 @@ let addcodes_record r =
   )
   else (
     let code = ref 1l in (* assign codes *)
-    List.iter (addcodes_field code) fields;
+    List.iter (add_codes_field code) fields;
     r.wire_field <- fields (* the order of fields remains the same *)
   )
 
 
-let addcodes_variant v =
+let add_codes_variant v =
   let open T.Variant in
   let options = v.option in
   if List.exists (fun x -> x.T.Option#code <> None) options
@@ -192,11 +192,11 @@ let addcodes_variant v =
   )
   else (
     let code = ref 1l in (* assign codes *)
-    List.iter (addcodes_option code) options
+    List.iter (add_codes_option code) options
   )
 
 
-let addcodes_enum v =
+let add_codes_enum v =
   let open T.Enum in
   let options = v.option in
   if List.exists (fun x -> x.T.Option#code <> None) options
@@ -211,7 +211,7 @@ let addcodes_enum v =
   else (
     (* XXX: assign enum constant values starting from 0? *)
     let code = ref 1l in (* assign codes *)
-    List.iter (addcodes_enum_option code) options
+    List.iter (add_codes_enum_option code) options
   )
 
 
@@ -274,17 +274,46 @@ let check_packed_list x =
   )
 
 
+(* check for wire-types compatibility with piqi types *)
+let check_protobuf_wire_type a =
+  match a.A#protobuf_wire_type with
+    | None -> ()
+    | Some wt ->
+        let t = C.unalias (`alias a) in
+        match wt with
+          | `varint | `zigzag_varint | `fixed32 | `fixed64
+          | `signed_varint | `signed_fixed32 | `signed_fixed64 when t = `int -> ()
+          | `fixed32 | `fixed64 when t = `float -> ()
+          | _ ->
+              C.error a (
+                "wire type " ^ U.quote (wire_type_name wt) ^
+                " is incompatible with piq type " ^ U.quote (C.piqi_typename t))
+
+
 let process_def = function
   | `record x ->
       List.iter check_packed_field x.R#field;
-      addcodes_record x
-  | `variant x -> addcodes_variant x
-  | `enum x -> addcodes_enum x
-  | `list x -> check_packed_list x
+  | `list x ->
+      check_packed_list x
+  | `alias x ->
+      check_protobuf_wire_type x
   | _ -> ()
 
 
+let add_codes_def def =
+  match def with
+    | `record x -> add_codes_record x
+    | `variant x -> add_codes_variant x
+    | `enum x -> add_codes_enum x
+    | _ -> ()
+
+
+let add_codes (defs: T.typedef list) =
+  List.iter add_codes_def defs
+
+
 let process_defs (defs: T.typedef list) =
+  add_codes defs;
   List.iter process_def defs
 
 

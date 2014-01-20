@@ -260,7 +260,6 @@ let check_option o =
 
 let check_variant v =
   check_def_name v v.V#name;
-  (* TODO: check for co-variant loops *)
   let name = some_of v.V#name in
   let options = v.V#option in
   if options = []
@@ -291,17 +290,6 @@ let check_enum e =
   List.iter check_enum_option options
 
 
-let check_wire_type a wt =
-  let t = unalias (`alias a) in
-  match wt with
-    | `varint | `zigzag_varint | `fixed32 | `fixed64 
-    | `signed_varint | `signed_fixed32 | `signed_fixed64 when t = `int -> ()
-    | `fixed32 | `fixed64 when t = `float -> ()
-    | _ ->
-        error a ("wire type " ^ U.quote (Piqi_protobuf.wire_type_name wt) ^
-                 " is incompatible with piq type " ^ U.quote (piqi_typename t))
-
-
 let check_alias a =
   let open A in
   begin
@@ -330,16 +318,9 @@ let check_def def =
     | `list x -> check_list x
 
 
-let check_resolved_alias a = 
-  (* TODO: check for alias loops *)
+let check_resolved_alias a =
   let open A in
   begin
-    (* check for wire-types compatibility with piqi types *)
-    (match a.protobuf_wire_type with
-      | None -> ()
-      | Some x ->
-          check_wire_type a x
-    );
     (match some_of a.piqtype with
       | `alias b ->
           if a.piqi_type <> None && a.piqi_type <> b.piqi_type
@@ -366,6 +347,103 @@ let check_resolved_def def =
     | `alias x ->
         check_resolved_alias x
     | _ -> ()
+
+
+(* check that there are no infinite types among the definitions *)
+let check_no_infinite_types ~parent defs =
+  (* DFS graph traversal *)
+  let black = ref [] in (* visited nodes, i.e. after last_visit *)
+  let grey = ref [] in (* nodes between first_visit and last_visit *)
+  let set_color node = function
+    | `black -> black := node::!black
+    | `grey -> grey := node::!grey
+  in
+  let get_color node =
+    if List.memq node !black
+    then `black
+    else if List.memq node !grey
+    then `grey
+    else `white
+  in
+  let is_local_type piqtype =
+    match piqtype with
+      | (#T.typedef as x) ->
+          C.get_parent x == parent
+      | _ ->  (* considering built-in types local -- they can't be infinite *)
+          true
+  in
+  let rec finite_path_exists piqtype =
+    match get_color piqtype with
+      | `black ->  (* already processed, which means the type is finite *)
+          true
+      | `grey ->  (* found a cycle => the type is infinite *)
+          (match piqtype with
+            | `alias x ->
+                (* NOTE: there is a reason why we are handling it here -- see
+                 * below *)
+                error x ("alias " ^ U.quote (some_of x.A#name) ^ " forms a loop")
+            | _ ->
+                false
+          )
+      | `white ->  (* unseen node *)
+          set_color piqtype `grey;  (* mark the node as being processed *)
+          let res =
+            if not (is_local_type piqtype)
+            then
+              (* no need to check imported types as they've been checked already *)
+              true
+            else
+              match piqtype with
+                | `record x ->
+                    List.iter
+                      (fun f ->
+                        match f.F#piqtype with
+                          | Some piqtype when f.F#mode = `required ->
+                              (* NOTE: it is OK for optional and repeated field
+                               * to form a loop; for instance, variant -> record
+                               * expansion can produce such options naturally;
+                               * similarly, some .proto files (e.g.
+                               * descriptor.proto) have repeated fields forming
+                               * a loop *)
+                              if not (finite_path_exists piqtype)
+                              then error x (
+                                "record " ^ U.quote (some_of x.R#name) ^
+                                " is an infinite type (field " ^ U.quote (name_of_field f) ^ " forms a loop)"
+                              )
+                          | _ -> ()
+                      )
+                      x.R#field;
+                    true
+                | `variant x ->
+                    (* there's a finite path for a variant if there's a finite path
+                     * for at least one of its options (option with no type means
+                     * finite type by definition) *)
+                    let options = x.V#option in
+                    let is_variant_finite =
+                      if List.exists (fun x -> x.O#piqtype = None) options
+                      then true
+                      else List.exists (fun x -> finite_path_exists (some_of x.O#piqtype)) options
+                    in
+                    if not is_variant_finite
+                    then error x ("variant " ^ U.quote (some_of x.V#name) ^ " is an infinite type (each option forms a loop)")
+                    else true
+                | `list x ->
+                    if not (finite_path_exists (some_of x.L#piqtype))
+                    then error x ("list " ^ U.quote (some_of x.L#name) ^ " forms a loop")
+                    else true
+                | `alias x ->
+                    (* NOTE: not reporting an alias loop here, so that it
+                     * doesn't take precedence over loop reports for records,
+                     * variants and lists when there's an alias in the middle *)
+                    finite_path_exists (some_of x.A#piqtype)
+                | _ ->  (* enum and primitive types are finite *)
+                    true
+          in
+          set_color piqtype `black;  (* mark the node as processed *)
+          res
+  in
+  let piqtypes = (defs :> T.piqtype list) in
+  List.iter (fun x -> ignore (finite_path_exists x)) piqtypes
 
 
 (* scoped extensions names should have exactly two sections separated by '.' *)
@@ -514,7 +592,7 @@ let copy_defs ?(copy_parts=true) defs = List.map (copy_def ~copy_parts) defs
 let copy_imports l = List.map copy_obj l
 
 
-let resolve_defs ?piqi idtable (defs:T.typedef list) =
+let resolve_defs ~piqi idtable (defs:T.typedef list) =
   (*
   (* a fresh copy of defs is needed, since we can't alter the original ones:
    * we need to resolve types & assign codes in order to resolve_defaults *)
@@ -529,27 +607,27 @@ let resolve_defs ?piqi idtable (defs:T.typedef list) =
   (* resolve type names using the map *)
   List.iter (resolve_def_typenames idtable) defs;
 
+  (* set up parent namespace to local piqi defs *)
+  let parent = `piqi piqi in
+  List.iter (fun def -> set_parent def parent) defs;
+
   (* check records, variants, enums for duplicate field/option names; check wire
    * types in aliases *)
   List.iter check_resolved_def defs;
+
+  (* check that there are no infinite types among the definitions *)
+  check_no_infinite_types defs ~parent;
 
   (* assign wire codes, if they are unassigned; check otherwise; check
    * correctness of .wire-packed usage *)
   Piqi_protobuf.process_defs defs;
 
-  (* set up parent namespace to local piqi defs *)
-  (match piqi with
-    | Some piqi ->
-        List.iter (fun def -> set_parent def (`piqi piqi)) defs;
-    | None -> ()
-  );
-
   (* return updated idtable *)
   idtable
 
 
-let check_defs idtable defs =
-  ignore (resolve_defs idtable (copy_defs defs))
+let check_defs ~piqi idtable defs =
+  ignore (resolve_defs idtable (copy_defs defs) ~piqi)
 
 
 let read_piqi_common fname piq_parser :piq_ast =
@@ -1561,7 +1639,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
         (* defs should be correct before extending them *)
         (* XXX: can they become correct after extension while being
          * incorrect before? *)
-        check_defs idtable defs;
+        check_defs idtable defs ~piqi;
         apply_defs_extensions defs defs_extensions custom_fields
     )
   in
@@ -1607,7 +1685,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
 
   (* check defs, resolve defintion names to types, assign codes, resolve default
    * fields *)
-  let idtable = resolve_defs ~piqi idtable resolved_defs in
+  let idtable = resolve_defs idtable resolved_defs ~piqi in
 
   piqi.P#extended_typedef <- extended_defs;
   piqi.P#extended_func_typedef <- extended_func_defs;
@@ -2101,7 +2179,7 @@ let piqi_to_piqobj
   if C.is_self_spec piqi
   then Piqi_protobuf.add_hashcodes piqi_spec.P#typedef
   else if add_codes (* XXX: always add ordinal codes? *)
-  then Piqi_protobuf.process_defs piqi_spec.P#typedef;
+  then Piqi_protobuf.add_codes piqi_spec.P#typedef;
 
   (* piqi compile mode? TODO: this is a hack; we need a more explicit way to
    * determine whether it is a piqi compile mode *)

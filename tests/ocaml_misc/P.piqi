@@ -1,4 +1,5 @@
 .ocaml-module "P"
+(.custom-field ocaml-module ocaml-name)
 
 .import [
     .module Ad

@@ -1,4 +1,5 @@
 .ocaml-module "Ad"
+.custom-field ocaml-module
 
 .alias [
     .name id

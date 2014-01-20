@@ -46,5 +46,8 @@
 .variant [
     .name loop2
     .option [ .type loop1 ]
+    .option [ .name foo ]
 ]
 
+
+.custom-field ocaml-name
