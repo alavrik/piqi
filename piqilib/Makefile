@@ -61,8 +61,8 @@ SOURCES = \
 	piqobj_to_piq.ml \
 	piqobj_of_piq.ml \
 	\
-	piqi.ml \
 	piq.ml \
+	piqi.ml \
 	\
 	piqi_pp.ml \
 	\

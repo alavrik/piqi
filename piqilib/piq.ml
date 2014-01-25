@@ -148,12 +148,3 @@ let process_typedefs typedefs =
   List.iter check_typedef_piq_alias typedefs;
   ()
 
-
-let process_piqi _idtable (piqi:T.piqi) =
-  let open P in
-  process_typedefs piqi.resolved_typedef
-
-
-let _ =
-  Piqi.register_processing_hook process_piqi
-

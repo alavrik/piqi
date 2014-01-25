@@ -620,7 +620,9 @@ let resolve_defs ~piqi idtable (defs:T.typedef list) =
 
   (* assign wire codes, if they are unassigned; check otherwise; check
    * correctness of .wire-packed usage *)
-  Piqi_protobuf.process_defs defs;
+  Piqi_protobuf.process_typedefs defs;
+  (* run some checks and expansions specific to the Piq format *)
+  Piq.process_typedefs defs;
 
   (* return updated idtable *)
   idtable

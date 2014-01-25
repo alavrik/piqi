@@ -290,7 +290,7 @@ let check_protobuf_wire_type a =
                 " is incompatible with piq type " ^ U.quote (C.piqi_typename t))
 
 
-let process_def = function
+let process_typedef = function
   | `record x ->
       List.iter check_packed_field x.R#field;
   | `list x ->
@@ -312,9 +312,9 @@ let add_codes (defs: T.typedef list) =
   List.iter add_codes_def defs
 
 
-let process_defs (defs: T.typedef list) =
+let process_typedefs (defs: T.typedef list) =
   add_codes defs;
-  List.iter process_def defs
+  List.iter process_typedef defs
 
 
 (*
