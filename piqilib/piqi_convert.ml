@@ -34,31 +34,6 @@ type obj =
   | Piqi of T.piqi
 
 
-let read_piq_ast piq_parser :piq_ast =
-  let with_pp_mode f =
-    (* NOTE, TODO: this is a hack -- it would be great to have a cleaner
-     * solution *)
-    U.with_bool Piqi_config.pp_mode (!Piqi_config.piq_relaxed_parsing)
-    (fun () -> f piq_parser)
-  in
-  if not !Piqi_config.piq_frameless_input  (* regular (framed) mode *)
-  then
-    match with_pp_mode Piq_parser.read_next with
-      | Some ast -> ast
-      | None -> raise EOF
-  else  (* frameless mode *)
-    match with_pp_mode Piq_parser.read_all with
-      | [] ->
-          let ast = `list [] in
-          let fname, _ = piq_parser in
-          let loc = (fname, 0, 0) in
-          Piqloc.addlocret loc ast
-      | h::_ as l ->
-          (* setting list location based on the location of the first element *)
-          let ast = `list l in
-          Piqloc.addrefret h ast
-
-
 let default_piqtype = ref None
 
 
@@ -93,6 +68,44 @@ let get_current_piqtype user_piqtype locref =
       error locref "type of object is unknown"
 
 
+let read_piq_ast piq_parser user_piqtype :piq_ast =
+  let with_pp_mode f =
+    (* NOTE, TODO: this is a hack -- it would be great to have a cleaner
+     * solution *)
+    U.with_bool Piqi_config.pp_mode (!Piqi_config.piq_relaxed_parsing)
+    (fun () -> f piq_parser)
+  in
+  if not !Piqi_config.piq_frameless_input  (* regular (framed) mode *)
+  then
+    match with_pp_mode Piq_parser.read_next with
+      | Some ast -> ast
+      | None -> raise EOF
+  else  (* frameless mode *)
+    let is_scalar_type ast =
+      match ast with
+        | `typename _ | `typed _ ->
+            true
+        | _ ->
+            let piqtype = get_current_piqtype user_piqtype ast in
+            not (C.is_container_type piqtype)
+    in
+    let ast_list = with_pp_mode Piq_parser.read_all in
+    (* if there's more that one element or we're parsing value for a container
+     * type, wrap elements into a list *)
+    match ast_list with
+      | [ast] when is_scalar_type ast ->
+          ast
+      | [] ->
+          let ast = `list [] in
+          let fname, _ = piq_parser in
+          let loc = (fname, 0, 0) in
+          Piqloc.addlocret loc ast
+      | h::_ ->
+          (* setting list location based on the location of the first element *)
+          let ast = `list ast_list in
+          Piqloc.addrefret h ast
+
+
 let piqi_of_piq fname ast =
   let piqi = Piqi.parse_piqi ast in
   (* can't process it right away, because not all dependencies could be loaded
@@ -103,7 +116,7 @@ let piqi_of_piq fname ast =
 
 
 let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
-  let ast = read_piq_ast piq_parser in
+  let ast = read_piq_ast piq_parser user_piqtype in
   let fname, _ = piq_parser in (* TODO: improve getting a filename from parser *)
   match ast with
     | `typename typename ->

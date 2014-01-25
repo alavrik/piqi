@@ -376,22 +376,15 @@ let getopt_piq () :piq_ast list =
 
 
 let parse_args (piqtype: T.piqtype) (args: piq_ast list) :Piqobj.obj =
-  let is_scalar_type = not (C.is_container_type piqtype) in
-  let is_piqany_type = (unalias piqtype = `any) in
   let ast =
-    (* if there's more that one element or we're parsing value for a
-     * container type, wrap elements into a list *)
     match args with
-      | [x] when is_scalar_type -> x
-      | _ when is_scalar_type && (not is_piqany_type) ->
-          piqi_error
-            ("a scalar value expected for type " ^
-              U.quote (full_piqi_typename piqtype))
+      | [x] when not (C.is_container_type piqtype) ->  (* scalar type? *)
+          x
       | l ->
           let res = `list l in
           (* set the location *)
-          let loc = (0, 1) in Piqloc.addref loc res;
-          res
+          let loc = (getopt_filename, 0, 1) in
+          Piqloc.addlocret loc res
   in
   let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
   piqobj
