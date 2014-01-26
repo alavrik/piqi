@@ -76,8 +76,14 @@ let convert args =
 let with_handle_piqi_errors f x =
   try f x
   with
-    | C.Error (loc, s)  -> `error (strerr loc s)
-    | Piqi_error s -> `error s
+    | C.Error (loc, s)  ->   (* library-level error with location info *)
+        `error (strerr loc s)
+    | C.Piqi_error s ->  (* library-level error *)
+        `error s
+    | Piqi_piqirun.Error (_pos, s) ->  (* error while parsing protobuf *)
+        `rpc_error (`invalid_input ("error while parsing protobuf: " ^ s))
+    | Piqi_convert.EOF ->  (* there was no input data *)
+        `rpc_error `missing_input
 
 
 let convert args =
@@ -143,12 +149,14 @@ let execute_request req =
         match do_run req.name convert args with
           | `ok res -> return_ok (I.gen_convert_output res)
           | `error err -> return_error (I.gen_convert_error err)
+          | `rpc_error err -> return_rpc_error err
         )
     | "add-piqi", data -> (
         let args = do_args I.parse_add_piqi_input data in
         match do_run req.name add_piqi args with
           | `ok_empty -> return_ok_empty ()
           | `error err -> return_error (I.gen_add_piqi_error err)
+          | `rpc_error err -> return_rpc_error err
         )
     | "ping", None ->
         return_ok_empty ()
