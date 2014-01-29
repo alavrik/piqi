@@ -89,7 +89,12 @@ let arg__strict =
 
 
 let ocaml_pretty_print ifile ofile =
-  let cmd = Printf.sprintf "camlp4o -o %s %s" ofile ifile in
+  (* NOTE: we need "-printer o", because Camlp4o uses the Camlp4AutoPrinter by
+   * default (no -printer argument provided), which will either produce ocaml
+   * code or a binary AST depending on whether the output is a terminal or not
+   * (regardless of any -o option provided). started on a terminal, the results
+   * of piqic-ocaml --pp was a binary AST file *)
+  let cmd = Printf.sprintf "camlp4o -printer o -o %s %s" ofile ifile in
   let res = Sys.command cmd in
   if res <> 0
   then C.error ("command execution failed: " ^ cmd)
