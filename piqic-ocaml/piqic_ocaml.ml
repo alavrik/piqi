@@ -90,7 +90,7 @@ let arg__strict =
 
 let ocaml_pretty_print ifile ofile =
   (* Unix.create_process has a strange API: it expects the first element of the arguments to be the process name *)
-  let args  = ["camlp4o"; "-o"; ofile; ifile] in
+  let args  = ["camlp4o"; "-printer"; "o"; "-o"; ofile; ifile] in
   let pid = Unix.create_process "camlp4o" (Array.of_list args) Unix.stdin Unix.stdout Unix.stderr in
   let res = Unix.waitpid [Unix.WUNTRACED] pid in
   if res <> (pid, Unix.WEXITED 0)
