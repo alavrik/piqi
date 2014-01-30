@@ -6,9 +6,8 @@ RESULT = piqi
 
 LIBINSTALL_FILES += \
 	$(CAMLP4_TARGETS) \
-	$(RESULT).cma $(RESULT).cmxa \
-	$(RESULT).$(EXT_LIB) $(RES_CLIB) \
-	$(shell ls *.cmi 2>/dev/null) \
+	$(wildcard $(RESULT).cma $(RESULT).cmxa $(RESULT).$(EXT_LIB) $(RES_CLIB)) \
+	$(wildcard *.cmi) \
 
 
 STATIC = 1 # force creation of static library (don't create dlls)

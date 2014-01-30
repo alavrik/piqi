@@ -5,7 +5,7 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 RESULT = piqi
 
 
-PACKS = piqi.lib unix
+PACKS = piqilib.lib unix
 
 SOURCES = \
 	$(PIQI_ML_FILES) \
@@ -38,6 +38,9 @@ RESULTDEPS := $(wildcard ../piqilib/piqi.cm*a)
 # allow ocamldep to pick up ../piqilib/*.cm[ox] as dependencies for ./*.cm[ox]
 DINCDIRS := ../piqilib
 
+# campl4 flags
+PPFLAGS := -I ../piqilib pa_labelscope.cmo pa_openin.cmo
+
 
 PIQI_FILES = descriptor.proto.piqi piqi_tools.piqi piqi_rpc.piqi
 PIQI_ML_FILES = descriptor_piqi.ml piqi_tools_piqi.ml piqi_rpc_piqi.ml
@@ -57,7 +60,7 @@ debug: piqilib dc top
 # NOTE: we have to unset these variables to prevent piqilib's OCamlMakefile from
 # inheriting them
 piqilib:
-	unset RESULTDEPS DINCDIRS REAL_OCAMLFIND && $(MAKE) -C ../piqilib $(MAKECMDGOALS)
+	unset RESULTDEPS DINCDIRS PPFLAGS REAL_OCAMLFIND && $(MAKE) -C ../piqilib $(MAKECMDGOALS)
 
 
 # rebuilding *_piqi.ml from .piqi -- called manually as "make piqi" when there
@@ -82,3 +85,8 @@ descriptor: descriptor.proto
 
 
 include $(OCAMLMAKEFILE)
+
+ifdef WIN32
+# otherwise breaks on Win32 because of slashes
+unexport DINCDIRS
+endif

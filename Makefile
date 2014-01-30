@@ -29,9 +29,6 @@ endif
 endif
 
 
-pre_target:: build-dir
-
-
 deps: build-dir
 	$(MAKE) -C deps
 	$(MAKE) -C deps install
@@ -39,8 +36,6 @@ deps: build-dir
 
 build-dir:
 	mkdir -p build/lib/ocaml
-	cd build/lib/ocaml && test -L piqi || ln -sf ../../../piqilib piqi
-	cd build/lib/ocaml && test -L piqirun || ln -sf ../../../piqirun-ocaml piqirun
 
 
 doc:
@@ -63,8 +58,9 @@ piqi:
 	$(MAKE) -C piqi-tools piqi
 
 
-ocaml:
-	$(MAKE) -C piqirun-ocaml
+ocaml: build-dir
+	$(MAKE) -C piqilib libuninstall libinstall
+	$(MAKE) -C piqirun-ocaml all libuninstall libinstall
 	$(MAKE) -C piqic-ocaml
 
 

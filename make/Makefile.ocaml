@@ -1,7 +1,10 @@
 OCAMLMAKEFILE := $(PIQI_ROOT)/make/OCamlMakefile
 
 
-export OCAMLPATH = $(PIQI_BUILD)/lib/ocaml
+export OCAMLPATH = $(PIQI_BUILD)/lib/ocaml:$(PIQI_ROOT)
+ifeq ($(OCAMLFIND_DESTDIR),)
+export OCAMLFIND_DESTDIR = $(PIQI_BUILD)/lib/ocaml
+endif
 
 
 # make sure camlp4o produces pretty-printed text instead of AST
