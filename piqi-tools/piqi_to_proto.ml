@@ -34,25 +34,32 @@ let gen_code code =
   *)
 
 
+(* new implicit imports added when unrolling aliases *)
+let new_imports = ref []
+
+
 (* generate fully-qualified proto names using parents *)
-let gen_name parent name =
+let gen_name ?parent name =
   let name = some_of name in
-  match some_of parent with
-    | `piqi _ -> name (* local module *)
-    | `import x ->
+  match parent with
+    | Some (`import x) ->
+        trace "piqi_to_proto: adding implicit import \"%s\"\n" x.Import#modname;
+        new_imports := x :: !new_imports;
+
         let piqi = some_of x.Import#piqi in
-        match piqi.P#protobuf_package with
+        (match piqi.P#protobuf_package with
           | None -> name (* no .proto package => use flat .proto namespace *)
           | Some package ->
               (* build fully-qualified name *)
               "." ^ package ^ "." ^ name
+        )
+    | _ ->  (* local name *)
+        name
 
 
 (* indication if the module that is being processed is a Piqi self-spec *)
 let is_self_spec = ref false
 
-(* new implicit imports added when unrolling aliases *)
-let new_imports = ref []
 
 
 let recalc_import_parent ?parent current_parent =
@@ -69,12 +76,8 @@ let recalc_name ?name proto_name =
 
 let rec typename ?parent (t:T.piqtype) =
   let gen_name current_parent proto_name =
-    let parent =
-      match parent with
-        | Some x -> parent
-        | None -> current_parent
-    in
-    gen_name parent proto_name
+    let parent = recalc_import_parent ?parent current_parent in
+    gen_name ?parent proto_name
   in
   match t with
     | `int -> "sint32"
@@ -110,19 +113,7 @@ and gen_alias_typename ?parent x =
     | Some x -> x
     | None ->
         let parent = recalc_import_parent ?parent x.parent in
-        match some_of x.piqtype with
-          | `alias x ->
-              gen_alias_typename x ?parent
-          | x ->
-              (match parent with
-                | Some (`import x) ->
-                    trace
-                      "piqi_to_proto: adding implicit import \"%s\"\n"
-                      x.Import#modname;
-                    new_imports := x :: !new_imports
-                | _ -> ()
-              );
-              typename x ?parent
+        typename (some_of x.piqtype) ?parent
 
 
 let gen_piqtype ?parent t =
