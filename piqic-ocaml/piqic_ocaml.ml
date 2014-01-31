@@ -89,10 +89,12 @@ let arg__strict =
 
 
 let ocaml_pretty_print ifile ofile =
-  let cmd = Printf.sprintf "camlp4o -o %s %s" ofile ifile in
-  let res = Sys.command cmd in
-  if res <> 0
-  then C.error ("command execution failed: " ^ cmd)
+  (* Unix.create_process has a strange API: it expects the first element of the arguments to be the process name *)
+  let args  = ["camlp4o"; "-printer"; "o"; "-o"; ofile; ifile] in
+  let pid = Unix.create_process "camlp4o" (Array.of_list args) Unix.stdin Unix.stdout Unix.stderr in
+  let res = Unix.waitpid [Unix.WUNTRACED] pid in
+  if res <> (pid, Unix.WEXITED 0)
+  then C.error ("command execution failed: " ^ (String.concat " " args))
 
 
 let gen_output_file ofile code =
