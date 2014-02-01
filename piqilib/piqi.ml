@@ -1313,8 +1313,8 @@ let get_function_defs (non_func_defs: T.typedef list) resolved_funs =
     name_setter_assoc_l
   in
   (* TODO: optimize this linear scan *)
-  let is_existing_def name =
-    List.exists
+  let find_existing_def name =
+    List.find
       (fun def -> name = C.typedef_name def)
       non_func_defs
   in
@@ -1323,11 +1323,30 @@ let get_function_defs (non_func_defs: T.typedef list) resolved_funs =
    *   .piqi -> .json -> .piqi *)
   let defs = List.filter
     (function
-      | `alias x when x.A#is_func_param ->
-          (* artificially created alias that matches some top-level
+      | `alias implicit_alias when implicit_alias.A#is_func_param ->
+          (* implicitly created alias that matches some top-level
            * *-input|output|error definition? *)
-          not (is_existing_def (some_of x.A#name))
-      | _ -> true
+          (try
+            let def = find_existing_def (some_of implicit_alias.A#name) in
+            match def with
+              | `alias explicit_alias when explicit_alias.A#typename <> implicit_alias.A#typename ->
+                  (* we need to keep this definition so that we could report a
+                   * duplicate typedef error because, here, the implicit alias
+                   * derived from a function parameter clashes with another
+                   * explicitly defined one; the only exception is when the
+                   * implicit alias literally points to itself which is absurd
+                   * -- it shouldn't be treated as implicit definition in
+                   * such case *)
+                  if implicit_alias.A#typename = implicit_alias.A#name
+                  then false  (* remove *)
+                  else true  (* keep *)
+              | _ ->
+                  false  (* remove *)
+          with Not_found ->
+            true  (* keep *)
+          )
+      | _ ->
+          true  (* keep *)
     )
     defs
   in
