@@ -87,8 +87,7 @@ Files
     piqic-ocaml/          Piq interface compiler(s) for OCaml
     piqirun-ocaml/        Piqi runtime library for OCaml
 
-    setenv.sh             environment configuration for running tests
-    setenv-mingw.sh       environment configuration for Windows/MinGW builds
     make/                 makefiles and build scripts
     deps/                 third-party dependencies (see ./NOTICE for details)
+    setenv.sh             environment configuration for running tests
 

@@ -15,13 +15,17 @@ DIRS = piqilib src
 	doc piqi
 
 
-# export installation and search path for OCaml dependencies
+# export installation and search path for third-party OCaml dependencies
 ifeq ($(MAKECMDGOALS),deps)
-export OCAMLFIND_DESTDIR = $(PIQI_BUILD)/lib/ocaml
+OCAMLFIND_DESTDIR := $(PIQI_BUILD)/lib/ocaml
+ifeq ($(SYSTEM),$(filter $(SYSTEM),mingw mingw64))
+OCAMLFIND_DESTDIR := $(shell cygpath -w $(OCAMLFIND_DESTDIR))
+endif
+export OCAMLFIND_DESTDIR
 endif
 
 
-# export installation path for third-party deps and Piqi OCaml libraries
+# export installation path for third-party deps and piqilib
 ifneq ($(findstring ocaml-,$(MAKECMDGOALS)),)
 ifneq ($(PIQI_OCAML_DESTDIR),)
 export OCAMLFIND_DESTDIR = $(PIQI_OCAML_DESTDIR)

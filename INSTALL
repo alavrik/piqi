@@ -6,8 +6,6 @@ The following files contain more specific information:
 
         INSTALL.ocaml -- building and installing Piqi for OCaml
 
-        INSTALL.windows -- building Piqi on Windows
-
 
 SUPPORTED PLATFORMS
 ===================
@@ -27,7 +25,7 @@ The rest of this file describes the process of building Piqi on Unix platforms.
 PREREQUISITES
 =============
 
-On Debian (>= Squeeze):
+On Debian and Ubuntu:
 
         apt-get install ocaml camlp4-extra ocaml-findlib gcc make sed
 
@@ -41,6 +39,13 @@ On Mac OS X (using Homebrew):
 
         (Here, we used [OPAM](http://opam.ocamlpro.com/) to build and install
         ocamlfind).
+
+
+On Windows:
+
+        Download and install OCaml for Windows from here:
+
+                http://protz.github.io/ocaml-installer/
 
 
 On other Unix systems:

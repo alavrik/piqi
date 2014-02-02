@@ -5,7 +5,17 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 RESULT = piqi
 
 
-PACKS = piqilib unix
+PACKS = unix
+
+# pick piqilib manually -- we don't install it to the build directory to keep it
+# in sync with ocamldep-generated stuff; at the same time, we avoid extending
+# OCAMLPATH to reduce complexity of the windows build (e.g. avoid converting :
+# path separators to ; along with reverting slashes); we can't simply symlink it
+# to the build dir either because symlinks don't work on windows
+PACKS += ulex easy-format xmlm
+INCDIRS = ../piqilib
+LIBS = ../piqilib/piqilib
+
 
 SOURCES = \
 	$(PIQI_ML_FILES) \
@@ -57,7 +67,7 @@ debug: piqilib dc top
 # NOTE: we have to unset these variables to prevent piqilib's OCamlMakefile from
 # inheriting them
 piqilib:
-	unset RESULTDEPS DINCDIRS REAL_OCAMLFIND && $(MAKE) -C ../piqilib $(MAKECMDGOALS)
+	unset RESULTDEPS PACKS LIBS INCDIRS DINCDIRS REAL_OCAMLFIND && $(MAKE) -C ../piqilib $(MAKECMDGOALS)
 
 
 # rebuilding *_piqi.ml from .piqi -- called manually as "make piqi" when there
@@ -82,8 +92,3 @@ descriptor: descriptor.proto
 
 
 include $(OCAMLMAKEFILE)
-
-ifdef WIN32
-# otherwise breaks on Win32 because of slashes
-unexport DINCDIRS
-endif

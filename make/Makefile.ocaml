@@ -1,9 +1,15 @@
 OCAMLMAKEFILE := $(PIQI_ROOT)/make/OCamlMakefile
 
 
-export OCAMLPATH = $(PIQI_BUILD)/lib/ocaml:$(PIQI_ROOT)
+OCAMLPATH := $(PIQI_BUILD)/lib/ocaml
+ifeq ($(SYSTEM),$(filter $(SYSTEM),mingw mingw64))
+OCAMLPATH := $(shell cygpath -w $(OCAMLPATH))
+endif
+export OCAMLPATH
+
+
 ifeq ($(OCAMLFIND_DESTDIR),)
-export OCAMLFIND_DESTDIR = $(PIQI_BUILD)/lib/ocaml
+export OCAMLFIND_DESTDIR := $(OCAMLPATH)
 endif
 
 

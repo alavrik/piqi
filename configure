@@ -83,6 +83,12 @@ echo "export PIQI_BUILD = \$(PIQI_ROOT)/build" >> $M
 echo "export PIQI_PATH = \$(PIQI_ROOT)" >> $M
 echo >> $M
 
+# detecting the type of OCaml toolchain
+system="`ocamlc -config 2>/dev/null | grep system | sed 's/system: //'`"
+echo "export SYSTEM = $system" >> $M
+echo >> $M
+echo "detected $system OCaml toolchain"
+
 # figure out which dependencies we need to build
 echo "checking whether necessary dependencies are already installed..."
 for i in xmlm ulex easy-format
