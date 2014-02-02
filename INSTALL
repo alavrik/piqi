@@ -43,9 +43,12 @@ On Mac OS X (using Homebrew):
 
 On Windows:
 
-        Download and install OCaml for Windows from here:
+        For building native Windows binaries, download and install OCaml for
+        Windows from here:
 
                 http://protz.github.io/ocaml-installer/
+
+        For building under Cygwin, follow the steps from the next section.
 
 
 On other Unix systems:
