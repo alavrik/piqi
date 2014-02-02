@@ -7,7 +7,7 @@ include $(PIQI_ROOT)/make/Makefile.dirs
 endif
 
 
-DIRS = piqilib piqi-tools
+DIRS = piqilib src
 
 
 .PHONY: deps build-dir install distclean \
@@ -44,7 +44,7 @@ doc:
 
 install:
 	-install -d $(DESTDIR)$(PIQI_PREFIX)/bin
-	install piqi-tools/piqi $(DESTDIR)$(PIQI_PREFIX)/bin
+	install src/piqi $(DESTDIR)$(PIQI_PREFIX)/bin
 	-install -d $(DESTDIR)$(PIQI_PREFIX)/share/man/man1
 	install -m 644 doc/piqi.1 $(DESTDIR)$(PIQI_PREFIX)/share/man/man1
 
@@ -55,7 +55,7 @@ install:
 # library
 piqi:
 	$(MAKE) -C piqilib piqi
-	$(MAKE) -C piqi-tools piqi
+	$(MAKE) -C src piqi
 
 
 ocaml: build-dir

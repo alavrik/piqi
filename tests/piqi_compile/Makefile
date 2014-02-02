@@ -30,10 +30,10 @@ test_compile:
 	piqi compile --strict --self-spec self-spec.pb -t xml piqi.piqi >/dev/null
 	piqi compile --strict --self-spec self-spec.pb -t pb piqi.piqi >/dev/null
 
-	piqi compile --strict --self-spec self-spec.pb -e ocaml ../../piqi-tools/descriptor.proto.piqi >d.piqi
-	piqi compile --strict --self-spec self-spec.pb -e ocaml -t json ../../piqi-tools/descriptor.proto.piqi >/dev/null
-	piqi compile --strict --self-spec self-spec.pb -e ocaml -t xml ../../piqi-tools/descriptor.proto.piqi >/dev/null
-	piqi compile --strict --self-spec self-spec.pb -e ocaml -t pb ../../piqi-tools/descriptor.proto.piqi >/dev/null
+	piqi compile --strict --self-spec self-spec.pb -e ocaml ../../src/descriptor.proto.piqi >d.piqi
+	piqi compile --strict --self-spec self-spec.pb -e ocaml -t json ../../src/descriptor.proto.piqi >/dev/null
+	piqi compile --strict --self-spec self-spec.pb -e ocaml -t xml ../../src/descriptor.proto.piqi >/dev/null
+	piqi compile --strict --self-spec self-spec.pb -e ocaml -t pb ../../src/descriptor.proto.piqi >/dev/null
 
 
 clean:

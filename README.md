@@ -96,8 +96,8 @@ Files
     make/                 makefiles and build scripts
     deps/                 third-party components (see NOTICE for details)
     piqi                  Piqi self-specification
-    piqilib/              Piqi common library used by piqi-tools and piqic-ocaml
-    piqi-tools/           "piqi" command-line utility (piqi tools)
+    piqilib/              common library used by piqi command-line tool and piqic-ocaml
+    src/                  "piqi" command-line utility
     piqic-ocaml/          Piq interface compiler(s) for OCaml
     piqirun-ocaml/        Piqi runtime library for OCaml
     examples/             examples

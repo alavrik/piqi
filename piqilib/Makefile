@@ -119,7 +119,7 @@ META: ../VERSION META.in
 # NOTE: expand_piqi_boot is optional and can be safely turned off if it is
 # giving troubles
 
-PIQI = ../piqi-tools/piqi
+PIQI = ../src/piqi
 
 PIQI_OCAML_DIR ?= ..
 PIQIC = $(PIQI_OCAML_DIR)/piqic-ocaml/piqic-ocaml

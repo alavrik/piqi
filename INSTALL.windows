@@ -159,7 +159,7 @@ INSTALLATION INSTRUCTIONS
 
         Successful build will produce two stand-alone Windows executables:
 
-               piqi-tools/piqi.exe
+               src/piqi.exe
 
                piqic-ocaml/piqic-ocaml.exe
 
