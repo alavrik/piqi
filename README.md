@@ -80,28 +80,15 @@ License
 Files
 -----
 
-    README                this file
-    INSTALL               general installation instructions
-    INSTALL.erlang        instructions for building Piqi for Erlang
-    INSTALL.ocaml         instructions for building Piqi for OCaml
-    INSTALL.windows       instructions for building Piqi on Windows
-    setenv.sh             environment configuration for running tests
-    setenv-mingw.sh       environment configuration for Windows/MinGW builds
-    LICENSE               license
-    NOTICE                copyright notice
-    CHANGES               release history
-    VERSION               current version
-    configure             configure script
-    Makefile              top-level Makefile
-    make/                 makefiles and build scripts
-    deps/                 third-party components (see NOTICE for details)
-    piqi                  Piqi self-specification
-    piqilib/              common library used by piqi command-line tool and piqic-ocaml
     src/                  "piqi" command-line utility
+    piqilib/              common library used by piqi command-line tool and piqi-ocaml
+    piqi/                 Piqi self-specification
+
     piqic-ocaml/          Piq interface compiler(s) for OCaml
     piqirun-ocaml/        Piqi runtime library for OCaml
-    examples/             examples
-    tests/                tests for various piqi functionality; see tests/README
-    doc/                  Piqi documentation
-    editors/              text editor plugins for .piq and .piqi files
+
+    setenv.sh             environment configuration for running tests
+    setenv-mingw.sh       environment configuration for Windows/MinGW builds
+    make/                 makefiles and build scripts
+    deps/                 third-party dependencies (see ./NOTICE for details)
 
