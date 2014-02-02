@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -110,7 +109,7 @@ let make_named n v :piq_ast =
   match v with
     | None -> `name n
     | Some v ->
-        let res = Piq_ast.Named#{name = n; value = v} in
+        let res = Piq_ast.Named.({name = n; value = v}) in
         Piqloc.addref n res;
         `named res
 
@@ -120,7 +119,7 @@ let make_typed n v :piq_ast =
   match v with
     | None -> `typename n
     | Some v ->
-        let res = Piq_ast.Typed#{typename = n; value = v} in
+        let res = Piq_ast.Typed.({typename = n; value = v}) in
         Piqloc.addref n res;
         `typed res
 
@@ -156,9 +155,9 @@ let expand_obj_names (obj :piq_ast) :piq_ast =
   match obj with
     | `name x -> exp "." x None
     | `typename x -> exp ":" x None
-    | `named x -> exp "." x.Piq_ast.Named#name (Some x.Piq_ast.Named#value)
+    | `named x -> exp "." x.Piq_ast.Named.name (Some x.Piq_ast.Named.value)
     | `typed x -> 
-        exp ":" x.Piq_ast.Typed#typename (Some x.Piq_ast.Typed#value)
+        exp ":" x.Piq_ast.Typed.typename (Some x.Piq_ast.Typed.value)
     | x -> x
 
 
@@ -172,12 +171,12 @@ let expand_names (x: piq_ast) :piq_ast =
       | `named ({Piq_ast.Named.name = n; Piq_ast.Named.value = v} as named) ->
           let v' = aux v in
           if v' != v
-          then named.Piq_ast.Named#value <- v';
+          then named.Piq_ast.Named.value <- v';
           expand_obj_names obj
       | `typed ({Piq_ast.Typed.typename = n; Piq_ast.Typed.value = ast} as typed) ->
           let ast' = aux ast in
           if ast' != ast (* changed? *)
-          then typed.Piq_ast.Typed#value <- ast';
+          then typed.Piq_ast.Typed.value <- ast';
           expand_obj_names obj
       | `list l ->
           `list (List.map aux l)
@@ -249,14 +248,14 @@ let expand_forms (x: piq_ast) :piq_ast =
       | `named ({Piq_ast.Named.name = n; Piq_ast.Named.value = v} as named) ->
           let v' = aux v in
           if v' != v
-          then named.Piq_ast.Named#value <- v';
+          then named.Piq_ast.Named.value <- v';
           (* return the original object taking advantage of object being mutable
            *)
           obj
       | `typed ({Piq_ast.Typed.typename = n; Piq_ast.Typed.value = ast} as typed) ->
           let ast' = aux ast in
           if ast' != ast (* changed? *)
-          then typed.Piq_ast.Typed#value <- ast';
+          then typed.Piq_ast.Typed.value <- ast';
           (* return the original object taking advantage of object being mutable
            *)
           obj

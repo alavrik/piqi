@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -305,13 +304,13 @@ and try_parse_obj f t x =
          * unless explicitly overridden in the piqi spec by the .piq-positional
          * setting *)
         None
-    | `any when f.T.Field#name <> None ->
+    | `any when f.T.Field.name <> None ->
         (* NOTE, XXX: try-parsing of labeled `any always failes *)
         None
     (* NOTE, XXX: try-parsing of unlabeled `any always succeeds *)
     | _ ->
         let depth' = !depth in
-        try Some (parse_obj t x ~try_mode:true ?piq_format:f.T.Field#piq_format)
+        try Some (parse_obj t x ~try_mode:true ?piq_format:f.T.Field.piq_format)
         with
           (* ignore errors which occur at the same parse depth, i.e. when
            * parsing everything except for lists and records which increment
@@ -336,22 +335,22 @@ and parse_any x :Piqobj.any =
         any
 
     | `typed {Piq_ast.Typed.typename = typename; value = ast} ->
-        let any = Any#{
+        let any = Any.({
           Piqobj.default_any with
           typename = Some typename;
           piq_ast = Some ast;
-        }
+        })
         in
         Piqloc.addrefret ast any
 
     (* read untyped JSON form (json ...) as piqi-any *)
     | `form (`word "json", [`text s]) ->
         let json_ast = !Piqobj.json_of_string s in
-        let any = Any#{
+        let any = Any.({
           Piqobj.default_any with
           json_ast = Some json_ast;
           json_string = Some s;
-        }
+        })
         in
         Piqloc.addrefret s any
     | `form (`word "json", _) ->
@@ -360,20 +359,20 @@ and parse_any x :Piqobj.any =
     (* read untyped XML form (xml ...) as piqi-any *)
     | `form (`word "xml", [`text s]) ->
         let xml_list = !Piqobj.xml_of_string s in
-        let any = Any#{
+        let any = Any.({
           Piqobj.default_any with
           xml_ast = Some ("undefined", xml_list);
-        }
+        })
         in
         Piqloc.addrefret s any
     | `form (`word "xml", _) ->
         error x "verbatim text literal with XML value expected after \"xml\""
 
     | ast ->
-        let any = Any#{
+        let any = Any.({
           Piqobj.default_any with
           piq_ast = Some ast;
-        }
+        })
         in
         Piqloc.addrefret ast any
 
@@ -398,7 +397,7 @@ and parse_record t x =
 
 and do_parse_record loc t l =
   let required_spec, other_spec =
-    List.partition is_required_field t.T.Record#field in
+    List.partition is_required_field t.T.Record.field in
   (* parse required fields first *)
   let fields, rem =
     List.fold_left (parse_field loc) ([], l) (required_spec @ other_spec) in
@@ -410,15 +409,15 @@ and do_parse_record loc t l =
     else None
   in
   (* put required fields back at the top *)
-  R#{t = t; field = List.rev fields; unparsed_piq_fields_ref = unparsed_piq_fields_ref}
+  R.({t = t; field = List.rev fields; unparsed_piq_fields_ref = unparsed_piq_fields_ref})
 
 
-and is_required_field t = (t.T.Field#mode = `required)
+and is_required_field t = (t.T.Field.mode = `required)
 
 
 and parse_field loc (accu, rem) t =
   let fields, rem =
-    match t.T.Field#piqtype with
+    match t.T.Field.piqtype with
       | None -> do_parse_flag t rem
       | Some _ -> do_parse_field loc t rem
   in
@@ -439,7 +438,7 @@ and do_parse_flag t l =
           | `name _ | `named {Piq_ast.Named.value = `bool true} ->
               (* flag is considered to be present when it is represented either
                * as name w/o value or named boolean true value *)
-              let res = F#{ t = t; obj = None } in
+              let res = F.({t = t; obj = None}) in
               Piqloc.addref x res;
               [res], rem
           | `named {Piq_ast.Named.value = `bool false} ->
@@ -469,14 +468,14 @@ and do_parse_field loc t l =
   in
   let fields =
     List.map (fun x ->
-      let res = F#{ t = t; obj = Some x } in
+      let res = F.({t = t; obj = Some x}) in
       Piqloc.addrefret x res) values
   in
   fields, rem
   
 
 and parse_required_field f loc name field_type l =
-  let res, rem = find_fields name f.T.Field#piq_alias field_type l in
+  let res, rem = find_fields name f.T.Field.piq_alias field_type l in
   match res with
     | [] ->
         (* try finding the first field which is successfully parsed by
@@ -489,7 +488,7 @@ and parse_required_field f loc name field_type l =
         end
     | x::tail ->
         check_duplicate name tail;
-        let obj = parse_obj field_type x ?piq_format:f.T.Field#piq_format in
+        let obj = parse_obj field_type x ?piq_format:f.T.Field.piq_format in
         obj, rem
 
 
@@ -507,7 +506,7 @@ and find_fields (name:string) (alt_name:string option) field_type (l:piq_ast lis
   let equals_name = equals_name name alt_name in
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
-    | (`named n)::t when equals_name n.Piq_ast.Named#name -> aux (n.Piq_ast.Named#value::accu) rem t
+    | (`named n)::t when equals_name n.Piq_ast.Named.name -> aux (n.Piq_ast.Named.value::accu) rem t
     | (`name n)::t when equals_name n ->
         (match C.unalias field_type with
           | `bool ->
@@ -529,15 +528,15 @@ and find_flags (name:string) (alt_name:string option) (l:piq_ast list) :(piq_ast
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
     | ((`name n) as h)::t when equals_name n -> aux (h::accu) rem t
-    | ((`named n) as h)::t when equals_name n.Piq_ast.Named#name ->
+    | ((`named n) as h)::t when equals_name n.Piq_ast.Named.name ->
         (* allow specifying true or false as flag values: true will be
          * interpreted as flag presence, false is treated as if the flag was
          * missing *)
-        (match n.Piq_ast.Named#value with
+        (match n.Piq_ast.Named.value with
           | `bool _ ->
               aux (h::accu) rem t
           | _ ->
-              error h ("only true and false can be used as values for flag " ^ U.quote n.Piq_ast.Named#name)
+              error h ("only true and false can be used as values for flag " ^ U.quote n.Piq_ast.Named.name)
         )
     | h::t -> aux accu (h::rem) t
   in
@@ -555,7 +554,7 @@ and find_first_parsed f field_type l =
 
 
 and parse_optional_field f name field_type default l =
-  let res, rem = find_fields name f.T.Field#piq_alias field_type l in
+  let res, rem = find_fields name f.T.Field.piq_alias field_type l in
   match res with
     | [] ->
         (* try finding the first field which is successfully parsed by
@@ -571,14 +570,14 @@ and parse_optional_field f name field_type default l =
         end
     | x::tail ->
         check_duplicate name tail;
-        let obj = Some (parse_obj field_type x ?piq_format:f.T.Field#piq_format) in
+        let obj = Some (parse_obj field_type x ?piq_format:f.T.Field.piq_format) in
         obj, rem
 
 
 (* parse repeated variant field allowing variant names if field name is
  * unspecified *) 
 and parse_repeated_field f name field_type l =
-  let res, rem = find_fields name f.T.Field#piq_alias field_type l in
+  let res, rem = find_fields name f.T.Field.piq_alias field_type l in
   match res with
     | [] -> 
         (* XXX: ignore errors occuring when unknown element is present in the
@@ -593,14 +592,14 @@ and parse_repeated_field f name field_type l =
         in List.rev accu, List.rev rem
     | l ->
         (* use strict parsing *)
-        let res = List.map (parse_obj field_type ?piq_format:f.T.Field#piq_format) res in
+        let res = List.map (parse_obj field_type ?piq_format:f.T.Field.piq_format) res in
         res, rem
 
 
 and parse_variant ~try_mode t x =
-  debug "parse_variant: %s\n" (some_of t.T.Variant#name);
-  let value = parse_option t.T.Variant#option x ~try_mode in
-  V#{ t = t; option = value }
+  debug "parse_variant: %s\n" (some_of t.T.Variant.name);
+  let value = parse_option t.T.Variant.option x ~try_mode in
+  V.({t = t; option = value})
 
 
 and parse_option ~try_mode options x =
@@ -670,7 +669,7 @@ and parse_covariant ~try_mode (o, v) x =
           let value = reference (parse_enum ~try_mode e) x in
           `enum value
   in
-  O#{ t = o; obj = Some obj }
+  O.({t = o; obj = Some obj})
 
 
 and parse_name_option options name =
@@ -684,7 +683,7 @@ and parse_name_option options name =
       | _, _ -> false
   in
   let option = List.find f options in
-  O#{ t = option; obj = None }
+  O.({t = option; obj = None})
 
 
 and parse_named_option options name x =
@@ -750,7 +749,7 @@ and parse_raw_word_option ~try_mode options x s =
         | _, _ -> false
     in
     let option = List.find f options in
-    O#{ t = option; obj = None }
+    O.({t = option; obj = None})
 
 
 and parse_string_option options x =
@@ -770,15 +769,15 @@ and parse_list_option options x =
 
 and parse_typed_option (options:T.Option.t list) f (x:piq_ast) :Piqobj.Option.t =
   let option = List.find f options in
-  let option_type = some_of option.T.Option#piqtype in
-  let obj = Some (parse_obj option_type x ?piq_format:option.T.Option#piq_format) in
-  O#{ t = option; obj = obj }
+  let option_type = some_of option.T.Option.piqtype in
+  let obj = Some (parse_obj option_type x ?piq_format:option.T.Option.piq_format) in
+  O.({t = option; obj = obj})
 
 
 and parse_enum ~try_mode t x =
-  debug "parse_enum: %s\n" (some_of t.T.Enum#name);
-  let value = parse_option t.T.Enum#option x ~try_mode in
-  E#{ t = t; option = value }
+  debug "parse_enum: %s\n" (some_of t.T.Enum.name);
+  let value = parse_option t.T.Enum.option x ~try_mode in
+  E.({t = t; option = value})
 
 
 and parse_list t = function
@@ -791,23 +790,23 @@ and parse_list t = function
 
 
 and do_parse_list t l =
-  let obj_type = some_of t.T.Piqi_list#piqtype in
-  let contents = List.map (parse_obj obj_type ?piq_format:t.T.Piqi_list#piq_format) l in
-  L#{ t = t; obj = contents }
+  let obj_type = some_of t.T.Piqi_list.piqtype in
+  let contents = List.map (parse_obj obj_type ?piq_format:t.T.Piqi_list.piq_format) l in
+  L.({t = t; obj = contents})
 
 
 (* XXX: roll-up multiple enclosed aliases into one? *)
 and parse_alias ?(piq_format: T.piq_format option) t x =
   (* upper-level setting overrides lower-level setting *)
-  let this_piq_format = t.T.Alias#piq_format in
+  let this_piq_format = t.T.Alias.piq_format in
   let piq_format =
     if this_piq_format <> None
     then this_piq_format
     else piq_format
   in
-  let piqtype = some_of t.T.Alias#piqtype in
+  let piqtype = some_of t.T.Alias.piqtype in
   let obj = parse_obj piqtype x ?piq_format in
-  A#{ t = t; obj = obj }
+  A.({t = t; obj = obj})
 
 
 (* 

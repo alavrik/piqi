@@ -8,7 +8,7 @@ package "pb" (
 
 package "ext" (
   description = "Piqi runtime library for multi-format JSON/XML/Protobuf/Piq serialization"
-  requires = "piqi.lib piqirun.pb"
+  requires = "piqilib piqirun.pb"
   archive(byte) = "piqirun_ext.cmo"
   archive(native) = "piqirun_ext.cmx"
 )

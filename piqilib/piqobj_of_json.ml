@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -117,19 +116,19 @@ and parse_any (x:json) :Piqobj.any =
             | Some (`any {Any.json_ast = json_ast}) -> json_ast
             | _ -> None
         in
-        Any#{
+        Any.({
           Piqobj.default_any with
           typename = typename;
           pb = protobuf;
           json_ast = json_ast;
-        }
+        })
     | json_ast -> (* regular symbolic piqi-any *)
         (* TODO: preserve the original int, float and string literals -- see
          * Piqobj.json_of_any *)
-        Any#{
+        Any.({
           Piqobj.default_any with
           json_ast = Some json_ast;
-        }
+        })
 
 
 and parse_record t = function
@@ -143,19 +142,19 @@ and parse_record t = function
 
 
 and do_parse_record loc t l =
-  debug "do_parse_record: %s\n" (some_of t.T.Record#name);
-  let fields_spec = t.T.Record#field in
+  debug "do_parse_record: %s\n" (some_of t.T.Record.name);
+  let fields_spec = t.T.Record.field in
   let fields, rem =
     List.fold_left (parse_field loc) ([], l) fields_spec in
   (* issue warnings on unparsed fields *)
   List.iter handle_unknown_field rem;
   (* put required fields back at the top *)
-  R#{ t = t; field = List.rev fields; unparsed_piq_fields_ref = None}
+  R.({ t = t; field = List.rev fields; unparsed_piq_fields_ref = None})
 
 
 and parse_field loc (accu, rem) t =
   let fields, rem =
-    match t.T.Field#piqtype with
+    match t.T.Field.piqtype with
       | None -> do_parse_flag t rem
       | Some _ -> do_parse_field loc t rem
   in
@@ -170,7 +169,7 @@ and do_parse_flag t l =
   match res with
     | [] -> [], rem
     | [x] ->
-        let res = F#{ t = t; obj = None } in
+        let res = F.({t = t; obj = None}) in
         [res], rem
     | _::o::_ -> error_duplicate o name
 
@@ -193,7 +192,7 @@ and do_parse_field loc t l =
           parse_repeated_field name field_type l
   in
   let fields =
-    List.map (fun x -> F#{ t = t; obj = Some x }) values
+    List.map (fun x -> F.({t = t; obj = Some x})) values
   in
   fields, rem
   
@@ -252,10 +251,10 @@ and parse_repeated_field name field_type l =
 
 
 and parse_variant t x =
-  debug "parse_variant: %s\n" (some_of t.T.Variant#name);
+  debug "parse_variant: %s\n" (some_of t.T.Variant.name);
   match x with
     | `Assoc [name, value] ->
-        let options = t.T.Variant#option in
+        let options = t.T.Variant.option in
         let option =
           try
             let o =
@@ -266,7 +265,7 @@ and parse_variant t x =
           with Not_found ->
             error x ("unknown variant option: " ^ U.quote name)
         in
-        V#{ t = t; option = option }
+        V.({t = t; option = option})
     | `Assoc l ->
         let l = List.filter (fun (n, v) -> v <> `Null ()) l in
         (match l with
@@ -281,27 +280,27 @@ and parse_option t x =
   let open T.Option in
   match t.piqtype, x with
     | None, `Bool true ->
-        O#{ t = t; obj = None }
+        O.({t = t; obj = None})
     | None, _ ->
         error x "true value expected"
     | Some option_type, _ ->
         let obj = parse_obj option_type x in
-        O#{ t = t; obj = Some obj }
+        O.({t = t; obj = Some obj})
 
 
 and parse_enum t x =
-  debug "parse_enum: %s\n" (some_of t.T.Enum#name);
+  debug "parse_enum: %s\n" (some_of t.T.Enum.name);
   match x with
     | `String name ->
-        let options = t.T.Enum#option in
+        let options = t.T.Enum.option in
         let option =
           try
-            let o = List.find (fun o -> some_of o.T.Option#json_name = name) options in
-            O#{ t = o; obj = None }
+            let o = List.find (fun o -> some_of o.T.Option.json_name = name) options in
+            O.({t = o; obj = None})
           with Not_found ->
             error x ("unknown enum option: " ^ U.quote name)
         in
-        E#{ t = t; option = option }
+        E.({t = t; option = option})
     | _ ->
         error x "string enum value expected"
 
@@ -309,10 +308,10 @@ and parse_enum t x =
 and parse_list t x =
   match x with
     | `List l ->
-        debug "parse_list: %s\n" (some_of t.T.Piqi_list#name);
-        let obj_type = some_of t.T.Piqi_list#piqtype in
+        debug "parse_list: %s\n" (some_of t.T.Piqi_list.name);
+        let obj_type = some_of t.T.Piqi_list.piqtype in
         let contents = List.map (parse_obj obj_type) l in
-        L#{ t = t; obj = contents }
+        L.({t = t; obj = contents})
     | _ ->
         error x "array expected"
 
@@ -321,9 +320,9 @@ and parse_list t x =
 and parse_alias t x =
   let open T.Alias in
   let obj_type = some_of t.piqtype in
-  debug "parse_alias: %s\n" (some_of t.T.Alias#name);
+  debug "parse_alias: %s\n" (some_of t.T.Alias.name);
   let obj = parse_obj obj_type x in
-  A#{ t = t; obj = obj }
+  A.({t = t; obj = obj})
 
 
 let _ =

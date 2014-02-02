@@ -1,4 +1,3 @@
-(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -41,7 +40,7 @@ let gen_typedef_type ?import context typedef =
     | None ->  (* local typedef *)
         C.scoped_name context ocaml_name
     | Some import ->
-        let ocaml_modname = some_of import.Import#ocaml_name in
+        let ocaml_modname = some_of import.Import.ocaml_name in
         (ocaml_modname ^ "." ^ ocaml_name)
 
 
@@ -51,7 +50,7 @@ let rec gen_type context typename =
   match typedef with
     | `alias a ->
         let context = C.switch_context context parent_piqi in
-        let ocaml_name = some_of a.A#ocaml_name in
+        let ocaml_name = some_of a.A.ocaml_name in
         (* skip cyclic type abbreviations *)
         let ocaml_type = gen_alias_type context a in
         if ocaml_name = ocaml_type (* cyclic type abbreviation? *)
@@ -110,8 +109,8 @@ let gen_field context f =
 
 (* generate record type in record module; see also gen_record' *)
 let gen_record_mod context r =
-  let modname = String.capitalize (some_of r.R#ocaml_name) in
-  let fields = r.R#field in
+  let modname = String.capitalize (some_of r.R.ocaml_name) in
+  let fields = r.R.field in
   let fdefs = (* field definition list *)
     if fields <> []
     then List.map (gen_field context) fields
@@ -149,11 +148,11 @@ let gen_option context o =
                * polymorphic variants in recursive modules, so we need to use
                * non-qualified names in this case *)
               if import = None  (* local typedef? *)
-              then ios (some_of x.V#ocaml_name)
+              then ios (some_of x.V.ocaml_name)
               else ios_gen_type context typename
           | None, `enum x ->
               if import = None  (* local typedef? *)
-              then ios (some_of x.E#ocaml_name)
+              then ios (some_of x.E.ocaml_name)
               else ios_gen_type context typename
           | _ ->
               (* same as C.mlname_of_option but avoid resoving the same type
@@ -220,7 +219,7 @@ let gen_enum context e =
 
 
 let gen_record context r =
-  let name = some_of r.R#ocaml_name in
+  let name = some_of r.R.ocaml_name in
   let modname = String.capitalize name in
   iol [ ios name; ios " = "; ios (modname ^ ".t") ]
 
@@ -283,7 +282,7 @@ let gen_import context import =
   let piqi = index.i_piqi in
   iod " " [
     ios "module"; ios (some_of import.ocaml_name); ios "=";
-        ios (some_of piqi.P#ocaml_module);
+        ios (some_of piqi.P.ocaml_module);
     eol;
   ]
 
@@ -359,8 +358,8 @@ let order_variants context l =
     | `variant v ->
         (* get the list of included variants *)
         U.flatmap (fun o ->
-          match o.O#typename with
-            | Some typename when o.O#ocaml_name = None ->
+          match o.O.typename with
+            | Some typename when o.O.ocaml_name = None ->
                 let import, parent_piqi, typedef = C.resolve_typename context typename in
                 (match typedef with
                   | ((`variant _) as typedef)
@@ -371,7 +370,7 @@ let order_variants context l =
                   | _ -> []
                 )
             | _ -> []
-        ) v.V#option
+        ) v.V.option
     | _ -> []
   in
   tsort l get_adjacent_vertixes ~cycle_visit
@@ -387,7 +386,7 @@ let order_aliases l =
           if C.is_builtin_alias x
           then
             (* aliases of built-in OCaml types go first *)
-            if x.A#ocaml_type <> None then 1 else 2
+            if x.A.ocaml_type <> None then 1 else 2
           else 100
       | _ ->
           assert false
@@ -420,9 +419,9 @@ let order_typedefs context typedefs =
 
 let gen_piqi context =
   let piqi = context.piqi in
-  let typedefs = order_typedefs context piqi.P#typedef in
+  let typedefs = order_typedefs context piqi.P.typedef in
   iol [
-    gen_imports context piqi.P#import;
+    gen_imports context piqi.P.import;
     gen_typedefs context typedefs;
   ]
 

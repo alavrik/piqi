@@ -1,4 +1,3 @@
-(*pp camlp4o *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -52,7 +51,7 @@ let string_of_rpc_error = function
 
 let call_local_server ((ich, och) as _handle) func_name data =
   trace "piqi_call: calling %s\n" func_name;
-  let request = Piqi_rpc_piqi.Request#{name = func_name; data = data} in
+  let request = Piqi_rpc_piqi.Request.({name = func_name; data = data}) in
   Piqi_rpc.send_request och request;
   let response, _caller_ref = Piqi_rpc.receive_response ich in
   match response with
@@ -149,14 +148,14 @@ let get_http_piqi path =
 
 let find_function piqi name =
   trace "piqi_call: find function %s\n" (U.quote name);
-  try List.find (fun x -> x.T.Func.name = name) piqi.P#resolved_func
+  try List.find (fun x -> x.T.Func.name = name) piqi.P.resolved_func
   with Not_found ->
     piqi_error ("server doesn't implement function: " ^ name)
 
 
 let encode_input_data f args =
   trace "piqi_call: preparing input data\n";
-  let t = f.T.Func#resolved_input in
+  let t = f.T.Func.resolved_input in
   match t, args with
     | None, [] -> None
     | None, _ ->
@@ -175,7 +174,7 @@ let decode_response f output =
     let buf = Piqirun.init_from_string data in
     Piqi_convert.piqobj_of_protobuf (piqtype :> T.piqtype) buf
   in
-  match f.T.Func#resolved_output, output with
+  match f.T.Func.resolved_output, output with
     | None, `ok_empty -> `ok_empty
     | Some _, `ok_empty ->
         piqi_error "unexpected empty result from server"
@@ -185,7 +184,7 @@ let decode_response f output =
         let obj = piqobj_of_bin piqtype data in
         `ok obj
     | _, `error data -> (
-        match f.T.Func#resolved_error with
+        match f.T.Func.resolved_error with
           | None -> piqi_error "unexpected error result from server"
           | Some piqtype ->
               let obj = piqobj_of_bin piqtype data in
@@ -479,12 +478,12 @@ let gen_list x =
       | `variant x ->
           iol [
             ios ", where "; typename; ios " is one of:";
-            gen_options x.V#option;
+            gen_options x.V.option;
           ]
       | `enum x ->
           iol [
             ios ", where "; typename; ios " is one of:";
-            gen_options x.E#option;
+            gen_options x.E.option;
           ]
       | _ ->
           iol []
@@ -504,7 +503,7 @@ let gen_def name t =
 let gen_input def =
   match def with
     | `alias x ->
-        let t = some_of x.A#piqtype in
+        let t = some_of x.A.piqtype in
         let name = piqi_typename t in
         gen_def name (unalias t)
     | _ -> gen_def "input" def
@@ -531,7 +530,7 @@ let print_help ch piqi =
 
   (* first display functions that don't have input *)
   let func_list = piqi.resolved_func in
-  let l1, l2 = List.partition (fun x -> x.T.Func#input = None) func_list in
+  let l1, l2 = List.partition (fun x -> x.T.Func.input = None) func_list in
   let func_list = l1 @ l2 in
 
   let func_help = List.map gen_func_help func_list in

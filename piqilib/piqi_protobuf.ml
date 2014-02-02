@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -151,7 +150,7 @@ let check_enum_codes codes =
 let order_fields fields =
   List.sort
     (fun a b ->
-      match a.F#code, b.F#code with
+      match a.F.code, b.F.code with
         | Some a, Some b -> Int32.to_int (Int32.sub a b) (* a - b *)
         | _ -> assert false) fields
 
@@ -159,13 +158,13 @@ let order_fields fields =
 let add_codes_record r =
   let open T.Record in
   let fields = r.field in
-  if List.exists (fun x -> x.T.Field#code <> None) fields
+  if List.exists (fun x -> x.T.Field.code <> None) fields
   then (
-    if List.exists (fun x -> x.T.Field#code = None) fields
+    if List.exists (fun x -> x.T.Field.code = None) fields
     then error r "codes must be defined for either all or none fields"
     else
       (* all field codes are assigned *)
-      let codes = List.map (fun x -> some_of x.T.Field#code) fields in
+      let codes = List.map (fun x -> some_of x.T.Field.code) fields in
       check_codes codes;
 
       (* pre-order fields by their codes to speed-up further processing *)
@@ -181,13 +180,13 @@ let add_codes_record r =
 let add_codes_variant v =
   let open T.Variant in
   let options = v.option in
-  if List.exists (fun x -> x.T.Option#code <> None) options
+  if List.exists (fun x -> x.T.Option.code <> None) options
   then (
-    if List.exists (fun x -> x.T.Option#code = None) options
+    if List.exists (fun x -> x.T.Option.code = None) options
     then error v "codes must be defined for either all or none variant options"
     else
       (* all option codes are assigned *)
-      let codes = List.map (fun x -> some_of x.T.Option#code) options in
+      let codes = List.map (fun x -> some_of x.T.Option.code) options in
       check_codes codes
   )
   else (
@@ -199,13 +198,13 @@ let add_codes_variant v =
 let add_codes_enum v =
   let open T.Enum in
   let options = v.option in
-  if List.exists (fun x -> x.T.Option#code <> None) options
+  if List.exists (fun x -> x.T.Option.code <> None) options
   then (
-    if List.exists (fun x -> x.T.Option#code = None) options
+    if List.exists (fun x -> x.T.Option.code = None) options
     then error v "codes must be defined for either all or none enum options"
     else
       (* all option codes are assigned *)
-      let codes = List.map (fun x -> some_of x.T.Option#code) options in
+      let codes = List.map (fun x -> some_of x.T.Option.code) options in
       check_enum_codes codes
   )
   else (
@@ -276,7 +275,7 @@ let check_packed_list x =
 
 (* check for wire-types compatibility with piqi types *)
 let check_protobuf_wire_type a =
-  match a.A#protobuf_wire_type with
+  match a.A.protobuf_wire_type with
     | None -> ()
     | Some wt ->
         let t = C.unalias (`alias a) in
@@ -292,7 +291,7 @@ let check_protobuf_wire_type a =
 
 let process_typedef = function
   | `record x ->
-      List.iter check_packed_field x.R#field;
+      List.iter check_packed_field x.R.field;
   | `list x ->
       check_packed_list x
   | `alias x ->

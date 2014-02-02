@@ -19,7 +19,7 @@ SOURCES = \
 	piqic_ocaml.ml \
 
 
-PACKS = piqi.lib piqirun.pb
+PACKS = piqilib piqirun.pb
 
 
 PRE_TARGETS = piqic_ocaml_version.ml

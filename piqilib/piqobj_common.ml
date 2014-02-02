@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -41,11 +40,11 @@ let type_of (x: Piqobj.obj) :T.piqtype =
     | `binary _ -> `binary
     | `any _ -> `any
     (* custom types *)
-    | `record x -> `record x.R#t
-    | `variant x -> `variant x.V#t
-    | `enum x -> `enum x.E#t
-    | `list x -> `list x.L#t
-    | `alias x -> `alias x.A#t
+    | `record x -> `record x.R.t
+    | `variant x -> `variant x.V.t
+    | `enum x -> `enum x.E.t
+    | `list x -> `list x.L.t
+    | `alias x -> `alias x.A.t
 
 
 let full_typename x =
@@ -58,5 +57,5 @@ let parse_default piqtype (default :T.any option) :Piqobj.obj option =
     | None -> None
     | Some piqi_any ->
         let any = Piqobj.any_of_piqi_any piqi_any in
-        Some (some_of any.Any#obj) (* obj must be resolved already *)
+        Some (some_of any.Any.obj) (* obj must be resolved already *)
 

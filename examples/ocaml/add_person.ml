@@ -1,5 +1,3 @@
-(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
-
 
 module A = Addressbook_piqi
 
@@ -15,7 +13,7 @@ let read_phone_type () =
     | "work" -> `work
     | _ ->
         print_endline "Unknown phone type.  Using default.";
-        default_phone_number.A.Person_phone_number#phone_type
+        default_phone_number.A.Person_phone_number.phone_type
 
 
 let read_phone_numbers () =
@@ -25,10 +23,10 @@ let read_phone_numbers () =
       | number ->
           let phone_type = read_phone_type () in
           let res =
-            A.Person_phone_number#{
+            A.Person_phone_number.({
               number = number;
               phone_type = phone_type;
-            }
+            })
           in aux (res :: accu)
   in aux []
 
@@ -51,17 +49,17 @@ let prompt_for_address address_book =
   print_endline "Enter a phone number (or leave blank to finish): ";
   let phone_numbers = read_phone_numbers () in
   let person =
-    A.Person#{
+    A.Person.({
       id = id;
       name = name;
       email = email;
       phone = phone_numbers;
-    }
+    })
   in
-  A.Address_book#{
+  A.Address_book.({
     (* address_book with *)
     person = address_book.person @ [person]
-  }
+  })
 
 
 (*
@@ -87,7 +85,7 @@ let _ =
     with 
       | Sys_error _ ->
           Printf.printf "%s: File not found.  Creating a new file.\n" Sys.argv.(0);
-          A.Address_book#{person = []}
+          A.Address_book.({person = []})
       | Piqirun.Error _ ->
           Printf.eprintf "Failed to parse address book.\n";
           exit (-1)

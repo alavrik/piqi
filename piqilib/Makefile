@@ -2,22 +2,23 @@ include ../Makefile.config
 include $(PIQI_ROOT)/make/Makefile.ocaml
 
 
-RESULT = piqi
+RESULT = piqilib
 
 LIBINSTALL_FILES += \
-	$(CAMLP4_TARGETS) \
 	$(wildcard $(RESULT).cma $(RESULT).cmxa $(RESULT).$(EXT_LIB) $(RES_CLIB)) \
 	$(wildcard *.cmi) \
+	$(CAMLP4_TARGETS)
 
 
 STATIC = 1 # force creation of static library (don't create dlls)
 
 PACKS = ulex easy-format xmlm
-INCDIRS = +camlp4  # for building camlp4 extensions
 
 
-CAMLP4_SOURCES = pa_labelscope.ml pa_openin.ml
-CAMLP4_TARGETS = pa_labelscope.cmo pa_openin.cmo
+# keeping it for backward compatibility with existing programs using it -- it is
+# not really needed on OCaml 3.12+
+INCDIRS = +camlp4
+CAMLP4_TARGETS = pa_labelscope.cmo pa_labelscope.cmi
 
 
 SOURCES = \
@@ -84,7 +85,7 @@ SOURCES = \
 	piqi_getopt.ml \
 
 
-PRE_TARGETS = piqi_version.ml META $(CAMLP4_SOURCES) $(CAMLP4_TARGETS)
+PRE_TARGETS = piqi_version.ml META $(CAMLP4_TARGETS)
 
 
 all: ncl
@@ -110,12 +111,8 @@ META: ../VERSION META.in
 	cat META.in >>$@
 
 
-$(CAMLP4_SOURCES):
-	$(MAKE) -f Makefile.camlp4
-
-
 # re-generate piqi_piqi.ml piqi_impl_piqi.ml and piqi_boot.ml from .piqi and
-# also copying the latest version of piqilib.ml  -- called manually as "make
+# also copying the latest version of piqirun.ml  -- called manually as "make
 # piqi" when there were changes in the .piqi files or to take advantage of new
 # versions of piqic-ocaml and the piqirun.pb runtime library
 #

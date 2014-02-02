@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -37,7 +36,7 @@ let omit_missing_fields = ref true
 let omit_missing f =
   (* use the per-field schema-level setting when specified, default to the
    * run-time setting otherwise *)
-  match f.T.Field#json_omit_missing with
+  match f.T.Field.json_omit_missing with
     | Some x -> x
     | None -> !omit_missing_fields
 

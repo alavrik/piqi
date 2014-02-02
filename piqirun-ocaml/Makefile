@@ -5,7 +5,7 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 RESULT = piqirun
 
 
-PACKS = piqi.lib  # piqirun_ext.ml depends on it
+PACKS = piqilib  # piqirun_ext.ml depends on it
 
 
 SOURCES = \

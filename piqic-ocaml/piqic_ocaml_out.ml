@@ -1,4 +1,3 @@
-(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -109,9 +108,9 @@ let gen_field context rname f =
 
 let gen_record context r =
   (* fully-qualified capitalized record name *)
-  let rname = String.capitalize (some_of r.R#ocaml_name) in
+  let rname = String.capitalize (some_of r.R.ocaml_name) in
   (* order fields by are by their integer codes *)
-  let fields = List.sort (fun a b -> compare a.F#code b.F#code) r.R#field in
+  let fields = List.sort (fun a b -> compare a.F.code b.F.code) r.R.field in
   let fgens = (* field generators list *)
     List.map (gen_field context rname) fields
   in
@@ -131,7 +130,7 @@ let gen_record context r =
     else [ios "[]"]
   in (* gen_<record-name> function delcaration *)
   iod " " [
-    ios "gen__" ^^ ios (some_of r.R#ocaml_name); ios "code x =";
+    ios "gen__" ^^ ios (some_of r.R.ocaml_name); ios "code x =";
       gen_cc "refer x;";
       iol fgens_code;
       ios "Piqirun.gen_record code"; 
@@ -319,5 +318,5 @@ let gen_typedefs context typedefs =
 
 
 let gen_piqi context =
-  gen_typedefs context context.piqi.P#typedef
+  gen_typedefs context context.piqi.P.typedef
 

@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -141,7 +140,7 @@ module C = Piqi_common
 
 
 let default_any =
-  Any#{
+  Any.({
     obj = None;
     typename = None;
     pb = None;
@@ -150,7 +149,7 @@ let default_any =
     json_ast = None;
     xml_ast = None;
     ref = None;
-  }
+  })
 
 
 (* store Piqobj.any and return reference of the stored object in Piqi_objstore
@@ -183,11 +182,11 @@ let any_of_piqi_any (piqi_any: Piqi_impl_piqi.any) :Piqobj.any =
         (* NOTE: this branch is used when the function is called from
          * Piqi.resolve_field_default when Piqi is read from Protobuf during
          * Piqi.boot *)
-        let any = Any#{
+        let any = Any.({
           default_any with
           typename = piqi_any.Piqi_impl_piqi.Any.typename;
           pb = piqi_any.Piqi_impl_piqi.Any.protobuf;
-        }
+        })
         in
         (* cache the value in objstore and in the piqi_any itself *)
         let ref = put_any any in

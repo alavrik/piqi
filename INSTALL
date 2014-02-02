@@ -45,10 +45,7 @@ On Mac OS X (using Homebrew):
 
 On other Unix systems:
 
-        * OCaml compiler and standard library
-
-                Recommended (tested) versions are 3.11.2 and 3.12.0. Older OCaml
-                versions >= 3.10 may work as well.
+        * OCaml (>= 3.12)
 
                 OCaml is available in most Linux distributions. It can also be
                 downloaded from here:

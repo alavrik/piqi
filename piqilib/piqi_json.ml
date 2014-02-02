@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -59,11 +58,11 @@ let check_json_name s =
 
 (* XXX: use name instead of json_name for foreign types? *)
 let typedef_json_name = function
-  | `record t -> t.R#json_name
-  | `variant t -> t.V#json_name
-  | `enum t -> t.E#json_name
-  | `alias t -> t.A#json_name
-  | `list t -> t.L#json_name
+  | `record t -> t.R.json_name
+  | `variant t -> t.V.json_name
+  | `enum t -> t.E.json_name
+  | `alias t -> t.A.json_name
+  | `list t -> t.L.json_name
   | _ ->
       (* this function will be called only for named types (i.e. typedefs) *)
       assert false
@@ -138,13 +137,13 @@ let json_name_typedef = function
 
 (* name fields and options *)
 let json_name_record' x =
-   List.iter json_name_field x.R#field
+   List.iter json_name_field x.R.field
 
 let json_name_variant' x =
-   List.iter json_name_option x.V#option
+   List.iter json_name_option x.V.option
 
 let json_name_enum' x =
-   List.iter json_name_option x.E#option
+   List.iter json_name_option x.E.option
 
 let json_name_typedef' = function
   | `record x -> json_name_record' x

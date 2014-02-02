@@ -1,4 +1,3 @@
-(*pp camlp4o *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -75,8 +74,8 @@ let expand_file () =
         ~functions:!flag_functions
   in
 
-  if !flag_add_module_name && res_piqi.P#modname = None
-  then res_piqi.P#modname <- piqi.P#modname;
+  if !flag_add_module_name && res_piqi.P.modname = None
+  then res_piqi.P.modname <- piqi.P.modname;
 
   let och = Main.open_output !ofile in
   Piqi_pp.prettyprint_piqi och res_piqi

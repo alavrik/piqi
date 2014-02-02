@@ -400,7 +400,7 @@ let gen_field_internals idtable ?(path=[]) x =
     match x.options with
       | None -> ""
       | Some x ->
-          if x.D.Field_options#packed = Some true
+          if x.D.Field_options.packed = Some true
           then ".protobuf-packed"
           else ""
   in

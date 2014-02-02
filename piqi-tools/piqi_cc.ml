@@ -1,4 +1,3 @@
-(*pp camlp4o *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -58,7 +57,7 @@ let load_piqi ifile =
   then (
     (* find the "piqi" typedef from the module we've just loaded *)
     let piqi_def =
-      try Piqi_db.find_local_typedef piqi.P#resolved_typedef "piqi"
+      try Piqi_db.find_local_typedef piqi.P.resolved_typedef "piqi"
       with Not_found ->
         Printf.eprintf "error: invalid self-spec read from %s: no definition named \"piqi\"\n" ifile;
         piqi_error "piqi cc: invalid self-spec"
@@ -82,7 +81,7 @@ let run_cc () =
       C.some_of !Piqi.piqi_spec
     )
   in
-  let piqi = {piqi with P#modname = Some "piqi"} in
+  let piqi = {piqi with P.modname = Some "piqi"} in
   let obj = Piqi_convert.Piqi piqi in
 
   let och = Piqi_main.open_output !Piqi_main.ofile in
@@ -95,7 +94,7 @@ let run_cc () =
         Piqi_convert.write_xml och obj
     | "piqi" | "" ->
         let piqi = Piqi.lang_to_spec piqi in
-        let piqi = {piqi with P#modname = Some "piqi"} in
+        let piqi = {piqi with P.modname = Some "piqi"} in
         Piqi_pp.prettyprint_piqi och piqi
     | x ->
         piqi_error ("unknown output format " ^ U.quote x)

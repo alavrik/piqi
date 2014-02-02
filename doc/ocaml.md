@@ -333,17 +333,30 @@ OCaml types to Piqi types.
     recursive modules which require signature definition in addition to module
     implementation.)
 
-    To make working with records defined in separate modules easier, Piqi
-    provides a set of useful CamlP4 macros. Using one the macros, record
-    creation would look like:
+    To make working with records defined in separate modules easier, you can use
+    "local opens" introduced in OCaml 3.12. For example, records can be created
+    as
 
-        R#{ a = 10; b = ... }
+        R.({ a = 10; b = ... })
 
     instead of
 
-        { R.a = 10; b = ... }
+        {R.a = 10; b = ...}
+
+    Similarly, if you have a significant portion of code working with some
+    record's fields, you can `open` the record's module before the code:
+
+        let open R in
+        ...
+
+        (let open R in ... is a full equivalent of R.( ... ))
+
+    This way, you can refer to record felds as `x.a` instead of `x.R.a`. Note
+    that this doesn't work with several records simultaneously.
+
 
     **required** Piqi fields are mapped directly to OCaml record fields.
+
 
     **optional** Piqi fields of type `<t>` are mapped to fields with type
     `<t> option`.
@@ -567,4 +580,4 @@ Other limitations:
 Supported OCaml and Protocol Buffers versions
 ---------------------------------------------
 
-Piqi works with OCaml \>= 3.11 and Protocol Buffers \>= 2.3.0
+Piqi works with OCaml \>= 3.12 and Protocol Buffers \>= 2.3.0

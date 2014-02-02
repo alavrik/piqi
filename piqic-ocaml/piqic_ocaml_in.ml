@@ -1,4 +1,3 @@
-(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -80,7 +79,7 @@ let rec gen_alias_type ?wire_type ?(is_packed=false) context a =
 let gen_default = function
   | None -> iol []
   | Some piqi_any ->
-      let pb = some_of piqi_any.Any#protobuf in
+      let pb = some_of piqi_any.Any.protobuf in
       iol [ios "~default:"; ioq (String.escaped pb) ]
 
 
@@ -136,9 +135,9 @@ let gen_field_parser context f =
 
 let gen_record context r =
   (* fully-qualified capitalized record name *)
-  let rname = String.capitalize (some_of r.R#ocaml_name) in
+  let rname = String.capitalize (some_of r.R.ocaml_name) in
   (* order fields by are by their integer codes *)
-  let fields = List.sort (fun a b -> compare a.F#code b.F#code) r.R#field in
+  let fields = List.sort (fun a b -> compare a.F.code b.F.code) r.R.field in
   let fconsl = (* field constructor list *)
     if fields <> []
     then List.map (gen_field_cons context rname) fields
@@ -159,7 +158,7 @@ let gen_record context r =
     ]
   in (* parse_<record-name> function delcaration *)
   iod " " [
-    ios "parse_" ^^ ios (some_of r.R#ocaml_name); ios "x =";
+    ios "parse_" ^^ ios (some_of r.R.ocaml_name); ios "x =";
     ios "let x = Piqirun.parse_record x in";
     gen_cc "let count = next_count() in refer count (";
     rcons;
@@ -333,5 +332,5 @@ let gen_typedefs context typedefs =
 
 
 let gen_piqi context =
-  gen_typedefs context context.piqi.P#typedef
+  gen_typedefs context context.piqi.P.typedef
 

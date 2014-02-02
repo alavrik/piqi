@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -143,13 +142,13 @@ let getopt_name_option x =
 
 (* name fields and options *)
 let getopt_name_record x =
-   List.iter getopt_name_field x.R#field
+   List.iter getopt_name_field x.R.field
 
 let getopt_name_variant x =
-   List.iter getopt_name_option x.V#option
+   List.iter getopt_name_option x.V.option
 
 let getopt_name_enum x =
-   List.iter getopt_name_option x.E#option
+   List.iter getopt_name_option x.E.option
 
 let getopt_name_typedef = function
   | `record x -> getopt_name_record x

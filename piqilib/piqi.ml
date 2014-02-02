@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -126,21 +125,21 @@ let find_def idtable name =
 
 let is_func_param def =
   match def with
-    | `record x -> x.R#is_func_param
-    | `variant x -> x.V#is_func_param
-    | `enum x -> x.E#is_func_param
-    | `alias x -> x.A#is_func_param
-    | `list x -> x.L#is_func_param
+    | `record x -> x.R.is_func_param
+    | `variant x -> x.V.is_func_param
+    | `enum x -> x.E.is_func_param
+    | `alias x -> x.A.is_func_param
+    | `list x -> x.L.is_func_param
 
 
 (* mark type definition as a function parameter *)
 let set_is_func_param_flag def =
   match def with
-    | `record x -> x.R#is_func_param <- true
-    | `variant x -> x.V#is_func_param <- true
-    | `enum x -> x.E#is_func_param <- true
-    | `alias x -> x.A#is_func_param <- true
-    | `list x -> x.L#is_func_param <- true
+    | `record x -> x.R.is_func_param <- true
+    | `variant x -> x.V.is_func_param <- true
+    | `enum x -> x.E.is_func_param <- true
+    | `alias x -> x.A.is_func_param <- true
+    | `list x -> x.L.is_func_param <- true
 
 
 let resolve_typename map name :T.piqtype =
@@ -167,23 +166,23 @@ let resolve_option_typename map o =
 
 let resolve_def_typenames map = function
   | `record r ->
-      List.iter (resolve_field_typename map) r.R#field
+      List.iter (resolve_field_typename map) r.R.field
   | `variant v ->
-      List.iter (resolve_option_typename map) v.V#option
+      List.iter (resolve_option_typename map) v.V.option
   | `alias a ->
       let piqtype =
-        match a.A#typename with
+        match a.A.typename with
           | Some name ->
               resolve_typename map name
           | None ->
               (* either one or another must be defined -- this has been checked
                * earlier in check_alias *)
-              let piqi_type = some_of a.A#piqi_type in
+              let piqi_type = some_of a.A.piqi_type in
               (piqi_type :> T.piqtype)
       in
-      a.A#piqtype <- Some piqtype
+      a.A.piqtype <- Some piqtype
   | `list l ->
-      l.L#piqtype <- Some (resolve_typename map l.L#typename)
+      l.L.piqtype <- Some (resolve_typename map l.L.typename)
   | `enum _ ->
       ()
 
@@ -241,8 +240,8 @@ let check_def_name obj = function
 
 
 let check_record r =
-  check_def_name r r.R#name;
-  let fields = r.R#field in
+  check_def_name r r.R.name;
+  let fields = r.R.field in
   (* XXX: protoc doesn't print any warnings on records with no fields *)
   List.iter check_field fields
 
@@ -259,9 +258,9 @@ let check_option o =
 
 
 let check_variant v =
-  check_def_name v v.V#name;
-  let name = some_of v.V#name in
-  let options = v.V#option in
+  check_def_name v v.V.name;
+  let name = some_of v.V.name in
+  let options = v.V.option in
   if options = []
   then error v ("variant " ^ U.quote name ^ " doesn't specify any options");
   List.iter check_option options
@@ -282,9 +281,9 @@ let check_enum_option x =
 
 
 let check_enum e =
-  check_def_name e e.E#name;
-  let name = some_of e.E#name in
-  let options = e.E#option in
+  check_def_name e e.E.name;
+  let name = some_of e.E.name in
+  let options = e.E.option in
   if options = []
   then error e ("enum " ^ U.quote name ^ " doesn't specify any options");
   List.iter check_enum_option options
@@ -336,13 +335,13 @@ let check_resolved_alias a =
 let check_resolved_def def =
   match def with
     | `record x ->
-        let names = List.map (fun x -> name_of_field x) x.R#field in
+        let names = List.map (fun x -> name_of_field x) x.R.field in
         check_dup_names "field" names
     | `variant x ->
-        let names = List.map (fun x -> name_of_option x) x.V#option in
+        let names = List.map (fun x -> name_of_option x) x.V.option in
         check_dup_names "option" names
     | `enum x ->
-        let names = List.map (fun x -> name_of_option x) x.E#option in
+        let names = List.map (fun x -> name_of_option x) x.E.option in
         check_dup_names "enum option" names
     | `alias x ->
         check_resolved_alias x
@@ -381,7 +380,7 @@ let check_no_infinite_types ~parent defs =
             | `alias x ->
                 (* NOTE: there is a reason why we are handling it here -- see
                  * below *)
-                error x ("alias " ^ U.quote (some_of x.A#name) ^ " forms a loop")
+                error x ("alias " ^ U.quote (some_of x.A.name) ^ " forms a loop")
             | _ ->
                 false
           )
@@ -397,8 +396,8 @@ let check_no_infinite_types ~parent defs =
                 | `record x ->
                     List.iter
                       (fun f ->
-                        match f.F#piqtype with
-                          | Some piqtype when f.F#mode = `required ->
+                        match f.F.piqtype with
+                          | Some piqtype when f.F.mode = `required ->
                               (* NOTE: it is OK for optional and repeated field
                                * to form a loop; for instance, variant -> record
                                * expansion can produce such options naturally;
@@ -407,35 +406,35 @@ let check_no_infinite_types ~parent defs =
                                * a loop *)
                               if not (finite_path_exists piqtype)
                               then error x (
-                                "record " ^ U.quote (some_of x.R#name) ^
+                                "record " ^ U.quote (some_of x.R.name) ^
                                 " is an infinite type (field " ^ U.quote (name_of_field f) ^ " forms a loop)"
                               )
                           | _ -> ()
                       )
-                      x.R#field;
+                      x.R.field;
                     true
                 | `variant x ->
                     (* there's a finite path for a variant if there's a finite path
                      * for at least one of its options (option with no type means
                      * finite type by definition) *)
-                    let options = x.V#option in
+                    let options = x.V.option in
                     let is_variant_finite =
-                      if List.exists (fun x -> x.O#piqtype = None) options
+                      if List.exists (fun x -> x.O.piqtype = None) options
                       then true
-                      else List.exists (fun x -> finite_path_exists (some_of x.O#piqtype)) options
+                      else List.exists (fun x -> finite_path_exists (some_of x.O.piqtype)) options
                     in
                     if not is_variant_finite
-                    then error x ("variant " ^ U.quote (some_of x.V#name) ^ " is an infinite type (each option forms a loop)")
+                    then error x ("variant " ^ U.quote (some_of x.V.name) ^ " is an infinite type (each option forms a loop)")
                     else true
                 | `list x ->
-                    if not (finite_path_exists (some_of x.L#piqtype))
-                    then error x ("list " ^ U.quote (some_of x.L#name) ^ " forms a loop")
+                    if not (finite_path_exists (some_of x.L.piqtype))
+                    then error x ("list " ^ U.quote (some_of x.L.name) ^ " forms a loop")
                     else true
                 | `alias x ->
                     (* NOTE: not reporting an alias loop here, so that it
                      * doesn't take precedence over loop reports for records,
                      * variants and lists when there's an alias in the middle *)
-                    finite_path_exists (some_of x.A#piqtype)
+                    finite_path_exists (some_of x.A.piqtype)
                 | _ ->  (* enum and primitive types are finite *)
                     true
           in
@@ -530,7 +529,7 @@ let resolve_field_default x =
          * embedded self-specifications; currently, there's only one such value
          * which is field.mode = required *)
         if !is_boot_mode
-        then add_fake_loc (some_of any.Piqobj.Any#obj);
+        then add_fake_loc (some_of any.Piqobj.Any.obj);
 
         (* NOTE: fixing (preserving) location counters which get skewed during
          * parsing defaults *)
@@ -543,7 +542,7 @@ let resolve_field_default x =
 
 let resolve_defaults = function
   | `record x ->
-      List.iter resolve_field_default x.R#field
+      List.iter resolve_field_default x.R.field
   | _ -> ()
 
 
@@ -557,19 +556,19 @@ let copy_obj_list l = List.map copy_obj l
 
 let copy_variant ?(copy_parts=true) x =
   if copy_parts
-  then Piqloc.addrefret x V#{ x with option = copy_obj_list x.option }
+  then Piqloc.addrefret x V.({x with option = copy_obj_list x.option})
   else copy_obj x
 
 
 let copy_enum ?(copy_parts=true) x =
   if copy_parts
-  then Piqloc.addrefret x E#{ x with option = copy_obj_list x.option }
+  then Piqloc.addrefret x E.({x with option = copy_obj_list x.option})
   else copy_obj x
 
 
 let copy_record ?(copy_parts=true) x =
   if copy_parts
-  then Piqloc.addrefret x R#{ x with field = copy_obj_list x.field }
+  then Piqloc.addrefret x R.({x with field = copy_obj_list x.field})
   else copy_obj x
 
 
@@ -850,7 +849,7 @@ let list_replace l f x =
   aux l
 
 
-let name_of_function x = x.T.Func#name
+let name_of_function x = x.T.Func.name
 
 
 let idtable_of_defs defs =
@@ -880,7 +879,7 @@ let list_of_idtable idtable l name_of_elem =
 (* find record field by name *)
 let find_field r field_name scoped_name =
   try
-    List.find (fun x -> name_of_field x = field_name) r.R#field
+    List.find (fun x -> name_of_field x = field_name) r.R.field
   with Not_found ->
     error scoped_name ("record doesn't have field named " ^ U.quote field_name)
 
@@ -888,27 +887,27 @@ let find_field r field_name scoped_name =
 (* find variant option by name *)
 let find_option v option_name scoped_name =
   try
-    List.find (fun x -> name_of_option x = option_name) v.V#option
+    List.find (fun x -> name_of_option x = option_name) v.V.option
   with Not_found ->
     error scoped_name ("variant doesn't have option named " ^ U.quote option_name)
 
 
 (* replace record field with the new one *)
 let replace_field r f field_name =
-  let fields = r.R#field in
+  let fields = r.R.field in
   let new_fields = list_replace fields (fun x -> name_of_field x = field_name) f in
   Piqloc.addref fields new_fields;
-  let new_record = R#{r with field = new_fields} in
+  let new_record = R.({r with field = new_fields}) in
   Piqloc.addref r new_record;
   new_record
 
 
 (* replace variant option with the new one *)
 let replace_option v o option_name =
-  let options = v.V#option in
+  let options = v.V.option in
   let new_options = list_replace options (fun x -> name_of_option x = option_name) o in
   Piqloc.addref options new_options;
-  let new_variant = V#{v with option = new_options} in
+  let new_variant = V.({v with option = new_options}) in
   Piqloc.addref v new_variant;
   new_variant
 
@@ -926,7 +925,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
     else
       let extension_labels =
         U.flatmap (function
-          | `named x -> [x.Piq_ast.Named#name]
+          | `named x -> [x.Piq_ast.Named.name]
           | `name name -> [name]
           | _ -> []
         ) extension_asts
@@ -936,9 +935,9 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
       *)
       let is_overridden = function
           | `named x ->
-              let res = List.mem x.Piq_ast.Named#name extension_labels in
+              let res = List.mem x.Piq_ast.Named.name extension_labels in
               (*
-              if res then Printf.eprintf "overridden: %s\n" x.T.Named#name;
+              if res then Printf.eprintf "overridden: %s\n" x.T.Named.name;
               *)
               res
           | `name name ->
@@ -1174,11 +1173,11 @@ let partition_extensions extensions =
 
 let get_imported_defs imports =
   let aux x = 
-    let piqi = some_of x.Import#piqi in
+    let piqi = some_of x.Import.piqi in
     (* in order to avoid conflict between local defs and also defs imported
      * several times, creating a shallow copy of imported defs just to be able
      * to safely mutate the "parent" field *)
-    let imported_defs = copy_defs piqi.P#resolved_typedef ~copy_parts:false in
+    let imported_defs = copy_defs piqi.P.resolved_typedef ~copy_parts:false in
     (* set parent namespace for imported definitions *)
     List.iter (fun def -> set_parent def (`import x)) imported_defs;
     imported_defs
@@ -1189,53 +1188,53 @@ let get_imported_defs imports =
 let make_param_name func param_name =
   (* construct the type name as a concatentation of the function name and
    * -input|output|error *)
-  let func_name = func.T.Func#name in
+  let func_name = func.T.Func.name in
   let type_name = func_name ^ "-" ^ param_name in
   type_name
 
 
 let make_param_alias_from_name name x =
   let res =
-    A#{
-      T.default_alias () with
+    A.({
+      (T.default_alias ()) with
 
       name = Some name;
       typename = Some x;
       (* we set it only to distingwish between aliases defined in-line (see
        * make_param_alias) and artificially generated aliases like this one *)
       is_func_param = true;
-    }
+    })
   in
   Piqloc.addrefret x res
 
 
 let make_param_record name x =
-  let res = R#{x with name = Some name} in
+  let res = R.({x with name = Some name}) in
   let res = copy_record res in (* preserve the original fields *)
   Piqloc.addrefret x res
 
 
 let make_param_variant name x =
-  let res = V#{x with name = Some name} in
+  let res = V.({x with name = Some name}) in
   let res = copy_variant res in (* preserve the original options *)
   Piqloc.addrefret x res
 
 
 let make_param_enum name x =
-  let res = E#{x with name = Some name} in
+  let res = E.({x with name = Some name}) in
   let res = copy_enum res in (* preserve the original options *)
   Piqloc.addrefret x res
 
 
 let make_param_list name x =
   (* NOTE: the original record is preserved, because it is flat *)
-  let res = L#{x with name = Some name} in
+  let res = L.({x with name = Some name}) in
   Piqloc.addrefret x res
 
 
 let make_param_alias name x =
   (* NOTE: the original record is preserved, because it is flat *)
-  let res = A#{x with name = Some name} in
+  let res = A.({x with name = Some name}) in
   Piqloc.addrefret x res
 
 
@@ -1323,13 +1322,13 @@ let get_function_defs (non_func_defs: T.typedef list) resolved_funs =
    *   .piqi -> .json -> .piqi *)
   let defs = List.filter
     (function
-      | `alias implicit_alias when implicit_alias.A#is_func_param ->
+      | `alias implicit_alias when implicit_alias.A.is_func_param ->
           (* implicitly created alias that matches some top-level
            * *-input|output|error definition? *)
           (try
-            let def = find_existing_def (some_of implicit_alias.A#name) in
+            let def = find_existing_def (some_of implicit_alias.A.name) in
             match def with
-              | `alias explicit_alias when explicit_alias.A#typename <> implicit_alias.A#typename ->
+              | `alias explicit_alias when explicit_alias.A.typename <> implicit_alias.A.typename ->
                   (* we need to keep this definition so that we could report a
                    * duplicate typedef error because, here, the implicit alias
                    * derived from a function parameter clashes with another
@@ -1337,7 +1336,7 @@ let get_function_defs (non_func_defs: T.typedef list) resolved_funs =
                    * implicit alias literally points to itself which is absurd
                    * -- it shouldn't be treated as implicit definition in
                    * such case *)
-                  if implicit_alias.A#typename = implicit_alias.A#name
+                  if implicit_alias.A.typename = implicit_alias.A.name
                   then false  (* remove *)
                   else true  (* keep *)
               | _ ->
@@ -1375,11 +1374,11 @@ let prepare_included_piqi_ast ast =
 let expand_includes piqi included_piqi =
   (* get the list of included modules' ASTs *)
   let included_asts =
-    U.flatmap (fun x -> prepare_included_piqi_ast (some_of x.P#ast)) included_piqi
+    U.flatmap (fun x -> prepare_included_piqi_ast (some_of x.P.ast)) included_piqi
   in
   (* transform the module's ast to include all elements from all included
    * modules *)
-  let ast = some_of piqi.P#ast in
+  let ast = some_of piqi.P.ast in
   let new_ast =
     match ast with
       | `list l ->
@@ -1394,7 +1393,7 @@ let expand_includes piqi included_piqi =
    * for each individual module *)
   ignore (Piqobj_of_piq.get_unknown_fields ());
 
-  res_piqi.P#ast <- Some ast;
+  res_piqi.P.ast <- Some ast;
   res_piqi
 
 
@@ -1433,7 +1432,7 @@ let rewrite_non_scoped_modname from_piqi modname =
   if Piqi_name.is_scoped_name modname
   then modname
   else
-    let from_modname = some_of from_piqi.P#modname in
+    let from_modname = some_of from_piqi.P.modname in
     match Piqi_name.get_module_name from_modname with
       | None -> modname
       | Some from_dir ->
@@ -1463,14 +1462,14 @@ let pre_process_piqi ?modname ?(fname="") ?(ast: piq_ast option) (orig_piqi: T.p
   if ast <> None
   then (
     let unknown_fields = Piqobj_of_piq.get_unknown_fields () in
-    let custom_fields = orig_piqi.P#custom_field in
+    let custom_fields = orig_piqi.P.custom_field in
     check_unknown_fields unknown_fields custom_fields;
   );
 
   (* preserve the original piqi by creating a shallow copy of it *)
   let piqi = copy_obj orig_piqi in
-  piqi.P#original_piqi <- Some orig_piqi;
-  piqi.P#ast <- ast;
+  piqi.P.original_piqi <- Some orig_piqi;
+  piqi.P.ast <- ast;
 
   (* it is critical to cache loaded piqi module before we process any of its
    * dependencies; by doing this, we check for circular imports *)
@@ -1479,21 +1478,21 @@ let pre_process_piqi ?modname ?(fname="") ?(ast: piq_ast option) (orig_piqi: T.p
 
 
 let is_processed piqi =
-  piqi.P#included_piqi <> []
+  piqi.P.included_piqi <> []
 
 
 let is_being_processed piqi include_path =
   if is_processed piqi
   then false (* already processed *)
   else
-    match piqi.P#modname with
+    match piqi.P.modname with
       | None -> false
       | Some n ->
           (* we can rely only on module names to determine if the modules are
            * being processed; this is because we override the original piqi
            * object once we expand its includes -- see the "let piqi = " in
            * process_piqi() *)
-          List.exists (fun x -> n = some_of x.P#modname) include_path
+          List.exists (fun x -> n = some_of x.P.modname) include_path
 
 
 (* do include & extension expansion for the loaded piqi using extensions from
@@ -1507,24 +1506,24 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   (* as a first step, pre-process the module if it hasn't been preprocessed
    * already *)
   let piqi =
-    match input_piqi.P#original_piqi with
+    match input_piqi.P.original_piqi with
       | None -> (* not pre-processed yet *)
           let piqi = pre_process_piqi ?modname ~fname ?ast input_piqi in
           if cache then Piqi_db.add_piqi piqi;
-          trace "processing module %s\n" (some_of piqi.P#modname);
+          trace "processing module %s\n" (some_of piqi.P.modname);
           piqi
       | Some _ ->
-          trace "processing already pre-processed module %s\n" (some_of input_piqi.P#modname);
+          trace "processing already pre-processed module %s\n" (some_of input_piqi.P.modname);
           input_piqi
   in
-  let orig_piqi = some_of piqi.P#original_piqi in
-  let ast = piqi.P#ast in
+  let orig_piqi = some_of piqi.P.original_piqi in
+  let ast = piqi.P.ast in
   trace_enter ();
 
   (* make sure include and importe names are properly scoped when
    * included/imported from a module with a scoped name *)
-  piqi.P#includ <- List.map (rewrite_include_modname piqi) piqi.P#includ;
-  piqi.P#import <- List.map (rewrite_import_modname piqi) piqi.P#import;
+  piqi.P.includ <- List.map (rewrite_include_modname piqi) piqi.P.includ;
+  piqi.P.import <- List.map (rewrite_import_modname piqi) piqi.P.import;
 
   (*
    * handle includes
@@ -1535,10 +1534,10 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
       (* extensions are not appliable for non-Piq representation *)
       []
     else
-      List.map (fun x -> Includ#{modname = x; unparsed_piq_ast = None})
-      (find_extensions (some_of piqi.P#modname) fname)
+      List.map (fun x -> Includ.({modname = x; unparsed_piq_ast = None}))
+      (find_extensions (some_of piqi.P.modname) fname)
   in
-  let includes = piqi.P#includ @ extension_includes in
+  let includes = piqi.P.includ @ extension_includes in
   let included_piqi = load_includes piqi includes  ~include_path in
   let piqi =
     if included_piqi = []
@@ -1546,8 +1545,8 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
     else (
       let extended_piqi = expand_includes piqi included_piqi in
 
-      extended_piqi.P#original_piqi <- Some orig_piqi;
-      extended_piqi.P#modname <- piqi.P#modname;
+      extended_piqi.P.original_piqi <- Some orig_piqi;
+      extended_piqi.P.modname <- piqi.P.modname;
 
       (* replace previously cached unexpanded piqi module if it is already present in the
        * cache *)
@@ -1556,11 +1555,11 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
        * includes;
        * TODO: omit this step if there's no recursive includes *)
       List.iter (fun p ->
-        if List.exists (fun pp -> pp == piqi) p.P#included_piqi
+        if List.exists (fun pp -> pp == piqi) p.P.included_piqi
         then
-          p.P#included_piqi <- List.map (
+          p.P.included_piqi <- List.map (
             fun pp -> if pp == piqi then extended_piqi else pp
-          ) p.P#included_piqi
+          ) p.P.included_piqi
       ) included_piqi;
 
       extended_piqi
@@ -1570,25 +1569,25 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   (* append the original (input) piqi module to the list of included piqi
    * modules *)
   let modules = included_piqi @ [piqi] in
-  piqi.P#included_piqi <- modules;
+  piqi.P.included_piqi <- modules;
 
   (*
    * get all extensions
    *)
-  List.iter check_extension orig_piqi.P#extend;
+  List.iter check_extension orig_piqi.P.extend;
   let defs_extensions, func_extensions, import_extensions =
-    partition_extensions piqi.P#extend
+    partition_extensions piqi.P.extend
   in
 
   (* NOTE: for extensions we're considering all custom fields from all
    * included modules *)
-  let custom_fields = piqi.P#custom_field in
+  let custom_fields = piqi.P.custom_field in
 
   (*
    * handle imports
    *)
   (* get all imports from included modules *)
-  let imports = piqi.P#import in
+  let imports = piqi.P.import in
   let extended_imports =
     if import_extensions = []
     then imports
@@ -1597,14 +1596,14 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   (* preserve the original imports *)
   let resolved_imports = copy_imports extended_imports in
   load_imports piqi resolved_imports;
-  piqi.P#resolved_import <- resolved_imports;
-  piqi.P#extended_import <- extended_imports;
+  piqi.P.resolved_import <- resolved_imports;
+  piqi.P.extended_import <- extended_imports;
 
   (*
    * handle imported defs
    *)
   let imported_defs = get_imported_defs resolved_imports in
-  piqi.P#imported_typedef <- imported_defs;
+  piqi.P.imported_typedef <- imported_defs;
 
   (* fill idtable with their imported modules' definitions *)
   let idtable = Idtable.empty in
@@ -1620,10 +1619,10 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
    * handle functions
    *)
   (* get all functions from this module and included modules *)
-  let funs = piqi.P#func in
+  let funs = piqi.P.func in
 
   (* check for duplicate function names *)
-  let func_names = List.map (fun x -> x.T.Func#name) funs in
+  let func_names = List.map (fun x -> x.T.Func.name) funs in
   List.iter check_name func_names;
   check_dup_names "function" func_names;
 
@@ -1634,15 +1633,15 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   in
   (* preserve the original functions *)
   let resolved_funs = List.map copy_obj extended_funs in
-  piqi.P#resolved_func <- resolved_funs;
-  piqi.P#extended_func <- extended_funs;
+  piqi.P.resolved_func <- resolved_funs;
+  piqi.P.extended_func <- extended_funs;
 
   (* get definitions derived from function parameters *)
-  let func_defs, func_defs_map = get_function_defs piqi.P#typedef resolved_funs in
-  piqi.P#func_typedef <- func_defs;
+  let func_defs, func_defs_map = get_function_defs piqi.P.typedef resolved_funs in
+  piqi.P.func_typedef <- func_defs;
 
   (* add function type definitions to Piqi defs *)
-  let defs = piqi.P#typedef @ func_defs in
+  let defs = piqi.P.typedef @ func_defs in
 
   (* expand all extensions over all definitions *)
   (* NOTE: boot defs can not be extended *)
@@ -1708,10 +1707,10 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
    * fields *)
   let idtable = resolve_defs idtable resolved_defs ~piqi in
 
-  piqi.P#extended_typedef <- extended_defs;
-  piqi.P#extended_func_typedef <- extended_func_defs;
+  piqi.P.extended_typedef <- extended_defs;
+  piqi.P.extended_func_typedef <- extended_func_defs;
 
-  piqi.P#resolved_typedef <- resolved_defs;
+  piqi.P.resolved_typedef <- resolved_defs;
 
   (* run registered processing hooks *)
   List.iter (fun f -> f idtable piqi) !processing_hooks;
@@ -1741,7 +1740,7 @@ and load_piqi_file ?modname ?include_path fname =
   let piqi = load_piqi_ast ?modname ?include_path ~cache fname ast in
   trace_leave ();
 
-  piqi.P#file <- Some fname;
+  piqi.P.file <- Some fname;
   piqi
 
 
@@ -1789,11 +1788,11 @@ and load_imports piqi l =
     | [] -> ()
     | h::t ->
         begin
-          if List.exists (fun x -> h.Import#name = x.Import#name) t
-          then error h ("duplicate import name " ^ U.quote (some_of h.Import#name));
+          if List.exists (fun x -> h.Import.name = x.Import.name) t
+          then error h ("duplicate import name " ^ U.quote (some_of h.Import.name));
 
-          if List.exists (fun x -> h.Import#piqi == x.Import#piqi) t
-          then warning h ("duplicate import module " ^ U.quote h.Import#modname);
+          if List.exists (fun x -> h.Import.piqi == x.Import.piqi) t
+          then warning h ("duplicate import module " ^ U.quote h.Import.modname);
 
           check_dups t
         end
@@ -1802,7 +1801,7 @@ and load_imports piqi l =
 
   (* simple check for import loops; provides very limited diagnostic *)
   (* NOTE: import loops disallowed in Protobuf as well *)
-  if List.exists (fun x -> some_of x.Import#piqi == piqi) l
+  if List.exists (fun x -> some_of x.Import.piqi == piqi) l
   then error piqi "imported piqi modules form a loop"
 
 
@@ -1819,7 +1818,7 @@ and load_import x =
 
 and load_includes ~include_path piqi l =
   List.iter (fun x ->
-    if x.Includ#modname = some_of piqi.P#modname
+    if x.Includ.modname = some_of piqi.P.modname
     then error x "piqi module includes itself"
   ) l;
 
@@ -1827,14 +1826,14 @@ and load_includes ~include_path piqi l =
    * extensions from the list of includes *)
   let remove_extensions l include_path =
     if List.exists (fun x ->
-        let n = x.Includ#modname in
+        let n = x.Includ.modname in
         is_extension n &&
-        List.exists (fun x -> n = some_of x.P#modname) include_path
+        List.exists (fun x -> n = some_of x.P.modname) include_path
       ) l
     then
       List.filter (fun x ->
-        let n = x.Includ#modname in
-        let keep = not (is_extension x.Includ#modname) in
+        let n = x.Includ.modname in
+        let keep = not (is_extension x.Includ.modname) in
         if not keep
         then trace "removing extension include %s\n" (U.quote n);
         keep
@@ -1848,14 +1847,14 @@ and load_includes ~include_path piqi l =
   let included_piqi = List.map (load_include new_include_path) l in
 
   let process_recursive_piqi p =
-    trace "included piqi module %s forms a loop\n" (U.quote (some_of p.P#modname));
-    let includes = remove_extensions p.P#includ new_include_path in
+    trace "included piqi module %s forms a loop\n" (U.quote (some_of p.P.modname));
+    let includes = remove_extensions p.P.includ new_include_path in
     (* check for all Piqi includes that have been already processed in the DFS
      * include path *)
     List.iter
       (fun x ->
-        let n = x.Includ#modname in
-        if List.exists (fun p -> n = some_of p.P#modname) new_include_path
+        let n = x.Includ.modname in
+        if List.exists (fun p -> n = some_of p.P.modname) new_include_path
         then error x ("recursive include " ^ U.quote n)
       )
       includes;
@@ -1870,7 +1869,7 @@ and load_includes ~include_path piqi l =
   (* append all Piqi modules from all included Piqi modules *)
   let l = U.flatmap
     (fun x ->
-      let res = x.P#included_piqi in
+      let res = x.P.included_piqi in
       if res = [] (* the module is loaded, but hasn't been processed yet *)
       then
         (* process recursive module's non-recursive includes
@@ -1932,14 +1931,14 @@ let boot () =
 
   trace "boot(3)\n";
   (* populate the list of built-in types *)
-  C.builtin_typedefs := List.filter C.is_builtin_def spec.P#resolved_typedef;
+  C.builtin_typedefs := List.filter C.is_builtin_def spec.P.resolved_typedef;
 
   (* add the self-spec to the DB under a special name *)
-  spec.P#modname <- Some "embedded/piqi";
+  spec.P.modname <- Some "embedded/piqi";
   Piqi_db.add_piqi spec;
 
   (* add the self-spec to the DB under a special name *)
-  lang.P#modname <- Some embedded_modname;
+  lang.P.modname <- Some embedded_modname;
   Piqi_db.add_piqi lang;
 
   (* resolved type definition for the Piqi language *)
@@ -2003,7 +2002,7 @@ let load_piqi fname ch :T.piqi =
   Piqi_config.paths := paths; (* restore the original search path setting *)
   trace_leave ();
 
-  piqi.P#file <- Some fname;
+  piqi.P.file <- Some fname;
   piqi
 
 
@@ -2036,12 +2035,12 @@ let reconsitute_extended_functions funs func_typedefs =
           Some (embedded_typedef :> T.function_param)
   in
   let reconsitute_extended_function f =
-    T.Func#{
+    T.Func.({
       f with
       input = reconstitute_param f "input" f.input;
       output = reconstitute_param f "output" f.output;
       error = reconstitute_param f "error" f.error;
-    }
+    })
   in
   List.map reconsitute_extended_function funs
 
@@ -2058,12 +2057,12 @@ let expand_function f =
           let type_name = make_param_name f param_name in
           Some (`name type_name)
   in
-  T.Func#{
+  T.Func.({
     f with
     input = transform_param "input" f.input;
     output = transform_param "output" f.output;
     error = transform_param "error" f.error;
-  }
+  })
 
 
 (* expand Piqi module's includes and, optionally, extensions and function *)
@@ -2147,7 +2146,7 @@ let piqi_to_ast ?(is_external_mode=true) piqi =
 
   (* TODO: optionally, remove custom fields and all unparsed fields from the
    * resulting spec
-  let piqi = P#{piqi with custom_field = []} in
+  let piqi = P.({piqi with custom_field = []}) in
   *)
 
   let ast =
@@ -2187,25 +2186,25 @@ let piqi_to_piqobj
   Piqloc.pause ();
 
   (* we'll need them later *)
-  let custom_fields = piqi.P#custom_field in
+  let custom_fields = piqi.P.custom_field in
 
   let piqi_spec = lang_to_spec piqi in
   (* make sure that the module's name is defined *)
-  let piqi_spec = P#{piqi_spec with modname = piqi.P#modname} in
+  let piqi_spec = P.({piqi_spec with modname = piqi.P.modname}) in
 
   (* include all automatically assigned hash-based codes for fiels and options;
    * this is a protection against changing the hashing algorithm: even if new
    * piqi versions use a different hashing algorith, previous self-definitions
    * will be still readable *)
   if C.is_self_spec piqi
-  then Piqi_protobuf.add_hashcodes piqi_spec.P#typedef
+  then Piqi_protobuf.add_hashcodes piqi_spec.P.typedef
   else if add_codes (* XXX: always add ordinal codes? *)
-  then Piqi_protobuf.add_codes piqi_spec.P#typedef;
+  then Piqi_protobuf.add_codes piqi_spec.P.typedef;
 
   (* piqi compile mode? TODO: this is a hack; we need a more explicit way to
    * determine whether it is a piqi compile mode *)
   if add_codes
-  then piqi_spec.P#file <- piqi.P#file;
+  then piqi_spec.P.file <- piqi.P.file;
 
   let ast = piqi_to_ast piqi_spec ~is_external_mode:false in
   let ast = transform_piqi_ast ast in

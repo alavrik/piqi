@@ -1,4 +1,3 @@
-(*pp camlp4o *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -43,11 +42,11 @@ let gen_name ?parent name =
   let name = some_of name in
   match parent with
     | Some (`import x) ->
-        trace "piqi_to_proto: adding implicit import \"%s\"\n" x.Import#modname;
+        trace "piqi_to_proto: adding implicit import \"%s\"\n" x.Import.modname;
         new_imports := x :: !new_imports;
 
-        let piqi = some_of x.Import#piqi in
-        (match piqi.P#protobuf_package with
+        let piqi = some_of x.Import.piqi in
+        (match piqi.P.protobuf_package with
           | None -> name (* no .proto package => use flat .proto namespace *)
           | Some package ->
               (* build fully-qualified name *)
@@ -85,10 +84,10 @@ let rec typename ?parent (t:T.piqtype) =
     | `bool -> "bool"
     | `string -> "string"
     | `binary -> "bytes"
-    | `record t -> gen_name t.R#parent t.R#protobuf_name
-    | `variant t -> gen_name t.V#parent t.V#protobuf_name
-    | `enum t -> gen_name t.E#parent t.E#protobuf_name
-    | `list t -> gen_name t.L#parent t.L#protobuf_name
+    | `record t -> gen_name t.R.parent t.R.protobuf_name
+    | `variant t -> gen_name t.V.parent t.V.protobuf_name
+    | `enum t -> gen_name t.E.parent t.E.protobuf_name
+    | `list t -> gen_name t.L.parent t.L.protobuf_name
     | `alias t ->
         (* unwind aliases to their original type *)
         gen_alias_typename t ?parent
@@ -126,11 +125,11 @@ let gen_piqtype' ?parent = function
 
 
 let typedef_proto_name = function
-  | `record t -> some_of t.R#protobuf_name
-  | `variant t -> some_of t.V#protobuf_name
-  | `enum t -> some_of t.E#protobuf_name
-  | `alias t -> some_of t.A#protobuf_name
-  | `list t -> some_of t.L#protobuf_name
+  | `record t -> some_of t.R.protobuf_name
+  | `variant t -> some_of t.V.protobuf_name
+  | `enum t -> some_of t.E.protobuf_name
+  | `alias t -> some_of t.A.protobuf_name
+  | `list t -> some_of t.L.protobuf_name
   | _ ->
       (* this function will be called only for named types (i.e. typedefs) *)
       assert false
@@ -191,11 +190,11 @@ let rec gen_default_obj (x:Piqobj.obj) =
     | `binary x ->
         make_default_io (ioq (Piq_lexer.escape_binary x))
     | `enum x ->
-        let o = x.Piqobj.Enum#option in
-        let o = o.Piqobj.Option#t in
-        make_default (some_of o.O#protobuf_name)
+        let o = x.Piqobj.Enum.option in
+        let o = o.Piqobj.Option.t in
+        make_default (some_of o.O.protobuf_name)
     | `alias x ->
-        gen_default_obj x.Piqobj.Alias#obj (* recurse *)
+        gen_default_obj x.Piqobj.Alias.obj (* recurse *)
     | `any _ | `record _ | `variant _ | `list _ ->
         (* NOTE: Protobuf doesn't support defaults for complex structures *)
         warning x "dropping default value as .proto doesn't support structured defaults";
@@ -415,7 +414,7 @@ let gen_import modname =
 
 
 let gen_imports l =
-  let modnames = List.map (fun x -> x.Import#modname) l in
+  let modnames = List.map (fun x -> x.Import.modname) l in
   (* using C.uniq to prevent importing a module more than once, otherwise protoc
    * will fail to compile *)
   let l = List.map gen_import (U.uniq modnames) in
@@ -433,7 +432,7 @@ let gen_piqi (piqi:T.piqi) =
   (* add import "piqi.org/piqtype.piqi.proto" if 'any' piqtype is used *)
   is_self_spec := C.is_self_spec piqi;
 
-  let defs = gen_defs piqi.P#resolved_typedef in
+  let defs = gen_defs piqi.P.resolved_typedef in
   let piqi_import =
     if C.depends_on_piqi_any piqi && not !is_self_spec
     then
@@ -444,13 +443,13 @@ let gen_piqi (piqi:T.piqi) =
     else iol []
   in
   let proto_custom =
-    List.map (fun x -> iol [ios x; eol; eol]) piqi.P#protobuf_custom
+    List.map (fun x -> iol [ios x; eol; eol]) piqi.P.protobuf_custom
   in
   iol [
     package;
     iol proto_custom;
     piqi_import;
-    gen_imports ((List.rev !new_imports) @ piqi.P#resolved_import);
+    gen_imports ((List.rev !new_imports) @ piqi.P.resolved_import);
     eol;
     defs;
     eol;
@@ -634,19 +633,19 @@ let proto_modname n =
  * compatibiliy *)
 let check_transform_piqi piqi =
   (* handle deprecated .proto-package *)
-  (match piqi.P#proto_package with
+  (match piqi.P.proto_package with
     | None -> ()
     | Some proto_package ->
         C.warning proto_package ".proto-package is deprecated; use .protobuf-package instead";
-        if piqi.P#protobuf_package = None
-        then piqi.P#protobuf_package <- Some proto_package
+        if piqi.P.protobuf_package = None
+        then piqi.P.protobuf_package <- Some proto_package
   );
   (* handle deprecated top-level .proto-custom *)
-  let proto_custom = piqi.P#proto_custom in
+  let proto_custom = piqi.P.proto_custom in
   if proto_custom <> []
   then (
     proto_custom_warning proto_custom;
-    piqi.P#protobuf_custom <- piqi.P#protobuf_custom @ proto_custom;
+    piqi.P.protobuf_custom <- piqi.P.protobuf_custom @ proto_custom;
   )
 
 
@@ -654,9 +653,9 @@ let rec protoname_piqi (piqi:T.piqi) =
   let open P in
   begin
     check_transform_piqi piqi;
-    protoname_defs piqi.P#resolved_typedef;
-    protoname_defs piqi.P#imported_typedef;
-    protoname_imports piqi.P#resolved_import;
+    protoname_defs piqi.P.resolved_typedef;
+    protoname_defs piqi.P.imported_typedef;
+    protoname_imports piqi.P.resolved_import;
   end
 
 
@@ -672,7 +671,7 @@ and protoname_import import =
 
 let piqi_to_proto (piqi: T.piqi) ch =
   (* add built-in type definitions to the current module *)
-  piqi.P#resolved_typedef <- !C.builtin_typedefs @ piqi.P#resolved_typedef;
+  piqi.P.resolved_typedef <- !C.builtin_typedefs @ piqi.P.resolved_typedef;
 
   (* set proto names which are not specified by user *)
   protoname_piqi piqi;

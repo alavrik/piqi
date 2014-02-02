@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -153,9 +152,9 @@ let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
 
 
 let original_piqi piqi =
-  let orig_piqi = some_of piqi.P#original_piqi in
+  let orig_piqi = some_of piqi.P.original_piqi in
   (* make sure that the module's name is set *)
-  P#{orig_piqi with modname = piqi.P#modname}
+  P.({orig_piqi with modname = piqi.P.modname})
 
 
 let piqi_ast_to_piq piqi_ast =
@@ -323,11 +322,11 @@ let next_out_code = ref 2
 
 
 let gen_pib_typehint code typename =
-  let x = T.Pib_typehint#{
+  let x = T.Pib_typehint.({
     piqi_type = "piqi-type";
     typename = typename;
     code = code;
-  } in
+  }) in
   Piqloc.pause ();
   let res = T.gen__pib_typehint pib_typehint_code x in
   Piqloc.resume ();

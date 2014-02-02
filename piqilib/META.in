@@ -1,15 +1,7 @@
-description = "Piqi - Protocol Buffers/JSON/XML data serialization and conversion"
-
-package "syntax" (
-  requires = "camlp4"
-  description = "Useful Camlp4 macro for dealing with OCaml types genereated by 'piqic-ocaml'"
-  archive(syntax,toploop) = "pa_labelscope.cmo pa_openin.cmo"
-  archive(syntax,preprocessor) = "pa_labelscope.cmo pa_openin.cmo"
-)
-
-package "lib" (
-  description = "The Piqi library"
-  requires = "ulex easy-format xmlm"
-  archive(byte) = "piqi.cma"
-  archive(native) = "piqi.cmxa"
-)
+description = "The Piqi library -- runtime support for multi-format Protobuf/JSON/XML/Piq data serialization and conversion"
+requires = "camlp4 ulex easy-format xmlm"
+archive(byte) = "piqilib.cma"
+archive(native) = "piqilib.cmxa"
+# keeping it for backward compatibility with existing programs using it -- it is
+# not really needed on OCaml 3.12+
+archive(syntax,preprocessor) = "pa_labelscope.cmo"

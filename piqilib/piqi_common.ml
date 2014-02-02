@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -66,7 +65,7 @@ let resolve_defaults = ref false
 (* whether we are parsing Piqi right now *)
 let is_inside_parse_piqi = ref false
 
-(* a subset of "Piqi.piqi_spec.P#resolved_typedef" (i.e. Piqi self-spec) that
+(* a subset of "Piqi.piqi_spec.P.resolved_typedef" (i.e. Piqi self-spec) that
  * corresponds to built-in types (built-in types are aliases that have
  * .piqi-type property defined; this value is set from Piqi.boot () function *)
 let builtin_typedefs :T.typedef list ref = ref []
@@ -90,11 +89,11 @@ let with_resolve_defaults new_resolve_defaults f =
 let get_parent (typedef:T.typedef) :T.namespace =
   let parent =
     match typedef with
-      | `record t -> t.R#parent
-      | `variant t -> t.V#parent
-      | `enum t -> t.E#parent
-      | `alias t -> t.A#parent
-      | `list t -> t.L#parent
+      | `record t -> t.R.parent
+      | `variant t -> t.V.parent
+      | `enum t -> t.E.parent
+      | `alias t -> t.A.parent
+      | `list t -> t.L.parent
   in
   some_of parent
 
@@ -102,28 +101,28 @@ let get_parent (typedef:T.typedef) :T.namespace =
 let set_parent (def:T.typedef) (parent:T.namespace) =
   let parent = Some parent in
   match def with
-    | `record x -> x.R#parent <- parent
-    | `variant x -> x.V#parent <- parent
-    | `enum x -> x.E#parent <- parent
-    | `alias x -> x.A#parent <- parent
-    | `list x -> x.L#parent <- parent
+    | `record x -> x.R.parent <- parent
+    | `variant x -> x.V.parent <- parent
+    | `enum x -> x.E.parent <- parent
+    | `alias x -> x.A.parent <- parent
+    | `list x -> x.L.parent <- parent
 
 
 let get_parent_piqi (def:T.typedef) :T.piqi =
   let parent = get_parent def in
   match parent with
-    | `import x -> some_of x.Import#piqi
+    | `import x -> some_of x.Import.piqi
     | `piqi x -> x
 
 
 let typedef_name (typedef:T.typedef) =
   let res =
     match typedef with
-      | `record x -> x.R#name
-      | `variant x -> x.V#name
-      | `enum x -> x.E#name
-      | `alias x -> x.A#name
-      | `list x -> x.L#name
+      | `record x -> x.R.name
+      | `variant x -> x.V.name
+      | `enum x -> x.E.name
+      | `alias x -> x.A.name
+      | `list x -> x.L.name
   in
   some_of res
 
@@ -131,7 +130,7 @@ let typedef_name (typedef:T.typedef) =
 (* whether typedef represents a built-in type *)
 let is_builtin_def (typedef:T.typedef) =
   match typedef with
-    | `alias x -> x.A#piqi_type <> None
+    | `alias x -> x.A.piqi_type <> None
     | _ -> false
 
 
@@ -156,7 +155,7 @@ let full_piqi_typename x =
         then name
         else
           let piqi = get_parent_piqi def in
-          let parent_name = some_of piqi.P#modname in
+          let parent_name = some_of piqi.P.modname in
           parent_name ^ "/" ^ name
     | _ -> (* built-in type *)
         (* XXX: normally built-in types should be used at the time when this
@@ -186,7 +185,7 @@ let name_of_option o =
 
 let rec unalias = function
   | `alias t ->
-      let t = some_of t.T.Alias#piqtype in
+      let t = some_of t.T.Alias.piqtype in
       unalias t
   | t -> t
 
@@ -214,14 +213,14 @@ let is_self_spec (piqi: T.piqi) =
   (* XXX: cache this information to avoid computing it over and over again *)
   List.exists
     (fun x ->
-      match x.P#modname with
+      match x.P.modname with
         | None -> false
         | Some modname ->
             (* check if the last segment equals "piqi" which is a reserved name
              * for a self-spec *)
             Piqi_name.get_local_name modname = "piqi"
     )
-    piqi.P#included_piqi
+    piqi.P.included_piqi
 
 
 (* check if any of the module's definitions depends on "piqi-any" type *)
@@ -235,13 +234,13 @@ let depends_on_piqi_any (piqi: T.piqi) =
       | None -> false
     in
     match x with
-      | `record x -> List.exists (fun x -> is_any_opt x.F#piqtype) x.R#field
-      | `variant x -> List.exists (fun x -> is_any_opt x.O#piqtype) x.V#option
-      | `list x -> is_any (some_of x.L#piqtype)
+      | `record x -> List.exists (fun x -> is_any_opt x.F.piqtype) x.R.field
+      | `variant x -> List.exists (fun x -> is_any_opt x.O.piqtype) x.V.option
+      | `list x -> is_any (some_of x.L.piqtype)
       | `enum _ -> false
       | `alias _ -> false (* don't check aliases, we do unalias instead *)
   in
-  List.exists aux piqi.P#resolved_typedef
+  List.exists aux piqi.P.resolved_typedef
 
 
 (* 

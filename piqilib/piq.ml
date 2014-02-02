@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -41,12 +40,12 @@ let rec resolve_piq_format (piqtype: T.piqtype) =
   (* upper-level setting overrides lower-level setting *)
   match piqtype with
     | `alias x ->
-        let piq_format = x.A#piq_format in
+        let piq_format = x.A.piq_format in
         if piq_format <> None
         then piq_format
         else
           (* try looking in lower-level aliases *)
-          resolve_piq_format (some_of x.A#piqtype)
+          resolve_piq_format (some_of x.A.piqtype)
     | _ ->
         None (* piq format can not be defined for non-primitive types *)
 
@@ -76,13 +75,13 @@ let resolve_option_piq_format x =
 
 let resolve_typedef_piq_format = function
   | `record r ->
-      List.iter resolve_field_piq_format r.R#field
+      List.iter resolve_field_piq_format r.R.field
   | `variant v ->
-      List.iter resolve_option_piq_format v.V#option
+      List.iter resolve_option_piq_format v.V.option
   | `alias a ->
-      a.A#piq_format <- check_resolve_piq_format a a.A#piq_format a.A#piqtype
+      a.A.piq_format <- check_resolve_piq_format a a.A.piq_format a.A.piqtype
   | `list l ->
-      l.L#piq_format <- check_resolve_piq_format l l.L#piq_format l.L#piqtype
+      l.L.piq_format <- check_resolve_piq_format l l.L.piq_format l.L.piqtype
   | `enum _ ->
       ()
 
@@ -106,7 +105,7 @@ let process_field_piq_positional record_piq_positional x =
 
 let process_typedef_piq_positional = function
   | `record x ->
-      List.iter (process_field_piq_positional x.R#piq_positional) x.R#field
+      List.iter (process_field_piq_positional x.R.piq_positional) x.R.field
   | _ -> ()
 
 
@@ -122,18 +121,18 @@ let check_opt_name = function
 
 
 let check_field_piq_alias x =
-  check_opt_name x.F#piq_alias
+  check_opt_name x.F.piq_alias
 
 
 let check_option_piq_alias x =
-  check_opt_name x.O#piq_alias
+  check_opt_name x.O.piq_alias
 
 
 let check_typedef_piq_alias = function
   | `record x ->
-      List.iter check_field_piq_alias x.R#field
+      List.iter check_field_piq_alias x.R.field
   | `variant x ->
-      List.iter check_option_piq_alias x.V#option
+      List.iter check_option_piq_alias x.V.option
   | _ -> ()
 
 

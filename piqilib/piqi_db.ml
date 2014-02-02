@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -67,7 +66,7 @@ let try_find_piqi modname =
 
 
 let add_piqi piqi =
-  let modname = some_of piqi.P#modname in
+  let modname = some_of piqi.P.modname in
   trace "piqi_db: caching piqi module \"%s\"\n" modname;
 
   let do_add_piqi modname piqi =
@@ -91,7 +90,7 @@ let remove_piqi modname =
 
 
 let replace_piqi piqi =
-  let modname = some_of piqi.P#modname in
+  let modname = some_of piqi.P.modname in
   match try_find_piqi modname with
     | None -> ()
     | Some _ ->
@@ -129,7 +128,7 @@ let find_load_piqi_typedefs ~auto_load_piqi modname =
             (* XXX: handle load errors *)
             load_piqi_module modname
         in
-        piqi.P#resolved_typedef
+        piqi.P.resolved_typedef
 
 
 let find_typedef ?(auto_load_piqi=true) name =

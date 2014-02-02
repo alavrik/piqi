@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -71,7 +70,7 @@ let gen_binary s =
 
 
 let make_named name value =
-  `named Piq_ast.Named#{name = name; value = value}
+  `named Piq_ast.Named.({name = name; value = value})
 
 
 let make_name name =
@@ -79,7 +78,7 @@ let make_name name =
 
 
 let make_typed typename ast :piq_ast =
-  let res = Piq_ast.Typed#{typename = typename; value = ast} in
+  let res = Piq_ast.Typed.({typename = typename; value = ast}) in
   Piqloc.addref ast res;
   `typed res
 
@@ -97,7 +96,7 @@ let order_record_fields t piqobj_fields =
 
       ([], piqobj_fields) (* accu *)
 
-      t.T.Record#field (* list to fold *)
+      t.T.Record.field (* list to fold *)
   in
   List.rev res
 
@@ -132,7 +131,7 @@ and gen_obj ?piq_format x =
 
 and gen_typed_obj x =
   let name = Piqobj_common.full_typename x in
-  `typed Piq_ast.Typed#{typename = name; value = gen_obj x}
+  `typed Piq_ast.Typed.({typename = name; value = gen_obj x})
 
 
 and gen_any x =
@@ -194,7 +193,7 @@ and gen_field x =
       | None ->
           make_name name
       | Some obj ->
-          make_named name (gen_obj obj ?piq_format:x.t.T.Field#piq_format)
+          make_named name (gen_obj obj ?piq_format:x.t.T.Field.piq_format)
   in
   Piq_parser.piq_addrefret x res
 
@@ -210,7 +209,7 @@ and gen_option x =
   let res =
     match x.obj with
       | None -> make_name name
-      | Some obj -> make_named name (gen_obj obj ?piq_format:x.t.T.Option#piq_format)
+      | Some obj -> make_named name (gen_obj obj ?piq_format:x.t.T.Option.piq_format)
   in Piq_parser.piq_addrefret x res
 
 
@@ -221,13 +220,13 @@ and gen_enum x =
 
 and gen_list x = 
   let open L in
-  `list (List.map (fun obj -> gen_obj obj ?piq_format:x.t.T.Piqi_list#piq_format) x.obj)
+  `list (List.map (fun obj -> gen_obj obj ?piq_format:x.t.T.Piqi_list.piq_format) x.obj)
 
 
 and gen_alias ?(piq_format: T.piq_format option) x =
   let open A in
   (* upper-level setting overrides lower-level setting *)
-  let this_piq_format = x.t.T.Alias#piq_format in
+  let this_piq_format = x.t.T.Alias.piq_format in
   let piq_format =
     if this_piq_format <> None
     then this_piq_format

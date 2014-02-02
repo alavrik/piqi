@@ -1,4 +1,3 @@
-(*pp camlp4o *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -69,7 +68,7 @@ let convert args =
       piqtype args.input_format args.output_format args.data
       ~opts:convert_options
   in
-  `ok I.Convert_output#{ data = output }
+  `ok I.Convert_output.({data = output})
 
 
 (* common error handler *)

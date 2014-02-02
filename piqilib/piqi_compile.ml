@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -44,7 +43,7 @@ let load_self_spec ?(filename="") buf =
 
 let get_self_spec_piqtype ?(filename="") self_spec typename =
   let piqi_def =
-    try Piqi_db.find_local_typedef self_spec.P#resolved_typedef typename
+    try Piqi_db.find_local_typedef self_spec.P.resolved_typedef typename
     with Not_found ->
       Printf.eprintf
         "invalid self-spec read from %s: no definition named %s\n"
@@ -85,12 +84,12 @@ let make_piqi_list_piqobj piqi_list_piqtype (piqi_piqobj_list: Piqobj.obj list) 
  * unifying this; maybe moving to piqi.ml *)
 let rec get_piqi_deps piqi =
   let imports =
-    List.map (fun x -> some_of x.T.Import#piqi) piqi.P#resolved_import
+    List.map (fun x -> some_of x.T.Import.piqi) piqi.P.resolved_import
   in
   (* get all imports' dependencies recursively *)
   let import_deps =
     U.flatmap (fun piqi ->
-        U.flatmap get_piqi_deps piqi.P#included_piqi
+        U.flatmap get_piqi_deps piqi.P.included_piqi
       ) imports
   in
   (* remove duplicate entries *)

@@ -1,4 +1,3 @@
-(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -37,7 +36,7 @@ let gen_init_piqi modname =
 
 let typedef_scoped_name context typedef =
   let piqi = context.piqi in
-  let modname = some_of piqi.P#modname in
+  let modname = some_of piqi.P.modname in
   let name = C.typedef_name typedef in
   modname ^ "/" ^ name
 
@@ -102,8 +101,8 @@ let gen_print typedef =
 
 let gen_piqi context =
   let piqi = context.piqi in
-  let modname = some_of piqi.P#ocaml_module in
-  let typedefs = piqi.P#typedef in
+  let modname = some_of piqi.P.ocaml_module in
+  let typedefs = piqi.P.typedef in
 
   (* XXX, TODO: skipping built-in typedefs for now; in theory we could generate
    * piqi_piqi_ext.ml and include it as a part of piqilib to make serialization

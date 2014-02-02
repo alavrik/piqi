@@ -96,16 +96,6 @@ ulex
         License: MIT
 
 
-open-in
-=======
-        Camlp4 syntax extension implementing locally open modules written by
-        Alain Frisch.
-
-        Location: camlp4/pa_openin.ml
-        Homepage: http://alain.frisch.fr/soft.html
-        License: Public Domain
-
-
 ocaml-make
 ==========
         Automated compilation of complex OCaml-projects written by Markus Mottl.

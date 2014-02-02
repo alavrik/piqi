@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -142,53 +141,53 @@ module Fmt = Easy_format
 
 
 let common_list =
-  Fmt#{
+  Fmt.({
     list with
     indent_body = 4;
-  }
+  })
 
 let atom_list =
-  Fmt#{
+  Fmt.({
     common_list with
     wrap_body = `Always_wrap;
-  }
+  })
 
 let single_elem_list =
-  Fmt#{
+  Fmt.({
     common_list with
     wrap_body = `Always_wrap;
-  }
+  })
 
 let multiple_elem_list =
-  Fmt#{
+  Fmt.({
     common_list with
     wrap_body = `Force_breaks;
-  }
+  })
 
 let form_list =
-  Fmt#{
+  Fmt.({
     common_list with
     space_after_opening = false;
     space_before_closing = false;
-  }
+  })
 
 let multi_form_list =
-  Fmt#{
+  Fmt.({
     form_list with
     wrap_body = `Force_breaks;
-  }
+  })
 
 let single_form_list =
-  Fmt#{
+  Fmt.({
     form_list with
     wrap_body = `Always_wrap;
-  }
+  })
 
 let atom_form_list =
-  Fmt#{
+  Fmt.({
     form_list with
     wrap_body = `Always_wrap;
-  }
+  })
 
 let make_atom x =
   Fmt.Atom (x, Fmt.atom)
@@ -258,10 +257,10 @@ let make_parens ast =
 
 
 let make_label label node =
-  let fmt = Fmt#{
+  let fmt = Fmt.({
     label with
     indent_after_label = 4;
-  }
+  })
   in
   Fmt.Label ((label, fmt), node)
 
@@ -289,13 +288,13 @@ let format_text l ~is_labeled ~is_first =
     | [x] when is_labeled -> (* single text line after label *)
         (* try to put a single text line on the same line with its label *)
         let fmt =
-          Fmt#{
+          Fmt.({
             common_list with
             wrap_body = `Force_breaks;
             align_closing = false;
             space_after_opening = false;
             space_before_closing = false;
-        }
+        })
         in
         (* no opening, closing; break after each item; standard 4-space
          * indentation *)

@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -121,7 +120,7 @@ let gen_string = reference gen_string
 
 
 let compare_field_type a b =
-  match a.T.Field#code, b.T.Field#code with
+  match a.T.Field.code, b.T.Field.code with
     | Some a, Some b -> Int32.to_int (Int32.sub a b)
     | _ -> assert false
 
@@ -138,7 +137,7 @@ let order_fields = List.sort compare_field
 (*
 let rec unalias (x:Piqobj.obj) =
   match x with
-    | `alias x -> unalias x.A#obj
+    | `alias x -> unalias x.A.obj
     | x -> x
 *)
 
@@ -185,10 +184,10 @@ and gen_any code x =
     then
       (* in internal mode, passing a reference to intermediate Any
        * prepresentation registered using Piqi_objstore *)
-      let res = T.Any#{
-        T.default_any () with
+      let res = T.Any.({
+        (T.default_any ()) with
         ref = Some (Piqobj.put_any x);
-      }
+      })
       in Piqloc.addrefret x res
     else
       (* in external mode, leave only fields defined by piqi.piqi: protobuf and
@@ -217,13 +216,13 @@ and gen_any code x =
                 let s = !Piqobj.string_of_xml (`Elem ("value", xml_elems)) in
                 Some s
       in
-      T.Any#{
-        T.default_any () with
+      T.Any.({
+        (T.default_any ()) with
         typename = typename;
         protobuf = protobuf;
         json = json;
         xml = xml;
-      }
+      })
   in
   T.gen__any code piqi_any
 
@@ -257,7 +256,7 @@ and gen_fields fields =
   else List.map gen_field fields
 
 
-and is_packed_field x = x.F#t.T.Field#protobuf_packed
+and is_packed_field x = x.F.t.T.Field.protobuf_packed
 
 
 (* generate fields but first group packed repeated fields together because they
@@ -283,7 +282,7 @@ and group_gen_fields fields =
 and gen_packed_fields first tail =
   let open F in
   let return accu rest =
-    let code = Int32.to_int (some_of first.t.T.Field#code) in
+    let code = Int32.to_int (some_of first.t.T.Field.code) in
     let res = Piqirun.gen_record code (List.rev accu) in
     res, rest
   in
@@ -306,7 +305,7 @@ and gen_packed_field x =
 
 and gen_field x =
   let open F in
-  let code = Int32.to_int (some_of x.t.T.Field#code) in
+  let code = Int32.to_int (some_of x.t.T.Field.code) in
   match x.obj with
     | None ->
         (* using true for encoding flags -- the same encoding as for options
@@ -324,7 +323,7 @@ and gen_variant code x =
 
 and gen_option x =
   let open O in
-  let code = Int32.to_int (some_of x.t.T.Option#code) in
+  let code = Int32.to_int (some_of x.t.T.Option.code) in
   match x.obj with
     | None ->
         (* using true for encoding options w/o value *)
@@ -341,7 +340,7 @@ and gen_enum code x =
 
 and gen_enum_option code x =
   let open O in
-  let value = some_of x.t.T.Option#code in
+  let value = some_of x.t.T.Option.code in
   Piqirun.int32_to_signed_varint code value
 
 
@@ -352,7 +351,7 @@ and gen_packed_enum x =
 
 and gen_packed_enum_option x =
   let open O in
-  let value = some_of x.t.T.Option#code in
+  let value = some_of x.t.T.Option.code in
   Piqirun.int32_to_packed_signed_varint value
 
 
@@ -365,7 +364,7 @@ and gen_list code x =
 
 and gen_alias ?wire_type code x =
   let open A in
-  let wire_type = resolve_wire_type ?wire_type x.t.T.Alias#protobuf_wire_type in
+  let wire_type = resolve_wire_type ?wire_type x.t.T.Alias.protobuf_wire_type in
   match x.obj with
     | `int x | `uint x -> gen_int code x ?wire_type
     | `float x -> gen_float code x ?wire_type
@@ -375,7 +374,7 @@ and gen_alias ?wire_type code x =
 
 and gen_packed_alias ?wire_type x =
   let open A in
-  let wire_type = resolve_wire_type ?wire_type x.t.T.Alias#protobuf_wire_type in
+  let wire_type = resolve_wire_type ?wire_type x.t.T.Alias.protobuf_wire_type in
   match x.obj with
     | `int x | `uint x -> gen_packed_int x ?wire_type
     | `float x -> gen_packed_float x ?wire_type

@@ -1,4 +1,3 @@
-(*pp camlp4o *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -265,14 +264,14 @@ let rec get_piqi_deps piqi ~only_imports =
       else
         (* remove the module itself from the list of included deps (it is always
          * at the end of the list) *)
-        List.filter (fun x -> x != piqi) piqi.P#included_piqi
+        List.filter (fun x -> x != piqi) piqi.P.included_piqi
     in
     (* get all dependencies from imports *)
     let import_deps =
       U.flatmap (fun x ->
-          let piqi = some_of x.T.Import#piqi in
-          U.flatmap (get_piqi_deps ~only_imports) piqi.P#included_piqi)
-        piqi.P#resolved_import
+          let piqi = some_of x.T.Import.piqi in
+          U.flatmap (get_piqi_deps ~only_imports) piqi.P.included_piqi)
+        piqi.P.resolved_import
     in
     (* NOTE: includes go first in the list of dependencies *)
     let l = include_deps @ import_deps @ [piqi] in
@@ -365,7 +364,7 @@ let do_convert ?writer ?(is_piq_output=false) reader =
       (* write yet unwirtten object's dependencies *)
       let deps = get_dependencies obj ~only_imports:(not is_piq_output) in
       List.iter (fun x ->
-        trace "piqi convert: embedding dependency module %s\n" (some_of x.P#modname);
+        trace "piqi convert: embedding dependency module %s\n" (some_of x.P.modname);
         do_write_obj (Piqi_convert.Piqi x)
       ) deps
     );
@@ -407,7 +406,7 @@ let do_convert ?writer ?(is_piq_output=false) reader =
                     (* if it has been processed, ready to write it right away *)
                     (write_obj obj; [])
                   else
-                    let modname = some_of piqi.P#modname in
+                    let modname = some_of piqi.P.modname in
                     modname :: piqi_list (* add to the list of unprocessed modules *)
               | _ ->
                   (* reset location db to allow GC collect previously read

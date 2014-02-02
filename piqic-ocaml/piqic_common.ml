@@ -1,4 +1,3 @@
-(*pp camlp4o -I `ocamlfind query piqi.syntax` pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -101,7 +100,7 @@ type context = {
     (* original modules being compiled (imported modules ++ [piqi]) *)
     modules: T.piqi list;
 
-    (* index of imported modules: #piqi.module -> #index{} *)
+    (* index of imported modules: piqi.modname -> index *)
     module_index: index Idtable.t;
 }
 
@@ -189,39 +188,39 @@ let mlname_field x =
 
 
 let mlname_record x =
-  R#{
+  R.({
     x with
     ocaml_name = mlname x.ocaml_name x.name;
     field = List.map mlname_field x.field;
-  }
+  })
 
 
 let mlname_option (x: T.option) :T.option =
-  O#{x with ocaml_name = mlname_opt x.ocaml_name x.name}
+  O.({x with ocaml_name = mlname_opt x.ocaml_name x.name})
 
 
 let mlname_variant (x: T.variant) :T.variant =
-  V#{
+  V.({
     x with
     ocaml_name = mlname x.ocaml_name x.name;
     option = List.map mlname_option x.option;
-  }
+  })
 
 
 let mlname_enum x =
-  E#{
+  E.({
     x with
     ocaml_name = mlname x.ocaml_name x.name;
     option = List.map mlname_option x.option;
-  }
+  })
 
 
 let mlname_alias x =
-  A#{x with ocaml_name = mlname x.ocaml_name x.name}
+  A.({x with ocaml_name = mlname x.ocaml_name x.name})
 
 
 let mlname_list x =
-  L#{x with ocaml_name = mlname x.ocaml_name x.name}
+  L.({x with ocaml_name = mlname x.ocaml_name x.name})
 
 
 let mlname_typedef = function
@@ -233,7 +232,7 @@ let mlname_typedef = function
 
 
 let mlname_func x =
-  Func#{x with ocaml_name = mlname x.ocaml_name x.name}
+  Func.({x with ocaml_name = mlname x.ocaml_name x.name})
 
 
 let mlname_import x =
@@ -270,19 +269,19 @@ let mlname_piqi (piqi:T.piqi) =
 
 
 let typedef_name = function
-  | `record x -> x.R#name
-  | `variant x -> x.V#name
-  | `enum x -> x.E#name
-  | `alias x -> x.A#name
-  | `list x -> x.L#name
+  | `record x -> x.R.name
+  | `variant x -> x.V.name
+  | `enum x -> x.E.name
+  | `alias x -> x.A.name
+  | `list x -> x.L.name
 
 
 let typedef_mlname = function
-  | `record t -> some_of t.R#ocaml_name
-  | `variant t -> some_of t.V#ocaml_name
-  | `enum t -> some_of t.E#ocaml_name
-  | `alias t -> some_of t.A#ocaml_name
-  | `list t -> some_of t.L#ocaml_name
+  | `record t -> some_of t.R.ocaml_name
+  | `variant t -> some_of t.V.ocaml_name
+  | `enum t -> some_of t.E.ocaml_name
+  | `alias t -> some_of t.A.ocaml_name
+  | `list t -> some_of t.L.ocaml_name
 
 
 (* check whether the piqi module is a self-specification, i.e. piqi.piqi or
@@ -296,7 +295,7 @@ let is_self_spec piqi =
   if !flag_cc
   then true
   else
-    let basename = Piqi_name.get_local_name (some_of piqi.P#modname) in
+    let basename = Piqi_name.get_local_name (some_of piqi.P.modname) in
     match U.string_split basename '.' with
       | "piqi"::_ ->
           true
@@ -314,13 +313,13 @@ let depends_on_piqi_any (piqi: T.piqi) =
       | None -> false
     in
     match x with
-      | `record x -> List.exists (fun x -> is_any_opt x.F#typename) x.R#field
-      | `variant x -> List.exists (fun x -> is_any_opt x.O#typename) x.V#option
-      | `list x -> is_any x.L#typename
-      | `alias x -> is_any_opt x.A#typename
+      | `record x -> List.exists (fun x -> is_any_opt x.F.typename) x.R.field
+      | `variant x -> List.exists (fun x -> is_any_opt x.O.typename) x.V.option
+      | `list x -> is_any x.L.typename
+      | `alias x -> is_any_opt x.A.typename
       | `enum _ -> false
   in
-  List.exists typedef_depends_on_piqi_any piqi.P#typedef
+  List.exists typedef_depends_on_piqi_any piqi.P.typedef
 
 
 let load_self_spec () =
@@ -332,7 +331,7 @@ let load_self_spec () =
 let is_builtin_alias x =
   (* presence of piqi_type field means this alias typedef corresponds to one
    * of built-in types *)
-  x.A#piqi_type <> None
+  x.A.piqi_type <> None
 
 
 let is_builtin_typedef typedef =
@@ -351,8 +350,8 @@ let index_typedefs l =
 
 
 let make_import_name x =
-  match x.Import#name with
-    | None -> x.Import#modname
+  match x.Import.name with
+    | None -> x.Import.modname
     | Some n -> n
 
 
@@ -365,14 +364,14 @@ let index_imports l =
 let index_module piqi =
   {
     i_piqi = piqi;
-    import = index_imports piqi.P#import;
-    typedef = index_typedefs piqi.P#typedef;
+    import = index_imports piqi.P.import;
+    typedef = index_typedefs piqi.P.typedef;
   }
 
 
 (* make an index of module name -> index *)
 let make_module_index piqi_list =
-  make_idtable (List.map (fun x -> some_of x.P#modname, index_module x) piqi_list)
+  make_idtable (List.map (fun x -> some_of x.P.modname, index_module x) piqi_list)
 
 
 let option_to_list = function
@@ -384,14 +383,14 @@ let get_used_typenames typedef =
   let l =
     match typedef with
       | `record x ->
-          U.flatmap (fun x -> option_to_list x.F#typename) x.R#field
+          U.flatmap (fun x -> option_to_list x.F.typename) x.R.field
       | `variant x ->
-          U.flatmap (fun x -> option_to_list x.O#typename) x.V#option
+          U.flatmap (fun x -> option_to_list x.O.typename) x.V.option
       | `alias x ->
           (* NOTE: alias typename is undefined for lowest-level built-in types *)
-          option_to_list x.A#typename
+          option_to_list x.A.typename
       | `list x ->
-          [x.L#typename]
+          [x.L.typename]
       | `enum _ ->
           []
   in
@@ -415,14 +414,14 @@ let rec get_used_builtin_typedefs typedefs builtins_index =
  * module *)
 let add_builtin_typedefs piqi builtins_index =
   (* exclude builtin typedefs that are masked by the local typedefs *)
-  let typedef_names = List.map typedef_name piqi.P#typedef in
+  let typedef_names = List.map typedef_name piqi.P.typedef in
   let builtins_index = List.fold_left Idtable.remove builtins_index typedef_names in
-  let used_builtin_typedefs = get_used_builtin_typedefs piqi.P#typedef builtins_index in
+  let used_builtin_typedefs = get_used_builtin_typedefs piqi.P.typedef builtins_index in
   (* change the module as if the built-ins were defined locally *)
-  P#{
+  P.({
     piqi with
-    typedef = used_builtin_typedefs @ piqi.P#typedef
-  }
+    typedef = used_builtin_typedefs @ piqi.P.typedef
+  })
 
 
 let init piqi_list =
@@ -449,7 +448,7 @@ let init piqi_list =
        * XXX: remove unused built-in typedefs from generated self-spec? *)
       []
     else
-      List.filter is_builtin_typedef self_spec.P#typedef
+      List.filter is_builtin_typedef self_spec.P.typedef
   in
   let builtins_index = index_typedefs builtin_typedefs in
   let piqi = add_builtin_typedefs piqi builtins_index in
@@ -475,7 +474,7 @@ let switch_context context piqi =
   if context.piqi == piqi
   then context  (* already current => no-op *)
   else
-    let index = Idtable.find context.module_index (some_of piqi.P#modname) in
+    let index = Idtable.find context.module_index (some_of piqi.P.modname) in
     {
       context with
       piqi = piqi;
@@ -485,7 +484,7 @@ let switch_context context piqi =
 
 (* the name of the top-level module being compiled *)
 let top_modname context =
-  some_of context.piqi.P#ocaml_module
+  some_of context.piqi.P.ocaml_module
 
 
 let scoped_name context name =
@@ -496,12 +495,12 @@ let gen_parent_mod import =
   match import with
     | None -> iol []
     | Some x ->
-        let ocaml_modname = some_of x.Import#ocaml_name in
+        let ocaml_modname = some_of x.Import.ocaml_name in
         ios ocaml_modname ^^ ios "."
 
 
 let resolve_import context import =
-  Idtable.find context.module_index import.Import#modname
+  Idtable.find context.module_index import.Import.modname
 
 
 let resolve_local_typename ?import index name =

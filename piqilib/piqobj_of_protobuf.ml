@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -137,25 +136,25 @@ and parse_any x =
         Piqobj.get_any ref
     | None ->
         (* external mode *)
-        let any = Any#{
+        let any = Any.({
           Piqobj.default_any with
           typename = piqi_any.Piqi_impl_piqi.Any.typename;
           pb = piqi_any.Piqi_impl_piqi.Any.protobuf;
-        }
+        })
         in
         (* if there's no typed protobuf, look for untyped JSON or XML values *)
-        if any.Any#pb = None
+        if any.Any.pb = None
         then (
           let json = piqi_any.T.Any.json in
           let xml = piqi_any.T.Any.xml in
           match json, xml with
             | Some s, _ ->
                 let json_ast = !Piqobj.json_of_string s in
-                any.Any#json_ast <- Some json_ast; (* same as in Piqobj_of_piq.parse_any *)
-                any.Any#json_string <- Some s
+                any.Any.json_ast <- Some json_ast; (* same as in Piqobj_of_piq.parse_any *)
+                any.Any.json_string <- Some s
             | _, Some s ->
                 let xml_list = !Piqobj.xml_of_string s in
-                any.Any#xml_ast <- Some ("undefined", xml_list) (* same as in Piqobj_of_piq.parse_any *)
+                any.Any.xml_ast <- Some ("undefined", xml_list) (* same as in Piqobj_of_piq.parse_any *)
             | None, None ->
                 (* XXX: hmm... no protobuf, JSON, XML -- what are we dealing with
                  * here? *)
@@ -174,10 +173,10 @@ and parse_record t x =
     else None, l
   in
   (* NOTE: fields are pre-order by wire code *)
-  let fields_spec = t.T.Record#wire_field in
+  let fields_spec = t.T.Record.wire_field in
   let fields, rem = List.fold_left parse_field ([], l) fields_spec in
   Piqirun.check_unparsed_fields rem;
-  R#{ t = t; field = List.rev fields; unparsed_piq_fields_ref = unparsed_piq_fields_ref}
+  R.({t = t; field = List.rev fields; unparsed_piq_fields_ref = unparsed_piq_fields_ref})
 
 
 and parse_unparsed_piq_fields_ref l =
@@ -190,7 +189,7 @@ and parse_unparsed_piq_fields_ref l =
 
 and parse_field (accu, rem) t =
   let fields, rem =
-    match t.T.Field#piqtype with
+    match t.T.Field.piqtype with
       | None -> do_parse_flag t rem
       | Some _ -> do_parse_field t rem
   in
@@ -205,7 +204,7 @@ and do_parse_flag t l =
     | false -> [], rem
     | true ->
         begin
-          let res = F#{ t = t; obj = None } in
+          let res = F.({t = t; obj = None}) in
 
           (* skip boolean used to encode empty flag value *)
           let count = next_count () in
@@ -236,7 +235,7 @@ and do_parse_field t l =
   in
   let fields =
     List.map (fun x ->
-      let res = F#{ t = t; obj = Some x } in
+      let res = F.({t = t; obj = Some x}) in
       Piqloc.addrefret x res) values
   in
   fields, rem
@@ -266,15 +265,15 @@ and parse_packed_repeated_field code field_type l =
 and parse_variant t x =
   let code, obj = Piqirun.parse_variant x in
   let code32 = Int32.of_int code in
-  let options = t.T.Variant#option in
+  let options = t.T.Variant.option in
   let option =
     try
-      let o = List.find (fun o -> some_of o.T.Option#code = code32) options in
+      let o = List.find (fun o -> some_of o.T.Option.code = code32) options in
       parse_option o obj
     with Not_found ->
       Piqirun.error_variant x code
   in
-  V#{ t = t; option = option }
+  V.({t = t; option = option})
 
 
 and parse_option t x =
@@ -283,7 +282,7 @@ and parse_option t x =
     | None ->
         if Piqirun.parse_bool_field x = true
         then
-          let res = O#{ t = t; obj = None } in
+          let res = O.({t = t; obj = None}) in
           (* skip boolean used to encode empty option value *)
           let count = next_count () in
           Piqloc.addrefret count res
@@ -291,7 +290,7 @@ and parse_option t x =
           piqi_error "invalid representation of untyped option"
     | Some option_type ->
         let obj = parse_obj option_type x in
-        let res = O#{ t = t; obj = Some obj } in
+        let res = O.({t = t; obj = Some obj}) in
         Piqloc.addrefret obj res
 
 
@@ -304,7 +303,7 @@ and parse_enum t x =
   in
   (* add location reference which is equal to the enum location *)
   Piqloc.addref !Piqloc.icount option;
-  E#{ t = t; option = option }
+  E.({t = t; option = option})
 
 
 and parse_packed_enum t x =
@@ -314,24 +313,24 @@ and parse_packed_enum t x =
     with Not_found ->
       Piqirun.error_enum_const x
   in
-  E#{ t = t; option = option }
+  E.({t = t; option = option})
 
 
 and parse_enum_option t code32 =
-  let options = t.T.Enum#option in
-  let o = List.find (fun o -> some_of o.T.Option#code = code32) options in
-  O#{ t = o; obj = None }
+  let options = t.T.Enum.option in
+  let o = List.find (fun o -> some_of o.T.Option.code = code32) options in
+  O.({t = o; obj = None})
 
 
 and parse_list t x = 
-  let obj_type = some_of t.T.Piqi_list#piqtype in
+  let obj_type = some_of t.T.Piqi_list.piqtype in
   let contents =
     if not t.T.Piqi_list.protobuf_packed
     then Piqirun.parse_list (parse_obj obj_type) x
     else Piqirun.parse_packed_list
       (parse_packed_obj obj_type) (parse_obj obj_type) x
   in
-  L#{ t = t; obj = contents }
+  L.({t = t; obj = contents})
 
 
 and parse_alias0 t x =
@@ -349,7 +348,7 @@ and parse_alias t ?wire_type x =
       | `alias t -> `alias (parse_alias t x ?wire_type)
       | t -> parse_obj t x
   in
-  A#{ t = t; obj = obj }
+  A.({t = t; obj = obj})
 
 
 and parse_packed_alias t ?wire_type x =
@@ -362,7 +361,7 @@ and parse_packed_alias t ?wire_type x =
       | `alias t -> `alias (parse_packed_alias t x ?wire_type)
       | t -> parse_packed_obj t x
   in
-  A#{ t = t; obj = obj }
+  A.({t = t; obj = obj})
 
 
 let _ =

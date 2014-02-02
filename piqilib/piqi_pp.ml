@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -107,9 +106,9 @@ let simplify_piqi_ast (ast:piq_ast) =
 let compare_piqi_items a b =
   let name_of = function
     | `name x -> x
-    | `named x -> x.Piq_ast.Named#name
+    | `named x -> x.Piq_ast.Named.name
     | `typename x -> x
-    | `typed x -> x.Piq_ast.Typed#typename
+    | `typed x -> x.Piq_ast.Typed.typename
     | _ -> assert false
   in
   let rank x =

@@ -1,4 +1,3 @@
-(*pp camlp4o pa_labelscope.cmo pa_openin.cmo *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
 
@@ -146,21 +145,21 @@ and parse_any xml_elem =
             | Some (`any {Any.xml_ast = xml_ast}) -> xml_ast
             | _ -> None
         in
-        Any#{
+        Any.({
           Piqobj.default_any with
           typename = typename;
           pb = protobuf;
           xml_ast = xml_ast;
-        }
+        })
     | _ -> (* regular symbolic piqi-any *)
-        Any#{
+        Any.({
           Piqobj.default_any with
           xml_ast = Some xml_elem;
-        }
+        })
 
 
 and parse_record t xml_elem =
-  debug "do_parse_record: %s\n" (some_of t.T.Record#name);
+  debug "do_parse_record: %s\n" (some_of t.T.Record.name);
   (* get the list of XML elements from the node *)
   let _name, l = xml_elem in
   let l = get_record_elements l in
@@ -169,18 +168,18 @@ and parse_record t xml_elem =
    * list is unboxed and doesn't provide correct location information *)
   let loc = xml_elem in
 
-  let fields_spec = t.T.Record#field in
+  let fields_spec = t.T.Record.field in
   let fields, rem =
     List.fold_left (parse_field loc) ([], l) fields_spec in
   (* issue warnings on unparsed fields *)
   List.iter handle_unknown_field rem;
   (* put required fields back at the top *)
-  R#{ t = t; field = List.rev fields; unparsed_piq_fields_ref = None}
+  R.({t = t; field = List.rev fields; unparsed_piq_fields_ref = None})
 
 
 and parse_field loc (accu, rem) t =
   let fields, rem =
-    match t.T.Field#piqtype with
+    match t.T.Field.piqtype with
       | None -> do_parse_flag t rem
       | Some _ -> do_parse_field loc t rem
   in
@@ -196,7 +195,7 @@ and do_parse_flag t l =
     | [] -> [], rem
     | x::tail ->
         check_duplicate name tail;
-        let res = F#{ t = t; obj = None } in
+        let res = F.({t = t; obj = None}) in
         [res], rem
 
 
@@ -218,7 +217,7 @@ and do_parse_field loc t l =
           parse_repeated_field name field_type l
   in
   let fields =
-    List.map (fun x -> F#{ t = t; obj = Some x }) values
+    List.map (fun x -> F.({t = t; obj = Some x})) values
   in
   fields, rem
   
@@ -275,11 +274,11 @@ and parse_repeated_field name field_type l =
 
 
 and parse_variant t xml_elem =
-  debug "parse_variant: %s\n" (some_of t.T.Variant#name);
+  debug "parse_variant: %s\n" (some_of t.T.Variant.name);
   let _name, l = xml_elem in
   match l with
     | [`Elem ((name, _) as xml_elem)] ->
-        let options = t.T.Variant#option in
+        let options = t.T.Variant.option in
         let option =
           try
             let o = List.find (fun o -> name = C.name_of_option o) options in
@@ -287,7 +286,7 @@ and parse_variant t xml_elem =
           with Not_found ->
             error xml_elem ("unknown variant option: " ^ U.quote name)
         in
-        V#{ t = t; option = option }
+        V.({t = t; option = option})
     | _ ->
         error xml_elem "exactly one XML element expected as a variant value"
 
@@ -297,36 +296,36 @@ and parse_option t xml_elem =
   let name, l = xml_elem in
   match t.piqtype, l with
     | None, [] ->
-        O#{ t = t; obj = None }
+        O.({ t = t; obj = None})
     | None, _ ->
         error name ("no value expected for option flag " ^ U.quote name)
     | Some option_type, _ ->
         let obj = parse_obj option_type xml_elem in
-        O#{ t = t; obj = Some obj }
+        O.({t = t; obj = Some obj})
 
 
 and parse_enum t xml_elem =
-  debug "parse_enum: %s\n" (some_of t.T.Enum#name);
+  debug "parse_enum: %s\n" (some_of t.T.Enum.name);
   let name =
     parse_scalar xml_elem "exactly one XML CDATA expected as an enum value"
   in
-  let options = t.T.Enum#option in
+  let options = t.T.Enum.option in
   let option =
     try
-      let o = List.find (fun o -> some_of o.T.Option#name = name) options in
-      O#{ t = o; obj = None }
+      let o = List.find (fun o -> some_of o.T.Option.name = name) options in
+      O.({t = o; obj = None})
     with Not_found ->
       error name ("unknown enum option: " ^ U.quote name)
   in
-  E#{ t = t; option = option }
+  E.({t = t; option = option})
 
 
 and parse_list t xml_elem =
-  debug "parse_list: %s\n" (some_of t.T.Piqi_list#name);
-  let obj_type = some_of t.T.Piqi_list#piqtype in
+  debug "parse_list: %s\n" (some_of t.T.Piqi_list.name);
+  let obj_type = some_of t.T.Piqi_list.piqtype in
   let _name, l = xml_elem in
   let contents = List.map (parse_list_item obj_type) l in
-  L#{ t = t; obj = contents }
+  L.({t = t; obj = contents})
 
 
 and parse_list_item obj_type xml =
@@ -342,9 +341,9 @@ and parse_list_item obj_type xml =
 and parse_alias t x =
   let open T.Alias in
   let obj_type = some_of t.piqtype in
-  debug "parse_alias: %s\n" (some_of t.T.Alias#name);
+  debug "parse_alias: %s\n" (some_of t.T.Alias.name);
   let obj = parse_obj obj_type x in
-  A#{ t = t; obj = obj }
+  A.({t = t; obj = obj})
 
 
 let _ =
