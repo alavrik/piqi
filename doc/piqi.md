@@ -838,8 +838,8 @@ Protocol Buffers properties:
 Similarly, support for OCaml-specific Piqi properties is provided by these two
 specifications:
 
-[piqi.ocaml.piqi](http://github.com/alavrik/piqi/blob/master/piqic-ocaml/piqi.ocaml.piqi),
-[piqi.ocaml-extensions.piqi](http://github.com/alavrik/piqi/blob/master/piqic-ocaml/piqi.ocaml-extensions.piqi)
+[piqi.ocaml.piqi](https://github.com/alavrik/piqi-ocaml/blob/master/piqic-ocaml/piqi.ocaml.piqi),
+[piqi.piqi-ocaml.piqi](https://github.com/alavrik/piqi-ocaml/blob/master/piqic-ocaml/piqi.piqi-ocaml.piqi)
 
 
 Functions

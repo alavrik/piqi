@@ -29,6 +29,7 @@ CHANGES.html: ../CHANGES
 
 %-patched.md: %.md
 	sed -e 's|](\(/doc/erlang\)| (external)](http://piqi.org\1|g' \
+	        -e 's|](\(/doc/ocaml\)| (external)](http://piqi.org\1|g' \
 		-e 's|](\(/doc/piqi-rpc\)| (external)](http://piqi.org\1|g' \
 		-e 's|](\(/doc/faq\)| (external)](http://piqi.org\1|g' \
 		-e 's|](\(/examples\)| (external)](http://piqi.org\1|g' \
