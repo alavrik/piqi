@@ -11,7 +11,7 @@ DIRS = piqilib src
 
 
 .PHONY: deps build-dir install distclean \
-	ocaml ocaml-install ocaml-uninstall ocaml-clean \
+	ocaml ocaml-install ocaml-uninstall \
 	doc piqi
 
 
@@ -62,40 +62,28 @@ piqi:
 	$(MAKE) -C src piqi
 
 
-ocaml: build-dir
-	$(MAKE) -C piqilib libuninstall libinstall
-	$(MAKE) -C piqirun-ocaml all libuninstall libinstall
-	$(MAKE) -C piqic-ocaml
-
-
-ocaml-clean:
-	$(MAKE) -C piqirun-ocaml clean
-	$(MAKE) -C piqic-ocaml clean
+ocaml:
+	$(MAKE) -C piqilib
 
 
 ocaml-install: ocaml-uninstall
 	test -d $(PIQI_OCAML_DESTDIR) || mkdir -p $(PIQI_OCAML_DESTDIR)
 	$(MAKE) -C deps install
 	$(MAKE) -C piqilib install
-	$(MAKE) -C piqirun-ocaml install
-	-install -d $(DESTDIR)$(PIQI_PREFIX)/bin
-	install piqic-ocaml/piqic-ocaml $(DESTDIR)$(PIQI_PREFIX)/bin
 
 
 ocaml-uninstall:
 	$(MAKE) -C deps uninstall
 	$(MAKE) -C piqilib uninstall
-	$(MAKE) -C piqirun-ocaml uninstall
-	rm -f $(DESTDIR)$(PIQI_PREFIX)/bin/piqic-ocaml
 
 
-clean:: ocaml-clean
-	$(MAKE) -C deps clean
+clean::
 	$(MAKE) -C tests clean
 
 
 distclean:
 	if [ -f Makefile.config ]; then \
+		$(MAKE) -C deps clean;
 		$(MAKE) clean; \
 		rm -rf $(PIQI_BUILD); \
 		rm Makefile.config; \

@@ -14,23 +14,6 @@ DIRS_PROTO = \
 endif
 
 
-ifneq ($(shell which piqic-ocaml), )
-DIRS_OCAML = \
-       ocaml_addressbook \
-       ocaml_piqi \
-       ocaml_perf \
-       ocaml_packed \
-       ocaml_array \
-       ocaml_misc \
-       ocaml_custom_types \
-       ocaml_piq_config \
-
-ifdef DIRS_PROTO
-DIRS_OCAML += ocaml_riak_pb
-endif
-endif
-
-
 DIRS = \
        examples \
        self_spec \
@@ -38,11 +21,10 @@ DIRS = \
        piqi_server \
        piqi_compile \
        piqi_pp \
-       $(DIRS_OCAML) \
        $(DIRS_PROTO)
 
 
-.PHONY: ocaml ocaml-clean proto proto-clean
+.PHONY: proto proto-clean
 
 
 proto:
@@ -54,19 +36,6 @@ proto:
 
 proto-clean:
 	for i in $(DIRS_PROTO); do \
-		$(MAKE) -C $$i clean; \
-	done
-
-
-ocaml:
-	set -e; \
-	for i in $(DIRS_OCAML); do \
-		$(MAKE) -C $$i; \
-	done
-
-
-ocaml-clean:
-	for i in $(DIRS_OCAML); do \
 		$(MAKE) -C $$i clean; \
 	done
 

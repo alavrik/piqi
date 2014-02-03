@@ -3,7 +3,6 @@ test: init test_cc test_compile
 
 init:
 	piqi cc -o piqi.piqi
-	ln -sf ../../piqic-ocaml/piqi.piqi-ocaml.piqi
 
 
 test_cc:
@@ -37,5 +36,5 @@ test_compile:
 
 
 clean:
-	rm -f *.piqi self-spec.pb
+	rm -f piqi.piqi p.piqi d.piqi p1.piqi self-spec.pb
 

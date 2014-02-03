@@ -1,4 +1,0 @@
-.enum [
-    .name e
-    .option [ a ]
-]

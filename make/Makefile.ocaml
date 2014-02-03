@@ -8,11 +8,6 @@ endif
 export OCAMLPATH
 
 
-ifeq ($(OCAMLFIND_DESTDIR),)
-export OCAMLFIND_DESTDIR := $(OCAMLPATH)
-endif
-
-
 # make sure camlp4o produces pretty-printed text instead of AST
 export CAMLP4_O = $(CAMLP4)o -printer o
 

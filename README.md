@@ -84,9 +84,6 @@ Files
     piqilib/              common library used by piqi command-line tool and piqi-ocaml
     piqi/                 Piqi self-specification
 
-    piqic-ocaml/          Piq interface compiler(s) for OCaml
-    piqirun-ocaml/        Piqi runtime library for OCaml
-
     make/                 makefiles and build scripts
     deps/                 third-party dependencies (see ./NOTICE for details)
     setenv.sh             environment configuration for running tests
