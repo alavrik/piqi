@@ -121,7 +121,7 @@ META: ../VERSION META.in
 
 PIQI = ../src/piqi
 
-PIQI_OCAML_DIR ?= ..
+PIQI_OCAML_DIR ?= ../../piqi-ocaml
 PIQIC = $(PIQI_OCAML_DIR)/piqic-ocaml/piqic-ocaml
 
 PIQI_FLAGS = -I $(PIQI_ROOT)
@@ -133,7 +133,7 @@ piqi: piqi_files piqi_ml piqi_boot expand_piqi_boot
 
 piqi_files:
 	cp $(PIQI_OCAML_DIR)/piqic-ocaml/piqi.ocaml.piqi .
-	cp $(PIQI_OCAML_DIR)/piqirun-ocaml/piqirun.ml piqi_piqirun.ml
+	cp $(PIQI_OCAML_DIR)/piqirun/piqirun.ml piqi_piqirun.ml
 
 
 piqi_ml:
