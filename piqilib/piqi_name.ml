@@ -25,7 +25,6 @@ let has_parent name =
 let get_module_name x =
   try
     let pos = String.rindex x '/' in
-    assert (pos <> 0);
     let res = String.sub x 0 pos in
     Some res
   with
