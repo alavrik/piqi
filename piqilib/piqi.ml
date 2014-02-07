@@ -1443,14 +1443,14 @@ let rewrite_include_modname from_piqi x =
   let scoped_modname = rewrite_non_scoped_modname from_piqi x.modname in
   if scoped_modname == x.modname
   then x (* no change *)
-  else {x with modname = scoped_modname}
+  else {x with modname = Piqloc.addrefret x.modname scoped_modname}
 
 let rewrite_import_modname from_piqi x =
   let open Import in
   let scoped_modname = rewrite_non_scoped_modname from_piqi x.modname in
   if scoped_modname == x.modname
   then x (* no change *)
-  else {x with modname = scoped_modname}
+  else {x with modname = Piqloc.addrefret x.modname scoped_modname}
 
 
 (* first steps of Piqi processing; this function can be called separately from
