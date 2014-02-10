@@ -1401,61 +1401,64 @@ let is_extension modname =
   String.contains (Piqi_name.get_local_name modname) '.'
 
 
+let find_piqi_file from_piqi modname =
+  if from_piqi.P.is_embedded <> None
+  then  (* embedded piqi => modname is already relative to the referee *)
+    (* check if the module already loaded -- this is a typical case when
+     * dependencies are also embedded *)
+    let fname =
+      try
+        ignore (Piqi_db.find_piqi modname);
+        modname ^ ".piqi"
+      with Not_found ->
+        Piqi_file.find_piqi modname
+    in
+    (modname, fname)
+  else  (* regular module loaded from a .piqi file *)
+    (* add the referee dirname as a .piqi search path in front of the curent
+     * working directory, which is always the first element of the search path
+     * list *)
+    let dir = Filename.dirname (some_of from_piqi.P.file) in
+    let found_dir, found_fname = Piqi_file.find_piqi_file modname ~extra_paths:[dir] in
+    let fname = Filename.concat found_dir found_fname in
+
+    (* if the module was found in the referee's directory, we need to rename
+     * prepend the found module's name with the referee's path *)
+    let is_existing_path = List.mem dir !Piqi_config.paths in
+    let modname =
+      if is_existing_path || found_dir <> dir
+      then modname
+      else
+        let referee_modname = some_of from_piqi.P.modname in
+        match Piqi_name.get_module_name referee_modname with
+          | None ->
+              modname
+          | Some dirname ->
+              dirname ^ "/" ^ modname
+    in
+    (modname, fname)
+
+
 (* find all applicable extensions for a given module *)
-let find_extensions modname filename =
+let find_extensions piqi =
+  let modname = some_of piqi.P.modname in
   let find_extension ext_name =
     try
       let modname = modname ^ "." ^ ext_name in
-      let fname = Piqi_file.find_piqi modname in
-      trace "found modname-based extension: %s (%s)\n" modname fname;
+      let modname, fname = find_piqi_file piqi modname in
+      trace "found extension: %s (%s)\n" modname fname;
       [modname]
-    with
-      Not_found ->
-        let modname = Piqi_file.chop_piqi_extensions filename ^ "." ^ ext_name in
-        let fname = modname ^ ".piqi" in
-        if Sys.file_exists fname
-        then (
-          trace "found filename-based extension: %s (%s)\n" modname fname;
-          [modname]
-        )
-        else []
+    with Not_found ->
+      []
   in
   if is_extension modname
-  then [] (* extensions are not appliable to extensions *)
+  then [] (* extensions are not applicable to extensions *)
   else U.flatmap find_extension !Config.extensions
-
-
-(* rewriting non-scoped import/modname and include/modname fields when they are
- * included/imported from a module that has a scoped module name; basically,
- * that module's dirname is used as a dirname for its includes and imports *)
-let rewrite_non_scoped_modname from_piqi modname =
-  if Piqi_name.is_scoped_name modname
-  then modname
-  else
-    let from_modname = some_of from_piqi.P.modname in
-    match Piqi_name.get_module_name from_modname with
-      | None -> modname
-      | Some from_dir ->
-          from_dir ^ "/" ^ modname
-
-let rewrite_include_modname from_piqi x =
-  let open Includ in
-  let scoped_modname = rewrite_non_scoped_modname from_piqi x.modname in
-  if scoped_modname == x.modname
-  then x (* no change *)
-  else {x with modname = Piqloc.addrefret x.modname scoped_modname}
-
-let rewrite_import_modname from_piqi x =
-  let open Import in
-  let scoped_modname = rewrite_non_scoped_modname from_piqi x.modname in
-  if scoped_modname == x.modname
-  then x (* no change *)
-  else {x with modname = Piqloc.addrefret x.modname scoped_modname}
 
 
 (* first steps of Piqi processing; this function can be called separately from
  * process_piqi *)
-let pre_process_piqi ?modname ?(fname="") ?(ast: piq_ast option) (orig_piqi: T.piqi) =
+let pre_process_piqi ?modname ~fname ?(ast: piq_ast option) (orig_piqi: T.piqi) =
   (* report unparsed fields before we load dependencies (this is meaningless if
    * Piqi is not parsed from Piq)
    *)
@@ -1470,6 +1473,7 @@ let pre_process_piqi ?modname ?(fname="") ?(ast: piq_ast option) (orig_piqi: T.p
   let piqi = copy_obj orig_piqi in
   piqi.P.original_piqi <- Some orig_piqi;
   piqi.P.ast <- ast;
+  piqi.P.file <- Some fname;
 
   (* it is critical to cache loaded piqi module before we process any of its
    * dependencies; by doing this, we check for circular imports *)
@@ -1520,22 +1524,17 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   let ast = piqi.P.ast in
   trace_enter ();
 
-  (* make sure include and importe names are properly scoped when
-   * included/imported from a module with a scoped name *)
-  piqi.P.includ <- List.map (rewrite_include_modname piqi) piqi.P.includ;
-  piqi.P.import <- List.map (rewrite_import_modname piqi) piqi.P.import;
-
   (*
    * handle includes
    *)
   let extension_includes =
     if ast = None
     then
-      (* extensions are not appliable for non-Piq representation *)
+      (* extensions are not applicable for non-Piq representation *)
       []
     else
       List.map (fun x -> Includ.({modname = x; unparsed_piq_ast = None}))
-      (find_extensions (some_of piqi.P.modname) fname)
+      (find_extensions piqi)
   in
   let includes = piqi.P.includ @ extension_includes in
   let included_piqi = load_includes piqi includes  ~include_path in
@@ -1740,29 +1739,15 @@ and load_piqi_file ?modname ?include_path fname =
   let piqi = load_piqi_ast ?modname ?include_path ~cache fname ast in
   trace_leave ();
 
-  piqi.P.file <- Some fname;
   piqi
-
-
-(* This function is not used at the time
-and load_piqi_channel ?modname fname ch =
-  let ast = read_piqi_channel fname ch in
-  load_piqi_ast ?modname fname ast
-*)
-
-
-and load_piqi_string fname content =
-  let ast = read_piqi_string fname content in
-  load_piqi_ast fname ast ~cache:false
 
 
 and load_piqi_ast ?modname ?(include_path=[]) ~cache fname (ast :piq_ast) =
   let piqi = parse_piqi ast in
-  process_piqi piqi ?modname ~include_path ~cache ~fname ~ast
+  process_piqi piqi ?modname ~include_path ~cache ~ast ~fname
 
 
-and load_piqi_module ?(include_path=[]) modname =
-  check_modname modname;
+and load_piqi_module ?(include_path=[]) modname fname =
   (* check if the module is already loaded *)
   try
     let piqi = Piqi_db.find_piqi modname in
@@ -1770,19 +1755,11 @@ and load_piqi_module ?(include_path=[]) modname =
      * but only pre-processed) *)
     process_piqi piqi ~include_path ~cache:false
   with Not_found ->
-    let fname =
-      try
-        Piqi_file.find_piqi modname
-      with
-        Not_found ->
-          error modname ("piqi module is not found: " ^ U.quote modname)
-    in
-    let piqi = load_piqi_file fname ~modname ~include_path in
-    piqi
+    load_piqi_file fname ~modname ~include_path
 
 
 and load_imports piqi l =
-  List.iter load_import l;
+  List.iter (load_import piqi) l;
   (* check for duplicates & looped imports including self-import loop *)
   let rec check_dups = function
     | [] -> ()
@@ -1805,11 +1782,20 @@ and load_imports piqi l =
   then error piqi "imported piqi modules form a loop"
 
 
-and load_import x =
+and load_import from_piqi x =
   let open Import in (
-    trace "import: %s\n" x.Import.modname;
-    (* load imported module *)
-    let piqi = load_piqi_module x.modname in
+    trace "import: %s\n" x.modname;
+    check_modname x.modname;
+    let scoped_modname, fname =
+      try find_piqi_file from_piqi x.modname
+      with Not_found ->
+        error x.modname ("imported piqi module is not found: " ^ U.quote x.modname)
+    in
+    (* save the original modname and replace it with the resolved scoped modname
+     * NOTE: they can be exactly the same *)
+    x.orig_modname <- Some x.modname;
+    x.modname <- scoped_modname;
+    let piqi = load_piqi_module scoped_modname fname in
     (* save imported piqi in import.piqi field *)
     x.piqi <- Some piqi;
     assign_import_name x;
@@ -1844,7 +1830,7 @@ and load_includes ~include_path piqi l =
   let new_include_path = piqi :: include_path in
 
   let l = remove_extensions l include_path in
-  let included_piqi = List.map (load_include new_include_path) l in
+  let included_piqi = List.map (load_include piqi ~include_path:new_include_path) l in
 
   let process_recursive_piqi p =
     trace "included piqi module %s forms a loop\n" (U.quote (some_of p.P.modname));
@@ -1893,12 +1879,19 @@ and load_includes ~include_path piqi l =
   List.filter (fun x -> x != piqi) res
 
 
-and load_include include_path x =
+and load_include ~include_path from_piqi x =
   let open Includ in (
     trace "include: %s\n" x.modname;
-    (* load included piqi module if it isn't already *)
-    let piqi = load_piqi_module x.modname ~include_path in
-    piqi
+    check_modname x.modname;
+    let scoped_modname, fname =
+      try find_piqi_file from_piqi x.modname
+      with Not_found ->
+        error x.modname ("included piqi module is not found: " ^ U.quote x.modname)
+    in
+    (* replace the original modname with the resolved scoped modname
+     * NOTE: they can be exactly the same *)
+    x.modname <- scoped_modname;
+    load_piqi_module scoped_modname fname ~include_path
   )
 
 
@@ -1987,22 +1980,11 @@ let _ =
 let load_piqi fname ch :T.piqi =
   trace "loading piqi file: %s\n" fname;
   trace_enter ();
+
   let ast = read_piqi_channel fname ch in
-
-  (* for scoped filename, add its dirname as a .piqi search path instead of
-   * curent working directory, which is always the first element of the search
-   * path list *)
-  let paths = !Piqi_config.paths in
-  let dirname = Filename.dirname fname in
-  if dirname <> "" && dirname <> "." (* is scoped? *)
-  then Piqi_config.paths := dirname :: paths;
-
   let piqi = load_piqi_ast fname ast ~cache:true in
 
-  Piqi_config.paths := paths; (* restore the original search path setting *)
   trace_leave ();
-
-  piqi.P.file <- Some fname;
   piqi
 
 

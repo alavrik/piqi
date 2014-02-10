@@ -72,7 +72,7 @@ let make_os_path name =
 
 
 (* find piqi file in search paths given its (relative) splitted name *)
-let find_piqi_file modname =
+let find_piqi_file ?(extra_paths=[]) modname =
   let dir_name, base_name = Piqi_name.split_name modname in
   let dir_name =
     match dir_name with
@@ -143,7 +143,7 @@ let find_piqi_file modname =
       | Some dir_name ->
           List.exists (fun ext -> check_file dir_name ext) [".piqi"; ".proto.piqi"]
   in
-  if List.exists find_file !Piqi_config.paths
+  if List.exists find_file (extra_paths @ !Piqi_config.paths)
   then
     !found_dir, !found_name
   else

@@ -137,7 +137,7 @@ Modules
 Piqi modules are defined as non-empty files with `.piqi` extensions. A `.piqi`
 file represents one Piqi module.
 
-Piqi modules converted from Google Protocol Buffer specification normally have
+Piqi modules converted from Google Protocol Buffer specification have
 `.proto.piqi` file extension.
 
 `.piqi` and `.proto.piqi` are the only file extensions allowed for Piqi modules.
@@ -177,14 +177,14 @@ will tell [Piqi tools](/doc/tools/) to ignore properties like `.ocaml-name
 ### Module names
 
 Piqi module names consist of two parts: *module path* and *local module name*.
-These parts usually directly correspond to where `.piqi` files are located in
-the filesystem.
+These parts directly correspond to where `.piqi` files are located in the
+directory hierarchy.
 
 For example, module named (or referred as)
 
     foo/bar
 
-Would be usually defined in file
+would usually by defined in file
 
     foo/bar.piqi
 
@@ -195,12 +195,12 @@ A module can explicitly specify its name. For example:
 
     .module foo/bar
 
-However, explicitly defined module names are rarely useful in practice. Most of
+However, explicitly defined module names are rarely used in practice. Most of
 time, they will be automatically derived from the location of the `.piqi` file.
 
 Piqi module names can be formally described as follows:
 
-    <module-name> :: <path> | <local-module-name>
+    <module-name> ::= (<path> '/')? <local-module-name>
 
     <local-module-name> ::= ['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9' '-' '_']*
 
@@ -211,9 +211,24 @@ Piqi module names can be formally described as follows:
 
     NOTE: a <local-module-name> can not contain both `-` and `_` characters.
 
-When the Piqi implementation looks for included or imported `.piqi` modules by
-module names, it looks for files according to configured *search paths* and
-trying the following rules one by one:
+When Piqi looks for included or imported `.piqi` module by its module name, it
+tris one or more directories until it finds the matching file. The lookup order
+is defined as follows:
+
+- directory from which the referring module was loaded
+- search paths explicitly provided by using the `-I ..` command-line parameter,
+  which can be specified more than once
+- current working directory (`.`)
+- search paths listed in the `PIQI_PATH` environment variable, with several
+  paths separated by `:`.
+
+For instance, if module `a` is imported from module `b`, Piqi will first look in
+the directory from which module `b` was loaded, then in paths specified using
+`-I`, then in `.`, and finally, in paths from `$PIQI_PATH`.
+
+When locating an imported or included module named `<path>/<local-module-name>`
+in one of the search paths, Piqi looks for the module's file in the following
+order:
 
 1.  `<search-path>/<path>/<local-module-name>.piqi`
 2.  `<search-path>/<path>/<local-module-name>.proto.piqi`
@@ -221,7 +236,7 @@ trying the following rules one by one:
 
     with `-` replaced with `_` in <local-module-name>
 
-4.  `<search-path>/<module-name>.proto.piqi`
+4.  `<search-path>/<path>/<local-module-name>.proto.piqi`
 
     with `-` replaced with `_` in <local-module-name>
 
@@ -230,7 +245,7 @@ trying the following rules one by one:
 7.  same as 3 but `_` replaced with `-` in <path>
 8.  same as 4 but `_` replaced with `-` in <path>
 
-Rules 1--4 means that Piqi allows interchangeable use of `_` and `-` in local
+Rules 1--4 mean that Piqi allows interchangeable use of `_` and `-` in local
 module names. The recommended style is to use `_` in `.piqi` file names and `-`
 in imported and included module names. See also the [Style
 guidelines](#styleguidelines) section below.

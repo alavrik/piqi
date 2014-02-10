@@ -292,6 +292,7 @@ and
           mutable included_piqi : Piqi_impl_piqi.piqi list;
           mutable original_piqi : Piqi_impl_piqi.piqi option;
           mutable ast : Piqi_impl_piqi.piq_ast option;
+          mutable is_embedded : bool option;
           mutable unparsed_piq_ast : Piqi_impl_piqi.uint option;
           mutable protobuf_custom : string list;
           mutable protobuf_package : string option;
@@ -311,6 +312,7 @@ and
         { mutable modname : Piqi_impl_piqi.word;
           mutable name : Piqi_impl_piqi.name option;
           mutable piqi : Piqi_impl_piqi.piqi option;
+          mutable orig_modname : string option;
           mutable unparsed_piq_ast : Piqi_impl_piqi.uint option
         }
       
@@ -1052,6 +1054,8 @@ and parse_piqi x =
          Piqirun.parse_repeated_field 150338679 parse_typedef x in
        let (_custom_field, x) =
          Piqirun.parse_repeated_field 162247646 parse_word x in
+       let (_is_embedded, x) =
+         Piqirun.parse_optional_field 260007309 parse_bool x in
        let (_resolved_func, x) =
          Piqirun.parse_repeated_field 268445433 parse_func x in
        let (_includ, x) =
@@ -1092,6 +1096,7 @@ and parse_piqi x =
             Piqi.included_piqi = _included_piqi;
             Piqi.extended_typedef = _extended_typedef;
             Piqi.custom_field = _custom_field;
+            Piqi.is_embedded = _is_embedded;
             Piqi.resolved_func = _resolved_func;
             Piqi.includ = _includ;
             Piqi.func_typedef = _func_typedef;
@@ -1114,6 +1119,8 @@ and parse_import x =
          Piqirun.parse_optional_field 1 parse_uint x in
        let (_modname, x) =
          Piqirun.parse_required_field 13841580 parse_word x in
+       let (_orig_modname, x) =
+         Piqirun.parse_optional_field 65590849 parse_string x in
        let (_name, x) =
          Piqirun.parse_optional_field 150958667 parse_name x in
        let (_piqi, x) = Piqirun.parse_optional_field 173536529 parse_piqi x
@@ -1122,6 +1129,7 @@ and parse_import x =
           {
             Import.unparsed_piq_ast = _unparsed_piq_ast;
             Import.modname = _modname;
+            Import.orig_modname = _orig_modname;
             Import.name = _name;
             Import.piqi = _piqi;
           }))
@@ -1695,6 +1703,8 @@ and gen__piqi code x =
        x.Piqi.extended_typedef in
    let _custom_field =
      Piqirun.gen_repeated_field 162247646 gen__word x.Piqi.custom_field in
+   let _is_embedded =
+     Piqirun.gen_optional_field 260007309 gen__bool x.Piqi.is_embedded in
    let _resolved_func =
      Piqirun.gen_repeated_field 268445433 gen__func x.Piqi.resolved_func in
    let _includ =
@@ -1725,19 +1735,24 @@ and gen__piqi code x =
        [ _unparsed_piq_ast; _ast; _modname; _imported_typedef; _file;
          _extended_func; _protobuf_custom; _resolved_import; _extend;
          _import; _included_piqi; _extended_typedef; _custom_field;
-         _resolved_func; _includ; _func_typedef; _proto_package; _func;
-         _protobuf_package; _proto_custom; _typedef; _extended_import;
-         _resolved_typedef; _original_piqi; _extended_func_typedef ])
+         _is_embedded; _resolved_func; _includ; _func_typedef;
+         _proto_package; _func; _protobuf_package; _proto_custom; _typedef;
+         _extended_import; _resolved_typedef; _original_piqi;
+         _extended_func_typedef ])
 and gen__import code x =
   (refer x;
    let _unparsed_piq_ast =
      Piqirun.gen_optional_field 1 gen__uint x.Import.unparsed_piq_ast in
    let _modname =
      Piqirun.gen_required_field 13841580 gen__word x.Import.modname in
+   let _orig_modname =
+     Piqirun.gen_optional_field 65590849 gen__string x.Import.orig_modname in
    let _name =
      Piqirun.gen_optional_field 150958667 gen__name x.Import.name in
    let _piqi = Piqirun.gen_optional_field 173536529 gen__piqi x.Import.piqi
-   in Piqirun.gen_record code [ _unparsed_piq_ast; _modname; _name; _piqi ])
+   in
+     Piqirun.gen_record code
+       [ _unparsed_piq_ast; _modname; _orig_modname; _name; _piqi ])
 and gen__any code x =
   (refer x;
    let _ref = Piqirun.gen_optional_field 5691731 gen__int x.Any.ref in
@@ -2075,6 +2090,7 @@ and default_piqi () =
     Piqi.included_piqi = [];
     Piqi.extended_typedef = [];
     Piqi.custom_field = [];
+    Piqi.is_embedded = None;
     Piqi.resolved_func = [];
     Piqi.includ = [];
     Piqi.func_typedef = [];
@@ -2092,6 +2108,7 @@ and default_import () =
   {
     Import.unparsed_piq_ast = None;
     Import.modname = default_word ();
+    Import.orig_modname = None;
     Import.name = None;
     Import.piqi = None;
   }

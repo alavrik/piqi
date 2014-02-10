@@ -26,7 +26,7 @@ module ProtoFile = D.File_descriptor_proto
 module ProtoMessage = D.Descriptor_proto
 module ProtoField = D.Field_descriptor_proto
 module ProtoEnum = D.Enum_descriptor_proto
-module ProtoEnumValue = D.Enum_value_descriptor_proto 
+module ProtoEnumValue = D.Enum_value_descriptor_proto
 
 
 open Piqi_common
@@ -50,7 +50,7 @@ module Idtable =
       }
 
 
-    let empty = 
+    let empty =
       {
         names = M.empty;
         imports = M.empty;
@@ -99,7 +99,7 @@ module Idtable =
       then
         piqi_name
       else
-        let import_name = 
+        let import_name =
           match find_import idtable file with
             | Some x -> x
             | None ->
@@ -268,7 +268,7 @@ let parse_string_escape = lexer
       in
       Char.chr (Piq_lexer.int_of_xstring v)
   | _ ->
-      piqi_error "invalid string escape literal in .proto"
+      piqi_error "error: invalid string escape literal in .proto"
 
 
 (* returns the list of integers representing codepoints *)
@@ -304,7 +304,7 @@ let gen_default p_type = function
         | `type_enum -> ios ".default." ^^ ios (format_name x)
         | t ->
             let value =
-              match t with 
+              match t with
                 | `type_string ->
                     let s = parse_string_literal x in
                     ioq (Piq_lexer.escape_string s)
@@ -354,7 +354,7 @@ let gen_type idtable proto_name :string =
     // rules are used to find the type (i.e. first the nested types within this
     // message are searched, then within the parent, on up to the root
     // namespace).
-  *)  
+  *)
   (* for now we support only fully-qualified names *)
   (* XXX: print an error message? *)
   assert (proto_name.[0] = '.');
@@ -381,7 +381,7 @@ let gen_field_type idtable p_type type_name =
         gen_type idtable (some_of type_name)
     | Some `type_group ->
         piqi_error
-          ".proto file contains group definitons which are not supported; use --convert-groups option to convert groups to records"
+          "error: .proto file contains group definitons which are not supported; use --convert-groups option to convert groups to records"
     | Some x ->
         gen_builtin_type x
 
@@ -464,7 +464,7 @@ let gen_modname filename =
 
 
 let gen_import idtable fname =
-  let import_name = 
+  let import_name =
     match Idtable.find_import idtable fname with
       | Some x -> ios ".name " ^^ ios x
       | None -> iol []
@@ -474,8 +474,8 @@ let gen_import idtable fname =
   if not (Piqi_name.is_valid_modname modname)
   then
     piqi_error
-      ("can't convert imported filename to a valid piqi module name: "
-       ^ fname);
+      ("error: can't convert import filename to a valid piqi module name: "
+       ^ modname);
 
   iod " " [
     ios ".import [";
@@ -485,7 +485,7 @@ let gen_import idtable fname =
   ]
 
 
-let gen_local_modname filename = 
+let gen_local_modname filename =
   let modname = gen_modname filename in
   let name = Piqi_name.get_local_name modname in
   (* import name is mandatory when modname contain underscores *)
@@ -598,7 +598,7 @@ let process_proto_set (x:ProtoFileSet.t) =
   let open ProtoFileSet in
   let idtable = Idtable.empty in
   let rec aux = function
-    | [] -> piqi_error "input FileDescriptorSet is empty"
+    | [] -> piqi_error "error: input FileDescriptorSet is empty"
     | [x] ->
         process_proto idtable x; x
     | h::t ->
@@ -647,7 +647,7 @@ let proto_to_wire ifile ofile =
   in
   let res = Sys.command cmd in
   if res <> 0
-  then piqi_error ("command execution failed: " ^ cmd)
+  then piqi_error ("error: command execution failed: " ^ cmd)
 
 
 let read_proto_wire ifile =
@@ -665,7 +665,7 @@ let prettyprint ch tmp_file code =
 
 let proto_to_piqi ifile =
   if not (Filename.check_suffix ifile ".proto")
-  then piqi_error "input file name must have '.proto' extension";
+  then piqi_error "error: input file name must have '.proto' extension";
 
   (* XXX: check file has either .proto or .piqi.proto extensions without
    * any extra leading extensions *)
@@ -710,7 +710,7 @@ let run () =
   Main.parse_args ~usage ~speclist ();
   proto_to_piqi !ifile
 
- 
+
 let _ =
   Main.register_command run "of-proto" "convert %.proto to %.proto.piqi"
 

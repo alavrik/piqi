@@ -2277,6 +2277,7 @@ let piqi_spec =
  Piqi_impl_piqi.Piqi.extended_func = [];
  Piqi_impl_piqi.Piqi.included_piqi = [];
  Piqi_impl_piqi.Piqi.original_piqi = None; Piqi_impl_piqi.Piqi.ast = None;
+ Piqi_impl_piqi.Piqi.is_embedded = None;
  Piqi_impl_piqi.Piqi.unparsed_piq_ast = None;
  Piqi_impl_piqi.Piqi.protobuf_custom = [];
  Piqi_impl_piqi.Piqi.protobuf_package = None;
@@ -5205,6 +5206,7 @@ let piqi_lang =
  Piqi_impl_piqi.Piqi.extended_func = [];
  Piqi_impl_piqi.Piqi.included_piqi = [];
  Piqi_impl_piqi.Piqi.original_piqi = None; Piqi_impl_piqi.Piqi.ast = None;
+ Piqi_impl_piqi.Piqi.is_embedded = None;
  Piqi_impl_piqi.Piqi.unparsed_piq_ast = None;
  Piqi_impl_piqi.Piqi.protobuf_custom = [];
  Piqi_impl_piqi.Piqi.protobuf_package = None;

@@ -23,18 +23,23 @@ let add_path x =
   paths := !paths @ [x]
 
 
-(* TODO, XXX: what about Windows? Is ':' a valid separator there? *)
 let piqi_path =
   try
     let s = Sys.getenv "PIQI_PATH" in
-    let l = Piqi_util.string_split s ':' in
+    let sep =
+      match Sys.os_type with
+        | "Win32" -> ';'
+        | _ -> ':'
+    in
+    let l = Piqi_util.string_split s sep in
     List.filter (fun s -> s <> "") l (* remove empty segments *)
-  with Not_found -> []
+  with
+    Not_found -> []
 
 
 (* set .piqi search path to contain CWD and $PIQI_PATH *)
 let init_paths () =
-  paths := "." :: piqi_path
+  paths := !paths @ ("." :: piqi_path)
 
 
 let reset_paths () =

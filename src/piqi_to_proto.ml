@@ -390,31 +390,15 @@ let gen_defs (defs:T.typedef list) =
   iod "\n" defs
 
 
-(* gen import path based on piqi modname *)
-let gen_import_path modname =
-  let _dir, fname = Piqi_file.find_piqi_file modname in
-  let fname =
-    if Filename.check_suffix fname ".piqi"
-    then fname ^ ".proto"
-    else
-      if Filename.check_suffix fname ".proto.piqi"
-      then Filename.chop_suffix fname ".piqi"
-      else assert false (* we don't support other extensions *)
-  in
-  ioq fname
-
-
 let gen_import modname =
-  (* XXX: save filename in import record rather than resolving x.modname to
-   * filename each time? *)
-  iod " " [
-    ios "import"; gen_import_path modname; ios ";";
+  iol [
+    ios "import "; ioq (modname ^ ".piqi.proto"); ios ";";
     eol;
   ]
 
 
 let gen_imports l =
-  let modnames = List.map (fun x -> x.Import.modname) l in
+  let modnames = List.map (fun x -> some_of x.Import.orig_modname) l in
   (* using C.uniq to prevent importing a module more than once, otherwise protoc
    * will fail to compile *)
   let l = List.map gen_import (U.uniq modnames) in
@@ -614,21 +598,6 @@ let protoname_defs (defs:T.typedef list) =
   List.iter protoname_typedef defs
 
 
-(*
-let proto_modname n =
-  let namespace, name = Piqi_name.split_modname (some_of n) in
-  match namespace with
-    | "local" -> 
-        for i = 0 to String.length name - 1
-        do
-          if name.[i] = '/' then name.[i] <- '.'
-        done;
-        Some name
-    | x ->
-        error x ("unknown/unsupported namespace " ^ quote x)
-*)
-
-
 (* generate warning when deprecated fiels are used and provde some backwards
  * compatibiliy *)
 let check_transform_piqi piqi =
@@ -688,12 +657,12 @@ let piqi_to_proto_file () =
   let piqi = Piqi.load_piqi !ifile ich in
 
   if not (Filename.check_suffix !ifile ".piqi")
-  then piqi_error "input file name must have '.piqi' extension";
+  then piqi_error "error: input file name must have '.piqi' extension";
 
   let ofile =
     if !ofile <> ""
     then !ofile
-    else !ifile ^ ".proto"
+    else (Piqi_file.chop_piqi_extensions !ifile) ^ ".piqi.proto"
   in
   let och = Main.open_output ofile in
 

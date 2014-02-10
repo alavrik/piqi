@@ -6,7 +6,7 @@ PIQI_FILES = \
 	piqtype-core.piqi
 
 
-test: test_piqi test_piqtype_core
+test: test_piqi test_piqtype_core test_embedded_piqi
 
 
 test_piqi:
@@ -23,6 +23,11 @@ test_piqtype_core:
 	piqi check piqtype-core.piq
 
 
+test_embedded_piqi:
+	piqi convert --embed-piqi piqobj.piqi > t.piq
+	piqi check t.piq
+
+
 clean:
-	rm -f p.piqi pp.piqi p.piqi.text *.proto *.pib *.pb *.json *.xml piqtype-core.piq
+	rm -f p.piqi pp.piqi p.piqi.text *.proto *.pib *.pb *.json *.xml piqtype-core.piq t.piq
 

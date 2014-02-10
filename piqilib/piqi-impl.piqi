@@ -12,6 +12,12 @@
         .type piqi
         .optional
     ]
+
+    .with.field [
+        .name orig-modname
+        .type string
+        .optional
+    ]
 ]
 
 
@@ -65,6 +71,8 @@
 
     .with.field [ .name original-piqi .type piqi .optional ]
     .with.field [ .name ast .type piq-ast .optional ]
+
+    .with.field [ .name is-embedded .type bool .optional ]
 ]
 
 

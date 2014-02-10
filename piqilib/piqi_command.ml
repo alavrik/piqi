@@ -193,7 +193,9 @@ let parse_args
   then (
     Arg.usage speclist usage;
     exit 3;
-  )
+  );
+  (* append CWD and $PIQI_PATH the list of search paths provided by -I .. *)
+  Piqi_config.init_paths ()
 
 
 let die s =
@@ -202,8 +204,6 @@ let die s =
 
 
 let run_command f =
-  (* set .piqi search path to contain CWD and $PIQI_PATH *)
-  Piqi_config.init_paths ();
   (* init various stuff related to --debug <level> *)
   Piqi_config.init_debug ();
 
