@@ -17,6 +17,7 @@ endif
 DIRS = \
        examples \
        self_spec \
+       extensions \
        piqi_misc \
        piqi_server \
        piqi_compile \

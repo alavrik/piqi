@@ -1546,6 +1546,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
 
       extended_piqi.P.original_piqi <- Some orig_piqi;
       extended_piqi.P.modname <- piqi.P.modname;
+      extended_piqi.P.file <- piqi.P.file;
 
       (* replace previously cached unexpanded piqi module if it is already present in the
        * cache *)
