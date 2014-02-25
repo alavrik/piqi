@@ -107,6 +107,7 @@ let read_piq_ast piq_parser user_piqtype :piq_ast =
 
 let piqi_of_piq fname ast =
   let piqi = Piqi.parse_piqi ast in
+  piqi.P.is_embedded <- Some true;
   (* can't process it right away, because not all dependencies could be loaded
    * already; this is expecially ciritical in case of mutually-recursive
    * includes; just do bare minimum so that we could add to Piqi_db and process
@@ -134,7 +135,6 @@ let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
               Piq_ast.Typed.value = ((`list _) as ast)} ->
         (* :piqi <piqi-lang> *)
         let piqi = piqi_of_piq fname ast in
-        piqi.P.is_embedded <- Some true;
         Piqi piqi
     | `typed {Piq_ast.Typed.typename = "piqi"} ->
         error ast "invalid piqi specification"
@@ -146,7 +146,6 @@ let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
         if piqtype == !Piqi.piqi_lang_def (* XXX *)
         then
           let piqi = piqi_of_piq fname ast in
-          piqi.P.is_embedded <- Some true;
           Piqi piqi
         else
           let obj = Piqobj_of_piq.parse_obj piqtype ast in
@@ -310,7 +309,6 @@ let rec load_pib_obj (user_piqtype :T.piqtype option) buf :obj =
     if piqtype == !Piqi.piqi_lang_def (* embedded Piqi spec *)
     then
       let piqi = Piqi.piqi_of_pb field_obj in
-      piqi.P.is_embedded <- Some true;
       Piqi piqi
     else
       let obj = piqobj_of_protobuf piqtype field_obj in
@@ -387,7 +385,6 @@ let load_pb (piqtype:T.piqtype) protobuf :obj =
   if piqtype == !Piqi.piqi_lang_def (* XXX *)
   then
     let piqi = Piqi.piqi_of_pb protobuf in
-    piqi.P.is_embedded <- Some true;
     Piqi piqi
   else
     let obj = piqobj_of_protobuf piqtype protobuf in
@@ -543,7 +540,6 @@ let load_json_common piqtype ast =
   if piqtype == !Piqi.piqi_lang_def (* XXX *)
   then
     let piqi = piqi_of_json ast in
-    piqi.P.is_embedded <- Some true;
     Piqi piqi
   else
     let obj = piqobj_of_json piqtype ast in
@@ -559,7 +555,6 @@ let load_json_obj (user_piqtype: T.piqtype option) json_parser :obj =
         let ast = Piqloc.addrefret ast (`Assoc fields) in
         (* NOTE: caching the loaded module *)
         let piqi = piqi_of_json ast in
-        piqi.P.is_embedded <- Some true;
         Piqi piqi
     | `Assoc (("piqi_type", `String typename) :: fields) ->
         let piqtype = find_piqtype typename ~check in
@@ -645,7 +640,6 @@ let load_xml_obj (piqtype: T.piqtype) xml_parser :obj =
   if piqtype == !Piqi.piqi_lang_def (* XXX *)
   then
     let piqi = piqi_of_xml ast in
-    piqi.P.is_embedded <- Some true;
     Piqi piqi
   else
     let obj = Piqobj_of_xml.parse_obj piqtype ast in

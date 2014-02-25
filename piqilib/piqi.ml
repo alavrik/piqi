@@ -2237,6 +2237,11 @@ let piqi_of_piqobj piqobj =
   debug "piqi_of_piqobj(0)\n";
   let piqi_ast = Piqobj_to_piq.gen_obj piqobj in
   let piqi = parse_piqi piqi_ast in
+
+  (* mark all externally loaded modules as embedded to prevent attempts of
+   * looking for their imported dependencies in the filesystem *)
+  piqi.P.is_embedded <- Some true;
+
   let piqi = process_piqi piqi ~cache:false in
   debug "piqi_of_piqobj(-)\n";
   piqi
