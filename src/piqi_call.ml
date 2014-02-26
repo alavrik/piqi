@@ -599,7 +599,7 @@ let speclist = Main.common_speclist @
     Piqi_main.arg__strict;
     arg_o;
 
-    Piqi_convert_cmd.arg__t;
+    Piqi_convert_cmd.arg_t;
 
     "--piqi", Arg.Set flag_piqi,
     "instead of calling a function, only print the Piqi module that defines the service";

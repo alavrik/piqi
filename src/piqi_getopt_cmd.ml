@@ -76,7 +76,7 @@ let speclist = Main.common_speclist @
     Piqi_main.arg__strict;
     arg_o;
 
-    Piqi_convert_cmd.arg__t;
+    Piqi_convert_cmd.arg_t;
     Piqi_convert_cmd.arg__type;
     Piqi_convert_cmd.arg__add_defaults;
 

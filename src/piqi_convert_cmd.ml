@@ -37,8 +37,11 @@ let flag_piq_relaxed_parsing = ref false
 
 let usage = "Usage: piqi convert [options] [input file] [output file]\nOptions:"
 
+let arg_f =
+    "-f", Arg.Set_string input_encoding,
+    "pb|json|xml|piq|pib input encoding"
 
-let arg__t =
+let arg_t =
     "-t", Arg.Set_string output_encoding,
     "pb|json|xml|piq|pib output encoding (piq is used by default)"
 
@@ -49,6 +52,10 @@ let arg__type =
 let arg__add_defaults =
     "--add-defaults", Arg.Set flag_add_defaults,
     "add default field values to converted records"
+
+let arg__embed_piqi =
+    "--embed-piqi", Arg.Set flag_embed_piqi,
+    "embed Piqi dependencies, i.e. Piqi specs which the input depends on"
 
 let arg__json_omit_missing_fields =
     "--json-omit-missing-fields", Arg.Bool (fun x -> flag_json_omit_missing_fields := x),
@@ -80,10 +87,8 @@ let speclist = Main.common_speclist @
     Piqi_main.arg__strict;
     arg_o;
 
-    "-f", Arg.Set_string input_encoding,
-    "pb|json|xml|piq|pib input encoding";
-
-    arg__t;
+    arg_f;
+    arg_t;
     arg__type;
     arg__add_defaults;
     arg__json_omit_missing_fields;
@@ -92,9 +97,7 @@ let speclist = Main.common_speclist @
     arg__piq_frameless_input;
     arg__piq_relaxed_parsing;
     arg__gen_extended_piqi_any;
-
-    "--embed-piqi", Arg.Set flag_embed_piqi,
-    "embed Piqi dependencies, i.e. Piqi specs which the input depends on";
+    arg__embed_piqi;
 
     Piqi_main.arg__include_extension;
 
