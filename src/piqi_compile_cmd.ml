@@ -17,11 +17,12 @@
 (* use self-spec to compile %.piqi into a portable piqi-list *)
 
 
-module C = Piqi_common  
+module C = Piqi_common
 open C
 
 
 (* command-line arguments *)
+let input_format = ref ""
 let output_format = ref ""
 let input_self_spec = ref ""
 let flag_strict = ref false
@@ -32,10 +33,13 @@ let flag_strict = ref false
  * the tool without closely tracking piqi releases *)
 let usage = "Usage: piqi compile [options] <.piqi file>\nOptions:"
 
+let arg_f =
+  "-f", Arg.Set_string input_format,
+  "pb|json|xml|piqi input format (default=piqi)"
 
-let arg__t =
+let arg_t =
   "-t", Arg.Set_string output_format,
-  "pb|json|xmlpiq output format (default=piq)"
+  "pb|json|xml|piq|piqi output format (default=piq)"
 
 (* The reason we require self-spec to be in .pb format is because it is faster
  * to parse it this way, not because it is more portable than any other format.
@@ -57,7 +61,8 @@ let speclist = Piqi_main.common_speclist @
   [
     arg__strict;
     Piqi_main.arg_o;
-    arg__t;
+    arg_f;
+    arg_t;
     Piqi_main.arg__include_extension;
     arg__self_spec;
   ]
@@ -65,11 +70,13 @@ let speclist = Piqi_main.common_speclist @
 
 let compile self_spec piqi och =
   trace "getting all imported dependencies\n";
-  let piqi_list = Piqi_compile.get_piqi_deps piqi in
-
+  let piqi_list =
+    if !output_format <> "piqi"
+    then Piqi_compile.get_piqi_deps piqi
+    else [piqi] (* we want to output just this module alone *)
+  in
   (* get necessary piqtypes from the self-spec *)
   let filename = !input_self_spec in
-
   let piqi_piqtype =
     if self_spec == C.some_of !Piqi.piqi_spec  (* is it the default embedded self-spec? *)
     then None
@@ -107,6 +114,13 @@ let compile self_spec piqi och =
           Pervasives.output_char och '\n'
         in
         List.iter write_piq piqobj_list
+    | "piqi" ->
+        let piqobj = List.hd piqobj_list in
+        let ast =
+          U.with_bool Piqobj_to_piq.is_external_mode true
+          (fun () -> Piqobj_to_piq.gen_obj piqobj)
+        in
+        Piqi_pp.prettyprint_piqi_ast och ast
     | format ->
         let writer =
           match format with
@@ -119,27 +133,70 @@ let compile self_spec piqi och =
         writer och (Piqi_convert.Piqobj piqobj)
 
 
-let load_self_spec filename =
-  let ich = Piqi_main.open_input filename in
-  let buf = Piqirun.init_from_channel ich in
-  Piqi_compile.load_self_spec buf ~filename
+let load_self_spec () =
+  let ifile = !input_self_spec in
+  if ifile <> "" (* regular compilation mode mode with explicit --self-spec *)
+  then (
+    let ich = Piqi_main.open_input ifile in
+    let buf = Piqirun.init_from_channel ich in
+    let piqi = Piqi_compile.load_self_spec buf ~filename:ifile in
+    Piqi_command.close_input ();
+    piqi
+  )
+  else (
+    trace "--self-spec argument is missing; using the default embedded self-spec to compile\n";
+    C.some_of !Piqi.piqi_spec
+  )
 
 
-let run_c () =
-  let ich = Piqi_command.open_input !Piqi_main.ifile in
-  let piqi = Piqi.load_piqi !Piqi_main.ifile ich in
-  Piqi_command.close_input ();
+let load_piqi_piqobj input_format piqi_piqtype fname ch =
+  match input_format with
+    | "pb" ->
+        let protobuf = Piqirun.init_from_channel ch in
+        (* don't store location references as we're loading from the binary object *)
+        Piqloc.pause ();
+        let piqobj = Piqobj_of_protobuf.parse_obj piqi_piqtype protobuf in
+        Piqloc.resume ();
+        piqobj
+    | "json" ->
+        let json_parser = Piqi_json_parser.init_from_channel ch ~fname in
+        let json = Piqi_convert.read_json_ast json_parser in
+        Piqobj_of_json.parse_obj piqi_piqtype json
+    | "xml" ->
+        let xml_parser = Piqi_xml.init_from_channel ch ~fname in
+        let xml = Piqi_convert.read_xml_ast xml_parser in
+        Piqobj_of_xml.parse_obj piqi_piqtype xml
+    | x ->
+        piqi_error ("unknown input format " ^ U.quote x)
 
-  let self_spec =
-    if !input_self_spec <> "" (* regular compilation mode mode with explicit --self-spec *)
-    then (
-      load_self_spec !input_self_spec
-    )
-    else (
-      trace "--self-spec argument is missing; using the default embedded self-spec to compile\n";
-      C.some_of !Piqi.piqi_spec
-    )
-  in
+
+let load_piqi self_spec fname =
+  let ch = Piqi_command.open_input fname in
+  match !input_format with
+    | "piqi" | "" ->
+        Piqi.load_piqi fname ch
+    | other_format ->
+        let piqi_piqtype = Piqi_compile.get_self_spec_piqtype self_spec "piqi" ~filename:!input_self_spec in
+        (* don't resolve defaults *)
+        let piqobj =
+          C.with_resolve_defaults false (
+            fun () -> load_piqi_piqobj other_format piqi_piqtype fname ch
+          )
+        in
+        (* TODO: don't try to track location references as we don't preserve
+         * them yet in xml, json or pb *)
+        Piqloc.pause ();
+        let piqi = Piqi.piqi_of_piqobj piqobj in
+        Piqloc.resume ();
+        piqi
+
+
+let run_compile () =
+  let ifile = !Piqi_main.ifile in
+
+  let self_spec = load_self_spec () in
+  let piqi = load_piqi self_spec ifile in
+
   let och = Piqi_command.open_output !Piqi_main.ofile in
   compile self_spec piqi och
 
@@ -154,9 +211,9 @@ let run () =
    * unnecessary choices *)
   Piqi_config.gen_extended_piqi_any := true;
 
-  run_c ()
+  run_compile ()
 
- 
+
 let _ =
   Piqi_main.register_command run "compile" "use self-spec to compile %.piqi into a portable piqi-list"
 

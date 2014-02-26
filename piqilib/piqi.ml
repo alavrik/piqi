@@ -2156,11 +2156,15 @@ let lang_to_spec piqi =
   let open P in
   (* expand includes, extensions and functions *)
   let piqi = expand_piqi piqi ~extensions:true ~functions:true in
-  (* remove custom fields -- this property is not a part of the piqi spec *)
+  piqi
+  (* XXX: remove custom fields? -- this property is not a part of the piqi spec,
+   * OTOH they will be removed automatically if the spec doesn't support them *)
+  (*
   {
     piqi with
     custom_field = [];
   }
+  *)
 
 
 (* is_external_mode=true means that defaults and potentially other piqi-any
