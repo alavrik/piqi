@@ -356,6 +356,14 @@ let check_no_infinite_types ~parent defs =
   let set_color node = function
     | `black -> black := node::!black
     | `grey -> grey := node::!grey
+    | `white ->
+        (* changing from grey back to white as we are backtracking *)
+        (match !grey with
+          | h::t when h == node ->
+              grey := t
+          | _ ->
+              assert false
+        )
   in
   let get_color node =
     if List.memq node !black
@@ -371,48 +379,67 @@ let check_no_infinite_types ~parent defs =
       | _ ->  (* considering built-in types local -- they can't be infinite *)
           true
   in
+  (* we have to backtrack in order to correctly check variant type infinity, so
+   * we report the infinite type error at the very end *)
+  let infinite_type = ref None in
+
   let rec finite_path_exists piqtype =
+    let finite = true in
+    let infinite err =
+      infinite_type := Some (piqtype, err);
+      false
+    in
     match get_color piqtype with
       | `black ->  (* already processed, which means the type is finite *)
           true
       | `grey ->  (* found a cycle => the type is infinite *)
-          (match piqtype with
-            | `alias x ->
-                (* NOTE: there is a reason why we are handling it here -- see
-                 * below *)
-                error x ("alias " ^ U.quote (some_of x.A.name) ^ " forms a loop")
-            | _ ->
-                false
-          )
+          let err =
+            match piqtype with
+              | `alias x ->
+                  (* NOTE: there is a reason why we are handling it here -- see
+                   * below *)
+                  "alias " ^ U.quote (some_of x.A.name) ^ " forms a loop"
+              | _ ->
+                  (* the path is infinite, but the error (if any) will be
+                   * reported elsewhere *)
+                  ""
+          in
+          infinite err
       | `white ->  (* unseen node *)
           set_color piqtype `grey;  (* mark the node as being processed *)
           let res =
             if not (is_local_type piqtype)
             then
               (* no need to check imported types as they've been checked already *)
-              true
+              finite
             else
               match piqtype with
                 | `record x ->
-                    List.iter
-                      (fun f ->
-                        match f.F.piqtype with
-                          | Some piqtype when f.F.mode = `required ->
-                              (* NOTE: it is OK for optional and repeated field
-                               * to form a loop; for instance, variant -> record
-                               * expansion can produce such options naturally;
-                               * similarly, some .proto files (e.g.
-                               * descriptor.proto) have repeated fields forming
-                               * a loop *)
-                              if not (finite_path_exists piqtype)
-                              then error x (
-                                "record " ^ U.quote (some_of x.R.name) ^
-                                " is an infinite type (field " ^ U.quote (name_of_field f) ^ " forms a loop)"
-                              )
-                          | _ -> ()
-                      )
-                      x.R.field;
-                    true
+                    let rec check_fields = function
+                      | [] ->
+                          finite  (* all fields are finite *)
+                      | f::tail ->
+                          (match f.F.piqtype with
+                            | Some piqtype when f.F.mode = `required ->
+                                (* NOTE: it is OK for optional and repeated
+                                 * field to form a loop; for instance, variant
+                                 * -> record expansion can produce such options
+                                 * naturally; similarly, some .proto files (e.g.
+                                 * descriptor.proto) have repeated fields
+                                 * forming a loop *)
+                                if not (finite_path_exists piqtype)
+                                then
+                                  infinite (
+                                    "record " ^ U.quote (some_of x.R.name) ^
+                                    " is an infinite type (field " ^ U.quote (name_of_field f) ^ " forms a loop)"
+                                  )
+                                else
+                                  check_fields tail
+                            | _ ->
+                                check_fields tail
+                          )
+                    in
+                    check_fields x.R.field
                 | `variant x ->
                     (* there's a finite path for a variant if there's a finite path
                      * for at least one of its options (option with no type means
@@ -424,25 +451,40 @@ let check_no_infinite_types ~parent defs =
                       else List.exists (fun x -> finite_path_exists (some_of x.O.piqtype)) options
                     in
                     if not is_variant_finite
-                    then error x ("variant " ^ U.quote (some_of x.V.name) ^ " is an infinite type (each option forms a loop)")
-                    else true
+                    then infinite ("variant " ^ U.quote (some_of x.V.name) ^ " is an infinite type (each option forms a loop)")
+                    else finite
                 | `list x ->
                     if not (finite_path_exists (some_of x.L.piqtype))
-                    then error x ("list " ^ U.quote (some_of x.L.name) ^ " forms a loop")
-                    else true
+                    then infinite ("list " ^ U.quote (some_of x.L.name) ^ " forms a loop")
+                    else finite
                 | `alias x ->
                     (* NOTE: not reporting an alias loop here, so that it
                      * doesn't take precedence over loop reports for records,
                      * variants and lists when there's an alias in the middle *)
                     finite_path_exists (some_of x.A.piqtype)
                 | _ ->  (* enum and primitive types are finite *)
-                    true
+                    finite
           in
-          set_color piqtype `black;  (* mark the node as processed *)
+          (* mark the node as processed if the path is finite or unprocessed is
+           * the type is infinite as we are backtracking *)
+          if res
+          then set_color piqtype `black
+          else set_color piqtype `white;
           res
   in
-  let piqtypes = (defs :> T.piqtype list) in
-  List.iter (fun x -> ignore (finite_path_exists x)) piqtypes
+  let check_typedef x =
+    if not (finite_path_exists (x :> T.piqtype))
+    then
+      (* reporting infinite type error *)
+      let piqtype, err = some_of !infinite_type in
+      error piqtype err
+  in
+  (* process non-variants first, because they may have tighter loops that would
+   * otherwise be reported as variant loops *)
+  let variants, non_variants =
+    List.partition (function `variant _ -> true | _ -> false) defs
+  in
+  List.iter check_typedef (non_variants @ variants)
 
 
 (* scoped extensions names should have exactly two sections separated by '.' *)
