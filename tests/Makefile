@@ -19,6 +19,7 @@ DIRS = \
        self_spec \
        extensions \
        piqi_misc \
+       infinite_types \
        piqi_server \
        piqi_compile \
        piqi_pp \
