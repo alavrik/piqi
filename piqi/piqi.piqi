@@ -259,6 +259,12 @@
     .field [ .type typedef .repeated ]
     .field [ .type import .repeated ]
     .field [ .type function .repeated ]
+
+    .field [
+        .name custom-field
+        .type word
+        .repeated
+    ]
 ]
 
 

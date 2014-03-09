@@ -16,12 +16,6 @@
 .extend [
     .typedef piqi
 
-    .with.field [
-        .name custom-field
-        .type word
-        .repeated
-    ]
-
     .with.field [ .type include .repeated ]
     .with.field [ .type extend .repeated ]
 ]

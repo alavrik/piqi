@@ -2155,16 +2155,7 @@ let expand_piqi ~extensions ~functions piqi =
 let lang_to_spec piqi =
   let open P in
   (* expand includes, extensions and functions *)
-  let piqi = expand_piqi piqi ~extensions:true ~functions:true in
-  piqi
-  (* XXX: remove custom fields? -- this property is not a part of the piqi spec,
-   * OTOH they will be removed automatically if the spec doesn't support them *)
-  (*
-  {
-    piqi with
-    custom_field = [];
-  }
-  *)
+  expand_piqi piqi ~extensions:true ~functions:true
 
 
 (* is_external_mode=true means that defaults and potentially other piqi-any
@@ -2172,11 +2163,6 @@ let lang_to_spec piqi =
 let piqi_to_ast ?(is_external_mode=true) piqi =
   debug "piqi_to_ast(0)\n";
   Piqloc.pause (); (* we don't really need to track locations at this stage *)
-
-  (* TODO: optionally, remove custom fields and all unparsed fields from the
-   * resulting spec
-  let piqi = P.({piqi with custom_field = []}) in
-  *)
 
   let ast =
     U.with_bool Piqobj_to_piq.is_external_mode is_external_mode

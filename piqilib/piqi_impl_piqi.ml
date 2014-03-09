@@ -280,6 +280,7 @@ and
           mutable typedef : Piqi_impl_piqi.typedef list;
           mutable import : Piqi_impl_piqi.import list;
           mutable func : Piqi_impl_piqi.func list;
+          mutable custom_field : Piqi_impl_piqi.word list;
           mutable extended_typedef : Piqi_impl_piqi.typedef list;
           mutable func_typedef : Piqi_impl_piqi.typedef list;
           mutable extended_func_typedef : Piqi_impl_piqi.typedef list;
@@ -297,7 +298,6 @@ and
           mutable protobuf_custom : string list;
           mutable protobuf_package : string option;
           mutable file : string option;
-          mutable custom_field : Piqi_impl_piqi.word list;
           mutable includ : Piqi_impl_piqi.includ list;
           mutable extend : Piqi_impl_piqi.extend list;
           mutable proto_custom : string list;

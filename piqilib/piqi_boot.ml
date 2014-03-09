@@ -1937,6 +1937,25 @@ let piqi_spec =
          Piqi_impl_piqi.Field.getopt_doc = None;
          Piqi_impl_piqi.Field.proto_name = None;
          Piqi_impl_piqi.Field.wire_packed = false};
+        {Piqi_impl_piqi.Field.name = Some "custom-field";
+         Piqi_impl_piqi.Field.typename = Some "word";
+         Piqi_impl_piqi.Field.mode = `repeated;
+         Piqi_impl_piqi.Field.default = None;
+         Piqi_impl_piqi.Field.deprecated = false;
+         Piqi_impl_piqi.Field.piqtype = None;
+         Piqi_impl_piqi.Field.unparsed_piq_ast = None;
+         Piqi_impl_piqi.Field.piq_format = None;
+         Piqi_impl_piqi.Field.piq_positional = None;
+         Piqi_impl_piqi.Field.piq_alias = None;
+         Piqi_impl_piqi.Field.protobuf_name = None;
+         Piqi_impl_piqi.Field.code = Some 162247646l;
+         Piqi_impl_piqi.Field.protobuf_packed = false;
+         Piqi_impl_piqi.Field.json_name = None;
+         Piqi_impl_piqi.Field.json_omit_missing = None;
+         Piqi_impl_piqi.Field.getopt_letter = None;
+         Piqi_impl_piqi.Field.getopt_doc = None;
+         Piqi_impl_piqi.Field.proto_name = None;
+         Piqi_impl_piqi.Field.wire_packed = false};
         {Piqi_impl_piqi.Field.name = Some "protobuf-custom";
          Piqi_impl_piqi.Field.typename = Some "string";
          Piqi_impl_piqi.Field.mode = `repeated;
@@ -2266,6 +2285,7 @@ let piqi_spec =
       Piqi_impl_piqi.Record.proto_custom = [];
       Piqi_impl_piqi.Record.proto_name = None}];
  Piqi_impl_piqi.Piqi.import = []; Piqi_impl_piqi.Piqi.func = [];
+ Piqi_impl_piqi.Piqi.custom_field = [];
  Piqi_impl_piqi.Piqi.extended_typedef = [];
  Piqi_impl_piqi.Piqi.func_typedef = [];
  Piqi_impl_piqi.Piqi.extended_func_typedef = [];
@@ -2281,9 +2301,8 @@ let piqi_spec =
  Piqi_impl_piqi.Piqi.unparsed_piq_ast = None;
  Piqi_impl_piqi.Piqi.protobuf_custom = [];
  Piqi_impl_piqi.Piqi.protobuf_package = None;
- Piqi_impl_piqi.Piqi.file = None; Piqi_impl_piqi.Piqi.custom_field = [];
- Piqi_impl_piqi.Piqi.includ = []; Piqi_impl_piqi.Piqi.extend = [];
- Piqi_impl_piqi.Piqi.proto_custom = [];
+ Piqi_impl_piqi.Piqi.file = None; Piqi_impl_piqi.Piqi.includ = [];
+ Piqi_impl_piqi.Piqi.extend = []; Piqi_impl_piqi.Piqi.proto_custom = [];
  Piqi_impl_piqi.Piqi.proto_package = None}
 
 let piqi_lang =
@@ -4472,6 +4491,25 @@ let piqi_lang =
          Piqi_impl_piqi.Field.getopt_doc = None;
          Piqi_impl_piqi.Field.proto_name = None;
          Piqi_impl_piqi.Field.wire_packed = false};
+        {Piqi_impl_piqi.Field.name = Some "custom-field";
+         Piqi_impl_piqi.Field.typename = Some "word";
+         Piqi_impl_piqi.Field.mode = `repeated;
+         Piqi_impl_piqi.Field.default = None;
+         Piqi_impl_piqi.Field.deprecated = false;
+         Piqi_impl_piqi.Field.piqtype = None;
+         Piqi_impl_piqi.Field.unparsed_piq_ast = None;
+         Piqi_impl_piqi.Field.piq_format = None;
+         Piqi_impl_piqi.Field.piq_positional = None;
+         Piqi_impl_piqi.Field.piq_alias = None;
+         Piqi_impl_piqi.Field.protobuf_name = None;
+         Piqi_impl_piqi.Field.code = Some 162247646l;
+         Piqi_impl_piqi.Field.protobuf_packed = false;
+         Piqi_impl_piqi.Field.json_name = None;
+         Piqi_impl_piqi.Field.json_omit_missing = None;
+         Piqi_impl_piqi.Field.getopt_letter = None;
+         Piqi_impl_piqi.Field.getopt_doc = None;
+         Piqi_impl_piqi.Field.proto_name = None;
+         Piqi_impl_piqi.Field.wire_packed = false};
         {Piqi_impl_piqi.Field.name = Some "protobuf-custom";
          Piqi_impl_piqi.Field.typename = Some "string";
          Piqi_impl_piqi.Field.mode = `repeated;
@@ -4522,25 +4560,6 @@ let piqi_lang =
          Piqi_impl_piqi.Field.piq_alias = None;
          Piqi_impl_piqi.Field.protobuf_name = None;
          Piqi_impl_piqi.Field.code = Some 62639740l;
-         Piqi_impl_piqi.Field.protobuf_packed = false;
-         Piqi_impl_piqi.Field.json_name = None;
-         Piqi_impl_piqi.Field.json_omit_missing = None;
-         Piqi_impl_piqi.Field.getopt_letter = None;
-         Piqi_impl_piqi.Field.getopt_doc = None;
-         Piqi_impl_piqi.Field.proto_name = None;
-         Piqi_impl_piqi.Field.wire_packed = false};
-        {Piqi_impl_piqi.Field.name = Some "custom-field";
-         Piqi_impl_piqi.Field.typename = Some "word";
-         Piqi_impl_piqi.Field.mode = `repeated;
-         Piqi_impl_piqi.Field.default = None;
-         Piqi_impl_piqi.Field.deprecated = false;
-         Piqi_impl_piqi.Field.piqtype = None;
-         Piqi_impl_piqi.Field.unparsed_piq_ast = None;
-         Piqi_impl_piqi.Field.piq_format = None;
-         Piqi_impl_piqi.Field.piq_positional = None;
-         Piqi_impl_piqi.Field.piq_alias = None;
-         Piqi_impl_piqi.Field.protobuf_name = None;
-         Piqi_impl_piqi.Field.code = Some 162247646l;
          Piqi_impl_piqi.Field.protobuf_packed = false;
          Piqi_impl_piqi.Field.json_name = None;
          Piqi_impl_piqi.Field.json_omit_missing = None;
@@ -5195,6 +5214,7 @@ let piqi_lang =
       Piqi_impl_piqi.Variant.proto_custom = [];
       Piqi_impl_piqi.Variant.proto_name = None}];
  Piqi_impl_piqi.Piqi.import = []; Piqi_impl_piqi.Piqi.func = [];
+ Piqi_impl_piqi.Piqi.custom_field = [];
  Piqi_impl_piqi.Piqi.extended_typedef = [];
  Piqi_impl_piqi.Piqi.func_typedef = [];
  Piqi_impl_piqi.Piqi.extended_func_typedef = [];
@@ -5210,8 +5230,7 @@ let piqi_lang =
  Piqi_impl_piqi.Piqi.unparsed_piq_ast = None;
  Piqi_impl_piqi.Piqi.protobuf_custom = [];
  Piqi_impl_piqi.Piqi.protobuf_package = None;
- Piqi_impl_piqi.Piqi.file = None; Piqi_impl_piqi.Piqi.custom_field = [];
- Piqi_impl_piqi.Piqi.includ = []; Piqi_impl_piqi.Piqi.extend = [];
- Piqi_impl_piqi.Piqi.proto_custom = [];
+ Piqi_impl_piqi.Piqi.file = None; Piqi_impl_piqi.Piqi.includ = [];
+ Piqi_impl_piqi.Piqi.extend = []; Piqi_impl_piqi.Piqi.proto_custom = [];
  Piqi_impl_piqi.Piqi.proto_package = None}
 
