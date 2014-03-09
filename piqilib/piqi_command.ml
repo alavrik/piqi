@@ -29,7 +29,7 @@ let ifile = ref ""
 let ofile = ref ""
 
 
-let flag_leave_tmp_files = ref false
+let flag_keep_tmp_files = ref false
 
 
 let ich = ref stdin
@@ -86,7 +86,7 @@ let cleanup () =
   close_output ();
 
   (* remove temporary files *)
-  if not !flag_leave_tmp_files
+  if not !flag_keep_tmp_files
   then List.iter delete_file !tmp_files;
   ()
 
@@ -146,8 +146,8 @@ let arg__ =
    "--", Arg.Rest (anon_fun_wrapper default_anon_fun),
      "supply other arguments possibly including '-' for stdin input/output"
 
-let arg__leave_tmp_files =
-   "--leave-tmp-files", Arg.Set flag_leave_tmp_files,
+let arg__keep_tmp_files =
+   "--keep-tmp-files", Arg.Set flag_keep_tmp_files,
      "don't delete temporary files created during command execution"
 
 let arg__no_warnings =

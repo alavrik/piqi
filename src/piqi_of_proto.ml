@@ -632,7 +632,7 @@ let speclist =
    "--convert-groups", Arg.Set flag_convert_groups,
      "convert groups to records (groups are not supported)";
 
-   arg__leave_tmp_files;
+   arg__keep_tmp_files;
   ]
 
 
@@ -691,7 +691,7 @@ let proto_to_piqi ifile =
 
   (* dump to a temporary file before prettyprinting for easier debugging *)
   let tmp_file = ofile ^ ".tmp.piqi" in
-  if !flag_leave_tmp_files
+  if !flag_keep_tmp_files
   then
     try
       let tmp_ch = open_out tmp_file in

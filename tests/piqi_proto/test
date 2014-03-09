@@ -84,7 +84,7 @@ test_all --normalize
 rm l
 
 
-piqi of-proto --leave-tmp-files google/protobuf/unittest_enormous_descriptor.proto 
+piqi of-proto --keep-tmp-files google/protobuf/unittest_enormous_descriptor.proto 
 piqi convert --type google/protobuf/descriptor/file-descriptor-set -f pb -t pb google/protobuf/unittest_enormous_descriptor.proto.pb 
 cmp google/protobuf/unittest_enormous_descriptor.proto.pb*
 
