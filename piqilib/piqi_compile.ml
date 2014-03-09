@@ -23,6 +23,22 @@ module C = Piqi_common
 open C
 
 
+let flag_strict = ref false
+let arg__strict =
+  let (name, _setter, descr) = Piqi_command.arg__strict in
+  (* override the original setter but keep the option name and the description;
+   * we do this, because although it means the same, it is applied at a later
+   * stage -- we control it manually below *)
+  (name, Arg.Set flag_strict, descr)
+
+
+let getopt_speclist = Piqi_command.common_speclist @
+  [
+    arg__strict;
+    Piqi_command.arg__include_extension;
+  ]
+
+
 let load_self_spec ?(filename="") buf =
   trace "piqi_compile: loading self-spec from %s\n" (U.quote filename);
   trace_enter ();
@@ -97,13 +113,20 @@ let rec get_piqi_deps piqi =
   deps @ [piqi]
 
 
-(* called only from Piqic_ocaml
- *
- * TODO: not sure how to unify this with a very similar code in
- * piqi_convert_cmd.ml *)
-let compile ?(strict=false) self_spec piqi =
+(* public library API; currently called only from Piqic_ocaml *)
+let compile ?(extensions=[]) self_spec_bin ifile =
   trace "compile_to_pb:\n";
   trace_enter ();
+
+  (* TODO: restore the state after we are done *)
+  List.iter (fun e -> Piqi_config.add_include_extension e) extensions;
+
+  let buf = Piqi_piqirun.init_from_string self_spec_bin in
+  let self_spec = load_self_spec buf in
+
+  let ch = Piqi_command.open_input ifile in
+  let piqi = Piqi.load_piqi ifile ch in
+
   trace "getting all imported dependencies\n";
   let piqi_list = get_piqi_deps piqi in
 
@@ -112,7 +135,7 @@ let compile ?(strict=false) self_spec piqi =
   let piqi_list_piqtype = get_self_spec_piqtype self_spec "piqi-list" in
 
   trace "converting modules to internal representation\n";
-  Config.flag_strict := strict;
+  Config.flag_strict := !flag_strict;
 
   (* convert all modules to internal representation *)
   let piqobj_list = List.map

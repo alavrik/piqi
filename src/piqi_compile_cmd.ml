@@ -25,7 +25,6 @@ open C
 let input_format = ref ""
 let output_format = ref ""
 let input_self_spec = ref ""
-let flag_strict = ref false
 
 
 (* NOTE: "piqi compile" command-line interface should be idealy as stable
@@ -49,21 +48,12 @@ let arg__self_spec =
   "--self-spec", Arg.Set_string input_self_spec,
   "<.pb file> input self-spec in .pb format; use '-' for stdin"
 
-let arg__strict =
-  let (name, _setter, descr) = Piqi_main.arg__strict in
-  (* overrid the original setter but keep the option name and the description;
-   * we do this, because although it means the same, it is applied at a later
-   * stage -- we control it manually below *)
-  (name, Arg.Set flag_strict, descr)
 
-
-let speclist = Piqi_main.common_speclist @
+let speclist = Piqi_compile.getopt_speclist @
   [
-    arg__strict;
     Piqi_main.arg_o;
     arg_f;
     arg_t;
-    Piqi_main.arg__include_extension;
     arg__self_spec;
   ]
 
@@ -91,7 +81,7 @@ let compile self_spec piqi och =
   C.resolve_defaults := (match !output_format with
       | "json" | "xml" -> true
       | _ -> false);
-  Config.flag_strict := !flag_strict;
+  Config.flag_strict := !Piqi_compile.flag_strict;
 
   (* convert all modules to internal representation *)
   let piqobj_list = List.map
