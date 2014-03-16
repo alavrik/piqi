@@ -88,28 +88,23 @@ let compile self_spec piqi och =
     (fun piqi -> Piqi.piqi_to_piqobj piqi ?piqi_piqtype ~add_codes:true)
     piqi_list
   in
-
   trace "writing output\n";
   match !output_format with
     | "piq" | "" ->
-        (* XXX: instead of creating piqi-list, writing modules in regular .piq
+        (* NOTE: instead of creating piqi-list, writing modules in regular .piq
          * notation *)
         let write_piq piqobj =
-          let ast =
-            U.with_bool Piqobj_to_piq.is_external_mode true
-            (fun () -> Piqobj_to_piq.gen_obj piqobj)
-          in
+          let ast = Piqi_convert.gen_piq (Piqi_convert.Piqobj piqobj) in
           let ast = Piqi_convert.piqi_ast_to_piq ast in
           Piq_gen.to_channel och ast;
           Pervasives.output_char och '\n'
         in
         List.iter write_piq piqobj_list
     | "piqi" ->
-        let piqobj = List.hd piqobj_list in
-        let ast =
-          U.with_bool Piqobj_to_piq.is_external_mode true
-          (fun () -> Piqobj_to_piq.gen_obj piqobj)
-        in
+        (* NOTE: with output_format = "piqi" we can output only one modele --
+         * the one that's beeing compiled; it comes last in the list *)
+        let piqobj = List.hd (List.rev piqobj_list) in
+        let ast = Piqi_convert.gen_piq (Piqi_convert.Piqobj piqobj) in
         Piqi_pp.prettyprint_piqi_ast och ast
     | format ->
         let writer =

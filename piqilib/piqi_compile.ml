@@ -69,31 +69,18 @@ let get_self_spec_piqtype ?(filename="") self_spec typename =
   (piqi_def: T.typedef :> T.piqtype)
 
 
-(* make piqi/piqi-list top-level record from the list of piqi piqobjs; we do it
- * by converting the list of piqobjs to the binary representation of piqi-list
- * and then reading it back and piqobj *)
+(* make piqi/piqi-list top-level record from the list of piqi piqobjs *)
 let make_piqi_list_piqobj piqi_list_piqtype (piqi_piqobj_list: Piqobj.obj list) :Piqobj.obj =
-  trace "making piqi-list\n";
-  trace_enter ();
-  trace "converting piqi piqobj list to protobuf piqi-list\n";
-  let piqi_binobj_list = List.map
-    (fun piqobj ->
-      let obuf = Piqi_convert.piqobj_to_protobuf (-1) piqobj in
-      Piqirun.to_string obuf
-    )
-    piqi_piqobj_list
+  let r =
+    match piqi_list_piqtype with
+      | `record r -> r
+      | _ -> assert false
   in
-  let obuf = Piqirun.gen_list Piqirun.gen_string_field (-1) piqi_binobj_list in
-  let s = Piqirun.to_string obuf in
-  let ibuf = Piqirun.init_from_string s in
-  trace "converting piqi-list from protobuf to piqobj\n";
-  let piqi_list_piqobj =
-    (* don't resolve defaults -- they should be resolved already *)
-    C.with_resolve_defaults false
-    (fun () -> Piqobj_of_protobuf.parse_obj piqi_list_piqtype ibuf)
-  in
-  trace_leave ();
-  piqi_list_piqobj
+  (* the first and the only record field should correspond to the piqi type *)
+  let f = List.hd r.R.field in
+  let fields = List.map (fun x -> Piqobj.Field.({t = f; obj = Some x})) piqi_piqobj_list in
+  let record = Piqobj.Record.({t = r; field = fields; unparsed_piq_fields_ref = None}) in
+  `record record
 
 
 (* TODO: this is very similar to the code in piqi_convert_cmd.ml -- think of
