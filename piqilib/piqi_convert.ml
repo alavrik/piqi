@@ -189,17 +189,18 @@ let gen_piq (obj :obj) =
   res
 
 
-let write_piq ch (obj:obj) =
-  let ast = gen_piq obj in
-
-  (match ast with
+let write_piq_ast writer ast =
+  match ast with
     | `typed {Piq_ast.Typed.value = `list l}
     | `list l when !Piqi_config.piq_frameless_output ->
-        List.iter (Piq_gen.to_channel ch) l
+        List.iter writer l
     | _ ->
-        Piq_gen.to_channel ch ast
-  );
+        writer ast
 
+
+let write_piq ch (obj:obj) =
+  let ast = gen_piq obj in
+  write_piq_ast (Piq_gen.to_channel ch) ast;
   (* XXX: add one extra newline for better readability *)
   Pervasives.output_char ch '\n'
 
@@ -681,7 +682,9 @@ let parse_piq piqtype s ~is_piqi_input =
 
 let gen_piq_string obj =
   let ast = gen_piq obj in
-  Piq_gen.to_string ast
+  let buf = Buffer.create 256 in
+  write_piq_ast (Piq_gen.to_buffer buf) ast;
+  Buffer.contents buf
 
 
 let parse_pib piqtype s ~is_piqi_input =
