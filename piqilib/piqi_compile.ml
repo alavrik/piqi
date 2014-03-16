@@ -83,23 +83,6 @@ let make_piqi_list_piqobj piqi_list_piqtype (piqi_piqobj_list: Piqobj.obj list) 
   `record record
 
 
-(* TODO: this is very similar to the code in piqi_convert_cmd.ml -- think of
- * unifying this; maybe moving to piqi.ml *)
-let rec get_piqi_deps piqi =
-  let imports =
-    List.map (fun x -> some_of x.T.Import.piqi) piqi.P.resolved_import
-  in
-  (* get all imports' dependencies recursively *)
-  let import_deps =
-    U.flatmap (fun piqi ->
-        U.flatmap get_piqi_deps piqi.P.included_piqi
-      ) imports
-  in
-  (* remove duplicate entries *)
-  let deps = U.uniqq (import_deps @ imports) in
-  deps @ [piqi]
-
-
 (* public library API; currently called only from Piqic_ocaml *)
 let compile ?(extensions=[]) self_spec_bin ifile =
   trace "compile_to_pb:\n";
@@ -115,7 +98,7 @@ let compile ?(extensions=[]) self_spec_bin ifile =
   let piqi = Piqi.load_piqi ifile ch in
 
   trace "getting all imported dependencies\n";
-  let piqi_list = get_piqi_deps piqi in
+  let piqi_list = Piqi.get_piqi_deps piqi in
 
   (* get necessary piqtypes from the self-spec *)
   let piqi_piqtype = get_self_spec_piqtype self_spec "piqi" in
@@ -132,7 +115,7 @@ let compile ?(extensions=[]) self_spec_bin ifile =
 
   trace "generating pb\n";
   let piqobj = make_piqi_list_piqobj piqi_list_piqtype piqobj_list in
-  let res = Piqi_convert.gen_pb_string (Piqi_convert.Piqobj piqobj) in
+  let res = Piqi_convert.to_pb_string (Piqi_convert.Piqobj piqobj) in
   trace_leave ();
   res
 

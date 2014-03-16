@@ -62,7 +62,7 @@ let compile self_spec piqi och =
   trace "getting all imported dependencies\n";
   let piqi_list =
     if !output_format <> "piqi"
-    then Piqi_compile.get_piqi_deps piqi
+    then Piqi.get_piqi_deps piqi
     else [piqi] (* we want to output just this module alone *)
   in
   (* get necessary piqtypes from the self-spec *)
@@ -109,9 +109,9 @@ let compile self_spec piqi och =
     | format ->
         let writer =
           match format with
-            | "json" -> Piqi_convert.write_json
-            | "pb" -> Piqi_convert.write_pb
-            | "xml" -> Piqi_convert.write_xml
+            | "json" -> Piqi_convert.to_json_channel
+            | "pb" -> Piqi_convert.to_pb_channel
+            | "xml" -> Piqi_convert.to_xml_channel
             | x -> piqi_error ("unknown output format " ^ U.quote x)
         in
         let piqobj = Piqi_compile.make_piqi_list_piqobj piqi_list_piqtype piqobj_list in

@@ -2313,3 +2313,26 @@ let piqi_of_pb buf =
   debug "piqi_of_pb(1)\n";
   piqi
 
+
+let rec get_piqi_deps ?(only_imports=true) piqi =
+  (* get all includes and includes from all included modules *)
+  let include_deps =
+    if only_imports
+    then []
+    else
+      (* remove the module itself from the list of included deps (it is always
+       * at the end of the list) *)
+      List.filter (fun x -> x != piqi) piqi.P.included_piqi
+  in
+  (* get all dependencies from imports *)
+  let import_deps =
+    U.flatmap (fun x ->
+        let piqi = some_of x.T.Import.piqi in
+        U.flatmap (get_piqi_deps ~only_imports) piqi.P.included_piqi)
+      piqi.P.resolved_import
+  in
+  (* NOTE: includes go first in the list of dependencies *)
+  let l = include_deps @ import_deps @ [piqi] in
+  (* remove duplicate entries *)
+  U.uniqq l
+

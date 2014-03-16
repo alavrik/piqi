@@ -115,7 +115,7 @@ let piqi_of_piq fname ast =
   Piqi.pre_process_piqi piqi ~fname ~ast
 
 
-let load_piq_obj (user_piqtype: T.piqtype option) piq_parser :obj =
+let load_piq (user_piqtype: T.piqtype option) piq_parser :obj =
   let ast = read_piq_ast piq_parser user_piqtype in
   let fname, _ = piq_parser in (* TODO: improve getting a filename from parser *)
   match ast with
@@ -189,6 +189,7 @@ let gen_piq (obj :obj) =
   res
 
 
+(* handling of piq_frameless_output *)
 let write_piq_ast writer ast =
   match ast with
     | `typed {Piq_ast.Typed.value = `list l}
@@ -198,11 +199,17 @@ let write_piq_ast writer ast =
         writer ast
 
 
-let write_piq ch (obj:obj) =
+let to_piq_channel ch (obj:obj) =
   let ast = gen_piq obj in
   write_piq_ast (Piq_gen.to_channel ch) ast;
-  (* XXX: add one extra newline for better readability *)
   Pervasives.output_char ch '\n'
+
+
+let to_piq_string obj =
+  let ast = gen_piq obj in
+  let buf = Buffer.create 256 in
+  write_piq_ast (Piq_gen.to_buffer buf) ast;
+  Buffer.contents buf
 
 
 let read_pib_field buf =
@@ -277,7 +284,7 @@ let process_pib_piqtype code typename =
 let pib_typehint_code = (1 lsl 29) - 1
 
 
-let rec load_pib_obj (user_piqtype :T.piqtype option) buf :obj =
+let rec load_pib (user_piqtype :T.piqtype option) buf :obj =
   let field_code, field_obj = read_pib_field buf in
   if field_code = pib_typehint_code (* is this a typehint entry? *)
   then ( (* parse and process pib_typehint entry *)
@@ -291,7 +298,7 @@ let rec load_pib_obj (user_piqtype :T.piqtype option) buf :obj =
 
     (* we've just read type-code binding information;
     proceed to the next stream object *)
-    load_pib_obj user_piqtype buf
+    load_pib user_piqtype buf
   ))
   else ( (* process a regular data entry *)
     let piqtype =
@@ -376,9 +383,14 @@ let gen_pib (obj :obj) =
         Piqirun.OBuf.iol [ x; data]
 
 
-let write_pib ch (obj :obj) =
+let to_pib_channel ch (obj :obj) =
   let data = gen_pib obj in
   Piqirun.to_channel ch data
+
+
+let to_pib_string obj =
+  let buf = gen_pib obj in
+  Piqirun.to_string buf
 
 
 let load_pb (piqtype:T.piqtype) protobuf :obj =
@@ -407,9 +419,14 @@ let gen_pb (obj :obj) =
         Piqirun.OBuf.iol [] (* == empty output *)
 
 
-let write_pb ch (obj :obj) =
+let to_pb_channel ch (obj :obj) =
   let buf = gen_pb obj in
   Piqirun.to_channel ch buf
+
+
+let to_pb_string obj =
+  let buf = gen_pb obj in
+  Piqirun.to_string buf
 
 
 (*
@@ -427,7 +444,7 @@ let piqi_of_json json =
     C.with_resolve_defaults false (fun () -> Piqobj_of_json.parse_obj piqtype json)
   in
   (* don't try to track location references as we don't preserve them yet in
-   * piqobj_of_json (TODO) *)
+   * piqobj_of_json *)
   Piqloc.pause ();
   let piqi = Piqi.piqi_of_piqobj piqobj in
   Piqloc.resume ();
@@ -438,12 +455,6 @@ let piqi_to_json piqi =
   let piqobj = Piqi.piqi_to_piqobj piqi in
   let json = Piqobj_to_json.gen_obj piqobj in
   "piqi", json
-
-
-let write_json_obj ch json =
-  Piqi_json_gen.pretty_to_channel ch json;
-  (* XXX: add a newline for better readability *)
-  Pervasives.output_char ch '\n'
 
 
 let gen_json_obj ~plain (piqobj : Piqobj.obj) =
@@ -493,9 +504,19 @@ let gen_plain_json obj =
   json
 
 
-let write_json ch (obj:obj) =
+let to_json_channel ch (obj:obj) =
   let json = gen_json obj in
-  write_json_obj ch json
+  Piqi_json_gen.pretty_to_channel ch json;
+  Pervasives.output_char ch '\n'
+
+
+let to_json_string ?(pretty_print=true) obj =
+  let json = gen_plain_json obj in
+  if pretty_print
+  then
+    Piqi_json_gen.pretty_to_string json
+  else
+    Piqi_json_gen.to_string json
 
 
 let read_json_ast json_parser :Piqi_json_type.json =
@@ -547,7 +568,7 @@ let load_json_common piqtype ast =
     Typed_piqobj obj
 
 
-let load_json_obj (user_piqtype: T.piqtype option) json_parser :obj =
+let load_json (user_piqtype: T.piqtype option) json_parser :obj =
   let ast = read_json_ast json_parser in
   (* check typenames, as Json parser doesn't do it unlike the Piq parser *)
   let check = true in
@@ -575,7 +596,7 @@ let load_json_obj (user_piqtype: T.piqtype option) json_parser :obj =
 
 
 (* load json while ignoring all embedded type hints *)
-let load_plain_json_obj (piqtype: T.piqtype) json_parser :obj =
+let load_plain_json (piqtype: T.piqtype) json_parser :obj =
   let ast = read_json_ast json_parser in
   let ast =
     match ast with
@@ -599,7 +620,7 @@ let piqi_of_xml xml =
     C.with_resolve_defaults false (fun () -> Piqobj_of_xml.parse_obj piqtype xml)
   in
   (* don't try to track location references as we don't preserve them yet in
-   * piqobj_of_xml (TODO) *)
+   * piqobj_of_xml *)
   Piqloc.pause ();
   let piqi = Piqi.piqi_of_piqobj piqobj in
   Piqloc.resume ();
@@ -622,11 +643,15 @@ let gen_xml (obj :obj) :Piqi_xml.xml =
         assert false (* type hints are not supported by xml encoding *)
 
 
-let write_xml ch (obj:obj) =
+let to_xml_channel ch (obj:obj) =
   let xml = gen_xml obj in
   Piqi_xml.xml_to_channel ch xml;
-  (* XXX: add a newline for better readability *)
   Pervasives.output_char ch '\n'
+
+
+let to_xml_string ?pretty_print obj =
+  let xml = gen_xml obj in
+  Piqi_xml.xml_to_string xml ?pretty_print
 
 
 let read_xml_ast xml_parser :Piqi_xml.xml =
@@ -636,7 +661,7 @@ let read_xml_ast xml_parser :Piqi_xml.xml =
     | None -> raise EOF
 
 
-let load_xml_obj (piqtype: T.piqtype) xml_parser :obj =
+let load_xml (piqtype: T.piqtype) xml_parser :obj =
   let ast = read_xml_ast xml_parser in
   if piqtype == !Piqi.piqi_lang_def (* XXX *)
   then
@@ -658,7 +683,10 @@ let init () =
  * The converter:
  *)
 
-let parse_piq_common get_next ~is_piqi_input =
+let fname = "input" (* XXX *)
+
+
+let load_piq_or_pib get_next ~is_piqi_input =
   let rec aux () =
     let obj = get_next () in
     match obj with
@@ -669,75 +697,41 @@ let parse_piq_common get_next ~is_piqi_input =
   in aux ()
 
 
-let fname = "input" (* XXX *)
-
-
-let parse_piq piqtype s ~is_piqi_input =
+let from_piq_string piqtype s ~is_piqi_input =
   let piq_parser = Piq_parser.init_from_string fname s in
-  let get_next () = load_piq_obj (Some piqtype) piq_parser in
-  let obj = parse_piq_common get_next ~is_piqi_input in
+  let get_next () = load_piq (Some piqtype) piq_parser in
+  let obj = load_piq_or_pib get_next ~is_piqi_input in
   (* XXX: check eof? *)
   obj
 
 
-let gen_piq_string obj =
-  let ast = gen_piq obj in
-  let buf = Buffer.create 256 in
-  write_piq_ast (Piq_gen.to_buffer buf) ast;
-  Buffer.contents buf
-
-
-let parse_pib piqtype s ~is_piqi_input =
+let from_pib_string piqtype s ~is_piqi_input =
   let buf = Piqirun.IBuf.of_string s in
-  let get_next () = load_pib_obj (Some piqtype) buf in
-  let obj = parse_piq_common get_next ~is_piqi_input in
+  let get_next () = load_pib (Some piqtype) buf in
+  let obj = load_piq_or_pib get_next ~is_piqi_input in
   (* XXX: check eof? *)
   obj
 
 
-let gen_pib_string obj =
-  let buf = gen_pib obj in
-  Piqirun.to_string buf
-
-
-let parse_json piqtype s =
+let from_json_string piqtype s =
   let json_parser = Piqi_json_parser.init_from_string ~fname s in
-  let obj = load_plain_json_obj piqtype json_parser in
+  let obj = load_plain_json piqtype json_parser in
   (* XXX: check eof? *)
   obj
 
 
-let gen_json_string ?(pretty_print=true) obj =
-  let json = gen_plain_json obj in
-  if pretty_print
-  then
-    Piqi_json_gen.pretty_to_string json
-  else
-    Piqi_json_gen.to_string json
-
-
-let parse_pb piqtype s =
+let from_pb_string piqtype s =
   let buf = Piqirun.init_from_string s in
   let obj = load_pb piqtype buf in
   (* XXX: check eof? *)
   obj
 
 
-let gen_pb_string obj =
-  let buf = gen_pb obj in
-  Piqirun.to_string buf
-
-
-let parse_xml piqtype s =
+let from_xml_string piqtype s =
   let xml_parser = Piqi_xml.init_from_string ~fname s in
-  let obj = load_xml_obj piqtype xml_parser in
+  let obj = load_xml piqtype xml_parser in
   (* XXX: check eof? *)
   obj
-
-
-let gen_xml_string ?pretty_print obj =
-  let xml = gen_xml obj in
-  Piqi_xml.xml_to_string xml ?pretty_print
 
 
 let parse_obj piqtype input_format data =
@@ -745,23 +739,21 @@ let parse_obj piqtype input_format data =
   let is_piqi_input = (piqtype == !Piqi.piqi_lang_def) in
   let piqobj =
     match input_format with
-      | `piq  -> parse_piq piqtype data ~is_piqi_input
-      | `json -> parse_json piqtype data
-      | `pb -> parse_pb piqtype data
-      | `xml -> parse_xml piqtype data
-      (* XXX *)
-      | `pib -> parse_pib piqtype data ~is_piqi_input
+      | `piq  -> from_piq_string piqtype data ~is_piqi_input
+      | `json -> from_json_string piqtype data
+      | `pb -> from_pb_string piqtype data
+      | `xml -> from_xml_string piqtype data
+      | `pib -> from_pib_string piqtype data ~is_piqi_input
   in piqobj
 
 
 let gen_obj ~pretty_print output_format piqobj =
   match output_format with
-    | `piq  -> gen_piq_string piqobj
-    | `json -> gen_json_string piqobj ~pretty_print
-    | `pb -> gen_pb_string piqobj
-    | `xml -> gen_xml_string piqobj ~pretty_print
-    (* XXX *)
-    | `pib -> gen_pib_string piqobj
+    | `piq  -> to_piq_string piqobj
+    | `json -> to_json_string piqobj ~pretty_print
+    | `pb -> to_pb_string piqobj
+    | `xml -> to_xml_string piqobj ~pretty_print
+    | `pib -> to_pib_string piqobj
 
 
 type options =
@@ -828,9 +820,9 @@ let convert ~opts piqtype input_format output_format data =
    * get exceptions in between *)
   Piqloc.is_paused := 0;
 
-  (* perform the conversion *)
+  (* perform the conversion
+   * NOTE: we need to resolve all defaults before converting to JSON or XML *)
   let piqobj =
-    (* XXX: We need to resolve all defaults before converting to JSON or XML *)
     C.with_resolve_defaults
       (output_format = `json || output_format = `xml)
       (fun () -> parse_obj piqtype input_format data)

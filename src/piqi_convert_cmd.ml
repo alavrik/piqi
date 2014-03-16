@@ -139,7 +139,7 @@ let write_pb ch (obj: Piqi_convert.obj) =
   if !first_write
   then first_write := false
   else piqi_error "converting more than one object to \"pb\" is not allowed";
-  Piqi_convert.write_pb ch obj
+  Piqi_convert.to_pb_channel ch obj
 
 
 let write_piq ch (obj: Piqi_convert.obj) =
@@ -148,7 +148,7 @@ let write_piq ch (obj: Piqi_convert.obj) =
   else
     if !flag_piq_frameless_output
     then piqi_error "converting more than one object to frameless \"piq\" is not allowed";
-  Piqi_convert.write_piq ch obj
+  Piqi_convert.to_piq_channel ch obj
 
 
 (* write only data and skip Piqi specifications and data hints *)
@@ -190,18 +190,18 @@ let make_reader input_encoding =
 
     | "json" ->
         let json_parser = Piqi_json_parser.init_from_channel ch ~fname in
-        make_reader (Piqi_convert.load_json_obj (resolve_typename ())) json_parser
+        make_reader (Piqi_convert.load_json (resolve_typename ())) json_parser
 
     | "xml" when !typename = "" ->
         piqi_error "--type parameter must be specified for \"xml\" input encoding"
     | "xml" ->
         let piqtype = some_of (resolve_typename ()) in
         let xml_parser = Piqi_xml.init_from_channel ch ~fname in
-        make_reader (Piqi_convert.load_xml_obj piqtype) xml_parser
+        make_reader (Piqi_convert.load_xml piqtype) xml_parser
 
     | "piq" ->
         let piq_parser = Piq_parser.init_from_channel fname ch in
-        make_reader (Piqi_convert.load_piq_obj (resolve_typename ())) piq_parser
+        make_reader (Piqi_convert.load_piq (resolve_typename ())) piq_parser
 
     | "piqi" when !typename <> "" ->
         piqi_error "--type parameter is not applicable to \"piqi\" input encoding"
@@ -210,7 +210,7 @@ let make_reader input_encoding =
 
     | "pib" ->
         let buf = Piqirun.IBuf.of_channel ch in
-        make_reader (Piqi_convert.load_pib_obj (resolve_typename ())) buf
+        make_reader (Piqi_convert.load_pib (resolve_typename ())) buf
     | "" ->
         piqi_error "can't determine input encoding; use -f option to specify it explicitly"
     | x ->
@@ -229,13 +229,13 @@ let make_writer ?(is_piqi_input=false) output_encoding =
   match output_encoding with
     | "" (* default output encoding is "piq" *)
     | "piq" -> write_piq
-    | "pib" -> Piqi_convert.write_pib
+    | "pib" -> Piqi_convert.to_pib_channel
     | "json" ->
-        write_data_and_piqi Piqi_convert.write_json
+        write_data_and_piqi Piqi_convert.to_json_channel
     | "pb" ->
         write_data write_pb ~is_piqi_input
     | "xml" ->
-        write_data Piqi_convert.write_xml ~is_piqi_input
+        write_data Piqi_convert.to_xml_channel ~is_piqi_input
     | x ->
         piqi_error ("unknown output encoding " ^ U.quote x)
 
@@ -258,28 +258,8 @@ let remove_update_seen l =
 
 let rec get_piqi_deps piqi ~only_imports =
   if Piqi.is_boot_piqi piqi
-  then [] (* boot Piqi (a parent of built-in types) is not a dependency *)
-  else
-    (* get all includes and includes from all included modules *)
-    let include_deps =
-      if only_imports
-      then []
-      else
-        (* remove the module itself from the list of included deps (it is always
-         * at the end of the list) *)
-        List.filter (fun x -> x != piqi) piqi.P.included_piqi
-    in
-    (* get all dependencies from imports *)
-    let import_deps =
-      U.flatmap (fun x ->
-          let piqi = some_of x.T.Import.piqi in
-          U.flatmap (get_piqi_deps ~only_imports) piqi.P.included_piqi)
-        piqi.P.resolved_import
-    in
-    (* NOTE: includes go first in the list of dependencies *)
-    let l = include_deps @ import_deps @ [piqi] in
-    (* remove duplicate entries *)
-    U.uniqq l
+  then[] (* boot Piqi (a parent of built-in types) is not a dependency *)
+  else Piqi.get_piqi_deps piqi ~only_imports
 
 
 let get_parent_piqi (t: T.piqtype) =

@@ -87,11 +87,11 @@ let run_cc () =
   let och = Piqi_main.open_output !Piqi_main.ofile in
   match !output_format with
     | "json" ->
-        Piqi_convert.write_json och obj
+        Piqi_convert.to_json_channel och obj
     | "pb" ->
-        Piqi_convert.write_pb och obj
+        Piqi_convert.to_pb_channel och obj
     | "xml" ->
-        Piqi_convert.write_xml och obj
+        Piqi_convert.to_xml_channel och obj
     | "piqi" | "" ->
         let piqi = Piqi.lang_to_spec piqi in
         let piqi = {piqi with P.modname = Some "piqi"} in
