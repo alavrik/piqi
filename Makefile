@@ -83,7 +83,7 @@ clean::
 
 distclean:
 	if [ -f Makefile.config ]; then \
-		$(MAKE) -C deps clean;
+		$(MAKE) -C deps clean; \
 		$(MAKE) clean; \
 		rm -rf $(PIQI_BUILD); \
 		rm Makefile.config; \
