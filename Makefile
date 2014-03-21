@@ -10,7 +10,7 @@ endif
 DIRS = piqilib src
 
 
-.PHONY: deps build-dir install distclean \
+.PHONY: deps build-dir install strip distclean \
 	ocaml ocaml-install ocaml-uninstall \
 	doc piqi
 
@@ -35,7 +35,7 @@ endif
 
 deps: build-dir
 	$(MAKE) -C deps
-	$(MAKE) -C deps install
+	$(MAKE) -C deps uninstall install
 
 
 build-dir:
@@ -51,6 +51,12 @@ install:
 	install src/piqi $(DESTDIR)$(PIQI_PREFIX)/bin
 	-install -d $(DESTDIR)$(PIQI_PREFIX)/share/man/man1
 	install -m 644 doc/piqi.1 $(DESTDIR)$(PIQI_PREFIX)/share/man/man1
+
+
+# especially useful for cross-compilation
+STRIP ?= strip
+strip:
+	$(STRIP) src/piqi
 
 
 # re-generate _piqi.ml from .piqi and copy the latest version of piqilib.ml  --

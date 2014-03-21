@@ -19,8 +19,6 @@ architectures supported by OCaml. See the list of supported platforms at:
 
         http://caml.inria.fr/ocaml/portability.en.html
 
-The rest of this file describes the process of building Piqi on Unix platforms.
-
 
 PREREQUISITES
 =============
@@ -49,6 +47,9 @@ On Windows:
                 http://protz.github.io/ocaml-installer/
 
         For building under Cygwin, follow the steps from the next section.
+
+        See the "CROSS-COMPILATION" section below for instructions on building a
+        Windows executable on Linux.
 
 
 On other Unix systems:
@@ -117,4 +118,34 @@ RUNNING TESTS
 
 
 See tests/README for further information.
+
+
+CROSS-COMPILATION
+=================
+
+To build a Windows (win32) executable on Linux:
+
+
+1. Install mingw-w64 cross-compiler
+
+        For example, on Debian:
+
+                apt-get install gcc-mingw-w64-i686
+
+        Homepage: http://sourceforge.net/projects/mingw-w64/
+
+2. Install OCaml cross-compiler
+
+        opam switch 4.00.1
+        opam repo add win https://github.com/vouillon/opam-windows-repository.git
+        opam install win32-ocaml win32-ocamlfind
+
+        See up-to-date instructions at https://github.com/vouillon/opam-windows-repository
+
+3. Build
+
+        ./configure --host=i686-w64-mingw32
+        make deps
+        make
+        make strip  # optional
 

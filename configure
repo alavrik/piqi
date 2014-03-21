@@ -14,6 +14,7 @@ usage() {
 echo "
 Configuration:
   -h, --help              display this help and exit
+  --host HOST             cross-compile toolchain prefix, e.g. i686-w64-mingw32
 
 Installation directories:
   --prefix PREFIX         install piqi executables in PREFIX/bin/
@@ -44,6 +45,9 @@ do
         --ocaml-libdir | --ocaml-libdir=*)
             OCAML_LIBDIR="$opt_value"
             ;;
+        --host | --host=*)
+            SYSTEM_HOST="$opt_value"
+            ;;
         -h|-help|--help)
             usage
             exit 0
@@ -58,12 +62,22 @@ do
 done
 
 
-OCAMLFIND="`which ocamlfind`"
+if [ -z "$SYSTEM_HOST" ]
+then
+    OCAMLFIND=ocamlfind
+else
+    # cross-compilation toolchain
+    OCAMLFIND=$SYSTEM_HOST-ocamlfind
+fi
+
+
+OF=`which $OCAMLFIND`
 if [ $? -ne 0 ]
 then
-    echo "configure: error: ocamlfind is required. See INSTALL for details" 1>&2
+    echo "configure: error: failed to find ${OCAMLFIND}. See INSTALL for details" 1>&2
     exit 1
 fi
+echo "found $OCAMLFIND: $OF"
 
 
 M=Makefile.config
@@ -76,16 +90,29 @@ echo "PIQI_OCAML_DESTDIR=$OCAML_LIBDIR" >> $M
 echo >> $M
 
 # build environment
-echo "export PIQI_ROOT = `pwd`" >> $M
+echo "export PIQI_ROOT := `pwd`" >> $M
 # temporary build directory
-echo "export PIQI_BUILD = \$(PIQI_ROOT)/build" >> $M
+echo "export PIQI_BUILD := \$(PIQI_ROOT)/build" >> $M
 # path to .piqi files
-echo "export PIQI_PATH = \$(PIQI_ROOT)" >> $M
+echo "export PIQI_PATH := \$(PIQI_ROOT)" >> $M
 echo >> $M
+
+# we have to define these for cross-compilation
+if [ -n "$SYSTEM_HOST" ]
+then
+    echo "export OCAMLFIND := $SYSTEM_HOST-ocamlfind" >> $M
+    echo "export AR := $SYSTEM_HOST-ar" >> $M
+    echo "STRIP := $SYSTEM_HOST-strip" >> $M
+
+    # skipping everything else in cross-compilation mode; namely, we have to
+    # cross-compile deps that come with the package
+    echo "export SYSTEM := unix" >> $M
+    exit
+fi
 
 # detecting the type of OCaml toolchain
 system="`ocamlc -config 2>/dev/null | grep system | sed 's/system: //'`"
-echo "export SYSTEM = $system" >> $M
+echo "export SYSTEM := $system" >> $M
 echo >> $M
 echo "detected $system OCaml toolchain"
 

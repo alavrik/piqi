@@ -95,6 +95,11 @@ export OCAMLDOCFLAGS
 
 export OCAMLFIND_INSTFLAGS
 
+ifndef OCAMLFIND_PACKAGE
+  OCAMLFIND_PACKAGE := $(RESULT)
+endif
+export OCAMLFIND_PACKAGE
+
 export DVIPSFLAGS
 
 export STATIC
@@ -312,6 +317,12 @@ ifndef CAMLP4
   CAMLP4 := camlp4
 endif
 export CAMLP4
+
+
+# always use ocamlfind even if there are no actual packages; this is so that
+# cross-compilation is handled correctly
+PACKS ?= ,
+
 
 ifndef REAL_OCAMLFIND
   ifdef PACKS
@@ -1109,7 +1120,7 @@ endif
 			$(QUIET)if [ $(NOIDLHEADER) ]; then touch $*.h; fi
 
 .c.$(EXT_OBJ):
-			$(OCAMLC) -c -ccopt "$(CFLAGS) \
+			$(REAL_OCAMLFIND) $(OCAMLC) -c -ccopt "$(CFLAGS) \
 				$(CPPFLAGS) $(CPPFLAGS_WIN32) \
 				$(CFLAGS_WIN32) $(CINCFLAGS) $(CFLAG_O)$@ " $<
 
@@ -1216,27 +1227,27 @@ subprojs: $(SUBPROJS:%=subproj_%)
 .PHONY: libinstall
 libinstall:	all
 	$(QUIET)printf "\nInstalling library with ocamlfind\n"
-	$(OCAMLFIND) install $(OCAMLFIND_INSTFLAGS) $(RESULT) META $(LIBINSTALL_FILES)
+	$(OCAMLFIND) install $(OCAMLFIND_INSTFLAGS) $(OCAMLFIND_PACKAGE) META $(LIBINSTALL_FILES)
 	$(QUIET)printf "\nInstallation successful.\n"
 
 .PHONY: libinstall-byte-code
 libinstall-byte-code:	all
 	$(QUIET)printf "\nInstalling byte-code library with ocamlfind\n"
-	$(OCAMLFIND) install $(OCAMLFIND_INSTFLAGS) $(RESULT) META \
+	$(OCAMLFIND) install $(OCAMLFIND_INSTFLAGS) $(OCAMLFIND_PACKAGE) META \
 	  $(filter-out $(RESULT).$(EXT_LIB) $(RESULT).cmxa, $(LIBINSTALL_FILES))
 	$(QUIET)printf "\nInstallation successful.\n"
 
 .PHONY: libinstall-native-code
 libinstall-native-code:	all
 	$(QUIET)printf "\nInstalling native-code library with ocamlfind\n"
-	$(OCAMLFIND) install $(OCAMLFIND_INSTFLAGS) $(RESULT) META \
+	$(OCAMLFIND) install $(OCAMLFIND_INSTFLAGS) $(OCAMLFIND_PACKAGE) META \
 	  $(filter-out $(DLLSONAME) $(RESULT).cma, $(LIBINSTALL_FILES))
 	$(QUIET)printf "\nInstallation successful.\n"
 
 .PHONY: libuninstall
 libuninstall:
 	$(QUIET)printf "\nUninstalling library with ocamlfind\n"
-	$(OCAMLFIND) remove $(OCAMLFIND_INSTFLAGS) $(RESULT)
+	$(OCAMLFIND) remove $(OCAMLFIND_INSTFLAGS) $(OCAMLFIND_PACKAGE)
 	$(QUIET)printf "\nUninstallation successful.\n"
 
 .PHONY: rawinstall

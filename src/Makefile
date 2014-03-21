@@ -58,6 +58,10 @@ PIQIC = $(PIQI_OCAML_DIR)/piqic-ocaml/piqic-ocaml
 PIQIC_FLAGS = --pp --runtime Piqi_piqirun
 
 
+#OCAMLFLAGS += -verbose
+#OCAMLLDFLAGS += -verbose
+
+
 all: piqilib nc
 
 

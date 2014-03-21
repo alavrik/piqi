@@ -1,3 +1,4 @@
+(*pp camlp4orf *)
 open Camlp4.PreCast
 open Syntax
 
