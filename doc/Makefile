@@ -5,7 +5,7 @@ HTML=$(patsubst %.md,%.html,$(SRCS))
 
 
 ifneq ($(shell which pandoc), )
-all: man html
+all: html
 
 else
 $(warning "WARNING: skipping building Piqi documentation, because couldn't find 'pandoc'")
@@ -22,7 +22,12 @@ man: piqi.1
 html: $(HTML) CHANGES.html
 
 piqi.1: tools.md
-	pandoc -s -t man $< -o $@
+	ts=`git log -1 --format=%ct $<`; \
+	date=`date -d @$$ts '+%B %d, %Y'`; \
+	(echo "% PIQI(1) Piqi User Manual"; \
+	echo "% Anton Lavrik <alavrik@piqi.org>"; \
+	echo "% $$date"; \
+	echo) | cat - $< | pandoc -s -t man -o $@
 
 CHANGES.html: ../CHANGES
 	pandoc -s $< -o $@
@@ -39,9 +44,6 @@ CHANGES.html: ../CHANGES
 		-e 's|(/doc/\([^/]*\)/\?#\([^)]*\))|(\1.html#\2)|g' \
 		-e '# Local stuff: /doc/*/) points to *.html' \
 		-e 's|(/doc/\([^/]*\)/\?)|(\1.html)|g' $< > $@
-	if [ "$@" = "tools-patched.md" ]; then \
-		sed -i 's|#environmentvariables|#environment-variables|g' $@; \
-	fi
 	if [ "$@" = "index-patched.md" ]; then \
 		sed -i 's|https://github.com/alavrik/piqi/blob/master/CHANGES|CHANGES.html|' $@; \
 	fi

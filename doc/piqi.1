@@ -1,14 +1,29 @@
-.TH PIQI 1 "April 12, 2013" "Piqi User Manuals"
+.TH PIQI 1 "January 11, 2014" "Piqi User Manual"
 .SH NAME
 .PP
-piqi - a set of tools for working with structured data
+piqi - a collection of tools for working with structured data and Piqi
+schemas
 .SH SYNOPSIS
 .PP
 piqi [\f[I]command\f[]] [\f[I]options\f[]]
 .SH DESCRIPTION
 .PP
-\f[C]piqi\f[] is an executable program with command-line interface.
-It implements a set of subcommands which are described below.
+Piqi is a universal schema language and a collection of tools built
+around it.
+.PP
+The Piqi language can be used to define schemas for JSON, XML, Google
+Protocol Buffers and some other data formats.
+.PP
+\f[C]piqi\f[] is a command-line program that implements a set of
+sub-commands:
+.IP \[bu] 2
+for validating, pretty-printing and converting data between JSON, XML,
+Protocol Buffers and Piq formats.
+.IP \[bu] 2
+for working with the schemas, such as converting definitions between
+Piqi (\f[C]\&.piqi\f[]) and Protocol Buffes (\f[C]\&.proto\f[]), and
+"compiling" Piqi definitions into one of the supported portable data
+representation formats (JSON, XML, Protocol Buffers).
 .SS Common options
 .PP
 This is the list of common options which is supported by most of
@@ -21,8 +36,8 @@ defined in \f[C]\&.piqi\f[] or \f[C]\&.proto.piqi\f[] files.
 .RS
 .PP
 This option can be specified several times.
-See also \f[C]PIQI_PATH\f[] environment variable (#environmentvariables)
-below.
+See also \f[C]PIQI_PATH\f[] environment
+variable (#environment-variables) below.
 .PP
 Note that modules included and imported from modules with scoped names
 are searched in the importing/including module\[aq]s directory first.

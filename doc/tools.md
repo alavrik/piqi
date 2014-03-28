@@ -1,10 +1,6 @@
-% PIQI(1) Piqi User Manuals
-% Anton Lavrik <alavrik@piqi.org>
-% April 12, 2013
-
 # NAME
 
-piqi - a set of tools for working with structured data
+piqi - a collection of tools for working with structured data and Piqi schemas
 
 # SYNOPSIS
 
@@ -12,8 +8,20 @@ piqi [*command*] [*options*]
 
 # DESCRIPTION
 
-`piqi` is an executable program with command-line interface. It implements a
-set of subcommands which are described below.
+Piqi is a universal schema language and a collection of tools built around it.
+
+The Piqi language can be used to define schemas for JSON, XML, Google Protocol
+Buffers and some other data formats.
+
+`piqi` is a command-line program that implements a set of sub-commands:
+
+- for validating, pretty-printing and converting data between JSON, XML,
+  Protocol Buffers and Piq formats.
+
+- for working with the schemas, such as converting definitions between Piqi
+  (`.piqi`) and Protocol Buffes (`.proto`), and "compiling" Piqi definitions
+  into one of the supported portable data representation formats (JSON, XML,
+  Protocol Buffers).
 
 ### Common options
 
@@ -26,7 +34,7 @@ subcommands.
     `.proto.piqi` files.
 
     This option can be specified several times. See also `PIQI_PATH`
-    [environment variable](#environmentvariables) below.
+    [environment variable](#environment-variables) below.
 
     Note that modules included and imported from modules with scoped names are
     searched in the importing/including module's directory first. For example,

@@ -1,21 +1,17 @@
-This file contains general instructions for building Piqi from source code.
+This file contains instructions for building "piqi" command-line executable from
+source code.
 
-The following files contain more specific information:
-
-        INSTALL.erlang -- building and installing Piqi for Erlang
-
-        INSTALL.ocaml -- building and installing Piqi for OCaml
+Pre-built binaries can be downloaded from http://piqi.org/downloads/
 
 
 SUPPORTED PLATFORMS
 ===================
 
-Piqi has been tested on Linux (Debian Lenny and Squeeze, i386 and amd64
-architectures) and on Mac OS X 10.6.4. It is also known to work on Windows and
-Solaris.
+Piqi has been tested on Linux (i386 and amd64 architectures), Mac OS X and
+FreeBSD. It is also known to work on Windows and Solaris.
 
 Piqi is written in OCaml so, in theory, it should work on platforms and hardware
-architectures supported by OCaml. See the list of supported platforms at:
+architectures supported by OCaml. See the list of supported platforms at
 
         http://caml.inria.fr/ocaml/portability.en.html
 

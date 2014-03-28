@@ -1,43 +1,43 @@
 [![Build Status](https://travis-ci.org/alavrik/piqi.png)](https://travis-ci.org/alavrik/piqi)
 
+[Piqi](http://piqi.org) is a universal schema language and a collection of tools
+built around it.
 
-Piqi is a set of languages and open-source tools for working with structured
-data. It includes:
+[The Piqi language](http://piqi.org/doc/piqi/) can be used to define schemas for
+JSON, XML, [Google Protocol Buffers](http://code.google.com/p/protobuf/) and
+some other data formats.
 
-- A cross-language data serialization system compatible with [Google Protocol
-  Buffers](http://code.google.com/p/protobuf/). It allows programs implemented
-  in various languages to exchange and persist data in a portable manner.
+[`piqi`](http://piqi.org/doc/tools/) is a command-line program that exposes some
+of the tools:
 
-- Piq -- a human-friendly typed data representation language. It is designed to
-  be more convenient for representing, viewing and editing data than JSON, XML,
-  CSV, S-expressions and other formats.
+- for validating, pretty-printing and converting data between JSON, XML,
+  Protocol Buffers and Piq formats.
 
-- Piqi -- a universal data definition language. It can be used as a schema
-  language for JSON, XML, Protocol Buffers and Piq.
+- for working with the schemas, such as converting definitions between Piqi
+  (`.piqi`) and Protocol Buffes (`.proto`), and "compiling" Piqi definitions
+  into one of the supported portable data representation formats (JSON, XML,
+  Protocol Buffers).
 
-- Tools for validating, pretty-printing and converting data between Piq, JSON,
-  XML and Protocol Buffers formats.
+Other Piqi sub-projects include:
 
-- Piqi-RPC -- an RPC-over-HTTP system for Erlang. It provides a simple way to
-  expose Erlang services via JSON, XML and Google Protocol Buffers over HTTP.
+- A multi-format (JSON, XML, Protocol Buffers) data serialization system for
+  [Erlang](https://github.com/alavrik/piqi-erlang) and
+  [OCaml](https://github.com/alavrik/piqi-ocaml).
 
-As a data serialization system, Piqi implements native support for
-[OCaml](http://piqi.org/doc/ocaml/) and [Erlang](http://piqi.org/doc/erlang/).
-Connectivity with other programming languages is provided via Google Protocol
-Buffers. Overall, Piqi provides a more natural mapping to functional programming
-languages compared to various serialization systems that were originally
-designed for imperative or object-oriented languages.
+- [Piq](http://piqi.org/doc/piq/) -- a human-friendly typed data representation
+  language. It is designed to be more convenient for viewing and editing data
+  compared to JSON, XML, CSV, S-expressions and other formats.
 
-Piqi was inspired by Google Protocol Buffers and specially designed to be
+- [Piqi-RPC](https://github.com/alavrik/piqi-rpc/) -- an RPC-over-HTTP system
+  for Erlang. It provides a simple way to expose Erlang services via JSON, XML
+  and Protocol Buffers over HTTP.
+
+The Piqi project was inspired by Google Protocol Buffers and designed to be
 largely compatible with it. Like Protocol Buffers, Piqi relies on type
-definitions and supports data schema evolution. The main difference is that Piqi
-has a richer data model, high-level modules and a powerful data representation
-language (Piq).
-
-Combination of the data representation (Piq) and the data definition (Piqi)
-languages is similar to the concept of "valid XML" (i.e. XML conforming to some
-XML Schema). However, unlike XML, Piq has a concise, clean syntax and a data
-model similar to those of high-level programming languages.
+definitions and supports schema evolution. The main differences is that Piqi has
+a richer data model, high-level modules, standard mappings to JSON and XML, and
+comes with a powerful data representation format (Piq). Also, Piqi is a lot more
+extensible.
 
 Full project description and documentation can be found at
 [http://piqi.org](http://piqi.org)
@@ -83,6 +83,7 @@ Files
     src/                  "piqi" command-line utility
     piqilib/              common library used by piqi command-line tool and piqi-ocaml
     piqi/                 Piqi self-specification
+    doc/                  project documentation
 
     make/                 makefiles and build scripts
     deps/                 third-party dependencies (see ./NOTICE for details)
