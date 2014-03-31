@@ -5,10 +5,11 @@ Piq is a language for representing structured data. It allows people to
 conveniently read, write and edit structured data. Piq offers the following
 features:
 
--   Minimalist and powerful syntax.
+-   Minimalist and powerful syntax:
 
-    -   no syntax noise compared to XML; still lighter than JSON especially for
-        editing
+    -   no syntax noise compared to XML
+
+    -   much lighter than even JSON especially for editing
 
     -   reasonable amount of parenthesis compared to S-expressions
 
@@ -209,7 +210,7 @@ these special characters: `( ) [ ] { } " % #`. Words can not contain
 non-printable characters like characters from the lower ASCII range or
 non-printable Unicode characters.
 
-NOTE: `true` and `false` words are exceptions, becase they are recognized as
+NOTE: `true` and `false` words are exceptions, because they are recognized as
 boolean literals.
 
 **Examples:**
@@ -391,34 +392,9 @@ types:
     [ .a 0 .b 1 ]
 
 
-### Record representation and parsing
-
-As shown in the previous section, Piqi record is represented as a list that
-contains *named values*, each representing a record field.
-
-Field names, i.e. *name* parts of *named values*, can be omitted for
-convenience. However, the order in which fields are parsed is signficant,
-because it directly affects the way how missing fields are handled.
-
-When the Piqi implementation parses a record, it attempts to read and recognize
-the *required* fields in the order they are defined in the record specification.
-After parsing all *required* fields, Piqi proceeds with parsing optional and
-repeated fields.
-
-If Piqi can't find required field by its name, it tries to parse the next
-unrecognized record entry using the field's type specification. When parsing
-succeeds, Piqi uses the result of parsing as the field's value. If parsing
-fails, Piqi tries other entries until it finally succeeds to parse one of them.
-
-Handling optional and repeated "unnamed" fields is similar to the above method,
-but it introduces a fair level of uncertainty. For this reason, it is
-recommended to use this feature mindfully. In most cases, it means explicitly
-specifying names for optional and repeated fields.
-
-
 ### Associativity control
 
-One can use parenthesis for overriding default associativity rules.
+Parenthesis can be used to override default associativity rules.
 
 Since Piq is not a programming language (at least yet), their practical
 application is limited to the cases when we want to define a *name literal* that
@@ -549,6 +525,126 @@ primitive types).
     )
 
 
+Syntax
+------
+
+### Record representation and parsing
+
+Piqi record is represented as a *list* which elements correspond to record
+fields.
+
+The elements can be *named values* or values without a name. Field names, i.e.
+*name* parts of *named values*, can be omitted for convenience.
+
+Example:
+
+```
+% records are syntactically indistinguishable from lists...
+[
+    # values for the first 2 required fields with omitted field names
+    10
+    20
+
+    .foo 10  # integer field "foo"
+    .bar true  # boolean field "bar"
+
+    .fum [  # field "fum" representing some nested composite value
+        ...
+    ]
+]
+```
+
+The order in which fields are parsed is significant, because it directly affects
+the way how missing fields are handled.
+
+When the Piqi implementation parses a record, it attempts to read and recognize
+the *required* fields in the order they are defined in the record specification.
+After parsing all *required* fields, Piqi proceeds with parsing optional and
+repeated fields.
+
+If Piqi can't find required field by its name, it tries to parse the next
+unrecognized record entry using the field's type specification. When parsing
+succeeds, Piqi uses the result of parsing as the field's value. If parsing
+fails, Piqi tries other entries until it finally succeeds to parse one of them.
+
+Handling optional and repeated "unnamed" fields is similar to the above method,
+but it introduces a fair level of uncertainty. For this reason, it is
+recommended to use this feature mindfully. In most cases, it means explicitly
+specifying names for optional and repeated fields.
+
+Piq has a mechanism for precise control of whether certain fields can be
+positional (i.e. "unnamed") or must come with names.
+
+By default, fields of primitive types can be positional whereas fields of
+composite types (i.e. records and lists) must be named.
+
+The default behavior can be changed by defining the `.piq-positional` boolean
+property. When set to `false`, the field will not be recognized unless it is
+properly named. When `true`, even record and list fields will be allowed to omit
+their names.
+
+`.piq-positional true|false` can be defined at the field level or at the record
+level. Field-level settings override record-level setting.
+
+Examples:
+
+```
+.record [
+    .name r
+
+    % force all fields to have names unless overridden by individual field
+    % settings
+
+    .piq-positional true
+    ...
+
+    .field [
+        .name f
+        .type ...
+
+        % allow to omit the field's name regardless of
+        % the record-level setting and the type of the field
+
+        .piq-positional true
+    ]
+]
+```
+
+
+### Field aliases
+
+Record field has a canonical name defined by the `.name` property or derived
+from the field's `.type` name.
+
+Sometimes it is useful to define another, typically a shorter, name for a field.
+During parsing, such alias can be used interchangeably with the primary name.
+
+Field aliases are defined by specifying the `.piq-alias` field property.
+
+For example:
+```
+.field [
+    .name foo
+    .piq-alias f
+    ...
+]
+
+```
+
+
+"Relaxed" parsing mode
+----------------------
+
+Piq parser supports so called "relaxed" mode. For instance, in Piqi
+[command-line tools](/doc/tools/), it can be enabled by specifying
+`--piq-relaxed-parsing true` option.
+
+In this mode, single-word string literals don't have to be quoted.
+
+For example, word literal `foo` will be treated the same way as string literal
+`"foo"`.
+
+
 Piq file format
 ---------------
 
@@ -574,7 +670,7 @@ Piq streams can contain four different kinds of entries.
     explicitly mention their type.
 
     `(:<typename>)` is a special directive that sets the default type for
-    subsequent impicitly typed values. It can be specified many times at
+    subsequent implicitly typed values. It can be specified many times at
     different position of one Piq stream. Each subsequent directive will
     override the previous one.
 
@@ -672,7 +768,7 @@ There are several code formatting rules that should be used for `.piq` and
 code manipulation using text editors.
 
 For cases that are not covered in this section, refer to [Piqi pretty-printing
-tool](/doc/tools/) (`piqi pp <.piq | .piqi file>` commmand).
+tool](/doc/tools/) (`piqi pp <.piq | .piqi file>` command).
 
 
 ### Indentation

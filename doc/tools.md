@@ -33,14 +33,10 @@ subcommands.
     to search for included or imported modules defined in `.piqi` or
     `.proto.piqi` files.
 
-    This option can be specified several times. See also `PIQI_PATH`
-    [environment variable](#environment-variables) below.
+    This option can be specified several times.
 
-    Note that modules included and imported from modules with scoped names are
-    searched in the importing/including module's directory first. For example,
-    if a module `b` is imported from module `<dir>/a` located in `<path>/<dir>`,
-    `<path>/<dir>` will be automatically added as a search path in front of `.`
-    and any paths specified by `-I` and `PIQI_PATH`.
+    The list of search paths can be also specified using the `PIQI_PATH`
+    environment variable. See the ENVIRONMENT section below.
 
 `--no-warnings`
 :   Don't print warnings.
@@ -454,7 +450,7 @@ Options:
 :   Treat unknown and duplicate options as errors
 
 
-# ENVIRONMENT VARIABLES
+# ENVIRONMENT
 
 `PIQI_TRACE`
 :   Definition of this environment variable has the same effect as specifying

@@ -36,9 +36,9 @@ CHANGES.html: ../CHANGES
 	sed -e 's|](\(/doc/erlang\)| (external)](http://piqi.org\1|g' \
 	        -e 's|](\(/doc/ocaml\)| (external)](http://piqi.org\1|g' \
 		-e 's|](\(/doc/piqi-rpc\)| (external)](http://piqi.org\1|g' \
-		-e 's|](\(/doc/faq\)| (external)](http://piqi.org\1|g' \
+		-e 's|](\(/faq\)| (external)](http://piqi.org\1|g' \
 		-e 's|](\(/examples\)| (external)](http://piqi.org\1|g' \
-		-e 's|](\(/self-definition\)| (external)](http://piqi.org\1|g' \
+		-e 's|](\(/self-spec\)| (external)](http://piqi.org\1|g' \
 		-e 's|](\(/rationale\)| (external)](http://piqi.org\1|g' \
 		-e '# Local stuff 2: /doc(/?)*#stuff) points to *.html#stuff' \
 		-e 's|(/doc/\([^/]*\)/\?#\([^)]*\))|(\1.html#\2)|g' \

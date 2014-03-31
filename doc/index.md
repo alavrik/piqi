@@ -27,7 +27,7 @@ Systems Built on top of Piqi
 Miscellaneous
 -------------
 
--   [Frequently Asked Questions](/doc/faq/)
+-   [Frequently Asked Questions](/faq/)
 -   [Change Log](https://github.com/alavrik/piqi/blob/master/CHANGES)
 -   [Project Rationale](/rationale/)
 

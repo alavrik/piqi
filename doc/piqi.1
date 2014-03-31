@@ -1,4 +1,4 @@
-.TH PIQI 1 "January 11, 2014" "Piqi User Manual"
+.TH PIQI 1 "March 30, 2014" "Piqi User Manual"
 .SH NAME
 .PP
 piqi - a collection of tools for working with structured data and Piqi
@@ -36,15 +36,10 @@ defined in \f[C]\&.piqi\f[] or \f[C]\&.proto.piqi\f[] files.
 .RS
 .PP
 This option can be specified several times.
-See also \f[C]PIQI_PATH\f[] environment
-variable (#environment-variables) below.
 .PP
-Note that modules included and imported from modules with scoped names
-are searched in the importing/including module\[aq]s directory first.
-For example, if a module \f[C]b\f[] is imported from module
-\f[C]<dir>/a\f[] located in \f[C]<path>/<dir>\f[], \f[C]<path>/<dir>\f[]
-will be automatically added as a search path in front of \f[C]\&.\f[]
-and any paths specified by \f[C]-I\f[] and \f[C]PIQI_PATH\f[].
+The list of search paths can be also specified using the
+\f[C]PIQI_PATH\f[] environment variable.
+See the ENVIRONMENT section below.
 .RE
 .TP
 .B \f[C]--no-warnings\f[]
@@ -583,7 +578,7 @@ Printed help is automatically generated from the Piqi specification.
 Treat unknown and duplicate options as errors
 .RS
 .RE
-.SH ENVIRONMENT VARIABLES
+.SH ENVIRONMENT
 .TP
 .B \f[C]PIQI_TRACE\f[]
 Definition of this environment variable has the same effect as

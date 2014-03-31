@@ -435,7 +435,7 @@ Examples
 
     `piqi to-proto` command produces Protocol Buffers specification (`.proto`)
     from Piqi self-specification
-    ([piqi.piqi](/self-definition/#piqi_piqi)). After that, a C++
+    ([piqi.piqi](/self-spec/#piqi_piqi)). After that, a C++
     program reads Piqi self-specification represented as a binary object and
     prints it out in Protocol Buffers text format.
 

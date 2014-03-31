@@ -59,7 +59,7 @@ Below is a brief overview of Piqi features.
 
 -   Piqi is self-defined and portable.
 
-    Piqi module data structure is [defined](/self-definition/) using the Piqi
+    Piqi module data structure is [defined](/self-spec/) using the Piqi
     language itself.
 
     As a result, a Piqi module can be converted into a portable JSON, XML or
@@ -101,7 +101,7 @@ compatibility with Piqi can be found on [this page](/doc/protobuf/).
 
 Some examples of Piqi specifications can be found [here](/examples/). The most
 complex Piqi specification example is the Piqi
-[self-specification](/self-definition/).
+[self-specification](/self-spec/).
 
 
 Lexical conventions
@@ -410,7 +410,7 @@ There are two special built-in types:
      XML.
 
      At low level, `piqi-any` maps to the `any` record defined in the Piqi
-     [self-specification](/self-definition/).
+     [self-specification](/self-spec/).
 
      You can find some Piq examples [here](/examples/#piqi-any_piq).
 
@@ -848,7 +848,7 @@ implementation uses this mechanism to extend its own specification with extra
 features. For example, the following specification extends Piqi to support
 Protocol Buffers properties:
 
-[piqi.protobuf.piqi](/self-definition/#piqi_protobuf_piqi)
+[piqi.protobuf.piqi](/self-spec/#piqi_protobuf_piqi)
 
 Similarly, support for OCaml-specific Piqi properties is provided by these two
 specifications:
@@ -1002,7 +1002,7 @@ Piqi-light.
 [command](/doc/tools/#piqilight) (for the lack of a better name).
 
 For examples of Piqi-light syntax visit [Examples](/examples/) and
-[Self-definition](/self-definition/) pages. All `.piqi` files there have a tab
+[Self-definition](/self-spec/) pages. All `.piqi` files there have a tab
 where they are displayed in Piqi-light syntax.
 
 
