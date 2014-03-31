@@ -1,3 +1,49 @@
+Piqi 0.6.6 (March 30, 2014)
+===========================
+
+Backward-incompatible changes:
+
+  - Deprecate "piqi version" subcommand; use "piqi --version" instead
+  - Drop support for OCaml 3.11
+
+OCaml:
+
+  - Piqi for OCaml was removed from the source code tree, because its
+    development moved to https://github.com/alavrik/piqi-ocaml
+
+Piqi language:
+
+  - More robust scheme for locating imported and included .piqi modules (#43)
+  - Move .custom-field property from piqi-lang to piqi-spec
+
+Piq language:
+
+  - Improve compatibility between optional boolean fields and flags
+  - New .piq-alias property for field and options
+  - New .piq-positional property for fields and records
+
+Piqi tools:
+
+  - Deprecate "piqi version"; use "piqi --version" instead
+  - Check for infinite types (#39)
+  - Rename --json-omit-null-fields to --json_omit_missing_fields
+  - Rename --leave-tmp-files to --keep-tmp-files
+  - (piqi to-proto) fix incorrectly handling aliases in some cases
+  - (piqi convert) New options for converting from/to Piq format:
+    --piq-frameless-output --piq-frameless-input --piq-relaxed-input
+  - (piqi compile) add new experimental -f and -t piqi command-line options
+
+Miscellaneous:
+
+  - Remove dependency on custom CamlP4 extensions
+  - Drop support for OCaml 3.11
+  - Drop support for MinGW/Msys build
+  - Add proper support for MinGW/Cygwin build
+  - Add support for cross-compiling win32 executable on Linux
+  - Massive improvements in bootstrap and build; simpler and faster builds
+  - "make install" now installs the piqi.1 manpage
+
+
 Piqi 0.6.5 (October 27, 2013)
 =============================
 
