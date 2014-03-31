@@ -9,6 +9,7 @@ DIRS_PROTO = \
        piqi_proto \
        piqi_proto1 \
        piqi_packed \
+       extensions \
        cpp \
 
 endif
@@ -17,7 +18,6 @@ endif
 DIRS = \
        examples \
        self_spec \
-       extensions \
        piqi_misc \
        infinite_types \
        piqi_server \
