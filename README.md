@@ -59,8 +59,10 @@ If you found a bug or have any suggestions please submit a GitHub issue:
 Contributing
 ------------
 
-Participation and patches are very welcome! The best way to submit a
-contribution is to open a pull request on GitHub against the `master` branch.
+Participation and patches are very welcome! Check [TODO list](TODO) for ideas.
+
+The best way to submit a contribution is to open a pull request on GitHub
+against the `master` branch.
 
 
 Mailing list

@@ -1,0 +1,89 @@
+This is a list of ideas of how to improve Piqi.
+
+
+The list of *big* things to work on can be found here: http://piqi.org/roadmap/
+
+Current issues and feature requests: https://github.com/alavrik/piqi/issues
+
+
+Packaging and dependencies
+--------------------------
+
+- Replace ulex with its successor https://github.com/alainfrisch/sedlex and
+  remove dependency on camlp4.
+
+- For even better portability, don't require ocamlfind. It should be possible to
+  provide a shim that mimics ocamlfind when the actual ocamlfind is not
+  available in the system. Our use-case for ocamlfind is trivial as the project
+  comes with all the dependencies in ./deps
+
+- Homebrew and FreeBSD packages anyone? We've got Debian, RPM and Arch already:
+  https://github.com/piqi/
+
+- --version based on git commit (for development builds)
+
+- drop ./setenv.sh; instead, use relative paths to the piqi executable in tests
+
+
+Miscellaneous improvements
+--------------------------
+
+- change the JSON AST representation so that we could preserve int, float,
+  string literals everywhere -- see comments in Piqobj.json_of_any
+
+- optionally, don't parse/validate/pretty-print embedded dynamically typed
+  json/xml (aka piqi-any values) as this creates extra overhead especially if
+  the embedded objects are large
+
+
+Piqi tools
+----------
+
+piqi compile -M/--print-deps:
+
+  - print .piqi dependencies in Makefile format similar to gcc -M
+
+piqi convert --no-pp/--pp false:
+
+  - don't pretty-print XML/JSON output
+
+pp:
+
+  - preserve Piq/Piqi comments by default, optionally strip them
+
+piqi convert --extract-piqi:
+
+  - extract embedded Piqi modules and lay them in a directory hierarchy
+
+
+Documentation
+-------------
+
+- document `piqi compile` and `piqi cc`. Some relevant mailing lists posts:
+
+    https://groups.google.com/d/msg/piqi/V9AUEVl5Ti0/7pHyUrhyZskJ
+    https://groups.google.com/d/msg/piqi/V9AUEVl5Ti0/neF4IWIc22wJ
+
+- document piqi bootstrap process, i.e. the process of building Piqi from its
+  self-spec or making changes to the self-spec. Here's a starting point:
+  https://groups.google.com/d/msg/piqi/Y74PFJjf7EM/YBom97z5s6AJ
+
+- existing project documentation. It cries for improvements! e.g. doc/piqi.md
+
+
+Protocol Buffers
+----------------
+
+- support for new Protocol Buffers features introduced in Protobuf-2.5.0, e.g.
+  "import public", "allow_alias"; see
+  http://protobuf.googlecode.com/svn/trunk/CHANGES.txt
+
+
+Tests
+-----
+
+- essentially, need more tests for everything. More details to follow after
+  command-line interface refactoring.
+
+
+# ex: et sw=4 ts=4
