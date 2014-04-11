@@ -343,8 +343,8 @@ Primitive types
     implementation-specific (i.e. depends on a certain Piqi mapping) but
     normally it should be capable for holding at least 32-bit signed integers.
 
-    The maximum supported range for `int` type is is defined as `(min(signed
-    64-bit integer), max(unsigned 64-bit integer))`.
+    The maximum supported range for `int` type is defined as `(min(signed 64-bit
+    integer), max(unsigned 64-bit integer))`.
 
     In addition to `int`, there are some other variations of integer types
     supported by default. They are defined as *aliases* of `int` type in Piqi
