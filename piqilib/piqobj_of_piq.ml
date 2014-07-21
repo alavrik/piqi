@@ -220,7 +220,7 @@ let string_of_piqast x =
     | `name s -> s
     | `named {Piq_ast.Named.name = n} -> n
     | _ ->
-        let s = Piq_gen.to_string x in
+        let s = Piq_gen.to_string x ~nl:false in
         truncate_string s 50
 
 
@@ -267,8 +267,8 @@ let rec parse_obj0
     | `any -> `any (r parse_any x)
     (* custom types *)
     | `record t -> `record (rr parse_record t x)
-    | `variant t -> `variant (rr (parse_variant ~try_mode) t x)
-    | `enum t -> `enum (rr (parse_enum ~try_mode) t x)
+    | `variant t -> `variant (rr (parse_variant ~try_mode ~nested:false) t x)
+    | `enum t -> `enum (rr (parse_enum ~try_mode ~nested:false) t x)
     | `list t -> `list (rr parse_list t x)
     | `alias t -> `alias (reference (parse_alias t ?piq_format) x)
 
@@ -596,13 +596,13 @@ and parse_repeated_field f name field_type l =
         res, rem
 
 
-and parse_variant ~try_mode t x =
+and parse_variant ~try_mode ~nested t x =
   debug "parse_variant: %s\n" (some_of t.T.Variant.name);
-  let value = parse_option t.T.Variant.option x ~try_mode in
+  let value = parse_option t.T.Variant.option x ~try_mode ~nested in
   V.({t = t; option = value})
 
 
-and parse_option ~try_mode options x =
+and parse_option ~try_mode ~nested options x =
   try
     let value =
       match x with
@@ -614,7 +614,7 @@ and parse_option ~try_mode options x =
             parse_raw_word_option options x s ~try_mode
         | `bool _ ->
             parse_bool_option options x
-        | `int _ ->
+        | `int _ | `uint _ ->
             parse_int_option options x
         | `float _ ->
             parse_float_option options x
@@ -626,7 +626,7 @@ and parse_option ~try_mode options x =
             parse_named_option options n x
         | `list _ ->
             parse_list_option options x
-        | o -> error o "invalid option"
+        | o -> error o ("invalid option: " ^ string_of_piqast o)
     in
     Piqloc.addrefret x value
   with Not_found ->
@@ -643,30 +643,34 @@ and parse_option ~try_mode options x =
             []
     in
     let covariants = U.flatmap get_covariants options in
-    let value = parse_covariants covariants x ~try_mode in
+    let value = parse_covariants covariants x ~try_mode ~nested in
     Piqloc.addrefret x value
 
 
-and parse_covariants ~try_mode covariants x =
+and parse_covariants ~try_mode ~nested covariants x =
   let rec aux = function
     | [] ->
         (* failed to parse among variant and its covariants *)
-        handle_unknown_variant x
+        if nested
+        then raise Not_found
+        else handle_unknown_variant x
     | h::t ->
         try
-          parse_covariant h x ~try_mode
+          parse_covariant h x ~try_mode ~nested:true
         with Not_found -> aux t
   in aux covariants
 
 
-and parse_covariant ~try_mode (o, v) x =
+and parse_covariant ~try_mode ~nested (o, v) x =
   let obj =
     match v with
       | `variant v ->
-          let value = reference (parse_variant ~try_mode v) x in
+          debug "parse_covariant: %s\n" (some_of v.T.Variant.name);
+          let value = reference (parse_variant ~try_mode ~nested v) x in
           `variant value
       | `enum e ->
-          let value = reference (parse_enum ~try_mode e) x in
+          debug "parse_covariant: %s\n" (some_of e.T.Enum.name);
+          let value = reference (parse_enum ~try_mode ~nested e) x in
           `enum value
   in
   O.({t = o; obj = Some obj})
@@ -774,9 +778,9 @@ and parse_typed_option (options:T.Option.t list) f (x:piq_ast) :Piqobj.Option.t 
   O.({t = option; obj = obj})
 
 
-and parse_enum ~try_mode t x =
+and parse_enum ~try_mode ~nested t x =
   debug "parse_enum: %s\n" (some_of t.T.Enum.name);
-  let value = parse_option t.T.Enum.option x ~try_mode in
+  let value = parse_option t.T.Enum.option x ~try_mode ~nested in
   E.({t = t; option = value})
 
 
