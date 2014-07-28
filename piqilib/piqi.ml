@@ -339,6 +339,8 @@ let check_resolved_def def =
         check_dup_names "field" names
     | `variant x ->
         let names = List.map (fun x -> name_of_option x) x.V.option in
+        (* TODO: also check duplicate names among nested variants (i.e.
+         * "non-terminal" nameless sub-variants) *)
         check_dup_names "option" names
     | `enum x ->
         let names = List.map (fun x -> name_of_option x) x.E.option in
