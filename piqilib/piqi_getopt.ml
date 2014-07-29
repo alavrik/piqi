@@ -213,12 +213,10 @@ let parse_string_arg s =
 let parse_word_arg s =
   if Piq_lexer.is_valid_word s
   then
-    (* Raw word -- a valid utf8 Piq word: may be parsed as either of these: word,
-     * bool, number, string, binary *)
-    Piq_lexer.Raw_word s
+    Piq_lexer.Word s
   else
-    (* Raw binary -- just a sequence of bytes: may be parsed as either binary or
-     * utf8 string *)
+    (* Raw binary -- just a sequence of bytes: may be parsed as binary or utf8
+     * string *)
     Piq_lexer.Raw_binary s
 
 
@@ -385,6 +383,8 @@ let parse_args (piqtype: T.piqtype) (args: piq_ast list) :Piqobj.obj =
           let loc = (getopt_filename, 0, 1) in
           Piqloc.addlocret loc res
   in
-  let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
+  let piqobj = U.with_bool Config.piq_relaxed_parsing true
+    (fun () -> Piqobj_of_piq.parse_obj piqtype ast)
+  in
   piqobj
 

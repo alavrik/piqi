@@ -68,15 +68,9 @@ let get_current_piqtype user_piqtype locref =
 
 
 let read_piq_ast piq_parser user_piqtype :piq_ast =
-  let with_pp_mode f =
-    (* NOTE, TODO: this is a hack -- it would be great to have a cleaner
-     * solution *)
-    U.with_bool Piqi_config.pp_mode (!Piqi_config.piq_relaxed_parsing)
-    (fun () -> f piq_parser)
-  in
   if not !Piqi_config.piq_frameless_input  (* regular (framed) mode *)
   then
-    match with_pp_mode Piq_parser.read_next with
+    match Piq_parser.read_next piq_parser with
       | Some ast -> ast
       | None -> raise EOF
   else  (* frameless mode *)
@@ -88,7 +82,7 @@ let read_piq_ast piq_parser user_piqtype :piq_ast =
             let piqtype = get_current_piqtype user_piqtype ast in
             not (C.is_container_type piqtype)
     in
-    let ast_list = with_pp_mode Piq_parser.read_all in
+    let ast_list = Piq_parser.read_all piq_parser in
     (* if there's more that one element or we're parsing value for a container
      * type, wrap elements into a list *)
     match ast_list with

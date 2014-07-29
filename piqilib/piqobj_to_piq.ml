@@ -27,9 +27,9 @@ open Piqobj_common
 let is_external_mode = ref false
 
 
-(* NOTE: loosing precision here, in future we will support encoding floats as
- * string literals containing binary representation of 64-bit IEEE float *)
-let gen_float x = `float x
+(* NOTE, XXX: losing precision here, in future we will support encoding floats
+ * as string literals containing binary representation of 64-bit IEEE float *)
+let gen_float x = `float (x, "")
 
 
 let is_ascii_string s =
@@ -56,17 +56,17 @@ let gen_string ?piq_format s =
    | _ ->
       if is_ascii_string s
       then
-        `ascii_string s
+        `ascii_string (s, "")
       else
-        `utf8_string s
+        `utf8_string (s, "")
 
 
 let gen_binary s =
   if is_ascii_string s
   then
-    `ascii_string s
+    `ascii_string (s, "")
   else
-    `binary s
+    `binary (s, "")
 
 
 let make_named name value =
@@ -104,8 +104,8 @@ let order_record_fields t piqobj_fields =
 let rec gen_obj0 ?(piq_format: T.piq_format option) (x:Piqobj.obj) :piq_ast =
   match x with
     (* built-in types *)
-    | `int x -> `int x
-    | `uint x -> `uint x
+    | `int x -> `int (x, "")
+    | `uint x -> `uint (x, "")
     | `float x -> gen_float x
     | `bool x -> `bool x
     | `string x -> gen_string x ?piq_format

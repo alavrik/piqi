@@ -227,18 +227,15 @@ type token =
   | Rpar (* ) *)
   | Lbr (* [ *)
   | Rbr (* ] *)
-  | String of string_type * string
+  | String of string_type * string * string (* ascii | utf8 | binary, parsed literal, original literal *)
   | Word of string
   | Text of string
   | EOF
-  (* The last two token types are used only in special cases, and can't be
-   * represented in Piq text format directly *)
-
-  (* Raw word -- a valid utf8 Piq word: may be parsed as either of these: word,
-   * bool, number, string, binary *)
-  | Raw_word of string
   (* Raw binary -- just a sequence of bytes: may be parsed as either binary or
-   * utf8 string *)
+   * utf8 string
+   *
+   * NOTE: this is used only in several special cases, and can't be represented
+   * in Piq text format directly *)
   | Raw_binary of string
 
 
@@ -363,21 +360,12 @@ let rec token0 buf = lexer
       let s = String.sub s 1 (String.length s - 2) in (* cut double-quotes *)
 
       let (str_type, parsed_str) = parse_string_literal s in
-
-      (* In prettu-printing mode, return it as unparsed literal -- it will be
-       * printed as is in Piq_gen *)
-      if !Piqi_config.pp_mode
-      then Raw_binary s
-      else String (str_type, parsed_str)
+      String (str_type, parsed_str, s)
 
   | '"' -> error "string literal overrun"
   | word -> (* utf8 word delimited by other tokens or whitespace *)
       let s = Ulexing.utf8_lexeme lexbuf in
-      (* In pretty-printing mode, return it as a raw word -- this way it won't
-       * be parsed and converted to a boolean or a number *)
-      if !Piqi_config.pp_mode
-      then Raw_word s
-      else Word s
+      Word s
 
   | eof -> EOF
   | _ -> error "invalid character"

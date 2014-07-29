@@ -23,14 +23,14 @@ module rec Piq_ast :
              sig
 type ast =
  [
-   | `int of int64
-   | `uint of int64
-   | `float of float
+   | `int of (int64 * string)
+   | `uint of (int64 * string)
+   | `float of (float * string)
    | `bool of bool
    | `word of string
-   | `ascii_string of string
-   | `utf8_string of string
-   | `binary of string
+   | `ascii_string of (string * string)
+   | `utf8_string of (string * string)
+   | `binary of (string * string)
    | `text of string
    | `name of string
    | `named of Named.t (* TODO: string * ast *)
@@ -45,15 +45,11 @@ type ast =
     * code), but we decided to support it for consistency *)
    | `form of ast * ast list
 
-   (* These two token types are used only in several special cases, and can't be
-    * represented in Piq text format directly *)
-
-   (* Raw word -- a valid utf8 Piq word: may be parsed as either of these: word,
-    * bool, number, string, binary *)
-   | `raw_word of string
-
    (* Raw binary -- just a sequence of bytes: may be parsed as either binary or
-    * utf8 string *)
+    * utf8 string
+    *
+    * NOTE: this is used only in several special cases, and can't be represented
+    * in Piq text format directly *)
    | `raw_binary of string
 
    (* reference to Piqobj.any object in Piqi_objstore *)
@@ -63,7 +59,6 @@ type ast =
 and form_name =
  [
    | `word of string
-   | `raw_word of string
    | `name of string
    | `typename of string
  ]
@@ -124,7 +119,6 @@ let transform_ast path f (ast:ast) =
 let map_words (ast:ast) f :ast =
   let rec aux = function
     | `word s -> `word (f s)
-    | `raw_word s -> `raw_word (f s)
     | `name s -> `name (f s)
     (* TODO, XXX: apply function to the last segment of the type name? *)
     | `typename s -> `typename s

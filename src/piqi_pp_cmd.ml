@@ -66,8 +66,8 @@ open Main
 let prettyprint_file filename =
   let ch = Main.open_output !ofile in
 
-  (* switch piq lexer and generator to pretty-printing mode that preserves the
-   * original formatting of string and number literals *)
+  (* switch piq parser to pretty-printing mode that preserves the original
+   * formatting of string and number literals *)
   if not !flag_parse_literals
   then Config.pp_mode := true;
 

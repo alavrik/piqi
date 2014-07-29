@@ -106,18 +106,13 @@ let error obj s =
 (* TODO, XXX: handle integer overflows *)
 let rec parse_int (obj: piq_ast) =
   match obj with
-    | `int x -> `int (Piqloc.addrefret obj x)
-    | `uint x -> `uint (Piqloc.addrefret obj x)
-    | `raw_word x ->
-        let t =
-          try Piq_parser.parse_int x
-          with Failure e -> error obj e
-        in parse_int t
+    | `int (x, _) -> `int (Piqloc.addrefret obj x)
+    | `uint (x, _) -> `uint (Piqloc.addrefret obj x)
     | o -> error o "int constant expected"
 
 
 let uint64_to_float x =
-  if Int64.compare x 0L < 0 (* big unsinged? *)
+  if Int64.compare x 0L < 0 (* big unsigned? *)
   then
     let s = Printf.sprintf "%Lu" x in
     float_of_string s
@@ -127,21 +122,14 @@ let uint64_to_float x =
 
 let rec parse_float (obj: piq_ast) =
   match obj with
-    | `int x -> Int64.to_float x
-    | `uint x -> uint64_to_float x
-    | `float x -> x
-    | `raw_word x ->
-        let t =
-          try Piq_parser.parse_number x
-          with Failure e -> error obj e
-        in parse_float t
+    | `int (x, _) -> Int64.to_float x
+    | `uint (x, _) -> uint64_to_float x
+    | `float (x, _) -> x
     | o -> error o "float constant expected"
 
 
 let parse_bool (x :piq_ast) = match x with
   | `bool x -> x
-  | `raw_word "true" -> true
-  | `raw_word "false" -> false
   | o -> error o "boolean constant expected"
 
 
@@ -151,8 +139,7 @@ let parse_string ?piq_format (x :piq_ast) =
   in
   let check_piq_format () =
     match piq_format, x with
-      | Some `word, `word _
-      | Some `word, `raw_word _ -> (); (* ok *)
+      | Some `word, `word _ -> (); (* ok *)
       | Some `word, `text _ ->
           error x "word literal expected instead of verbatim text"
       | Some `word, _ (* various string literals *) ->
@@ -164,23 +151,22 @@ let parse_string ?piq_format (x :piq_ast) =
       | _ -> ()
   in
   match x with
-    | `ascii_string s | `utf8_string s | `text s | `word s ->
+    | `word s when !Config.piq_relaxed_parsing -> s
+    | `ascii_string (s, _) | `utf8_string (s, _) | `text s | `word s ->
         check_piq_format ();
         s
     | `raw_binary s ->
         if Piq_lexer.is_utf8_string s
         then s
         else unicode_error s
-    | `binary s -> unicode_error s
-    | `raw_word s -> s
+    | `binary (s, _) -> unicode_error s
     | o -> error o "string expected"
 
 
 let parse_binary (x :piq_ast) = match x with
-  | `ascii_string s | `binary s | `raw_binary s -> s
-  | `utf8_string s ->
+  | `ascii_string (s, _) | `binary (s, _) | `raw_binary s -> s
+  | `utf8_string (s, _) ->
       error s "binary contains unicode characters or code points"
-  | `raw_word s -> s
   | o -> error o "binary expected"
 
 
@@ -664,10 +650,8 @@ and parse_option ~try_mode o x =
         parse_name_option o n
     | `named {Piq_ast.Named.name = n; value = x} ->
         parse_named_option o n x
-    | `raw_word s ->
-        parse_raw_word_option o x s ~try_mode
-    | `word _ ->
-        parse_typed_option ((=) `string) o x
+    | `word s ->
+        parse_word_option o x s ~try_mode
     | `bool _ ->
         parse_typed_option ((=) `bool) o x
     | `int _ | `uint _ ->
@@ -712,20 +696,14 @@ and parse_named_option o name x =
     None
 
 
-and parse_raw_word_option ~try_mode o x s =
-  let len = String.length s in
-  let test_f = function
-    (* all of these type can have values represented as a raw (unparsed) word *)
-    | `string | `binary -> true
-    | `bool when s = "true" || s = "false" -> true
-    | `int when s.[0] >= '0' && s.[0] <= '9' -> true
-    | `int when len > 1 && s.[0] = '-' && s.[1] >= '0' && s.[1] <= '9' -> true
-    | `float -> true
-    | _ -> false
-  in
+and parse_word_option ~try_mode o x s =
+  let test_f = (fun t ->
+      t = `string &&
+      (o.T.Option.piq_format = Some `word || !Config.piq_relaxed_parsing)
+  ) in
   let res = parse_typed_option test_f o x in
   match res with
-    | None when not try_mode ->
+    | None when !Config.piq_relaxed_parsing && not try_mode ->
         (* try to parse it as a name, but only when the label is exact, i.e.
          * try_mode = false
          *

@@ -346,18 +346,23 @@ let preprocess_names l =
 
 let format_ast (x :piq_ast) =
   let rec aux ?(is_labeled=false) ?(is_first=false) = function
-    | `int x -> make_atom (Int64.to_string x)
-    | `uint x -> make_atom (uint64_to_string x)
-    | `float x -> make_atom (format_float x)
-    | `bool true -> make_atom "true"
-    | `bool false -> make_atom "false"
-    | `ascii_string s | `utf8_string s ->
+    | `int (x, "") -> make_atom (Int64.to_string x)
+    | `uint (x, "") -> make_atom (uint64_to_string x)
+    | `float (x, "") -> make_atom (format_float x)
+
+    | `ascii_string (s, "") | `utf8_string (s, "") ->
         make_atom (quote (Piq_lexer.escape_string s))
-    | `binary s ->
+    | `binary (s, "") ->
         make_atom (quote (Piq_lexer.escape_binary s))
-    | `raw_binary s when !Config.pp_mode ->
-        (* in pretty-print mode, the literal represents the original string *)
-        make_atom (quote s)
+
+    (* use original literals when they are available *)
+    | `int (_, s)
+    | `uint (_, s)
+    | `float (_, s) -> make_atom s
+    | `ascii_string (_, s)
+    | `utf8_string (_, s)
+    | `binary (_, s) -> make_atom (quote s)
+
     | `raw_binary s ->
         (* This literal can't be read back reliably after printing, and it
          * doesn't come from Piq, but we still need to print it somehow -- in
@@ -365,7 +370,9 @@ let format_ast (x :piq_ast) =
         (* XXX: printing it is as binary for now, but may try to print it as
          * utf8 string if it does represet a valid string. *)
         make_atom (quote (Piq_lexer.escape_binary s))
-    | `raw_word s (* used in pretty-printing mode and in some other cases *)
+
+    | `bool true -> make_atom "true"
+    | `bool false -> make_atom "false"
     | `word s -> make_atom s
     | `text s -> format_text (split_text s) ~is_labeled ~is_first
     | `name s -> make_atom ("." ^ s)
@@ -410,7 +417,7 @@ let format_ast (x :piq_ast) =
           | (#Piq_ast.form_name as form_name) -> (* this is a form *)
               let name =
                 match form_name with
-                  | `word s | `raw_word s -> s
+                  | `word s -> s
                   | `name s -> "." ^ s
                   | `typename s -> ":" ^ s
               in
