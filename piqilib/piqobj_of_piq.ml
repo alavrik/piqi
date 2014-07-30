@@ -650,22 +650,65 @@ and parse_option ~try_mode o x =
         parse_name_option o n
     | `named {Piq_ast.Named.name = n; value = x} ->
         parse_named_option o n x
-    | `word s ->
-        parse_word_option o x s ~try_mode
-    | `bool _ ->
-        parse_typed_option ((=) `bool) o x
-    | `int _ | `uint _ ->
-        parse_typed_option (function `int | `float -> true | _ -> false) o x
-    | `float _ ->
-        parse_typed_option ((=) `float) o x
-    | `ascii_string _ | `utf8_string _ | `binary _ | `raw_binary _ ->
-        parse_typed_option (function `string | `binary -> true | _ -> false) o x
-    | `text _ ->
-        parse_typed_option (function `string -> true | _ -> false) o x
-    | `list _ ->
-        parse_typed_option (function `record _ | `list _ -> true | _ -> false) o x
     | _ ->
-        error x ("invalid option: " ^ string_of_piqast x)
+        parse_option_by_type o x ~try_mode
+
+
+and parse_option_by_type ~try_mode o x =
+  let open T.Option in
+  match o.name, o.piqtype with
+    | None, None ->
+        assert false
+    | Some n, None ->
+        (* try parsing word as a name, but only when the label is exact, i.e.
+         * try_mode = false
+         *
+         * by doing this, we allow using --foo bar instead of --foo.bar in
+         * relaxed Piq parsing and getopt modes *)
+        (match x with
+          |`word s when equals_name n o.piq_alias s && !Config.piq_relaxed_parsing && not try_mode ->
+              Some O.({t = o; obj = None})
+          | _ ->
+              None
+        )
+    | _, Some t ->
+        let do_parse () =
+          let obj = Some (parse_obj t x ?piq_format:o.piq_format) in
+          Some O.({t = o; obj = obj})
+        in
+        match C.unalias t, x with
+          | `bool, `bool _
+
+          | `int, `int _
+          | `int, `uint _
+
+          | `float, `int _
+          | `float, `uint _
+          | `float, `float _
+
+          | `record _, `list _
+          | `list _  , `list _ -> do_parse ()
+
+          | `string, `text _         when o.piq_format = Some `text -> do_parse ()
+          | `string, `word _         when o.piq_format = Some `word -> do_parse ()
+
+          (* XXX, TODO: do we need it?
+          | `string, `ascii_string _ when o.piq_format = Some `string -> do_parse ()
+          | `string, `utf8_string _  when o.piq_format = Some `string -> do_parse ()
+          *)
+
+          | `string, `ascii_string _
+          | `string, `utf8_string _
+          | `string, `raw_binary _
+          | `string, `text _         when o.piq_format = None -> do_parse ()
+          | `string, `word _         when o.piq_format = None && !Config.piq_relaxed_parsing -> do_parse ()
+
+          | `binary, `ascii_string _
+          | `binary, `binary _
+          | `binary, `raw_binary _ -> do_parse ()
+          | _ ->
+              None
+
 
 
 and parse_name_option o name =
@@ -688,46 +731,13 @@ and parse_named_option o name x =
   if equals_name n o.piq_alias name
   then
     match o.name, o.piqtype with
-      | Some n, None ->
+      | _, None ->
           error x ("value can not be specified for option " ^ U.quote n)
-      | _ ->
-          parse_typed_option (fun _ -> true) o x
+      | _, Some t ->
+          let obj = Some (parse_obj t x ?piq_format:o.piq_format) in
+          Some O.({t = o; obj = obj})
   else
     None
-
-
-and parse_word_option ~try_mode o x s =
-  let test_f = (fun t ->
-      t = `string &&
-      (o.T.Option.piq_format = Some `word || !Config.piq_relaxed_parsing)
-  ) in
-  let res = parse_typed_option test_f o x in
-  match res with
-    | None when !Config.piq_relaxed_parsing && not try_mode ->
-        (* try to parse it as a name, but only when the label is exact, i.e.
-         * try_mode = false
-         *
-         * by doing this, we allow using --foo bar instead of --foo.bar in
-         * relaxed Piq parsing and getopt modes *)
-        let open T.Option in
-        (match o.name, o.piqtype with
-          | Some n, None when equals_name n o.piq_alias s ->
-              Some O.({t = o; obj = None})
-          | _, _ ->
-              None
-        )
-    | _ ->
-        res
-
-
-and parse_typed_option test_f (o:T.Option.t) (x:piq_ast) :Piqobj.Option.t option =
-  let open T.Option in
-  match o.piqtype with
-    | Some t when test_f (C.unalias t) ->
-        let obj = Some (parse_obj t x ?piq_format:o.T.Option.piq_format) in
-        Some O.({t = o; obj = obj})
-    | _ ->
-        None
 
 
 and parse_enum ~try_mode ~nested t x =
