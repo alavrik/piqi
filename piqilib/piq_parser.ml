@@ -486,7 +486,16 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
     let len = String.length s in
     let parse_number s =
       try parse_number s
-      with Failure e -> error e
+      with Failure e ->
+        (* allowing a string which prefix looks like a number to be parsed as
+         * word in relaxed parsing mode
+         *
+         * TODO: need a more robust implementation of integer parsing; for
+         * instance, the current implementation doesn't distingwish between
+         * integer overlows and invalid integer literals *)
+        if !Config.piq_relaxed_parsing
+        then `word s
+        else error e
     in
     match s with
       | "true" -> `bool true
