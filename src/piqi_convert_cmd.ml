@@ -354,13 +354,10 @@ let do_convert ?writer ?(is_piq_output=false) reader =
     (* finally, write the object itself *)
     do_write_obj obj
   in
-  let process_and_write_piqi piqi_list =
+  let write_piqi piqi_list =
+    Piqi_convert.process_unprocessed_piqi ();
     List.iter (fun modname ->
       let piqi = Piqi_db.find_piqi modname in
-      (* process piqi if it hasn't been fully processed yet by this point *)
-      let piqi = Piqi.process_piqi piqi ~cache:false in
-      Piqloc.preserve ();
-      (* finally, write it to the output channel *)
       trace "piqi convert: writing module %s\n" modname;
       write_obj (Piqi_convert.Piqi piqi)
     )
@@ -374,30 +371,20 @@ let do_convert ?writer ?(is_piq_output=false) reader =
     match read_obj () with
       | None ->
           (* flush all yet unwritten piqi modules at EOF *)
-          process_and_write_piqi piqi_list
+          write_piqi piqi_list
       | Some obj ->
+          (* reset location db to allow GC collect previously read
+           * objects *)
+          Piqloc.reset ();
           let piqi_list =
             match obj with
-              | Piqi_convert.Piqi piqi ->
-                  Piqi_db.add_piqi piqi;
-                  (* Preserve location information so that exising location info for
-                   * Piqi modules won't be discarded by subsequent Piqloc.reset()
-                   * calls. *)
-                  Piqloc.preserve ();
-                  if Piqi.is_processed piqi
-                  then
-                    (* if it has been processed, ready to write it right away *)
-                    (write_obj obj; [])
-                  else
-                    let modname = some_of piqi.P.modname in
-                    modname :: piqi_list (* add to the list of unprocessed modules *)
+              | Piqi_convert.Piqi piqi when not (Piqi.is_processed piqi) ->
+                  let modname = some_of piqi.P.modname in
+                  modname :: piqi_list (* add to the list of unprocessed modules *)
               | _ ->
-                  (* reset location db to allow GC collect previously read
-                   * objects *)
-                  Piqloc.reset ();
-                  (* once we read a non-piqi object, fully process and flush all
-                   * yet unwrittent piqi modules *)
-                  process_and_write_piqi piqi_list;
+                  (* once we read a non-piqi object, flush all yet unwritten
+                   * piqi modules *)
+                  write_piqi piqi_list;
                   (* finally write the object we've just read *)
                   write_obj obj;
                   (* return empty list as a new value of piqi_list *)

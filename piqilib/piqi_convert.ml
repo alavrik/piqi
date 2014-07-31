@@ -33,6 +33,45 @@ type obj =
   | Piqi of T.piqi
 
 
+(* the list of piqi objects loaded but not processed yet *)
+let unprocessed_piqi_list = ref []
+
+
+let process_unprocessed_piqi () =
+  List.iter (fun modname ->
+    let piqi = Piqi_db.find_piqi modname in
+    (* process piqi if it hasn't been fully processed yet by this point *)
+    ignore (Piqi.process_piqi piqi ~cache:false);  (* already cached *)
+    Piqloc.preserve ()
+  )
+  (List.rev !unprocessed_piqi_list);
+  (* reset the unprocessed piqi list *)
+  unprocessed_piqi_list := []
+
+
+let pre_process_piqi ~fname ?ast piqi =
+  piqi.P.is_embedded <- Some true;
+
+  (* can't process it right away, because not all dependencies could be loaded
+   * already; this is expecially ciritical in case of mutually-recursive
+   * includes; just do bare minimum so that we could add to Piqi_db and process
+   * it later *)
+  let piqi = Piqi.pre_process_piqi piqi ~fname ?ast in
+
+  (* so that we could find it by name later *)
+  Piqi_db.add_piqi piqi;
+
+  (* preserve location information so that exising location info for Piqi
+   * modules won't be discarded by subsequent Piqloc.reset() calls *)
+  Piqloc.preserve ();
+
+  (* add to the list of unprocessed modules *)
+  let modname = some_of piqi.P.modname in
+  unprocessed_piqi_list := modname :: !unprocessed_piqi_list;
+
+  piqi
+
+
 let default_piqtype = ref None
 
 
@@ -45,6 +84,9 @@ let check_piqtype n =
 let find_piqtype ?(check=false) typename =
   if check
   then check_piqtype typename;
+
+  (* in case typename is defined in one of the yet unprocessed piqi modules *)
+  process_unprocessed_piqi ();
 
   try Piqi_db.find_piqtype typename
   with Not_found ->
@@ -67,9 +109,7 @@ let get_current_piqtype user_piqtype locref =
       error locref "type of object is unknown"
 
 
-let read_piq_ast piq_parser user_piqtype :piq_ast =
-  if not !Piqi_config.piq_frameless_input  (* regular (framed) mode *)
-  then
+let read_piq_ast piq_parser user_piqtype :piq_ast = if not !Piqi_config.piq_frameless_input  (* regular (framed) mode *) then
     match Piq_parser.read_next piq_parser with
       | Some ast -> ast
       | None -> raise EOF
@@ -101,12 +141,7 @@ let read_piq_ast piq_parser user_piqtype :piq_ast =
 
 let piqi_of_piq fname ast =
   let piqi = Piqi.parse_piqi ast in
-  piqi.P.is_embedded <- Some true;
-  (* can't process it right away, because not all dependencies could be loaded
-   * already; this is expecially ciritical in case of mutually-recursive
-   * includes; just do bare minimum so that we could add to Piqi_db and process
-   * it later *)
-  Piqi.pre_process_piqi piqi ~fname ~ast
+  pre_process_piqi piqi ~fname ~ast
 
 
 let load_piq (user_piqtype: T.piqtype option) piq_parser :obj =
@@ -117,14 +152,6 @@ let load_piq (user_piqtype: T.piqtype option) piq_parser :obj =
         (* (:typename) *)
         process_default_piqtype typename;
         Piqtype typename
-    | `typed {Piq_ast.Typed.typename = "piqtype";
-              Piq_ast.Typed.value = `word typename} ->
-        (* :piqtype <typename> *)
-        warning ast "this form of specifying default type is deprecated; use (:typename) instead";
-        process_default_piqtype typename;
-        Piqtype typename
-    | `typed {Piq_ast.Typed.typename = "piqtype"} ->
-        error ast "invalid piqtype specification"
     | `typed {Piq_ast.Typed.typename = "piqi";
               Piq_ast.Typed.value = ((`list _) as ast)} ->
         (* :piqi <piqi-lang> *)
@@ -133,6 +160,10 @@ let load_piq (user_piqtype: T.piqtype option) piq_parser :obj =
     | `typed {Piq_ast.Typed.typename = "piqi"} ->
         error ast "invalid piqi specification"
     | `typed _ ->
+        (* :typename ... *)
+        (* in case typename is defined in one of the yet unprocessed piqi
+         * modules: *)
+        process_unprocessed_piqi ();
         let obj = Piqobj_of_piq.parse_typed_obj ast in
         Typed_piqobj obj
     | _ ->
@@ -271,6 +302,11 @@ let process_pib_piqtype code typename =
   add_piqtype code piqtype
 
 
+let piqi_of_pib protobuf =
+  let piqi = Piqi.piqi_of_pb protobuf ~process:false in
+  pre_process_piqi piqi ~fname:"input" (* TODO, XXX: get the actual file name *)
+
+
 (* using max Protobuf wire code value for pib-typehint
  *
  * XXX: alternatively, we could use 0 or another value outside of the valid
@@ -287,12 +323,17 @@ let rec load_pib (user_piqtype :T.piqtype option) buf :obj =
     let typehint = T.parse_pib_typehint field_obj in
     Piqloc.resume ();
     if typehint.piqi_type = "piqi-type" (* is this a valid piq typehint? *)
-    then process_pib_piqtype typehint.code typehint.typename
-    else (); (* skipping invalid typehint entry; XXX: generate a warning? *)
-
-    (* we've just read type-code binding information;
-    proceed to the next stream object *)
-    load_pib user_piqtype buf
+    then (
+      process_pib_piqtype typehint.code typehint.typename;
+      if typehint.typename = "piqi"
+      then
+        load_pib user_piqtype buf
+      else
+        Piqtype typehint.typename
+    )
+    else
+      (* skipping invalid typehint entry; XXX: generate a warning? *)
+      load_pib user_piqtype buf
   ))
   else ( (* process a regular data entry *)
     let piqtype =
@@ -310,7 +351,7 @@ let rec load_pib (user_piqtype :T.piqtype option) buf :obj =
     in
     if piqtype == !Piqi.piqi_lang_def (* embedded Piqi spec *)
     then
-      let piqi = Piqi.piqi_of_pb field_obj in
+      let piqi = piqi_of_pib field_obj in
       Piqi piqi
     else
       let obj = piqobj_of_protobuf piqtype field_obj in
@@ -431,7 +472,7 @@ let piqobj_of_json piqtype json :Piqobj.obj =
   Piqobj_of_json.parse_obj piqtype json
 
 
-let piqi_of_json json =
+let piqi_of_json ?(process=true) json =
   let piqtype = !Piqi.piqi_spec_def in
   (* don't resolve defaults when reading Json *)
   let piqobj =
@@ -440,7 +481,12 @@ let piqi_of_json json =
   (* don't try to track location references as we don't preserve them yet in
    * piqobj_of_json *)
   Piqloc.pause ();
-  let piqi = Piqi.piqi_of_piqobj piqobj in
+  let piqi = Piqi.piqi_of_piqobj piqobj ~process in
+  let piqi =
+    if process
+    then piqi
+    else pre_process_piqi piqi ~fname:"input" (* TODO, XXX: get the actual file name *)
+  in
   Piqloc.resume ();
   piqi
 
@@ -570,7 +616,7 @@ let load_json (user_piqtype: T.piqtype option) json_parser :obj =
     | `Assoc (("piqi_type", `String "piqi") :: fields) ->
         let ast = Piqloc.addrefret ast (`Assoc fields) in
         (* NOTE: caching the loaded module *)
-        let piqi = piqi_of_json ast in
+        let piqi = piqi_of_json ast ~process:false in
         Piqi piqi
     | `Assoc (("piqi_type", `String typename) :: fields) ->
         let piqtype = find_piqtype typename ~check in

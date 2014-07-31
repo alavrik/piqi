@@ -23,6 +23,7 @@ DIRS = \
        piqi_server \
        piqi_compile \
        piqi_pp \
+       piq \
        $(DIRS_PROTO)
 
 
