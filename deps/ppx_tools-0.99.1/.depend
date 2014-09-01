@@ -1,0 +1,14 @@
+ast_convenience.cmo : ast_convenience.cmi
+ast_convenience.cmx : ast_convenience.cmi
+ast_lifter.cmo :
+ast_lifter.cmx :
+ast_mapper_class.cmo : ast_mapper_class.cmi
+ast_mapper_class.cmx : ast_mapper_class.cmi
+dumpast.cmo : ast_lifter.cmo
+dumpast.cmx : ast_lifter.cmx
+genlifter.cmo : ast_convenience.cmi
+genlifter.cmx : ast_convenience.cmx
+ppx_metaquot.cmo : ast_lifter.cmo
+ppx_metaquot.cmx : ast_lifter.cmx
+ast_convenience.cmi :
+ast_mapper_class.cmi :

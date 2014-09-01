@@ -1,0 +1,18 @@
+OCAMLMAKEFILE := ../../make/OCamlMakefile
+
+
+RESULT = genlifter
+
+SOURCES = genlifter.ml
+
+PACKS = compiler-libs.common
+LIBS = ppx_tools
+
+
+OCAMLFLAGS = -w +A-4-17-44-45 -I +compiler-libs -safe-string
+
+
+all: bc
+
+
+include $(OCAMLMAKEFILE)

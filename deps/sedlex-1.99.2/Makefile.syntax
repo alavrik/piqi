@@ -1,0 +1,18 @@
+OCAMLMAKEFILE := ../../make/OCamlMakefile
+
+
+RESULT = sedlex
+
+SOURCES = cset.mli cset.ml unicode63.mli unicode63.ml sedlex.mli sedlex.ml ppx_sedlex.ml
+
+
+PACKS := ppx_tools.metaquot
+
+
+OCAMLFLAGS = -w +A-4-9 -annot
+
+
+all: bcl ncl
+
+
+include $(OCAMLMAKEFILE)

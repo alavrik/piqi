@@ -28,7 +28,6 @@ deps: build-dir
 	$(MAKE) -C deps
 	$(MAKE) -C deps uninstall install
 
-
 build-dir:
 	mkdir -p build/lib/ocaml
 

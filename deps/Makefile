@@ -32,6 +32,15 @@ ifndef SKIP-base64
 DIRS += base64
 endif
 
+ifndef SKIP-ppx_tools
+PPX_TOOLS_DIR = ppx_tools-0.99.1
+endif
+
+ifndef SKIP-sedlex
+SEDLEX_DIR = sedlex-1.99.2
+endif
+
+DIRS = $(ULEX_DIR) $(XMLM_DIR) $(EASY_FORMAT_DIR) $(PPX_TOOLS_DIR) $(SEDLEX_DIR)
 
 install: dirs
 

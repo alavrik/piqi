@@ -1,0 +1,34 @@
+OCAMLMAKEFILE := ../../make/OCamlMakefile
+
+
+RESULT = ppx_metaquot
+
+SOURCES = ast_lifter.ml ppx_metaquot.ml
+
+PACKS = compiler-libs.common
+LIBS = ppx_tools
+
+
+OCAMLFLAGS = -w +A-4-17-44-45 -I +compiler-libs -safe-string
+
+
+NCSUFFIX = .opt
+
+
+all: ast_lifter.ml bc #nc
+
+
+ast_lifter.ml: genlifter$(EXE)
+	./genlifter$(EXE) -I +compiler-libs Parsetree.expression > ast_lifter.ml || rm -rf ast_lifter.ml
+
+
+genlifter$(EXE):
+	$(MAKE) -f Makefile.genlifter
+
+
+clean::
+	$(MAKE) -f Makefile.genlifter clean
+	rm -f ast_lifter.ml
+
+
+include $(OCAMLMAKEFILE)
