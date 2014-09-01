@@ -2,6 +2,3 @@ description = "The Piqi library -- runtime support for multi-format Protobuf/JSO
 requires = "camlp4 ulex easy-format xmlm"
 archive(byte) = "piqilib.cma"
 archive(native) = "piqilib.cmxa"
-# keeping it for backward compatibility with existing programs using it -- it is
-# not really needed on OCaml 3.12+
-archive(syntax,preprocessor) = "pa_labelscope.cmo"
