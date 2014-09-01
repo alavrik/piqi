@@ -29,9 +29,9 @@ On Mac OS X (using Homebrew):
         brew install objective-caml opam
         opam init
         eval `opam config env`
-        opam install ocamlfind
+        opam install ocamlfind camlp4
 
-        (Here, we used [OPAM](http://opam.ocamlpro.com/) to build and install
+        (Here, we used [OPAM](http://opam.ocaml.org/) to build and install
         ocamlfind).
 
 
