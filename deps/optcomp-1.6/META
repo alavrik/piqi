@@ -1,0 +1,5 @@
+version = "1.6"
+requires = "camlp4"
+description = "optcomp - optional compilation with cpp-like directives"
+archive(syntax,toploop) = "optcomp.cma"
+archive(syntax,preprocessor) = "optcomp.cma"

@@ -14,8 +14,12 @@ ifndef SKIP-easy-format
 EASY_FORMAT_DIR = easy-format-1.0.0
 endif
 
+ifndef SKIP-optcomp
+OPTCOMP_DIR = optcomp-1.6
+endif
 
-DIRS = $(ULEX_DIR) $(XMLM_DIR) $(EASY_FORMAT_DIR)
+
+DIRS = $(ULEX_DIR) $(XMLM_DIR) $(EASY_FORMAT_DIR) $(OPTCOMP_DIR)
 
 
 install: dirs

@@ -16,4 +16,5 @@ depends: [
   "easy-format"
   "ulex"
   "xmlm"
+  "optcomp"
 ]
