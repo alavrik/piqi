@@ -19,10 +19,6 @@ module C = Piqi_common
 open C
 
 
-module Main = Piqi_main
-open Main
-
-
 (* command-line arguments *)
 
 let usage = "Usage: piqi check [options] <.piqi|.piq file>\nOptions:"
@@ -30,24 +26,24 @@ let usage = "Usage: piqi check [options] <.piqi|.piq file>\nOptions:"
 
 let speclist = Main.common_speclist @
   [
-    Piqi_main.arg__strict;
-    Piqi_convert_cmd.arg__type;
-    Piqi_main.arg__include_extension;
+    Main.arg__strict;
+    Convert.arg__type;
+    Main.arg__include_extension;
   ]
 
 
 let check_piqi fname =
   (* in order to check JSON names: *)
   Piqi_json.init ();
-  let ch = Piqi_command.open_input fname in
+  let ch = Main.open_input fname in
   ignore (Piqi.load_piqi fname ch)
 
 
 (* TODO: add support for checking .pib and, possibly, json and xml as well *)
 let check_piq () =
-  let reader = Piqi_convert_cmd.make_reader "piq" in
+  let reader = Convert.make_reader "piq" in
   (* read Piq objects one by one, but don't output them anywhere *)
-  Piqi_convert_cmd.do_convert reader
+  Convert.do_convert reader
 
 
 let check_file fname =
@@ -59,7 +55,7 @@ let check_file fname =
 
 let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:1 ~max_arg_count:1;
-  check_file !ifile
+  check_file !Main.ifile
 
  
 let _ =

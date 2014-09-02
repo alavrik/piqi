@@ -16,10 +16,32 @@
 
 
 (*
- * "piqi" command entry point
+ * Light syntax for Piqi DDL: Piqi to Piqi-light pretty-printer
  *)
 
 
+let print_piqi_file () =
+  let ich = Main.open_input !Main.ifile in
+  let piqi = Piqi.load_piqi !Main.ifile ich in
+
+  let och = Main.open_output !Main.ofile in
+  Piqi_light.gen_piqi och piqi
+
+
+let usage = "Usage: piqi light [options] [<.piqi file>] [output-file]\nOptions:"
+
+let speclist = Main.common_speclist @
+  [
+    Main.arg_o;
+  ]
+
+
+let run () =
+  Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:2;
+  print_piqi_file ()
+
+
 let _ =
-  Piqi_main.run ()
+  Main.register_command run "light"
+    "pretty-print %.piqi using Piqi-light syntax"
 

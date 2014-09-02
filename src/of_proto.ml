@@ -611,28 +611,24 @@ let process_proto_set (x:ProtoFileSet.t) =
   gen_proto idtable proto
 
 
-module Main = Piqi_main
-open Main
-
-
 let usage = "Usage: piqi of-proto [options] <.proto file>\nOptions:"
 
 
 let speclist =
   [
-    arg__debug;
-    arg_o;
+    Main.arg__debug;
+    Main.arg_o;
 
-   "-I", Arg.String add_path,
-     "<dir> add directory to the list of .proto search paths (passed to protoc)";
+    "-I", Arg.String add_path,
+      "<dir> add directory to the list of .proto search paths (passed to protoc)";
 
-   "--normalize", Arg.Set flag_normalize,
-     "normalize identifiers (convert CamelCase to camel-case)";
+    "--normalize", Arg.Set flag_normalize,
+      "normalize identifiers (convert CamelCase to camel-case)";
 
-   "--convert-groups", Arg.Set flag_convert_groups,
-     "convert groups to records (groups are not supported)";
+    "--convert-groups", Arg.Set flag_convert_groups,
+      "convert groups to records (groups are not supported)";
 
-   arg__keep_tmp_files;
+    Main.arg__keep_tmp_files;
   ]
 
 
@@ -651,7 +647,7 @@ let proto_to_wire ifile ofile =
 
 
 let read_proto_wire ifile =
-  let ch = Piqi_main.open_input ifile in
+  let ch = Main.open_input ifile in
   let buf = Piqirun.init_from_channel ch in
   let proto_set = D.parse_file_descriptor_set buf in
   proto_set
@@ -671,8 +667,8 @@ let proto_to_piqi ifile =
    * any extra leading extensions *)
 
   let ofile =
-    if !ofile <> ""
-    then !ofile
+    if !Main.ofile <> ""
+    then !Main.ofile
     else ifile ^ ".piqi"
   in
   let ch = Main.open_output ofile in
@@ -691,7 +687,7 @@ let proto_to_piqi ifile =
 
   (* dump to a temporary file before prettyprinting for easier debugging *)
   let tmp_file = ofile ^ ".tmp.piqi" in
-  if !flag_keep_tmp_files
+  if !Main.flag_keep_tmp_files
   then
     try
       let tmp_ch = open_out tmp_file in
@@ -708,7 +704,7 @@ let proto_to_piqi ifile =
 
 let run () =
   Main.parse_args ~usage ~speclist ();
-  proto_to_piqi !ifile
+  proto_to_piqi !Main.ifile
 
 
 let _ =

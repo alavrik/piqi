@@ -648,21 +648,17 @@ let piqi_to_proto (piqi: T.piqi) ch =
   Iolist.to_channel ch code
 
 
-module Main = Piqi_main
-open Main
-
-
 let piqi_to_proto_file () =
-  let ich = Piqi_command.open_input !ifile in
-  let piqi = Piqi.load_piqi !ifile ich in
+  let ich = Main.open_input !Main.ifile in
+  let piqi = Piqi.load_piqi !Main.ifile ich in
 
-  if not (Filename.check_suffix !ifile ".piqi")
+  if not (Filename.check_suffix !Main.ifile ".piqi")
   then piqi_error "error: input file name must have '.piqi' extension";
 
   let ofile =
-    if !ofile <> ""
-    then !ofile
-    else (Piqi_file.chop_piqi_extensions !ifile) ^ ".piqi.proto"
+    if !Main.ofile <> ""
+    then !Main.ofile
+    else (Piqi_file.chop_piqi_extensions !Main.ifile) ^ ".piqi.proto"
   in
   let och = Main.open_output ofile in
 
@@ -673,8 +669,8 @@ let usage = "Usage: piqi to-proto [options] <.piqi file>\nOptions:"
 
 let speclist = Main.common_speclist @
   [
-    Piqi_main.arg__strict;
-    arg_o;
+    Main.arg__strict;
+    Main.arg_o;
   ]
 
 

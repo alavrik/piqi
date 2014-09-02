@@ -37,17 +37,17 @@ let arg__t =
   "pb|json|xml|piqi output format (default=piqi)"
 
 
-let speclist = Piqi_main.common_speclist @
+let speclist = Main.common_speclist @
   [
-    Piqi_main.arg__strict;
-    Piqi_main.arg_o;
+    Main.arg__strict;
+    Main.arg_o;
     arg__t;
-    Piqi_main.arg__include_extension;
+    Main.arg__include_extension;
   ]
 
 
 let load_piqi ifile =
-  let ch = Piqi_command.open_input ifile in
+  let ch = Main.open_input ifile in
   let piqi = Piqi.load_piqi ifile ch in
   (* perform some checks
    *
@@ -73,9 +73,9 @@ let load_piqi ifile =
 
 let run_cc () =
   let piqi =
-    if !Piqi_main.ifile <> ""
+    if !Main.ifile <> ""
     then
-      load_piqi !Piqi_main.ifile
+      load_piqi !Main.ifile
     else (
       trace "input file is missing; printing the default embedded self-spec\n";
       C.some_of !Piqi.piqi_spec
@@ -84,7 +84,7 @@ let run_cc () =
   let piqi = {piqi with P.modname = Some "piqi"} in
   let obj = Piqi_convert.Piqi piqi in
 
-  let och = Piqi_main.open_output !Piqi_main.ofile in
+  let och = Main.open_output !Main.ofile in
   match !output_format with
     | "json" ->
         Piqi_convert.to_json_channel och obj
@@ -101,7 +101,7 @@ let run_cc () =
 
 
 let run () =
-  Piqi_main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:1;
+  Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:1;
 
   Piqi_json.init (); (* we need it for converting to JSON *)
 
@@ -114,5 +114,5 @@ let run () =
 
  
 let _ =
-  Piqi_main.register_command run "cc" "compiler compiler: convert an (extended) self-spec into one of portable formats"
+  Main.register_command run "cc" "compiler compiler: convert an (extended) self-spec into one of portable formats"
 

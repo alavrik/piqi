@@ -25,7 +25,7 @@ let flag_parse_literals = ref false
 
 
 let open_piq fname =
-  let ch = Piqi_main.open_input fname in
+  let ch = Main.open_input fname in
   let piq_parser = Piq_parser.init_from_channel fname ch in
   piq_parser
 
@@ -59,12 +59,8 @@ let prettyprint_piq ch piq_parser =
   in aux ()
 
 
-module Main = Piqi_main
-open Main
-
-
 let prettyprint_file filename =
-  let ch = Main.open_output !ofile in
+  let ch = Main.open_output !Main.ofile in
 
   (* switch piq parser to pretty-printing mode that preserves the original
    * formatting of string and number literals *)
@@ -80,7 +76,7 @@ let usage = "Usage: piqi pp [options] [<.piqi|.piq file>] [output file]\nOptions
 
 let speclist = Main.common_speclist @
   [
-    arg_o;
+    Main.arg_o;
 
     "--normalize-words", Arg.Set flag_normalize,
     "normalize all words while pretty-printing (convert CamelCase to camel-case)";
@@ -91,13 +87,13 @@ let speclist = Main.common_speclist @
     "--parse-literals", Arg.Set flag_parse_literals,
     "parse string and number Piq literals instead of preserving their original formatting";
 
-    arg__;
+    Main.arg__;
   ]
 
 
 let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:2;
-  prettyprint_file !ifile
+  prettyprint_file !Main.ifile
 
  
 let _ =

@@ -19,10 +19,6 @@ module C = Piqi_common
 open C
 
 
-module Main = Piqi_main
-open Main
-
-
 (* command-line arguments *)
 let flag_includes_only = ref false
 let flag_extensions = ref true
@@ -34,7 +30,7 @@ let usage = "Usage: piqi expand [options] <.piqi file> [output file]\nOptions:"
 
 let speclist = Main.common_speclist @
   [
-    arg_o;
+    Main.arg_o;
 
    "--includes-only", Arg.Set flag_includes_only,
      "expand only includes";
@@ -51,14 +47,14 @@ let speclist = Main.common_speclist @
    "--add-module-name", Arg.Set flag_add_module_name,
      "add module name if it wasn't originally present";
 
-    Piqi_main.arg__strict;
-    Piqi_main.arg__include_extension;
+    Main.arg__strict;
+    Main.arg__include_extension;
   ]
 
 
 let expand_file () =
-  let ich = Piqi_command.open_input !ifile in
-  let piqi = Piqi.load_piqi !ifile ich in
+  let ich = Main.open_input !Main.ifile in
+  let piqi = Piqi.load_piqi !Main.ifile ich in
 
   if !flag_functions
   then flag_extensions := false;
@@ -77,7 +73,7 @@ let expand_file () =
   if !flag_add_module_name && res_piqi.P.modname = None
   then res_piqi.P.modname <- piqi.P.modname;
 
-  let och = Main.open_output !ofile in
+  let och = Main.open_output !Main.ofile in
   Piqi_pp.prettyprint_piqi och res_piqi
 
 

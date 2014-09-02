@@ -51,7 +51,7 @@ let arg__self_spec =
 
 let speclist = Piqi_compile.getopt_speclist @
   [
-    Piqi_main.arg_o;
+    Main.arg_o;
     arg_f;
     arg_t;
     arg__self_spec;
@@ -122,10 +122,10 @@ let load_self_spec () =
   let ifile = !input_self_spec in
   if ifile <> "" (* regular compilation mode mode with explicit --self-spec *)
   then (
-    let ich = Piqi_main.open_input ifile in
+    let ich = Main.open_input ifile in
     let buf = Piqirun.init_from_channel ich in
     let piqi = Piqi_compile.load_self_spec buf ~filename:ifile in
-    Piqi_command.close_input ();
+    Main.close_input ();
     piqi
   )
   else (
@@ -156,7 +156,7 @@ let load_piqi_piqobj input_format piqi_piqtype fname ch =
 
 
 let load_piqi self_spec fname =
-  let ch = Piqi_command.open_input fname in
+  let ch = Main.open_input fname in
   match !input_format with
     | "piqi" | "" ->
         Piqi.load_piqi fname ch
@@ -177,17 +177,17 @@ let load_piqi self_spec fname =
 
 
 let run_compile () =
-  let ifile = !Piqi_main.ifile in
+  let ifile = !Main.ifile in
 
   let self_spec = load_self_spec () in
   let piqi = load_piqi self_spec ifile in
 
-  let och = Piqi_command.open_output !Piqi_main.ofile in
+  let och = Main.open_output !Main.ofile in
   compile self_spec piqi och
 
 
 let run () =
-  Piqi_main.parse_args () ~speclist ~usage ~min_arg_count:1 ~max_arg_count:1;
+  Main.parse_args () ~speclist ~usage ~min_arg_count:1 ~max_arg_count:1;
 
   Piqi_json.init (); (* we need it for converting to JSON *)
 
@@ -200,5 +200,5 @@ let run () =
 
 
 let _ =
-  Piqi_main.register_command run "compile" "use self-spec to compile %.piqi into a portable piqi-list"
+  Main.register_command run "compile" "use self-spec to compile %.piqi into a portable piqi-list"
 

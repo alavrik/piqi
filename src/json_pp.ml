@@ -18,10 +18,6 @@
 open Piqi_common
 
 
-module Main = Piqi_main
-open Main
-
-
 let usage = "Usage: piqi json-pp [options] [<.json file>] [output file]\nOptions:"
 
 
@@ -35,8 +31,8 @@ let arg__indent =
 let speclist = Main.common_speclist @
   [
     arg__indent;
-    arg_o;
-    arg__;
+    Main.arg_o;
+    Main.arg__;
   ]
 
 
@@ -58,11 +54,11 @@ let prettyprint_json ch json_parser =
 
 
 let prettyprint_file () =
-  let ich = Main.open_input !ifile in
-  let och = Main.open_output !ofile in
+  let ich = Main.open_input !Main.ifile in
+  let och = Main.open_output !Main.ofile in
   (* switch parser/generator to pretty-print mode *)
   Config.pp_mode := true;
-  let json_parser = Piqi_json_parser.init_from_channel ich ~fname:!ifile in
+  let json_parser = Piqi_json_parser.init_from_channel ich ~fname:!Main.ifile in
   prettyprint_json och json_parser
 
 

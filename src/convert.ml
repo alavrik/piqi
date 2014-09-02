@@ -19,10 +19,6 @@ module C = Piqi_common
 open C
 
 
-module Main = Piqi_main
-open Main
-
-
 (* command-line arguments *)
 let input_encoding = ref ""
 let output_encoding = ref ""
@@ -84,8 +80,8 @@ let arg__gen_extended_piqi_any =
 
 let speclist = Main.common_speclist @
   [
-    Piqi_main.arg__strict;
-    arg_o;
+    Main.arg__strict;
+    Main.arg_o;
 
     arg_f;
     arg_t;
@@ -99,9 +95,8 @@ let speclist = Main.common_speclist @
     arg__gen_extended_piqi_any;
     arg__embed_piqi;
 
-    Piqi_main.arg__include_extension;
-
-    arg__;
+    Main.arg__include_extension;
+    Main.arg__;
   ]
 
 
@@ -114,7 +109,7 @@ let load_piqi fname :Piqi_convert.obj =
 
   (* NOTE, XXX: here also loading, processing and validating all the
    * module's dependencies *)
-  let ch = Piqi_command.open_input fname in
+  let ch = Main.open_input fname in
   let piqi = Piqi.load_piqi fname ch in
   Piqi_convert.Piqi piqi
 
@@ -177,8 +172,8 @@ let make_reader load_f input_param =
 
 
 let make_reader input_encoding =
-  let fname = !ifile in
-  let ch = Piqi_command.open_input fname in
+  let fname = !Main.ifile in
+  let ch = Main.open_input fname in
 
   match input_encoding with
     | "pb" when !typename = "" ->
@@ -206,7 +201,7 @@ let make_reader input_encoding =
     | "piqi" when !typename <> "" ->
         piqi_error "--type parameter is not applicable to \"piqi\" input encoding"
     | "piqi" ->
-        make_reader load_piqi !ifile
+        make_reader load_piqi !Main.ifile
 
     | "pib" ->
         let buf = Piqirun.IBuf.of_channel ch in
@@ -409,7 +404,7 @@ let convert_file () =
   let input_encoding =
     if !input_encoding <> ""
     then !input_encoding
-    else Piqi_file.get_extension !ifile
+    else Piqi_file.get_extension !Main.ifile
   in
   validate_options input_encoding;
 
@@ -418,11 +413,11 @@ let convert_file () =
   let writer = make_writer !output_encoding ~is_piqi_input in
   (* open output file *)
   let ofile =
-    match !ofile with
+    match !Main.ofile with
       | "" when !output_encoding = "" -> "" (* print "piq" to stdout by default *)
-      | "" when !ifile <> "" && !ifile <> "-" ->
+      | "" when !Main.ifile <> "" && !Main.ifile <> "-" ->
           let output_extension = !output_encoding in
-          !ifile ^ "." ^ output_extension
+          !Main.ifile ^ "." ^ output_extension
       | x -> x
   in
   let och = Main.open_output ofile in

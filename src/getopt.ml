@@ -26,12 +26,8 @@ open C
 
 
 (* command-line arguments *)
-let output_encoding = Piqi_convert_cmd.output_encoding
-let typename = Piqi_convert_cmd.typename
-
-
-module Main = Piqi_main
-open Main
+let output_encoding = Convert.output_encoding
+let typename = Convert.typename
 
 
 let validate_options () =
@@ -45,7 +41,7 @@ let validate_options () =
 let getopt_command () =
   validate_options ();
   (* open output file *)
-  let och = Main.open_output !ofile in
+  let och = Main.open_output !Main.ofile in
   (* interpret command-line arguments after "--" as Piq data *)
   let piq_ast_list = Piqi_getopt.getopt_piq () in
   match piq_ast_list with
@@ -60,7 +56,7 @@ let getopt_command () =
         in
         Piqi_pp.prettyprint_ast och ast
     | _ ->
-        let writer = Piqi_convert_cmd.make_writer !output_encoding in
+        let writer = Convert.make_writer !output_encoding in
         let piqtype = Piqi_convert.find_type !typename in
         let piqobj = Piqi_getopt.parse_args piqtype piq_ast_list in
 
@@ -73,12 +69,12 @@ let usage = "Usage: piqi getopt [options] -- [<data arguments>] \nOptions:"
 
 let speclist = Main.common_speclist @
   [
-    Piqi_main.arg__strict;
-    arg_o;
+    Main.arg__strict;
+    Main.arg_o;
 
-    Piqi_convert_cmd.arg_t;
-    Piqi_convert_cmd.arg__type;
-    Piqi_convert_cmd.arg__add_defaults;
+    Convert.arg_t;
+    Convert.arg__type;
+    Convert.arg__add_defaults;
 
     Piqi_getopt.arg__rest;
   ]

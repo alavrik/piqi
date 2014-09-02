@@ -237,10 +237,6 @@ let set_gc_options () =
     Gc.set opt
 
 
-module Main = Piqi_main
-open Main
-
-
 let usage = "Usage: piqi server [options]\nOptions:"
 
 
