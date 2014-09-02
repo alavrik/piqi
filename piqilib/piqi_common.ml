@@ -326,9 +326,9 @@ let eprintf_if cond fmt =
   then
     begin
       print_trace_indent ();
-      Printf.fprintf stderr fmt
+      Printf.kfprintf (fun stderr -> flush stderr) stderr fmt
     end
-  else Printf.ifprintf stderr fmt
+  else Printf.ikfprintf (fun _ -> ()) stderr fmt
 
 
 let debug fmt =
