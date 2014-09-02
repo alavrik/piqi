@@ -1,4 +1,4 @@
 description = "The Piqi library -- runtime support for multi-format Protobuf/JSON/XML/Piq data serialization and conversion"
-requires = "camlp4 ulex easy-format xmlm"
+requires = "ulex easy-format xmlm"
 archive(byte) = "piqilib.cma"
 archive(native) = "piqilib.cmxa"
