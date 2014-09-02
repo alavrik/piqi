@@ -3,16 +3,12 @@ Piqi tests
 
 To build, run and re-run the tests:
 
-1. Setup the environment
-
-    cd ..
-    . setenv.sh
-    cd -
-
-
-2. Run the tests
-
     make
+
+
+To cleanup:
+
+    make clean
 
 
 Prerequisites

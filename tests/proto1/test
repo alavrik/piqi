@@ -5,7 +5,7 @@ set -ex
 # .piqi -> .piqi.proto
 for i in *.piqi
 do
-        piqi to-proto $i
+        $PIQI to-proto $i
 done
 
 
@@ -19,6 +19,6 @@ done
 # .piqi.proto -> .piqi.proto.piqi
 for i in *.piqi.proto
 do
-        piqi of-proto $i
+        $PIQI of-proto $i
 done
 

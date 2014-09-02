@@ -1,3 +1,4 @@
+include ../Makefile.config
 
 
 PIQI_FILES = \
@@ -25,30 +26,30 @@ test_piqi:
 
 
 test_piqi_piqi:
-	piqi to-proto piqi.piqi
-	piqi expand --add-module-name piqi.piqi > p.piqi
-	piqi check p.piqi
-	piqi expand --add-module-name --includes-only piqi.piqi > pp.piqi
-	piqi check pp.piqi
-	piqi convert -t pb p.piqi
-	piqi convert -t pb piqi.piqi
+	$(PIQI) to-proto piqi.piqi
+	$(PIQI) expand --add-module-name piqi.piqi > p.piqi
+	$(PIQI) check p.piqi
+	$(PIQI) expand --add-module-name --includes-only piqi.piqi > pp.piqi
+	$(PIQI) check pp.piqi
+	$(PIQI) convert -t pb p.piqi
+	$(PIQI) convert -t pb piqi.piqi
 	cmp p.piqi.pb piqi.piqi.pb
 	test ! `which protoc` || protoc -I.. -I. --decode=piqi_org.piqi.piqi piqi.piqi.proto < p.piqi.pb > p.piqi.text
 	# json
-	piqi convert -t json p.piqi
-	piqi convert p.piqi.json >/dev/null
+	$(PIQI) convert -t json p.piqi
+	$(PIQI) convert p.piqi.json >/dev/null
 	# json with --gen-extended-piqi-any
-	piqi convert -t json --gen-extended-piqi-any p.piqi
-	piqi convert p.piqi.json >/dev/null
+	$(PIQI) convert -t json --gen-extended-piqi-any p.piqi
+	$(PIQI) convert p.piqi.json >/dev/null
 	# xml
-	piqi convert -t xml p.piqi
-	piqi convert --type piqi p.piqi.xml >/dev/null
-	piqi convert --embed-piqi piqi.piqi > t.piq
-	piqi convert t.piq >/dev/null
-	piqi check t.piq
+	$(PIQI) convert -t xml p.piqi
+	$(PIQI) convert --type piqi p.piqi.xml >/dev/null
+	$(PIQI) convert --embed-piqi piqi.piqi > t.piq
+	$(PIQI) convert t.piq >/dev/null
+	$(PIQI) check t.piq
 	# xml with --gen-extended-piqi-any
-	piqi convert -t xml --gen-extended-piqi-any p.piqi
-	piqi convert --type piqi p.piqi.xml >/dev/null
+	$(PIQI) convert -t xml --gen-extended-piqi-any p.piqi
+	$(PIQI) convert --type piqi p.piqi.xml >/dev/null
 
 
 clean:

@@ -1,3 +1,4 @@
+include ../../Makefile.config
 
 
 PIQI_FILES = \
@@ -20,12 +21,12 @@ test_piqi:
 # test that piqtype-core.piqi can parse itself
 test_piqtype_core:
 	cat piqtype-core.piqi | sed -e 's!\.module.*!(:piqtype-core/typedef)!;s!.piq-format.word!!' >piqtype-core.piq
-	piqi check piqtype-core.piq
+	$(PIQI) check piqtype-core.piq
 
 
 test_embedded_piqi:
-	piqi convert --embed-piqi piqobj.piqi > t.piq
-	piqi check t.piq
+	$(PIQI) convert --embed-piqi piqobj.piqi > t.piq
+	$(PIQI) check t.piq
 
 
 clean:

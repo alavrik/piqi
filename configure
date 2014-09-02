@@ -95,6 +95,8 @@ echo "export PIQI_ROOT := `pwd`" >> $M
 echo "export PIQI_BUILD := \$(PIQI_ROOT)/build" >> $M
 # path to .piqi files
 echo "export PIQI_PATH := \$(PIQI_ROOT)" >> $M
+# path to the "piqi" executable
+echo "export PIQI := \$(PIQI_ROOT)/src/piqi" >> $M
 echo >> $M
 
 # we have to define these for cross-compilation

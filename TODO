@@ -14,8 +14,6 @@ Packaging and dependencies
 
 - --version based on git commit (for development builds)
 
-- drop ./setenv.sh; instead, use relative paths to the piqi executable in tests
-
 
 Miscellaneous improvements
 --------------------------
@@ -67,7 +65,7 @@ Documentation
 Protocol Buffers
 ----------------
 
-- support for new Protocol Buffers features introduced in Protobuf-2.5.0 and
+- add support for new Protocol Buffers features introduced in Protobuf-2.5.0 and
   2.6.0, including "import public", "allow_alias", "oneof"; see
   http://protobuf.googlecode.com/svn/trunk/CHANGES.txt
 

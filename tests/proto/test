@@ -9,10 +9,10 @@ test -d google/protobuf || exit 0
 set -ex
 
 
-piqi of-proto --normalize google/protobuf/descriptor.proto
-piqi of-proto --normalize google/protobuf/compiler/plugin.proto
-piqi to-proto google/protobuf/descriptor.proto.piqi
-piqi to-proto google/protobuf/compiler/plugin.proto.piqi
+$PIQI of-proto --normalize google/protobuf/descriptor.proto
+$PIQI of-proto --normalize google/protobuf/compiler/plugin.proto
+$PIQI to-proto google/protobuf/descriptor.proto.piqi
+$PIQI to-proto google/protobuf/compiler/plugin.proto.piqi
 protoc --include_imports -o/dev/null google/protobuf/compiler/plugin.piqi.proto
 
 
@@ -20,10 +20,10 @@ cd google/protobuf
 
 	#protoc --include_imports -odescriptor.proto.pb descriptor.proto
 	protoc --include_imports -odescriptor.proto.pb descriptor.piqi.proto
-	piqi convert --type descriptor/file-descriptor-set -t piq descriptor.proto.pb
-	piqi convert -t pb descriptor.proto.pb.piq
+	$PIQI convert --type descriptor/file-descriptor-set -t piq descriptor.proto.pb
+	$PIQI convert -t pb descriptor.proto.pb.piq
 	cmp descriptor.proto.pb descriptor.proto.pb.piq.pb
-	piqi convert --type descriptor/file-descriptor-set -t piq descriptor.proto.pb.piq.pb
+	$PIQI convert --type descriptor/file-descriptor-set -t piq descriptor.proto.pb.piq.pb
 	cmp descriptor.proto.pb.piq descriptor.proto.pb.piq.pb.piq
 	#protoc --decode=google.protobuf.FileDescriptorSet descriptor.proto < descriptor.proto.pb.piq.pb >/dev/null
 	protoc --decode=google.protobuf.file_descriptor_set descriptor.piqi.proto < descriptor.proto.pb.piq.pb >/dev/null
@@ -52,14 +52,14 @@ test_all() {
 	PIQI_OF_PROTO_FLAGS=$1
 	for i in `cat l`
 	do
-		piqi of-proto $PIQI_OF_PROTO_FLAGS --convert-groups $i || exit 1
+		$PIQI of-proto $PIQI_OF_PROTO_FLAGS --convert-groups $i || exit 1
 	done
 
 
 	#PIQI_TO_PROTO_FLAGS=--no-warnings
 	for i in `cat l`
 	do
-		piqi to-proto $PIQI_TO_PROTO_FLAGS $i.piqi || exit 1
+		$PIQI to-proto $PIQI_TO_PROTO_FLAGS $i.piqi || exit 1
 	done
 
 
@@ -72,7 +72,7 @@ test_all() {
 	for i in `cat l`
 	do
 		i=`dirname $i`/`basename $i .proto`
-		piqi of-proto $PIQI_OF_PROTO_FLAGS --convert-groups $i.piqi.proto || exit 1
+		$PIQI of-proto $PIQI_OF_PROTO_FLAGS --convert-groups $i.piqi.proto || exit 1
 	done
 }
 
@@ -84,8 +84,8 @@ test_all --normalize
 rm l
 
 
-piqi of-proto --keep-tmp-files google/protobuf/unittest_enormous_descriptor.proto 
-piqi convert --type google/protobuf/descriptor/file-descriptor-set -f pb -t pb google/protobuf/unittest_enormous_descriptor.proto.pb 
+$PIQI of-proto --keep-tmp-files google/protobuf/unittest_enormous_descriptor.proto 
+$PIQI convert --type google/protobuf/descriptor/file-descriptor-set -f pb -t pb google/protobuf/unittest_enormous_descriptor.proto.pb 
 cmp google/protobuf/unittest_enormous_descriptor.proto.pb*
 
 

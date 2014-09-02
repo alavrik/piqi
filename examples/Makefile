@@ -1,3 +1,6 @@
+include ../Makefile.config
+
+
 all: test_builtin test_complex
 
 .PHONY: test_builtin test_complex
@@ -43,7 +46,7 @@ test_complex:
 
 	./test_getopt
 
-	test ! `which protoc` || (piqi of-proto --normalize addressbook.proto; \
+	test ! `which protoc` || ($(PIQI) of-proto --normalize addressbook.proto; \
 	./test_piqi addressbook.proto; \
 	./test_piq addressbook;)
 

@@ -1,3 +1,5 @@
+include ../../Makefile.config
+
 
 all:
 	./test

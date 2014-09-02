@@ -1,9 +1,9 @@
+include ../../Makefile.config
+
+
 PROTO_FILES = riak.proto riak_kv.proto riak_search.proto
 
 PIQI_FILES = $(PROTO_FILES:%=%.piqi)
-
-
-PIQI ?= piqi
 
 
 all: $(PIQI_FILES)

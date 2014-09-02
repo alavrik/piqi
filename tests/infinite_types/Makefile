@@ -1,3 +1,6 @@
+include ../../Makefile.config
+
+
 INFINITE = \
 	infinite_alias.piqi \
 	infinite_alias2.piqi \
@@ -10,9 +13,9 @@ INFINITE = \
 
 
 test:
-	piqi check finite.piqi
+	$(PIQI) check finite.piqi
 	for i in $(INFINITE); do \
-		piqi check $$i; \
+		$(PIQI) check $$i; \
 		test $$? -eq 0 && exit 1; \
 	done; true
 

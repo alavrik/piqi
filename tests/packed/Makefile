@@ -1,3 +1,5 @@
+include ../../Makefile.config
+
 
 all:
 	cat packed.piqi | sed -e 's/\.protobuf-packed//' > unpacked.piqi

@@ -104,13 +104,7 @@ INSTALLATION INSTRUCTIONS
 RUNNING TESTS
 =============
 
-1. Prepare the environment
-
-        . setenv.sh
-
-2. Run the tests
-
-        cd tests; make
+        make -C tests
 
 
 See tests/README for further information.
