@@ -12,7 +12,7 @@ PACKS = unix
 # OCAMLPATH to reduce complexity of the windows build (e.g. avoid converting :
 # path separators to ; along with reverting slashes); we can't simply symlink it
 # to the build dir either because symlinks don't work on windows
-PACKS += ulex-camlp5 easy-format xmlm base64
+PACKS += ulex-camlp5 easy-format xmlm base64 sedlex
 INCDIRS = ../piqilib
 LIBS = ../piqilib/piqilib
 
