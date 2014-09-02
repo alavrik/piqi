@@ -6,9 +6,9 @@ include $(PIQI_ROOT)/make/Makefile.dirs
 # are installed as well.
 ifneq ($(shell which protoc), )
 DIRS_PROTO = \
-       piqi_proto \
-       piqi_proto1 \
-       piqi_packed \
+       proto \
+       proto1 \
+       packed \
        extensions \
        cpp \
 
@@ -18,16 +18,20 @@ endif
 DIRS = \
        examples \
        self_spec \
-       piqi_misc \
+       misc \
        infinite_types \
-       piqi_server \
-       piqi_compile \
-       piqi_pp \
+       server \
+       compile \
+       pp \
        piq \
        $(DIRS_PROTO)
 
 
 .PHONY: proto proto-clean
+
+
+post_target::
+	@echo "ALL TESTS OK"
 
 
 proto:

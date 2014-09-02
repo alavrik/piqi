@@ -30,6 +30,6 @@ installed to "/opt/local", the command will be:
 
     export CXXFLAGS="-I/opt/local/include/ -L/opt/local/lib"
 
-"piqi_proto" test requires access to Protobuf source directory. See
-piqi_proto/README for details.
+"proto" test requires access to Protobuf source directory. See
+proto/README for details.
 
