@@ -322,7 +322,7 @@ let print_trace_indent () =
   done
 
 
-#if ocaml_version >= (4, 0)
+#if ocaml_version >= (4, 1)
 let eprintf_if cond fmt =
   if cond
   then
