@@ -1,7 +1,7 @@
 .TH PIQI 1 "March 30, 2014" "Piqi User Manual"
 .SH NAME
 .PP
-piqi - a collection of tools for working with structured data and Piqi
+piqi \- a collection of tools for working with structured data and Piqi
 schemas
 .SH SYNOPSIS
 .PP
@@ -14,10 +14,10 @@ around it.
 The Piqi language can be used to define schemas for JSON, XML, Google
 Protocol Buffers and some other data formats.
 .PP
-\f[C]piqi\f[] is a command-line program that implements a set of
-sub-commands:
+\f[C]piqi\f[] is a command\-line program that implements a set of
+sub\-commands:
 .IP \[bu] 2
-for validating, pretty-printing and converting data between JSON, XML,
+for validating, pretty\-printing and converting data between JSON, XML,
 Protocol Buffers and Piq formats.
 .IP \[bu] 2
 for working with the schemas, such as converting definitions between
@@ -29,7 +29,7 @@ representation formats (JSON, XML, Protocol Buffers).
 This is the list of common options which is supported by most of
 \f[C]piqi\f[] subcommands.
 .TP
-.B \f[C]-I\ <dir>\f[]
+.B \f[C]\-I\ <dir>\f[]
 Add directory to the list of Piqi search paths.
 Search path specifies where to search for included or imported modules
 defined in \f[C]\&.piqi\f[] or \f[C]\&.proto.piqi\f[] files.
@@ -42,42 +42,42 @@ The list of search paths can be also specified using the
 See the ENVIRONMENT section below.
 .RE
 .TP
-.B \f[C]--no-warnings\f[]
+.B \f[C]\-\-no\-warnings\f[]
 Don\[aq]t print warnings.
 .RS
 .RE
 .TP
-.B \f[C]--trace\f[]
+.B \f[C]\-\-trace\f[]
 Turn on tracing.
 .RS
 .RE
 .TP
-.B \f[C]--debug\ <level>\f[]
+.B \f[C]\-\-debug\ <level>\f[]
 Specify debug level; any number greater than 0 turns on debug messages.
 .RS
 .RE
 .TP
-.B \f[C]--no-builtin-types\f[]
-Don\[aq]t include built-in types while processing loaded Piqi modules
+.B \f[C]\-\-no\-builtin\-types\f[]
+Don\[aq]t include built\-in types while processing loaded Piqi modules
 .RS
 .RE
 .TP
-.B \f[C]--help\f[]
+.B \f[C]\-\-help\f[]
 Display the list of options.
 .RS
 .RE
 .TP
-.B \f[C]--version\f[]
+.B \f[C]\-\-version\f[]
 Print Piqi version and exit.
 .RS
 .RE
 .TP
-.B \f[C]--\f[]
+.B \f[C]\-\-\f[]
 This sequence delimits the list of options, the remaining arguments will
 be treated as positional arguments.
 .RS
 .PP
-For instance, if placed after \f[C]--\f[] argument, \f[C]-\f[] can be
+For instance, if placed after \f[C]\-\-\f[] argument, \f[C]\-\f[] can be
 used for specifying \f[C]stdin/stdout\f[] as input or output files.
 .RE
 .SS piqi convert
@@ -102,26 +102,26 @@ file, the output file name will be implicitly set to
 .PP
 Options:
 .TP
-.B \f[C]-o\ <output\ file>\f[]
-Alternative method for specifying output file; use \f[C]-\f[] for
+.B \f[C]\-o\ <output\ file>\f[]
+Alternative method for specifying output file; use \f[C]\-\f[] for
 \f[C]stdout\f[].
 .RS
 .RE
 .TP
-.B \f[C]-f\ pb|json|xml|piq|pib\f[]
+.B \f[C]\-f\ pb|json|xml|piq|pib\f[]
 Specify input encoding.
 If not specified, input encoding will be chosen based on input
 file\[aq]s extension.
 .RS
 .RE
 .TP
-.B \f[C]-t\ pb|json|xml|piq|pib\f[]
+.B \f[C]\-t\ pb|json|xml|piq|pib\f[]
 Specify output encoding.
 \f[C]piq\f[] encoding is used by default.
 .RS
 .RE
 .TP
-.B \f[C]--type\ <typename>\f[]
+.B \f[C]\-\-type\ <typename>\f[]
 Specify the type of converted object when converting from \f[C]pb\f[] or
 \f[C]json\f[] encodings, as these formats do not contain information
 about types.
@@ -132,10 +132,10 @@ For other input formats, this parameter defines the default object type.
 form \f[C]<module\ name>/<type\ name>\f[].
 .PP
 If an input \f[C]pb\f[] or \f[C]json\f[] stream contains embedded Piqi
-module(s), a special \f[C]--type\ piqi\f[] value should be used.
+module(s), a special \f[C]\-\-type\ piqi\f[] value should be used.
 .RE
 .TP
-.B \f[C]--add-defaults\f[]
+.B \f[C]\-\-add\-defaults\f[]
 Add field default values while converting records.
 .RS
 .PP
@@ -144,7 +144,7 @@ input record is unspecified, the output field will be set to the default
 value.
 .RE
 .TP
-.B \f[C]--embed-piqi\f[]
+.B \f[C]\-\-embed\-piqi\f[]
 Include data definitions in a form of embedded Piqi modules into the
 data stream.
 .RS
@@ -153,20 +153,20 @@ Piq data streams represented in \f[C]piq\f[], \f[C]json\f[] and
 \f[C]pib\f[] formats can contain Piqi modules embedded in the data
 stream.
 .PP
-\f[C]--embed-piqi\f[] flag tells \f[C]piqi\ convert\f[] to embed all
+\f[C]\-\-embed\-piqi\f[] flag tells \f[C]piqi\ convert\f[] to embed all
 Piqi modules, which the input data depends on, into the output stream.
 Such dependencies include all Piqi modules that define types for the
-data contained in the stream and all the modules which the first-level
+data contained in the stream and all the modules which the first\-level
 dependencies include or import.
 .PP
-This way, using this flag, one can produce a self-describing data bundle
+This way, using this flag, one can produce a self\-describing data bundle
 that includes full description of the data contained in the stream.
 .PP
 If the flag is used when converting from \f[C]\&.piqi\f[], all
 dependencies of the converted module will be included in the stream.
 .RE
 .TP
-.B \f[C]--json-omit-missing-fields\ true|false\f[]
+.B \f[C]\-\-json\-omit\-missing\-fields\ true|false\f[]
 Whether to omit missing optional and empty repeated fields from JSON
 output instead of representing them as {"field_name": null} and
 {"field_name", []} JSON fields.
@@ -174,15 +174,15 @@ Default setting is \f[C]true\f[].
 .RS
 .RE
 .TP
-.B \f[C]--strict\f[]
+.B \f[C]\-\-strict\f[]
 Treat unknown and duplicate fields as errors when parsing JSON, XML and
 Piq formats.
 .RS
 .RE
 .TP
-.B \f[C]-e\ <extension-name>\f[]
+.B \f[C]\-e\ <extension\-name>\f[]
 Automatically include extension modules (/doc/piqi#extensionmodules)
-\f[C]<extension-name>\f[] when loading .piqi files.
+\f[C]<extension\-name>\f[] when loading .piqi files.
 .RS
 .RE
 .SS piqi check
@@ -193,7 +193,7 @@ Checks .piq and .piqi validity.
 .PP
 Returns 0 if the file is valid.
 .TP
-.B \f[C]--type\ <typename>\f[]
+.B \f[C]\-\-type\ <typename>\f[]
 Specify the default object type when reading data from .piq files.
 .RS
 .PP
@@ -201,15 +201,15 @@ Specify the default object type when reading data from .piq files.
 form \f[C]<module\ name>/<type\ name>\f[].
 .RE
 .TP
-.B \f[C]--strict\f[]
+.B \f[C]\-\-strict\f[]
 Treat unknown and duplicate fields as errors when parsing JSON, XML and
 Piq formats.
 .RS
 .RE
 .TP
-.B \f[C]-e\ <extension-name>\f[]
+.B \f[C]\-e\ <extension\-name>\f[]
 Automatically include extension modules (/doc/piqi#extensionmodules)
-\f[C]<extension-name>\f[] when loading .piqi files.
+\f[C]<extension\-name>\f[] when loading .piqi files.
 .RS
 .RE
 .SS piqi pp
@@ -217,7 +217,7 @@ Automatically include extension modules (/doc/piqi#extensionmodules)
 Usage:
 \f[C]piqi\ pp\ [options]\ [<.piqi|.piq\ file>]\ [output\ file]\f[]
 .PP
-Pretty-prints .piq and .piqi files.
+Pretty\-prints .piq and .piqi files.
 .PP
 \f[B]NOTE:\f[] this command doesn\[aq]t check type validity.
 .PP
@@ -226,37 +226,37 @@ If input or output file are not specified \f[C]stdin\f[] and
 .PP
 Options:
 .TP
-.B \f[C]-o\ <output\ file>\f[]
-Alternative method for specifying output file; use \f[C]-\f[] for
+.B \f[C]\-o\ <output\ file>\f[]
+Alternative method for specifying output file; use \f[C]\-\f[] for
 \f[C]stdout\f[].
 .RS
 .RE
 .TP
-.B \f[C]--normalize-words\f[]
-Normalize all words while pretty-printing: convert all "CamelCase" Piq
-words to "camel-case" format.
+.B \f[C]\-\-normalize\-words\f[]
+Normalize all words while pretty\-printing: convert all "CamelCase" Piq
+words to "camel\-case" format.
 .RS
 .RE
 .TP
-.B \f[C]--expand-abbr\f[]
-Expand built-in syntax abbreviations.
+.B \f[C]\-\-expand\-abbr\f[]
+Expand built\-in syntax abbreviations.
 See Piq documentation for details.
 .RS
 .RE
 .TP
-.B \f[C]--parse-literals\f[]
+.B \f[C]\-\-parse\-literals\f[]
 Parse string and number Piq literals instead of preserving their
 original formatting.
 .RS
 .RE
-.SS piqi json-pp
+.SS piqi json\-pp
 .PP
 Usage:
-\f[C]piqi\ json-pp\ [options]\ [<.json\ file>]\ [output\ file]\f[]
+\f[C]piqi\ json\-pp\ [options]\ [<.json\ file>]\ [output\ file]\f[]
 .PP
-Pretty-prints JSON files.
+Pretty\-prints JSON files.
 Input file may contain several properly formated JSON objects
-represented as UTF-8 text as defined by RFC
+represented as UTF\-8 text as defined by RFC
 4627 (http://www.ietf.org/rfc/rfc4627.txt).
 .PP
 \f[B]NOTE:\f[] this command doesn\[aq]t check type validity.
@@ -266,14 +266,14 @@ If input or output file are not specified \f[C]stdin\f[] and
 .PP
 Options:
 .TP
-.B \f[C]-o\ <output\ file>\f[]
-Alternative method for specifying output file; use \f[C]-\f[] for
+.B \f[C]\-o\ <output\ file>\f[]
+Alternative method for specifying output file; use \f[C]\-\f[] for
 \f[C]stdout\f[].
 .RS
 .RE
 .TP
-.B \f[C]--indent\f[]
-Use indentation instead of pretty-printing
+.B \f[C]\-\-indent\f[]
+Use indentation instead of pretty\-printing
 .RS
 .RE
 .SS piqi expand
@@ -284,47 +284,47 @@ Include all included \f[C]\&.piqi\f[] and, by default, apply all
 extensions in order to get a single \f[C]\&.piqi\f[] specifications from
 several dependent \f[C]\&.piqi\f[] modules.
 .TP
-.B \f[C]-o\ <output\ file>\f[]
-Alternative method for specifying output file; use \f[C]-\f[] for
+.B \f[C]\-o\ <output\ file>\f[]
+Alternative method for specifying output file; use \f[C]\-\f[] for
 \f[C]stdout\f[].
 .RS
 .RE
 .TP
-.B \f[C]--includes-only\f[]
+.B \f[C]\-\-includes\-only\f[]
 Expand only includes (don\[aq]t expand extensions).
 .RS
 .RE
 .TP
-.B \f[C]--functions\f[]
+.B \f[C]\-\-functions\f[]
 Removes embedded typedefs from function parameters and turns them into
-correspondent top-level definitions.
+correspondent top\-level definitions.
 .RS
 .RE
 .TP
-.B \f[C]--extensions\f[]
+.B \f[C]\-\-extensions\f[]
 Only expand extensions and includes (this is the default behavior).
 .RS
 .RE
 .TP
-.B \f[C]--all\f[]
-Equivalent to specifying both \f[C]--extensions\f[] and
-\f[C]--functions\f[].
+.B \f[C]\-\-all\f[]
+Equivalent to specifying both \f[C]\-\-extensions\f[] and
+\f[C]\-\-functions\f[].
 .RS
 .RE
 .TP
-.B \f[C]--add-module-name\f[]
+.B \f[C]\-\-add\-module\-name\f[]
 Add module name if it wasn\[aq]t originally present
 .RS
 .RE
 .TP
-.B \f[C]-e\ <extension-name>\f[]
+.B \f[C]\-e\ <extension\-name>\f[]
 Automatically include extension modules (/doc/piqi#extensionmodules)
-\f[C]<extension-name>\f[] when loading .piqi files.
+\f[C]<extension\-name>\f[] when loading .piqi files.
 .RS
 .RE
-.SS piqi to-proto
+.SS piqi to\-proto
 .PP
-Usage: \f[C]piqi\ to-proto\ [options]\ <.piqi\ file>\f[]
+Usage: \f[C]piqi\ to\-proto\ [options]\ <.piqi\ file>\f[]
 .PP
 Converts \f[C]\&.piqi\f[] file to \f[C]\&.piqi.proto\f[]
 .PP
@@ -333,14 +333,14 @@ here (/doc/protobuf/#piqitoprotomapping).
 .PP
 Options:
 .TP
-.B \f[C]-o\ <output\ file>\f[]
+.B \f[C]\-o\ <output\ file>\f[]
 Specify an alternative output file name instead of
 \f[C]%.piqi.proto\f[].
 .RS
 .RE
-.SS piqi of-proto
+.SS piqi of\-proto
 .PP
-Usage: \f[C]piqi\ of-proto\ [options]\ <.proto\ file>\f[]
+Usage: \f[C]piqi\ of\-proto\ [options]\ <.proto\ file>\f[]
 .PP
 Converts \f[C]\&.proto\f[] file to \f[C]\&.proto.piqi\f[]
 .PP
@@ -349,19 +349,19 @@ here (/doc/protobuf/#prototopiqimapping).
 .PP
 Options:
 .TP
-.B \f[C]-o\ <output\ file>\f[]
+.B \f[C]\-o\ <output\ file>\f[]
 Specify an alternative output file name instead of
 \f[C]%.proto.piqi\f[].
 .RS
 .RE
 .TP
-.B \f[C]--normalize\f[]
-Convert "CamelCase" identifiers in Proto specification into "camel-case"
+.B \f[C]\-\-normalize\f[]
+Convert "CamelCase" identifiers in Proto specification into "camel\-case"
 format.
 .RS
 .RE
 .TP
-.B \f[C]--convert-groups\f[]
+.B \f[C]\-\-convert\-groups\f[]
 Convert Protocol Buffers Group definitions to Piqi records definitions.
 .RS
 .PP
@@ -371,73 +371,73 @@ the initial Proto specification.
 Groups are deprecated in Protocol Buffers and not supported by Piqi.
 .RE
 .TP
-.B \f[C]--leave-tmp-files\f[]
+.B \f[C]\-\-leave\-tmp\-files\f[]
 Don\[aq]t delete temporary files created during command execution.
 This option is useful for debugging.
 .RS
 .RE
 .TP
-.B \f[C]--strict\f[]
+.B \f[C]\-\-strict\f[]
 Treat unknown and duplicate fields as errors when parsing the Piqi spec
 .RS
 .RE
 .SS piqi light
 .PP
-Usage: \f[C]piqi\ light\ [options]\ [<.piqi\ file>]\ [output-file]\f[]
+Usage: \f[C]piqi\ light\ [options]\ [<.piqi\ file>]\ [output\-file]\f[]
 .PP
-Prints \f[C]\&.piqi\f[] file using Piqi-light
+Prints \f[C]\&.piqi\f[] file using Piqi\-light
 syntax (/doc/piqi/#piqilightsyntax).
 .PP
 Options:
 .TP
-.B \f[C]-o\ <output\ file>\f[]
-Alternative method for specifying output file; use \f[C]-\f[] for
+.B \f[C]\-o\ <output\ file>\f[]
+Alternative method for specifying output file; use \f[C]\-\f[] for
 \f[C]stdout\f[].
 .RS
 .RE
 .SS piqi getopt
 .PP
-Usage: \f[C]piqi\ getopt\ [options]\ --\ [<data\ arguments>]\f[]
+Usage: \f[C]piqi\ getopt\ [options]\ \-\-\ [<data\ arguments>]\f[]
 .PP
-Interprets command-line arguments as typed data, and outputs it in
+Interprets command\-line arguments as typed data, and outputs it in
 various formats.
 .PP
-For description of command-line argument syntax and the way how
+For description of command\-line argument syntax and the way how
 arguments are parsed see correspondent section (/doc/getopt/) of the
 current documentation.
 .PP
 Options:
 .TP
-.B \f[C]-o\ <output\ file>\f[]
-Specify output file; use \f[C]-\f[] for \f[C]stdout\f[].
-If no \f[C]-o\f[] option is given, \f[C]stdout\f[] is used by default.
+.B \f[C]\-o\ <output\ file>\f[]
+Specify output file; use \f[C]\-\f[] for \f[C]stdout\f[].
+If no \f[C]\-o\f[] option is given, \f[C]stdout\f[] is used by default.
 .RS
 .RE
 .TP
-.B \f[C]-t\ pb|json|xml|piq|pib\f[]
+.B \f[C]\-t\ pb|json|xml|piq|pib\f[]
 Specify output encoding.
 \f[C]piq\f[] encoding is used by default.
 .RS
 .PP
-Requires \f[C]--type\f[] option.
+Requires \f[C]\-\-type\f[] option.
 .PP
-If \f[C]-t\f[] option is not used, Piq AST will be produced instead of
+If \f[C]\-t\f[] option is not used, Piq AST will be produced instead of
 the converted data object.
 This mode is useful for debugging and understanding how Piqi parses
-command-line arguments.
+command\-line arguments.
 .RE
 .TP
-.B \f[C]--type\ <typename>\f[]
+.B \f[C]\-\-type\ <typename>\f[]
 Specify the name of the expected data type.
 .RS
 .PP
 \f[C]<typename>\f[] should be a fully qualified Piqi typename of the
 form \f[C]<module\ name>/<type\ name>\f[].
 .PP
-(This option is applied only when \f[C]-t\f[] option is used.)
+(This option is applied only when \f[C]\-t\f[] option is used.)
 .RE
 .TP
-.B \f[C]--add-defaults\f[]
+.B \f[C]\-\-add\-defaults\f[]
 Add field default values while converting records.
 .RS
 .PP
@@ -445,69 +445,69 @@ If an optional field specifies default value and the field value in the
 input record is unspecified, the output field will be set to the default
 value.
 .PP
-(This option is applied only when \f[C]-t\f[] option is used.)
+(This option is applied only when \f[C]\-t\f[] option is used.)
 .RE
 .TP
-.B \f[C]--gen-extended-piqi-any\f[]
-Use extended representation of \f[C]piqi-any\f[] values in XML and JSON
+.B \f[C]\-\-gen\-extended\-piqi\-any\f[]
+Use extended representation of \f[C]piqi\-any\f[] values in XML and JSON
 output.
 .RS
 .PP
-When specified, an extended version of \f[C]piqi-any\f[] representation
+When specified, an extended version of \f[C]piqi\-any\f[] representation
 is used in the conversion result.
 In addition to the original JSON or XML value, it includes Piqi type
 name (if known), Protobuf representation (if known or can be derived),
-and a special marker indicating that this is an extended piqi-any
+and a special marker indicating that this is an extended piqi\-any
 representation.
 .PP
-For example, this flag changes relevant portion of "piqi convert -t json
+For example, this flag changes relevant portion of "piqi convert \-t json
 piqi.piqi" output from
 .PP
 "default": "required",
 .PP
 to
 .PP
-"default": { "piqi_type": "piqi-any", "type": "piqi/field-mode",
+"default": { "piqi_type": "piqi\-any", "type": "piqi/field\-mode",
 "protobuf": "CN+iipMB", "json": "required" },
 .RE
 .TP
-.B \f[C]--strict\f[]
+.B \f[C]\-\-strict\f[]
 Treat unknown and duplicate options as errors
 .RS
 .RE
 .TP
-.B \f[C]--piq-frameless-output\ true|false\f[]
+.B \f[C]\-\-piq\-frameless\-output\ true|false\f[]
 Print a frame (i.e.
 : []) around a single output Piq object (default=false)
 .RS
 .RE
 .TP
-.B \f[C]--piq-frameless-input\ true|false\f[]
+.B \f[C]\-\-piq\-frameless\-input\ true|false\f[]
 Expect a frame around a single input Piq object (default=false)
 .RS
 .RE
 .TP
-.B \f[C]--piq-relaxed-parsing\ true|false\f[]
+.B \f[C]\-\-piq\-relaxed\-parsing\ true|false\f[]
 Parse Piq format using "relaxed" mode (default=false)
 .RS
 .PP
-For instance, when set to \f[C]true\f[], single-word string literals
+For instance, when set to \f[C]true\f[], single\-word string literals
 don\[aq]t have to be quoted.
 .RE
 .SS piqi call
 .PP
-Usage: piqi call [options] <URL> -- [call arguments]
+Usage: piqi call [options] <URL> \-\- [call arguments]
 .PP
-Piqi-RPC native client.
+Piqi\-RPC native client.
 .PP
-It interprets command-line arguments as input parameters for a remote
-function, converts them into a Protobuf-encoded data object and executes
-a Piqi-RPC remote function call.
+It interprets command\-line arguments as input parameters for a remote
+function, converts them into a Protobuf\-encoded data object and executes
+a Piqi\-RPC remote function call.
 .PP
 In addition to calling a remote function, it can fetch Piqi
 specifications of the remote service and print them in several formats:
-Piqi (\f[C]--piqi\f[] flag), Piqi-light (\f[C]-p\f[] flag) and
-getopt-style help for remote functions (\f[C]-h\f[] flag).
+Piqi (\f[C]\-\-piqi\f[] flag), Piqi\-light (\f[C]\-p\f[] flag) and
+getopt\-style help for remote functions (\f[C]\-h\f[] flag).
 .PP
 \f[C]<URL>\f[] is either an HTTP URL or a path to a local executable.
 HTTP URL must start with \f[C]http://\f[] or \f[C]https://\f[].
@@ -519,62 +519,62 @@ In case of HTTP URL, a remote call will be performed by sending an HTTP
 body.
 .PP
 In case of a \f[I]local <URL>\f[], the correspondent program will be
-started, the function will be called using Piqi-RPC-over-pipe protocol,
+started, the function will be called using Piqi\-RPC\-over\-pipe protocol,
 and the program will be shut down.
-This mode is intended mainly for debugging low-level Piqi-RPC services
+This mode is intended mainly for debugging low\-level Piqi\-RPC services
 that run locally.
 .PP
 Remote function\[aq]s output can be printed in a variety of different
-formats: JSON, XML, Protobuf, Piq (see \f[C]-t\f[] option).
+formats: JSON, XML, Protobuf, Piq (see \f[C]\-t\f[] option).
 Returned application errors (i.e.
 \f[I]error\f[] function parameter) will be printed to \f[C]stderr\f[] in
 the requested format.
 .PP
-More details can be found in Piqi-RPC documentation (/doc/piqi-rpc/).
+More details can be found in Piqi\-RPC documentation (/doc/piqi\-rpc/).
 .PP
 Options:
 .TP
-.B \f[C]-o\ <output\ file>\f[]
-Specify output file; use \f[C]-\f[] for \f[C]stdout\f[].
-If no \f[C]-o\f[] option is given, \f[C]stdout\f[] is used by default.
+.B \f[C]\-o\ <output\ file>\f[]
+Specify output file; use \f[C]\-\f[] for \f[C]stdout\f[].
+If no \f[C]\-o\f[] option is given, \f[C]stdout\f[] is used by default.
 .RS
 .PP
 However, \f[C]stderr\f[] is always used for printing all kinds of
 errors.
 .RE
 .TP
-.B \f[C]-t\ pb|json|xml|piq|pib\f[]
+.B \f[C]\-t\ pb|json|xml|piq|pib\f[]
 Specify encoding for the function\[aq]s output parameters.
 \f[C]piq\f[] encoding is used by default.
 .RS
 .RE
 .TP
-.B \f[C]--piqi\f[]
+.B \f[C]\-\-piqi\f[]
 Instead of calling a function, only print the Piqi module that defines
 the service.
 .RS
 .RE
 .TP
-.B \f[C]--piqi-all\f[]
-Similar to \f[C]--piqi\f[], but print the Piqi module that defines the
+.B \f[C]\-\-piqi\-all\f[]
+Similar to \f[C]\-\-piqi\f[], but print the Piqi module that defines the
 service and all its dependencies.
 .RS
 .RE
 .TP
-.B \f[C]p\f[] | \f[C]--piqi-light\f[]
-Similar to \f[C]--piqi\f[], but print the Piqi module using Piqi-light
+.B \f[C]p\f[] | \f[C]\-\-piqi\-light\f[]
+Similar to \f[C]\-\-piqi\f[], but print the Piqi module using Piqi\-light
 syntax.
 .RS
 .RE
 .TP
-.B \f[C]-h\f[]
-Similar to \f[C]--piqi\f[], but print command-line usage help for remote
-Piqi-RPC functions.
+.B \f[C]\-h\f[]
+Similar to \f[C]\-\-piqi\f[], but print command\-line usage help for remote
+Piqi\-RPC functions.
 Printed help is automatically generated from the Piqi specification.
 .RS
 .RE
 .TP
-.B \f[C]--strict\f[]
+.B \f[C]\-\-strict\f[]
 Treat unknown and duplicate options as errors
 .RS
 .RE
@@ -582,7 +582,7 @@ Treat unknown and duplicate options as errors
 .TP
 .B \f[C]PIQI_TRACE\f[]
 Definition of this environment variable has the same effect as
-specifying \f[C]--trace\f[] command-line option.
+specifying \f[C]\-\-trace\f[] command\-line option.
 .RS
 .RE
 .TP
@@ -592,7 +592,7 @@ Specifies directory paths where to search for \f[C]\&.piqi\f[] or
 Several paths can be specified separated by \f[C]:\f[].
 .RS
 .PP
-You can also specify search paths using the \f[C]-I\f[] command-line
+You can also specify search paths using the \f[C]\-I\f[] command\-line
 option.
 .RE
 .SH KNOWN PROBLEMS
@@ -602,7 +602,7 @@ writing Piq data in various formats.
 If an integer value doesn\[aq]t fit into the range of the specified
 integer type, it will be silently stripped down.
 .IP \[bu] 2
-\f[C]piqi\ of-proto\f[] doesn\[aq]t work correctly on Google Protobuf
+\f[C]piqi\ of\-proto\f[] doesn\[aq]t work correctly on Google Protobuf
 specifications which rely on groups (groups are deprecated in Protocol
 Buffers and not supported by Piqi).
 .RS 2
@@ -612,7 +612,7 @@ from Google Protocol Buffers source distribution:
 .IP
 .nf
 \f[C]
-piqi\ of-proto\ google/protobuf/unittest_custom_options.proto
+piqi\ of\-proto\ google/protobuf/unittest_custom_options.proto
 \f[]
 .fi
 .RE

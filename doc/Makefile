@@ -28,6 +28,7 @@ piqi.1: tools.md
 	echo "% Anton Lavrik <alavrik@piqi.org>"; \
 	echo "% $$date"; \
 	echo) | cat - $< | pandoc -s -t man -o $@
+	sed -i -e 's/-/\\-/g' $@
 
 CHANGES.html: ../CHANGES
 	pandoc -s $< -o $@
