@@ -88,5 +88,5 @@ Files
     doc/                  project documentation
 
     make/                 makefiles and build scripts
-    deps/                 third-party dependencies (see ./NOTICE for details)
+    deps/                 third-party dependencies downloaded and built by `make deps`
 

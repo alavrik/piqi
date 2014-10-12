@@ -15,7 +15,7 @@
 
 The JSON parser implementation is based on Martin Jambon's "yojson" library.
 The original code was taken from here: 
-  http://martin.jambon.free.fr/yojson.html
+  http://mjambon.com/yojson.html
 
 Below is the original copyright notice and the license:
 
