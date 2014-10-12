@@ -15,5 +15,12 @@ install: libinstall
 uninstall: libuninstall
 
 
-include $(OCAMLMAKEFILE)
+download:
+	$(MAKE) -f Makefile.download
 
+
+clean::
+	$(MAKE) -f Makefile.download clean
+
+
+include $(OCAMLMAKEFILE)

@@ -1,0 +1,30 @@
+TARBALL := 1.6.tar.gz
+URL := https://github.com/diml/optcomp/archive/$(TARBALL)
+MD5 := d3587244dba1b8b10f24d0b60a8c700d
+
+
+UPSTREAM_FILES := \
+	optcomp.ml optcomp_o.ml \
+        pa_optcomp.ml pa_optcomp.mli \
+	META
+
+
+UPSTREAM_DIR := upstream
+
+
+
+$(UPSTREAM_FILES): $(TARBALL)
+	mkdir -p $(UPSTREAM_DIR)
+	tar -xzf $< -C $(UPSTREAM_DIR) --strip-components=1
+	cd $(UPSTREAM_DIR)/src && cp $(UPSTREAM_FILES) ../..
+	sed -i -e '1i(*pp camlp4orf *)' pa_optcomp.ml
+
+
+$(TARBALL):
+	../../make/http-download $(URL)
+	test $(MD5) = `../../make/md5sum $(TARBALL)`
+
+
+clean:
+	rm -rf $(TARBALL) $(UPSTREAM_DIR) $(UPSTREAM_FILES)
+

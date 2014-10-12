@@ -1,0 +1,30 @@
+VERSION := 1.2.0
+TARBALL := v1.2.0.tar.gz
+URL := https://github.com/dbuenzli/xmlm/archive/$(TARBALL)
+MD5 := 8117ef968659713108be4f07b9252cd3
+
+
+UPSTREAM_FILES := \
+	src/xmlm.ml src/xmlm.mli \
+	pkg/META
+
+
+UPSTREAM_DIR := upstream
+
+
+
+$(UPSTREAM_FILES): $(TARBALL)
+	mkdir -p $(UPSTREAM_DIR)
+	tar -xzf $< -C $(UPSTREAM_DIR) --strip-components=1
+	cd $(UPSTREAM_DIR) && cp $(UPSTREAM_FILES) ..
+	sed -i -e 's/%%VERSION%%/$(VERSION)/' META
+
+
+$(TARBALL):
+	../../make/http-download $(URL)
+	test $(MD5) = `../../make/md5sum $(TARBALL)`
+
+
+clean:
+	rm -rf $(TARBALL) $(UPSTREAM_DIR) $(notdir $(UPSTREAM_FILES))
+

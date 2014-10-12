@@ -26,8 +26,13 @@ pa_ulex.cma:
 	$(MAKE) -f Makefile.camlp4
 
 
+download:
+	$(MAKE) -f Makefile.download
+
+
 clean::
 	$(MAKE) -f Makefile.camlp4 clean
+	$(MAKE) -f Makefile.download clean
 
 
 include $(OCAMLMAKEFILE)

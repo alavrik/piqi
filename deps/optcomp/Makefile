@@ -24,4 +24,12 @@ uninstall: libuninstall
 
 
 
+download:
+	$(MAKE) -f Makefile.download
+
+
+clean::
+	$(MAKE) -f Makefile.download clean
+
+
 include $(OCAMLMAKEFILE)
