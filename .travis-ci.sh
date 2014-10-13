@@ -4,17 +4,6 @@ set -ex
 
 
 case $TRAVIS_OS_NAME in
-    linux)
-        # build dependencies
-        sudo apt-get install ocaml-nox camlp4-extra ocaml-findlib
-
-        # optional dependencies for running tests and building docs
-        sudo apt-get install libprotoc-dev protobuf-compiler pandoc
-
-        echo OCaml version
-        ocaml -version
-        ;;
-
     osx)
         # build dependencies
         brew install opam
@@ -35,6 +24,17 @@ case $TRAVIS_OS_NAME in
         opam init
         eval `opam config env`
         opam install ocamlfind camlp4
+        ;;
+
+    *)
+        # build dependencies
+        sudo apt-get install ocaml-nox camlp4-extra ocaml-findlib
+
+        # optional dependencies for running tests and building docs
+        sudo apt-get install libprotoc-dev protobuf-compiler pandoc
+
+        echo OCaml version
+        ocaml -version
         ;;
 esac
 
