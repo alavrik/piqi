@@ -11,11 +11,16 @@ UPSTREAM_FILES := \
 UPSTREAM_DIR := upstream
 
 
+all: $(TARBALL) $(UPSTREAM_DIR) $(UPSTREAM_FILES)
 
-$(UPSTREAM_FILES): $(TARBALL)
+
+$(UPSTREAM_FILES): %: $(UPSTREAM_DIR)/lib/%
+	cp $< $@
+
+
+$(UPSTREAM_DIR): $(TARBALL)
 	mkdir -p $(UPSTREAM_DIR)
 	tar -xzf $< -C $(UPSTREAM_DIR) --strip-components=1
-	cd $(UPSTREAM_DIR)/lib && cp $(UPSTREAM_FILES) ../..
 
 
 $(TARBALL):

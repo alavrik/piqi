@@ -12,12 +12,21 @@ UPSTREAM_FILES := \
 UPSTREAM_DIR := upstream
 
 
+all: $(TARBALL) $(UPSTREAM_DIR) $(UPSTREAM_FILES)
 
-$(UPSTREAM_FILES): $(TARBALL)
+
+$(UPSTREAM_FILES): %: $(UPSTREAM_DIR)/src/%
+	cp $< $@
+
+
+pa_optcomp.ml: %: $(UPSTREAM_DIR)/src/%
+	echo "(*pp camlp4orf *)" > $@
+	cat $< >> $@
+
+
+$(UPSTREAM_DIR): $(TARBALL)
 	mkdir -p $(UPSTREAM_DIR)
 	tar -xzf $< -C $(UPSTREAM_DIR) --strip-components=1
-	cd $(UPSTREAM_DIR)/src && cp $(UPSTREAM_FILES) ../..
-	sed -i -e '1i(*pp camlp4orf *)' pa_optcomp.ml
 
 
 $(TARBALL):

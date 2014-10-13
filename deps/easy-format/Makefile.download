@@ -5,20 +5,27 @@ MD5 := 82f6db85477831cab11e4cfe80321225
 
 
 UPSTREAM_FILES := \
-	easy_format.ml easy_format.mli \
-	META.tpl
+	easy_format.ml easy_format.mli
 
 
 UPSTREAM_DIR := upstream
 
 
+all: $(TARBALL) $(UPSTREAM_DIR) $(UPSTREAM_FILES) META
 
-$(UPSTREAM_FILES): $(TARBALL)
+
+$(UPSTREAM_FILES): %: $(UPSTREAM_DIR)/%
+	cp $< $@
+
+
+META: $(UPSTREAM_DIR)/META.tpl
+	echo 'version = "$(VERSION)"' > $@
+	cat $< >> $@
+
+
+$(UPSTREAM_DIR): $(TARBALL)
 	mkdir -p $(UPSTREAM_DIR)
 	tar -xzf $< -C $(UPSTREAM_DIR) --strip-components=1
-	cd $(UPSTREAM_DIR) && cp $(UPSTREAM_FILES) ..
-	sed -e '1iversion = "$(VERSION)"' META.tpl > META
-	rm META.tpl
 
 
 $(TARBALL):
