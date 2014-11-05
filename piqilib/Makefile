@@ -81,7 +81,7 @@ SOURCES = \
 PRE_TARGETS = piqi_version.ml META
 
 
-all: ncl
+all: ncl bcl
 
 
 debug: dcl top
