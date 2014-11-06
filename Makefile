@@ -69,8 +69,10 @@ piqi:
 	$(MAKE) -C src piqi
 
 
+# build bytecode version of the library (it is not built by default to avoid
+# unnecessary slowdown of the main build)
 ocaml:
-	$(MAKE) -C piqilib
+	$(MAKE) -C piqilib bcl
 
 
 ocaml-install: ocaml-uninstall

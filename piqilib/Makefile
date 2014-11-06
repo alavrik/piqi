@@ -89,7 +89,7 @@ debug: dcl top
 
 # NOTE: when installing, uninstall first to avoid "already installed" error
 # also, make sure we have the byte-code version of the library built as well
-install: bcl uninstall libinstall
+install: uninstall libinstall
 
 
 uninstall: libuninstall
