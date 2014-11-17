@@ -1,3 +1,20 @@
+Piqi 0.6.9 (November 17, 2014)
+==============================
+
+OCaml:
+
+  - Fix #46: build bytecode version of piqilib
+
+
+Miscellaneous:
+
+  - Remove third-party convenience dependencies from the repo (downloading them
+    during 'make deps' instead)
+  - Use ocaml-base64 instead of old ocamlnet's base64 implementation
+  - Add missing copyright headers and license information
+  - Bring NOTICE and copyright information up-to-date
+
+
 Piqi 0.6.8 (September 3, 2014)
 ==============================
 
