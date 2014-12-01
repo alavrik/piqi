@@ -1,0 +1,194 @@
+% Piqi-RPC v1 binary packet format
+%
+%   "PIQIRPC" 0x01      // 7-byte "PIQIRPC" marker + 1-byte version
+%
+%   header-size         // 32-bit little-endian
+%   body-size           // 32-bit little-endian
+%
+%   packet-header       // protobuf-encoded header
+%
+%   packet-body         // request/response body encoded using
+%                       // one of Protobuf, JSON or XML
+%                       //
+%                       // OR
+%                       //
+%                       // plain text description of unstructured protocol and
+%                       // application errors (see below)
+
+
+.record [
+    % piqi-rpc packet header
+
+    .name packet-header
+
+    .field [
+        % piqi-rpc packet type: request | response
+
+        .type packet-type
+    ]
+
+    .field [
+        % request name
+        %
+        % omitted in response
+        %
+        % one of name or code must be present; either one can be used as unique
+        % function identifier
+
+        .name name
+        .type string
+        .optional
+    ]
+
+    .field [
+        % request integer code
+        %
+        % omitted in response
+
+        .name code
+        .type uint
+        .optional
+    ]
+
+    .field [
+        % used for dispatching requests to several different interfaces on the
+        % same port and/or different versions of the same interface, e.g. "v1",
+        % "v2" and so on
+        %
+        % omitted in response
+        %
+        % also used in HTTP -> piqi-rpc mapping
+        %
+        % string path values should use URL path syntax
+
+        .name path
+        .type string
+        .optional
+    ]
+
+    .field [
+        % defined only for responses: ok | error | protocol-error
+
+        .type status
+        .optional
+    ]
+
+    .field [
+        % body format: protobuf | json | xml
+        %
+        % similar to HTTP content type
+        %
+        % must be defined for all requests, all 'ok' responses, and all
+        % structured application-level 'error' responses
+        %
+        % missing body format for responses means unstructured error (i.e. not
+        % defined in the application protocol spec, think uncaught exception),
+        % in which case, body is expected to contain a human-readable text error
+        % description
+
+        .type body-format
+        .optional
+    ]
+
+    .field [
+        % defined only for responses with status = error: HTTP-like error code
+
+        .type error-code
+        .optional
+    ]
+
+    .field [
+        % HTTP headers represented as dynamic name-value pairs; useful with HTTP
+        % transport
+
+        .type http-header
+        .repeated
+    ]
+]
+
+
+.enum [
+    .name packet-type
+
+    .option [ request ]
+    .option [ response ]
+]
+
+
+.enum [
+    .name status
+
+    .option [ ok ]
+    .option [ error ]
+    .option [ protocol-error ]
+]
+
+
+.enum [
+    .name body-format
+
+    .option [ protobuf ]
+    .option [ json ]
+    .option [ xml ]
+]
+
+
+.enum [
+    .name error-code
+
+    %
+    % client errors
+    %
+
+    .option [
+        .name unknown-request
+        .code 404  % HTTP 404 "Not Found"
+    ]
+
+    .option [
+        .name invalid-input
+        .code 400  % HTTP 400 "Bad Request"
+    ]
+
+    .option [
+        .name missing-input
+        .code 411  % HTTP 411 "Length Required"
+    ]
+
+
+    %
+    % server errors
+    %
+    .option [
+        % depending on body-format:
+        %
+        %   text -- uncaught application-level error or output type mismatch
+        %
+        %   any other format -- application-level error that correponds to
+        %   function error defined in the function's protocol spec
+
+        .name internal-error
+        .code 500  % HTTP 500 "Internal Server Error"
+    ]
+
+    .option [
+        .name service-unavailable
+        .code 503  % HTTP 503 "Service Unavailable"
+    ]
+]
+
+
+.record [
+    .name http-header
+
+    .field [
+        .name name
+        .type string
+    ]
+
+    .field [
+        .name value
+        .type string
+    ]
+]
+
