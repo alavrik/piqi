@@ -215,7 +215,8 @@ let main_loop () =
 let start_server () =
   Piqi_convert.init ();
   (* exit on SIGPIPE without printing a message about uncaught exception *)
-  Sys.set_signal Sys.sigpipe (Sys.Signal_handle (fun _ ->
+  if Sys.os_type <> "Win32"
+  then Sys.set_signal Sys.sigpipe (Sys.Signal_handle (fun _ ->
     (* have to close all channels explicilty to prevent getting an uncaught
      * sigpipe during execution of at_exit *)
     close_in_noerr stdin;
