@@ -368,7 +368,10 @@ let getopt_piq () :piq_ast list =
   in
   let tokens = parse_argv start in
   let piq_parser = Piq_parser.init_from_token_list getopt_filename tokens in
-  let piq_ast_list = Piq_parser.read_all piq_parser in
+  let piq_ast_list =
+    U.with_bool Config.piq_relaxed_parsing true
+    (fun () -> Piq_parser.read_all piq_parser)
+  in
   piq_ast_list
 
 

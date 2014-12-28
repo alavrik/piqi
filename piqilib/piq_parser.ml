@@ -294,7 +294,6 @@ let expand x =
 
 
 let make_string loc str_type s raw_s =
-  let raw_s = if !Config.pp_mode then raw_s else "" in
   let value = (s, raw_s) in
   let res =
     match str_type with
@@ -332,17 +331,16 @@ let parse_uint s =
 
 let parse_int s =
   try
-    let raw_s = if !Config.pp_mode then s else "" in
     match s.[0] with
       | '-' -> (* negative integer *)
           let i = Int64.of_string s in
-          let res = (i, raw_s) in
+          let res = (i, s) in
           Piqloc.addref s i;
           Piqloc.addref s res;
           `int res
       | _ ->
           let i = parse_uint s in
-          let res = (i, raw_s) in
+          let res = (i, s) in
           Piqloc.addref s i;
           Piqloc.addref s res;
           `uint res
@@ -361,8 +359,7 @@ let parse_float s =
         | "-0.inf" -> Pervasives.neg_infinity
         | _ -> Pervasives.float_of_string s
     in
-    let raw_s = if !Config.pp_mode then s else "" in
-    let res = (f, raw_s) in
+    let res = (f, s) in
     Piqloc.addref s res;
     `float res
   with Failure _ ->

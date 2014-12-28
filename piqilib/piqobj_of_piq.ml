@@ -152,6 +152,14 @@ let parse_string ?piq_format (x :piq_ast) =
   in
   match x with
     | `word s when !Config.piq_relaxed_parsing -> s
+
+    | `int (_, s)
+    | `uint (_, s)
+    | `float (_, s) when !Config.piq_relaxed_parsing -> s
+    | `bool b when !Config.piq_relaxed_parsing ->
+        let s = match b with true -> "true" | false -> "false" in
+        Piqloc.addrefret x s
+
     | `ascii_string (s, _) | `utf8_string (s, _) | `text s | `word s ->
         check_piq_format ();
         s
@@ -701,6 +709,11 @@ and parse_option_by_type ~try_mode o x =
           | `string, `utf8_string _
           | `string, `raw_binary _
           | `string, `text _         when o.piq_format = None -> do_parse ()
+
+          | `string, `int _
+          | `string, `uint _
+          | `string, `float _
+          | `string, `bool _
           | `string, `word _         when o.piq_format = None && !Config.piq_relaxed_parsing -> do_parse ()
 
           | `binary, `ascii_string _
