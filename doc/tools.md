@@ -165,6 +165,11 @@ Returns 0 if the file is valid.
 :   Automatically include [extension modules](/doc/piqi#extensionmodules)
     `<extension-name>` when loading .piqi files.
 
+`--piq-relaxed-parsing true|false`
+:   Parse Piq format using "relaxed" mode (default=false)
+
+    See `piqi convert` for more details.
+
 
 ### piqi pp
 
@@ -189,8 +194,10 @@ Options:
 `--expand-abbr`
 :   Expand built-in syntax abbreviations. See Piq documentation for details.
 
-`--parse-literals`
-:   Parse string and number Piq literals instead of preserving their original formatting.
+`--piq-relaxed-parsing true|false`
+:   Parse Piq format using "relaxed" mode (default=false)
+
+    See `piqi convert` for more details.
 
 
 ### piqi json-pp

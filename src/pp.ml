@@ -48,6 +48,8 @@ let transform_ast ast =
 
 
 let prettyprint_piq ch piq_parser =
+  Piqi_config.piq_relaxed_parsing := !Convert.flag_piq_relaxed_parsing;
+
   let rec aux () =
     match read_piq_obj piq_parser with
       | None -> ()
@@ -61,11 +63,6 @@ let prettyprint_piq ch piq_parser =
 
 let prettyprint_file filename =
   let ch = Main.open_output !Main.ofile in
-
-  (* switch piq parser to pretty-printing mode that preserves the original
-   * formatting of string and number literals *)
-  if not !flag_parse_literals
-  then Config.pp_mode := true;
 
   let piq_parser = open_piq filename in
   prettyprint_piq ch piq_parser
@@ -85,7 +82,9 @@ let speclist = Main.common_speclist @
     "expand built-in syntax abbreviations";
 
     "--parse-literals", Arg.Set flag_parse_literals,
-    "parse string and number Piq literals instead of preserving their original formatting";
+    "deprecated: this option has no effect";
+
+    Convert.arg__piq_relaxed_parsing;
 
     Main.arg__;
   ]

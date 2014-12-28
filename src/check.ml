@@ -28,6 +28,7 @@ let speclist = Main.common_speclist @
   [
     Main.arg__strict;
     Convert.arg__type;
+    Convert.arg__piq_relaxed_parsing;
     Main.arg__include_extension;
   ]
 
@@ -41,6 +42,8 @@ let check_piqi fname =
 
 (* TODO: add support for checking .pib and, possibly, json and xml as well *)
 let check_piq () =
+  Piqi_config.piq_relaxed_parsing := !Convert.flag_piq_relaxed_parsing;
+
   let reader = Convert.make_reader "piq" in
   (* read Piq objects one by one, but don't output them anywhere *)
   Convert.do_convert reader

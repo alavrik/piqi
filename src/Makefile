@@ -21,8 +21,6 @@ SOURCES = \
 	$(PIQI_ML_FILES) \
 	main.ml \
 	\
-	json_pp.ml \
-	pp.ml \
 	convert.ml \
 	check.ml \
 	expand.ml \
@@ -30,6 +28,9 @@ SOURCES = \
 	getopt.ml \
 	compile.ml \
 	cc.ml \
+	\
+	json_pp.ml \
+	pp.ml \
 	\
 	to_proto.ml \
 	of_proto.ml \

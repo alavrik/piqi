@@ -1,4 +1,4 @@
-.TH PIQI 1 "March 30, 2014" "Piqi User Manual"
+.TH PIQI 1 "December 28, 2014" "Piqi User Manual"
 .SH NAME
 .PP
 piqi \- a collection of tools for working with structured data and Piqi
@@ -212,6 +212,13 @@ Automatically include extension modules (/doc/piqi#extensionmodules)
 \f[C]<extension\-name>\f[] when loading .piqi files.
 .RS
 .RE
+.TP
+.B \f[C]\-\-piq\-relaxed\-parsing\ true|false\f[]
+Parse Piq format using "relaxed" mode (default=false)
+.RS
+.PP
+See \f[C]piqi\ convert\f[] for more details.
+.RE
 .SS piqi pp
 .PP
 Usage:
@@ -244,10 +251,11 @@ See Piq documentation for details.
 .RS
 .RE
 .TP
-.B \f[C]\-\-parse\-literals\f[]
-Parse string and number Piq literals instead of preserving their
-original formatting.
+.B \f[C]\-\-piq\-relaxed\-parsing\ true|false\f[]
+Parse Piq format using "relaxed" mode (default=false)
 .RS
+.PP
+See \f[C]piqi\ convert\f[] for more details.
 .RE
 .SS piqi json\-pp
 .PP
