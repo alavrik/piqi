@@ -12,11 +12,19 @@ INFINITE = \
 	infinite_variant2.piqi \
 
 
+FINITE = \
+	finite_nested.piqi \
+
+
 test:
 	$(PIQI) check finite.piqi
 	for i in $(INFINITE); do \
 		$(PIQI) check $$i; \
 		test $$? -eq 0 && exit 1; \
+	done; true
+	for i in $(FINITE); do \
+		$(PIQI) check $$i; \
+		test $$? -ne 0 && exit 1; \
 	done; true
 
 

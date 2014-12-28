@@ -356,16 +356,19 @@ let check_no_infinite_types ~parent defs =
   let black = ref [] in (* visited nodes, i.e. after last_visit *)
   let grey = ref [] in (* nodes between first_visit and last_visit *)
   let set_color node = function
-    | `black -> black := node::!black
-    | `grey -> grey := node::!grey
-    | `white ->
-        (* changing from grey back to white as we are backtracking *)
+    | `grey ->
+        grey := node::!grey
+    | color ->  (* white or black *)
+        (* first, reset grey *)
         (match !grey with
           | h::t when h == node ->
               grey := t
           | _ ->
               assert false
-        )
+        );
+        if color = `black
+        then
+          black := node::!black
   in
   let get_color node =
     if List.memq node !black
