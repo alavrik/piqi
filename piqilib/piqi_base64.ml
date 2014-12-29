@@ -19,11 +19,11 @@
  * validation *)
 let decode x =
   try
-    Base64.decode x
+    B64.decode x
   with _ ->
     invalid_arg "Piqi_base64.decode"
 
 
 let encode x =
-  Base64.encode x
+  B64.encode x
 

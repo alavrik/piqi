@@ -1,10 +1,10 @@
-TARBALL := v1.0.0.tar.gz
+TARBALL := v2.0.0.tar.gz
 URL := https://github.com/mirage/ocaml-base64/archive/$(TARBALL)
-MD5 := 9a64caa88a8464f4567a5a96f9cf7e0c
+MD5 := 52b9736839c83cf88a9fb1373cf2e35c
 
 
 UPSTREAM_FILES := \
-	base64.ml base64.mli \
+	b64.ml b64.mli \
 	META
 
 
