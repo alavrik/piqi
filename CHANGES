@@ -1,3 +1,18 @@
+Piqi 0.6.10 (December 28, 2014)
+===============================
+
+Bug fixes:
+
+  - Fix assert failure when checking for infinite types
+  - Fix "piqi server" start on Win32 (#47)
+  - Fix several Piq & getopt parsing regressions introduced in v0.6.7
+
+
+Piqi tools:
+
+  - Add --piq-relaxed-parsing option to "piqi pp" and "piqi check"
+
+
 Piqi 0.6.9 (November 17, 2014)
 ==============================
 
