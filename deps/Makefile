@@ -18,6 +18,10 @@ ifndef SKIP-optcomp
 DIRS += optcomp
 endif
 
+ifndef SKIP-bytes
+DIRS += bytes
+endif
+
 ifndef SKIP-base64
 DIRS += base64
 endif

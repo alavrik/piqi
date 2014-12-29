@@ -1,13 +1,11 @@
 OCAMLMAKEFILE := ../../make/OCamlMakefile
 
 
-RESULT = base64
+RESULT = bytes
 
-SOURCES = b64.ml
+SOURCES = bytes.ml
 
-PACKS = bytes
-
-LIBINSTALL_FILES = b64.mli b64.cmi base64.cma base64.cmxa base64.a
+LIBINSTALL_FILES = bytes.cmi bytes.cma bytes.cmxa bytes.a
 
 
 all: bcl ncl
