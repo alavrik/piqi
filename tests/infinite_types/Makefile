@@ -13,11 +13,11 @@ INFINITE = \
 
 
 FINITE = \
+	finite.piqi \
 	finite_nested.piqi \
 
 
 test:
-	$(PIQI) check finite.piqi
 	for i in $(INFINITE); do \
 		$(PIQI) check $$i; \
 		test $$? -eq 0 && exit 1; \
