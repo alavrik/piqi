@@ -128,6 +128,17 @@ let load_pb piqtype protobuf :Piqi_convert.obj =
   Piqi_convert.load_pb piqtype protobuf
 
 
+(* making sure Piqi_convert.load_piq is called exactly once in frameless mode *)
+let load_piq piqtype piq_parser :Piqi_convert.obj =
+  if !flag_piq_frameless_input
+  then (
+    if !first_load
+    then first_load := false
+    else raise Piqi_convert.EOF
+  );
+  Piqi_convert.load_piq piqtype piq_parser
+
+
 let first_write = ref true
 
 let write_pb ch (obj: Piqi_convert.obj) =
@@ -196,7 +207,7 @@ let make_reader input_encoding =
 
     | "piq" ->
         let piq_parser = Piq_parser.init_from_channel fname ch in
-        make_reader (Piqi_convert.load_piq (resolve_typename ())) piq_parser
+        make_reader (load_piq (resolve_typename ())) piq_parser
 
     | "piqi" when !typename <> "" ->
         piqi_error "--type parameter is not applicable to \"piqi\" input encoding"

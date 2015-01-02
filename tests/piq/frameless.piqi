@@ -1,0 +1,17 @@
+.record [
+    .name r
+    .field [
+        .name i
+        .type int
+    ]
+
+    .field [
+        .name s
+        .type string
+    ]
+
+    .field [
+        .name o
+        .optional
+    ]
+]
