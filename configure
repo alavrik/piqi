@@ -109,20 +109,19 @@ then
     # skipping everything else in cross-compilation mode; namely, we have to
     # cross-compile deps that come with the package
     echo "export SYSTEM := unix" >> $M
-    exit
+else
+    # detecting the type of OCaml toolchain
+    system="`ocamlc -config 2>/dev/null | grep system | sed 's/system: //'`"
+    echo "export SYSTEM := $system" >> $M
+    echo >> $M
+    echo "detected $system OCaml toolchain"
 fi
-
-# detecting the type of OCaml toolchain
-system="`ocamlc -config 2>/dev/null | grep system | sed 's/system: //'`"
-echo "export SYSTEM := $system" >> $M
-echo >> $M
-echo "detected $system OCaml toolchain"
 
 # figure out which dependencies we need to build
 echo "checking whether necessary dependencies are already installed..."
 for i in xmlm ulex easy-format optcomp base64 bytes
 do
-    dir="`ocamlfind query $i 2>/dev/null`"
+    dir="`$OCAMLFIND query $i 2>/dev/null`"
     if [ $? -eq 0 ]
     then
         echo "$i is installed in $dir"
