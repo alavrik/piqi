@@ -15,13 +15,13 @@
 *)
 
 
-module C = Piqi_common  
+module C = Piqi_common
 open C
 
 
 (* command-line arguments *)
-let input_encoding = ref ""
-let output_encoding = ref ""
+let input_format = ref ""
+let output_format = ref ""
 let typename = ref ""
 let flag_add_defaults = ref false
 let flag_embed_piqi = ref false
@@ -34,12 +34,12 @@ let flag_piq_relaxed_parsing = ref false
 let usage = "Usage: piqi convert [options] [input file] [output file]\nOptions:"
 
 let arg_f =
-    "-f", Arg.Set_string input_encoding,
-    "pb|json|xml|piq|pib input encoding"
+    "-f", Arg.Set_string input_format,
+    "pb|json|xml|piq|pib input format"
 
 let arg_t =
-    "-t", Arg.Set_string output_encoding,
-    "pb|json|xml|piq|pib output encoding (piq is used by default)"
+    "-t", Arg.Set_string output_format,
+    "pb|json|xml|piq|pib output format (piq is used by default)"
 
 let arg__type =
     "--type", Arg.Set_string typename,
@@ -83,17 +83,22 @@ let speclist = Main.common_speclist @
     Main.arg__strict;
     Main.arg_o;
 
+    (* input *)
     arg_f;
-    arg_t;
     arg__type;
+    arg__piq_relaxed_parsing;
+    arg__piq_frameless_input;
+
+    (* output *)
+    arg_t;
     arg__add_defaults;
     arg__json_omit_missing_fields;
     arg__json_omit_null_fields;
     arg__piq_frameless_output;
-    arg__piq_frameless_input;
-    arg__piq_relaxed_parsing;
-    arg__gen_extended_piqi_any;
+
+    (* piq output *)
     arg__embed_piqi;
+    arg__gen_extended_piqi_any;
 
     Main.arg__include_extension;
     Main.arg__;
@@ -182,13 +187,13 @@ let make_reader load_f input_param =
   (fun () -> load_f input_param)
 
 
-let make_reader input_encoding =
+let make_reader input_format =
   let fname = !Main.ifile in
   let ch = Main.open_input fname in
 
-  match input_encoding with
+  match input_format with
     | "pb" when !typename = "" ->
-        piqi_error "--type parameter must be specified for \"pb\" input encoding"
+        piqi_error "--type parameter must be specified for \"pb\" input format"
     | "pb" ->
         let piqtype = some_of (resolve_typename ()) in
         let buf = Piqirun.init_from_channel ch in
@@ -199,7 +204,7 @@ let make_reader input_encoding =
         make_reader (Piqi_convert.load_json (resolve_typename ())) json_parser
 
     | "xml" when !typename = "" ->
-        piqi_error "--type parameter must be specified for \"xml\" input encoding"
+        piqi_error "--type parameter must be specified for \"xml\" input format"
     | "xml" ->
         let piqtype = some_of (resolve_typename ()) in
         let xml_parser = Piqi_xml.init_from_channel ch ~fname in
@@ -210,7 +215,7 @@ let make_reader input_encoding =
         make_reader (load_piq (resolve_typename ())) piq_parser
 
     | "piqi" when !typename <> "" ->
-        piqi_error "--type parameter is not applicable to \"piqi\" input encoding"
+        piqi_error "--type parameter is not applicable to \"piqi\" input format"
     | "piqi" ->
         make_reader load_piqi !Main.ifile
 
@@ -218,22 +223,22 @@ let make_reader input_encoding =
         let buf = Piqirun.IBuf.of_channel ch in
         make_reader (Piqi_convert.load_pib (resolve_typename ())) buf
     | "" ->
-        piqi_error "can't determine input encoding; use -f option to specify it explicitly"
+        piqi_error "can't determine input format; use -f option to specify it explicitly"
     | x ->
-        piqi_error ("unknown input encoding: " ^ U.quote x)
+        piqi_error ("unknown input format: " ^ U.quote x)
 
 
-let make_writer ?(is_piqi_input=false) output_encoding =
+let make_writer ?(is_piqi_input=false) output_format =
   (* XXX: We need to resolve all defaults before converting to JSON or XML since
-   * they are dynamic encoding, and it would be too unreliable and inefficient
+   * they are dynamic formats, and it would be too unreliable and inefficient
    * to let a consumer decide what a default value for a field should be in case
    * if the field is missing. *)
   C.resolve_defaults := !flag_add_defaults ||
-    (match output_encoding with
+    (match output_format with
       | "json" | "xml" -> true
       | _ -> false);
-  match output_encoding with
-    | "" (* default output encoding is "piq" *)
+  match output_format with
+    | "" (* default output format is "piq" *)
     | "piq" -> write_piq
     | "pib" -> Piqi_convert.to_pib_channel
     | "json" ->
@@ -243,7 +248,7 @@ let make_writer ?(is_piqi_input=false) output_encoding =
     | "xml" ->
         write_data Piqi_convert.to_xml_channel ~is_piqi_input
     | x ->
-        piqi_error ("unknown output encoding " ^ U.quote x)
+        piqi_error ("unknown output format " ^ U.quote x)
 
 
 let seen = ref [] (* the list of seen elements *)
@@ -304,24 +309,24 @@ let get_dependencies (obj :Piqi_convert.obj) ~only_imports =
   remove_update_seen deps
 
 
-let validate_options input_encoding =
+let validate_options input_format =
   let typename_str =
     if !typename = ""
     then ""
     else "values of type " ^ U.quote !typename ^ " "
   in
-  let output_encoding_str =
-    if !output_encoding = ""
-    then "piq" (* default output encoding is "piq" *)
-    else !output_encoding
+  let output_format_str =
+    if !output_format = ""
+    then "piq" (* default output format is "piq" *)
+    else !output_format
   in
-  trace "converting %sfrom .%s to .%s\n" typename_str input_encoding output_encoding_str;
+  trace "converting %sfrom .%s to .%s\n" typename_str input_format output_format_str;
 
   if !flag_embed_piqi
   then (
-    match !output_encoding with
+    match !output_format with
       | "pb" | "xml" ->
-          if input_encoding = "piqi"
+          if input_format = "piqi"
           then
             piqi_error "can't --embed-piqi when converting .piqi to .pb or .xml"
           else
@@ -401,7 +406,8 @@ let do_convert ?writer ?(is_piq_output=false) reader =
   aux []
 
 
-let convert_file () =
+
+let init () =
   Piqi_convert.init ();
   Piqi_convert.set_options
     (Piqi_convert.make_options
@@ -411,30 +417,37 @@ let convert_file () =
       ~piq_relaxed_parsing:!flag_piq_relaxed_parsing
       ~use_strict_parsing:!Piqi_config.flag_strict
       ()
-    );
-  let input_encoding =
-    if !input_encoding <> ""
-    then !input_encoding
-    else Piqi_file.get_extension !Main.ifile
-  in
-  validate_options input_encoding;
+    )
 
-  let reader = make_reader input_encoding in
-  let is_piqi_input = (input_encoding = "piqi" || !typename = "piqi") in
-  let writer = make_writer !output_encoding ~is_piqi_input in
+
+let get_input_format () =
+  if !input_format <> ""
+  then !input_format
+  else Piqi_file.get_extension !Main.ifile
+
+
+let convert_file () =
+  init ();
+  let input_format = get_input_format () in
+
+  validate_options input_format;
+
+  let reader = make_reader input_format in
+  let is_piqi_input = (input_format = "piqi" || !typename = "piqi") in
+  let writer = make_writer !output_format ~is_piqi_input in
   (* open output file *)
   let ofile =
     match !Main.ofile with
-      | "" when !output_encoding = "" -> "" (* print "piq" to stdout by default *)
+      | "" when !output_format = "" -> "" (* print "piq" to stdout by default *)
       | "" when !Main.ifile <> "" && !Main.ifile <> "-" ->
-          let output_extension = !output_encoding in
+          let output_extension = !output_format in
           !Main.ifile ^ "." ^ output_extension
       | x -> x
   in
   let och = Main.open_output ofile in
 
   let is_piq_output =
-    match !output_encoding with
+    match !output_format with
       | "" | "piq" -> true
       | _ -> false
   in
@@ -447,8 +460,8 @@ let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:2;
   convert_file ()
 
- 
+
 let _ =
   Main.register_command run "convert"
-    "convert data files between various encodings (pb, json, xml, piq, pib)"
+    "convert data files between various formats (piqi, piq, json, xml, pb, pib)"
 

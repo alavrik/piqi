@@ -76,7 +76,7 @@ let compile self_spec piqi och =
 
   trace "converting modules to internal representation\n";
   (* We need to resolve all defaults before converting to JSON or XML because
-   * they are dynamic encoding and their de-serializers no notion of default
+   * they are dynamic formats and their de-serializers have no notion of default
    * values *)
   C.resolve_defaults := (match !output_format with
       | "json" | "xml" -> true

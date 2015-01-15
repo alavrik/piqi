@@ -26,19 +26,22 @@ open C
 
 
 (* command-line arguments *)
-let output_encoding = Convert.output_encoding
+let output_format = Convert.output_format
 let typename = Convert.typename
 
 
 let validate_options () =
   if !typename = "" (* pretty-print mode *)
   then (
-    if !output_encoding <> ""
+    if !output_format <> ""
     then piqi_error "option -t can not be used without --type";
   )
 
 
 let getopt_command () =
+  Piqi_getopt.init ();
+  Convert.init ();
+
   validate_options ();
   (* open output file *)
   let och = Main.open_output !Main.ofile in
@@ -56,7 +59,7 @@ let getopt_command () =
         in
         Piqi_pp.prettyprint_ast och ast
     | _ ->
-        let writer = Convert.make_writer !output_encoding in
+        let writer = Convert.make_writer !output_format in
         let piqtype = Piqi_convert.find_type !typename in
         let piqobj = Piqi_getopt.parse_args piqtype piq_ast_list in
 
@@ -72,22 +75,25 @@ let speclist = Main.common_speclist @
     Main.arg__strict;
     Main.arg_o;
 
-    Convert.arg_t;
     Convert.arg__type;
-    Convert.arg__add_defaults;
 
+    Convert.arg_t;
+    Convert.arg__add_defaults;
+    Convert.arg__json_omit_missing_fields;
+    Convert.arg__json_omit_null_fields;
+    Convert.arg__piq_frameless_output;
+
+    Main.arg__include_extension;
     Piqi_getopt.arg__rest;
   ]
 
 
 let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:0;
-  Piqi_getopt.init ();
-  Piqi_convert.init ();
   getopt_command ()
 
  
 let _ =
   Main.register_command run "getopt"
-    "interpret command-line arguments as Piq data, pretty-print and convert to various encodings"
+    "interpret command-line arguments as Piq data, pretty-print and convert to various formats"
 

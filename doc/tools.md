@@ -143,19 +143,66 @@ Options:
 :   Automatically include [extension modules](/doc/piqi#extensionmodules)
     `<extension-name>` when loading .piqi files.
 
+`--gen-extended-piqi-any`
+:   Use extended representation of `piqi-any` values in XML and JSON output.
+
+    When specified, an extended version of `piqi-any` representation is used in
+    the conversion result. In addition to the original JSON or XML value, it
+    includes Piqi type name (if known), Protobuf representation (if known or can
+    be derived), and a special marker indicating that this is an extended
+    piqi-any representation.
+
+    For example, this flag changes relevant portion of "piqi convert -t json
+    piqi.piqi" output from
+
+       "default": "required",
+
+    to
+
+       "default": {
+          "piqi_type": "piqi-any",
+          "type": "piqi/field-mode",
+          "protobuf": "CN+iipMB",
+          "json": "required"
+        },
+
+`--strict`
+:   Treat unknown and duplicate options as errors
+
+`--piq-frameless-output true|false`
+:   Print a frame (i.e. :<typename> []) around a single output Piq object
+    (default=false)
+
+`--piq-frameless-input true|false`
+:   Expect a frame around a single input Piq object (default=false)
+
+`--piq-relaxed-parsing true|false`
+:   Parse Piq format using "relaxed" mode (default=false)
+
+    For instance, when set to `true`, single-word string literals don't have to
+    be quoted.
+
+
 ### piqi check
 
-Usage: `piqi check [options] <.piqi|.piq file>`
-
-Checks .piq and .piqi validity.
+Usage: `piqi check [options] [input file]"
 
 Returns 0 if the file is valid.
 
+`-f pb|json|xml|piq|pib`
+:   Specify input encoding. If not specified, input encoding will be chosen
+    based on input file's extension.
+
 `--type <typename>`
-:   Specify the default object type when reading data from .piq files.
+:   Specify the type of converted object when converting from `pb` or `json`
+    encodings, as these formats do not contain information about types. For
+    other input formats, this parameter defines the default object type.
 
     `<typename>` should be a fully qualified Piqi typename of the form
     `<module name>/<type name>`.
+
+    If an input `pb` or `json` stream contains embedded Piqi module(s), a
+    special `--type piqi` value should be used.
 
 `--strict`
 :   Treat unknown and duplicate fields as errors when parsing JSON, XML and Piq
@@ -164,6 +211,11 @@ Returns 0 if the file is valid.
 `-e <extension-name>`
 :   Automatically include [extension modules](/doc/piqi#extensionmodules)
     `<extension-name>` when loading .piqi files.
+
+`--piq-frameless-input true|false`
+:   Expect a frame around a single input Piq object (default=false)
+
+    See `piqi convert` for more details.
 
 `--piq-relaxed-parsing true|false`
 :   Parse Piq format using "relaxed" mode (default=false)
@@ -352,45 +404,8 @@ Options:
 
     (This option is applied only when `-t` option is used.)
 
-
-`--gen-extended-piqi-any`
-:   Use extended representation of `piqi-any` values in XML and JSON output.
-
-    When specified, an extended version of `piqi-any` representation is used in
-    the conversion result. In addition to the original JSON or XML value, it
-    includes Piqi type name (if known), Protobuf representation (if known or can
-    be derived), and a special marker indicating that this is an extended
-    piqi-any representation.
-
-    For example, this flag changes relevant portion of "piqi convert -t json
-    piqi.piqi" output from
-
-       "default": "required",
-
-    to
-
-       "default": {
-          "piqi_type": "piqi-any",
-          "type": "piqi/field-mode",
-          "protobuf": "CN+iipMB",
-          "json": "required"
-        },
-
 `--strict`
 :   Treat unknown and duplicate options as errors
-
-`--piq-frameless-output true|false`
-:   Print a frame (i.e. :<typename> []) around a single output Piq object
-    (default=false)
-
-`--piq-frameless-input true|false`
-:   Expect a frame around a single input Piq object (default=false)
-
-`--piq-relaxed-parsing true|false`
-:   Parse Piq format using "relaxed" mode (default=false)
-
-    For instance, when set to `true`, single-word string literals don't have to
-    be quoted.
 
 
 ### piqi call

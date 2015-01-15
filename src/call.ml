@@ -26,7 +26,7 @@ open C
 
 
 (* command-line arguments *)
-let output_encoding = Convert.output_encoding
+let output_format = Convert.output_format
 let flag_piqi = ref false
 let flag_piqi_all = ref false
 let flag_piqi_light = ref false
@@ -554,17 +554,17 @@ let run_call url =
   if not (!flag_piqi || !flag_piqi_all || !flag_piqi_light || !flag_h)
   then
     let args = Piqi_getopt.getopt_piq () in
-    let writer = Convert.make_writer !output_encoding in
+    let writer = Convert.make_writer !output_format in
     let res = call url args in
     gen_result ch writer res
   else
     let is_piqi_input = true in
-    let writer = Convert.make_writer !output_encoding ~is_piqi_input in
+    let writer = Convert.make_writer !output_format ~is_piqi_input in
     let piqi_list = get_piqi url in
     if !flag_piqi
     then
       let piqi = last piqi_list in
-      if !output_encoding = ""
+      if !output_format = ""
       then
         Piqi_pp.prettyprint_piqi ch (Piqi_convert.original_piqi piqi)
       else

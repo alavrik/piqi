@@ -14,6 +14,8 @@
    limitations under the License.
 *)
 
+(* "piqi check" validates input and essentially the same as "piqi convert"
+ * except it doesn't produce any output *)
 
 module C = Piqi_common  
 open C
@@ -21,46 +23,39 @@ open C
 
 (* command-line arguments *)
 
-let usage = "Usage: piqi check [options] <.piqi|.piq file>\nOptions:"
+let usage = "Usage: piqi check [options] [input file]\nOptions:"
 
 
 let speclist = Main.common_speclist @
   [
     Main.arg__strict;
+
+    Convert.arg_f;
     Convert.arg__type;
     Convert.arg__piq_relaxed_parsing;
+    Convert.arg__piq_frameless_input;
+
     Main.arg__include_extension;
+    Main.arg__;
   ]
 
 
-let check_piqi fname =
-  (* in order to check JSON names: *)
-  Piqi_json.init ();
-  let ch = Main.open_input fname in
-  ignore (Piqi.load_piqi fname ch)
+let check_file () =
+  Convert.init ();
 
+  let input_format = Convert.get_input_format () in
+  let reader = Convert.make_reader input_format in
 
-(* TODO: add support for checking .pib and, possibly, json and xml as well *)
-let check_piq () =
-  Piqi_config.piq_relaxed_parsing := !Convert.flag_piq_relaxed_parsing;
-
-  let reader = Convert.make_reader "piq" in
-  (* read Piq objects one by one, but don't output them anywhere *)
+  (* main convert cycle *)
   Convert.do_convert reader
-
-
-let check_file fname =
-  match Piqi_file.get_extension fname with
-    | "piq" -> check_piq ()
-    | "piqi" -> check_piqi fname
-    | x -> piqi_error ("unknown input file extension: " ^ x)
 
 
 let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:1 ~max_arg_count:1;
-  check_file !Main.ifile
+  check_file ()
 
  
 let _ =
-  Main.register_command run "check" "check %.piqi or %.piq validity"
+  Main.register_command run "check"
+    "check data validity for various file formats (piqi, piq, json, xml, pb, pib)"
 
