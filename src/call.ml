@@ -200,6 +200,7 @@ let with_open_pipe shell_command f =
       let res = f handle in
       `ok res
     with exn ->
+      trace "piqi_call: error while calling command: %s\n" (C.string_of_exn exn);
       `error exn
   in
   let status = Unix.close_process handle in

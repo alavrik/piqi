@@ -131,7 +131,7 @@ let do_args f data =
 
 
 let do_run name f x =
-  trace "running function: %s\n" name;
+  trace "piqi_server: running function: %s\n" name;
   try f x
   with exn ->
     let response = return_rpc_error
@@ -142,6 +142,7 @@ let do_run name f x =
 
 let execute_request req =
   let open Piqi_rpc_piqi.Request in
+  trace "piqi_server: received request: %s\n" req.name;
   match req.name, req.data with
     | "convert", data -> (
         let args = do_args I.parse_convert_input data in
@@ -171,25 +172,45 @@ let execute_request req =
         return_rpc_error `unknown_function
 
 
+let safe_exit n =
+  (* have to close all channels explicilty to prevent getting an uncaught
+   * Sys_error("Invalid argument") exception during execution of at_exit *)
+  close_in_noerr stdin;
+  close_out_noerr stdout;
+  close_out_noerr stderr;
+  exit n
+
+
+
+let read_request () =
+  trace "piqi_server: reading request\n";
+  try
+    Piqi_rpc.receive_request stdin
+  with
+    | End_of_file ->
+        trace "piqi_server: EOF while reading request\n";
+        safe_exit 0
+    | exn -> (
+        trace "piqi_server: error while reading request: %s\n" (C.string_of_exn exn);
+        let response = return_rpc_error
+          (`protocol_error
+            ("error while reading request: " ^ C.string_of_exn exn))
+        in
+        Piqi_rpc.send_response stdout response;
+        safe_exit 1
+      )
+
+
 let do_work () =
-  let request, caller_ref =
-    try
-      Piqi_rpc.receive_request stdin
-    with exn -> (
-      let response = return_rpc_error
-        (`protocol_error
-          ("error while reading command: " ^ Printexc.to_string exn))
-      in
-      Piqi_rpc.send_response stdout response;
-      exit 1
-    )
-  in
+  let request, caller_ref = read_request () in
+
   Piqi.debug_loc "do_work(0)";
   let response =
     try execute_request request
     with Break x -> x
   in
   Piqi.debug_loc "do_work(1)";
+
   Piqi_rpc.send_response stdout response ~caller_ref
 
 
@@ -214,16 +235,15 @@ let main_loop () =
 
 let start_server () =
   Piqi_convert.init ();
+
+  (* won't work correctly on Windows without this *)
+  set_binary_mode_in stdin true;
+  set_binary_mode_out stdout true;
+
   (* exit on SIGPIPE without printing a message about uncaught exception *)
   if Sys.os_type <> "Win32"
-  then Sys.set_signal Sys.sigpipe (Sys.Signal_handle (fun _ ->
-    (* have to close all channels explicilty to prevent getting an uncaught
-     * sigpipe during execution of at_exit *)
-    close_in_noerr stdin;
-    close_out_noerr stdout;
-    close_out_noerr stderr;
-    exit 0
-  ));
+  then Sys.set_signal Sys.sigpipe (Sys.Signal_handle (fun _ -> safe_exit 0));
+
   main_loop ()
 
 
