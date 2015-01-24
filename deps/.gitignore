@@ -1,5 +1,6 @@
 */upstream
 */META
+!bytes.dummy/META
 */*.ml
 */*.mli
 */*.tar.gz

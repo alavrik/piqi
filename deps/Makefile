@@ -19,7 +19,11 @@ DIRS += optcomp
 endif
 
 ifndef SKIP-bytes
+ifndef OCAML_BYTES_PRESENT
 DIRS += bytes
+else
+DIRS += bytes.dummy
+endif
 endif
 
 ifndef SKIP-base64

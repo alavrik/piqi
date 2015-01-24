@@ -131,5 +131,30 @@ do
     fi
 done
 
+OCAML_VERSION=`$OCAMLFIND ocamlc -version`
+if [ $? -ne 0 ]
+then
+    echo "configure: error: failed to get OCaml version" 1>&2
+    exit 1
+fi
+echo "ocaml version: $OCAML_VERSION"
+
+# determine presence of the bytes module in the system; with ocamlfind < 1.5 and
+# ocaml >= 4.02 bytes module is present while bytes package is missing
+case $OCAML_VERSION in
+    3.12.*|4.00.*|4.01.*)
+        ;;
+    3.*)
+        echo "configure: error: OCaml version is too old. See INSTALL for details" 1>&2
+        exit 1
+        ;;
+    *)
+        echo "OCAML_BYTES_PRESENT = 1" >> $M
+        ;;
+esac
+
+
+echo "configure OK"
+
 
 # ex: sw=4 ts=4 et

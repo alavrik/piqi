@@ -1,0 +1,4 @@
+name="bytes"
+version="[OCaml after 4.02 and ocamlfind strictly before 1.5]"
+description="dummy package to satisfy dependency that comes as a part of stdlib"
+requires=""
