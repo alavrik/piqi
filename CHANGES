@@ -1,3 +1,19 @@
+Piqi 0.6.11 (January 25, 2014)
+==============================
+
+Fixes:
+
+  - Fix "piqi server" on Windows
+  - Fix "piqi convert --piq-frameless-input"
+
+
+Piqi tools:
+
+  - Fix "piqi convert --piq-frameless-input"
+  - "piqi check" now validates pb/piq/json/xml files and supports all
+    input-related options of "piqi convert"
+
+
 Piqi 0.6.10 (December 28, 2014)
 ===============================
 
