@@ -18,4 +18,5 @@ depends: [
   "xmlm"
   "optcomp"
   "base64" {>="2.0.0"}
+  "base-bytes"
 ]

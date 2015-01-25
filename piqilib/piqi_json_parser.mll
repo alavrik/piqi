@@ -352,9 +352,10 @@ and finish_stringlit v = parse
     | [^ '"' '\\' '\x00'-'\x1F'])* '"'
          {
            let len = lexbuf.lex_curr_pos - lexbuf.lex_start_pos in
-	   let s = String.create (len+1) in
-	   s.[0] <- '"';
-	   String.blit lexbuf.lex_buffer lexbuf.lex_start_pos s 1 len;
+	   let s = Bytes.create (len+1) in
+	   Bytes.set s 0 '"';
+	   Bytes.blit lexbuf.lex_buffer lexbuf.lex_start_pos s 1 len;
+           let s = Bytes.unsafe_to_string s in
            check_adjust_utf8 v lexbuf s 1 len;
 	   s
 	 }

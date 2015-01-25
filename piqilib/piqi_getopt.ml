@@ -225,8 +225,9 @@ let parse_name_arg s =
   let n = String.sub s 1 (String.length s - 1) in
   if Piqi_name.is_valid_name n ~allow:"."
   then (
-    s.[0] <- '.'; (* replace '-' with '.' to turn it into a Piq name *)
-    Piq_lexer.Word s
+    let s = Bytes.of_string s in
+    Bytes.set s 0 '.'; (* replace '-' with '.' to turn it into a Piq name *)
+    Piq_lexer.Word (Bytes.unsafe_to_string s)
   )
   else error ("invalid name: " ^ U.quote s)
 
@@ -304,9 +305,9 @@ let parse_argv start =
           (* only letters are allowed as single-letter options *)
           | 'a'..'z' | 'A'..'Z' ->
               (* creating Piq name: '.' followed by the letter *)
-              let word = String.create 2 in
-              word.[0] <- '.'; word.[1] <- c;
-              let tok = Piq_lexer.Word word in
+              let word = Bytes.create 2 in
+              Bytes.set word 0 '.'; Bytes.set word 1 c;
+              let tok = Piq_lexer.Word (Bytes.unsafe_to_string word) in
               (make_token i tok) :: (aux (j+1))
           | _ ->
               error i ("invalid single-letter argument: " ^ Char.escaped c)

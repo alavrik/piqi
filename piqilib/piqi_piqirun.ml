@@ -1,5 +1,5 @@
 (*
-   Copyright 2009, 2010, 2011, 2012, 2013, 2014 Anton Lavrik
+   Copyright 2009, 2010, 2011, 2012, 2013, 2014, 2015 Anton Lavrik
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -150,11 +150,11 @@ module IBuf =
               res
         | Channel x ->
             let start_pos = pos_in x in
-            let s = String.create length in
+            let s = Bytes.create length in
             (try Pervasives.really_input x s 0 length
              with End_of_file -> raise End_of_buffer
             );
-            of_string s start_pos
+            of_string (Bytes.unsafe_to_string s) start_pos
 
 
     let of_string x =
@@ -1143,27 +1143,27 @@ let gen_varint64_field code x =
  *)
 
 let gen_fixed32_value x = (* little-endian *)
-  let s = String.create 4 in
+  let s = Bytes.create 4 in
   let x = ref x in
   for i = 0 to 3
   do
     let b = Char.chr (Int32.to_int (Int32.logand !x 0xFFl)) in
-    s.[i] <- b;
+    Bytes.set s i b;
     x := Int32.shift_right_logical !x 8
   done;
-  ios s
+  ios (Bytes.unsafe_to_string s)
 
 
 let gen_fixed64_value x = (* little-endian *)
-  let s = String.create 8 in
+  let s = Bytes.create 8 in
   let x = ref x in
   for i = 0 to 7
   do
     let b = Char.chr (Int64.to_int (Int64.logand !x 0xFFL)) in
-    s.[i] <- b;
+    Bytes.set s i b;
     x := Int64.shift_right_logical !x 8
   done;
-  ios s
+  ios (Bytes.unsafe_to_string s)
 
 
 let gen_fixed32_field code x =

@@ -24,12 +24,13 @@ let string_subst_char s x y =
   then s
   else
     (* preserve the original string *)
-    let s = String.copy s in
-    for i = 0 to (String.length s) - 1
+    let s = Bytes.of_string s in
+    for i = 0 to (Bytes.length s) - 1
     do
-      if s.[i] = x
-      then s.[i] <- y
-    done; s
+      if Bytes.get s i = x
+      then Bytes.set s i y
+    done;
+    Bytes.unsafe_to_string s
 
 
 let list_of_string s =
@@ -42,13 +43,15 @@ let list_of_string s =
 
 
 let string_of_list l =
-  let s = String.create (List.length l) in
+  let s = Bytes.create (List.length l) in
   let rec aux i = function
     | [] -> ()
     | h::t ->
-        s.[i] <- h; aux (i+1) t
+        Bytes.set s i h;
+        aux (i+1) t
   in
-  aux 0 l; s
+  aux 0 l;
+  Bytes.unsafe_to_string s
 
 
 let dashes_to_underscores s =

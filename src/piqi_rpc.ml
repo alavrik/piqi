@@ -52,9 +52,9 @@ let read_int32_be ch =
 
 
 let read_string ch size =
-  let res = String.create size in
+  let res = Bytes.create size in
   really_input ch res 0 size;
-  res
+  Bytes.unsafe_to_string res
 
 
 (* serialize and send one length-delimited packet to the output channel *)

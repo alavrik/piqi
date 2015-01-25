@@ -219,7 +219,7 @@ let parse_response_header buf len =
 
 
 let read_buf_size = 8096
-let read_buf = String.create read_buf_size
+let read_buf = Bytes.create read_buf_size
 
 
 (* reading input in [read_buf_size] chunks *)
@@ -235,7 +235,7 @@ let read_body ch body_buf =
     then () (* eof *)
     else (
       (* add a portion of input we've just read to the buffer *)
-      Buffer.add_substring body_buf read_buf 0 len;
+      Buffer.add_substring body_buf (Bytes.unsafe_to_string read_buf) 0 len;
       aux ()
     )
   in aux ()
@@ -245,12 +245,12 @@ let read_response ch =
   let len = read_next ch in
   if len = 0 then error "response is empty";
 
-  let status_code, headers, body_offset = parse_response_header read_buf len in
+  let status_code, headers, body_offset = parse_response_header (Bytes.unsafe_to_string read_buf) len in
 
   (* create a buffer for reading HTTP message body *)
   let body_buf = Buffer.create read_buf_size in
   (* add a piece of previously read body to the body buffer *)
-  Buffer.add_substring body_buf read_buf body_offset (len - body_offset);
+  Buffer.add_substring body_buf (Bytes.unsafe_to_string read_buf) body_offset (len - body_offset);
 
   (* read the remainder of the body *)
   (* XXX: use "Content-Length" header? *)

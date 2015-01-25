@@ -153,13 +153,15 @@ let utf8_of_list l =
 
 
 let string_of_list l =
-  let s = String.create (List.length l) in
+  let s = Bytes.create (List.length l) in
   let rec aux i = function
     | [] -> ()
     | h::t ->
-        s.[i] <- Char.chr h; aux (i+1) t
+        Bytes.set s i (Char.chr h);
+        aux (i+1) t
   in
-  aux 0 l; s
+  aux 0 l;
+  Bytes.unsafe_to_string s
 
 
 let parse_string_literal s =

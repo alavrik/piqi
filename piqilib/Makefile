@@ -11,7 +11,7 @@ LIBINSTALL_FILES += \
 
 STATIC = 1 # force creation of static library (don't create dlls)
 
-PACKS = ulex easy-format xmlm base64
+PACKS = ulex easy-format xmlm base64 bytes
 
 
 SOURCES = \
