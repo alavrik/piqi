@@ -1,4 +1,4 @@
-.TH PIQI 1 "December 28, 2014" "Piqi User Manual"
+.TH PIQI 1 "January 14, 2015" "Piqi User Manual"
 .SH NAME
 .PP
 piqi \- a collection of tools for working with structured data and Piqi
@@ -185,20 +185,78 @@ Automatically include extension modules (/doc/piqi#extensionmodules)
 \f[C]<extension\-name>\f[] when loading .piqi files.
 .RS
 .RE
+.TP
+.B \f[C]\-\-gen\-extended\-piqi\-any\f[]
+Use extended representation of \f[C]piqi\-any\f[] values in XML and JSON
+output.
+.RS
+.PP
+When specified, an extended version of \f[C]piqi\-any\f[] representation
+is used in the conversion result.
+In addition to the original JSON or XML value, it includes Piqi type
+name (if known), Protobuf representation (if known or can be derived),
+and a special marker indicating that this is an extended piqi\-any
+representation.
+.PP
+For example, this flag changes relevant portion of "piqi convert \-t json
+piqi.piqi" output from
+.PP
+"default": "required",
+.PP
+to
+.PP
+"default": { "piqi_type": "piqi\-any", "type": "piqi/field\-mode",
+"protobuf": "CN+iipMB", "json": "required" },
+.RE
+.TP
+.B \f[C]\-\-strict\f[]
+Treat unknown and duplicate options as errors
+.RS
+.RE
+.TP
+.B \f[C]\-\-piq\-frameless\-output\ true|false\f[]
+Print a frame (i.e.
+: []) around a single output Piq object (default=false)
+.RS
+.RE
+.TP
+.B \f[C]\-\-piq\-frameless\-input\ true|false\f[]
+Expect a frame around a single input Piq object (default=false)
+.RS
+.RE
+.TP
+.B \f[C]\-\-piq\-relaxed\-parsing\ true|false\f[]
+Parse Piq format using "relaxed" mode (default=false)
+.RS
+.PP
+For instance, when set to \f[C]true\f[], single\-word string literals
+don\[aq]t have to be quoted.
+.RE
 .SS piqi check
 .PP
-Usage: \f[C]piqi\ check\ [options]\ <.piqi|.piq\ file>\f[]
-.PP
-Checks .piq and .piqi validity.
+Usage: `piqi check [options] [input file]"
 .PP
 Returns 0 if the file is valid.
 .TP
+.B \f[C]\-f\ pb|json|xml|piq|pib\f[]
+Specify input encoding.
+If not specified, input encoding will be chosen based on input
+file\[aq]s extension.
+.RS
+.RE
+.TP
 .B \f[C]\-\-type\ <typename>\f[]
-Specify the default object type when reading data from .piq files.
+Specify the type of converted object when converting from \f[C]pb\f[] or
+\f[C]json\f[] encodings, as these formats do not contain information
+about types.
+For other input formats, this parameter defines the default object type.
 .RS
 .PP
 \f[C]<typename>\f[] should be a fully qualified Piqi typename of the
 form \f[C]<module\ name>/<type\ name>\f[].
+.PP
+If an input \f[C]pb\f[] or \f[C]json\f[] stream contains embedded Piqi
+module(s), a special \f[C]\-\-type\ piqi\f[] value should be used.
 .RE
 .TP
 .B \f[C]\-\-strict\f[]
@@ -211,6 +269,13 @@ Piq formats.
 Automatically include extension modules (/doc/piqi#extensionmodules)
 \f[C]<extension\-name>\f[] when loading .piqi files.
 .RS
+.RE
+.TP
+.B \f[C]\-\-piq\-frameless\-input\ true|false\f[]
+Expect a frame around a single input Piq object (default=false)
+.RS
+.PP
+See \f[C]piqi\ convert\f[] for more details.
 .RE
 .TP
 .B \f[C]\-\-piq\-relaxed\-parsing\ true|false\f[]
@@ -456,51 +521,9 @@ value.
 (This option is applied only when \f[C]\-t\f[] option is used.)
 .RE
 .TP
-.B \f[C]\-\-gen\-extended\-piqi\-any\f[]
-Use extended representation of \f[C]piqi\-any\f[] values in XML and JSON
-output.
-.RS
-.PP
-When specified, an extended version of \f[C]piqi\-any\f[] representation
-is used in the conversion result.
-In addition to the original JSON or XML value, it includes Piqi type
-name (if known), Protobuf representation (if known or can be derived),
-and a special marker indicating that this is an extended piqi\-any
-representation.
-.PP
-For example, this flag changes relevant portion of "piqi convert \-t json
-piqi.piqi" output from
-.PP
-"default": "required",
-.PP
-to
-.PP
-"default": { "piqi_type": "piqi\-any", "type": "piqi/field\-mode",
-"protobuf": "CN+iipMB", "json": "required" },
-.RE
-.TP
 .B \f[C]\-\-strict\f[]
 Treat unknown and duplicate options as errors
 .RS
-.RE
-.TP
-.B \f[C]\-\-piq\-frameless\-output\ true|false\f[]
-Print a frame (i.e.
-: []) around a single output Piq object (default=false)
-.RS
-.RE
-.TP
-.B \f[C]\-\-piq\-frameless\-input\ true|false\f[]
-Expect a frame around a single input Piq object (default=false)
-.RS
-.RE
-.TP
-.B \f[C]\-\-piq\-relaxed\-parsing\ true|false\f[]
-Parse Piq format using "relaxed" mode (default=false)
-.RS
-.PP
-For instance, when set to \f[C]true\f[], single\-word string literals
-don\[aq]t have to be quoted.
 .RE
 .SS piqi call
 .PP
