@@ -100,7 +100,7 @@ let with_bool bool_ref value f =
 
 
 (* list flatmap *)
-let flatmap f l =  List.concat (List.map f l)
+let flatmap f l =  Core.Std.List.concat (Core.Std.List.map ~f l)
 
 
 let find_dups l =

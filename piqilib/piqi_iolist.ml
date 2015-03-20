@@ -16,9 +16,11 @@
 
 
 (* auxiliary iolist type and related primitives *)
+open Core.Std
+
 type iolist =
     Ios of string
-  | Iol of iolist list
+  | Iol of iolist Core.Std.List.t
   | Iob of char
   | Indent | Unindent | Eol
 
@@ -44,7 +46,7 @@ let iod delim = function  (* iol with elements separated by delim *)
   | [] -> Iol []
   | h::t ->
     let d = ios delim in
-    List.fold_left (fun accu x -> accu ^^ d ^^ x) h t
+    List.fold_left ~f:(fun accu x -> accu ^^ d ^^ x) ~init:h t
 let ioq x = (* double-quoted string *)
   iol [ios "\""; ios x; ios "\""]
 
@@ -59,7 +61,7 @@ let to_buffer0 buf l =
         do Buffer.add_string buf "    "
         done
     | Ios s -> Buffer.add_string buf s
-    | Iol l -> List.iter aux l
+    | Iol l -> List.iter l aux
     | Iob b -> Buffer.add_char buf b
     | Indent -> incr indent
     | Unindent -> decr indent; if !indent < 0 then indent := 0
@@ -70,7 +72,7 @@ let to_buffer0 buf l =
 let size l =
   let rec aux = function
     | Ios s -> String.length s
-    | Iol l -> List.fold_left (fun accu x -> accu + (aux x)) 0 l
+    | Iol l -> List.fold_left ~f:(fun accu x -> accu + (aux x)) ~init:0 l
     | Iob _ -> 1
     | _ -> assert false
   in aux l

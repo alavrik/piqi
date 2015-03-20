@@ -107,7 +107,7 @@ let speclist = Main.common_speclist @
 
 let first_load = ref true
 
-let load_piqi fname :Piqi_convert.obj =
+let load_piqi fname =
   if !first_load
   then first_load := false
   else raise Piqi_convert.EOF; (* mimic the behaviour of Piqi_convert loaders *)
@@ -126,7 +126,7 @@ let resolve_typename () =
 
 
 (* ensuring that Piqi_convert.load_pb is called exactly one time *)
-let load_pb piqtype protobuf :Piqi_convert.obj =
+let load_pb piqtype protobuf =
   if !first_load
   then first_load := false
   else raise Piqi_convert.EOF; (* XXX: print a warning if there are more input objects? *)
@@ -134,7 +134,7 @@ let load_pb piqtype protobuf :Piqi_convert.obj =
 
 
 (* making sure Piqi_convert.load_piq is called exactly once in frameless mode *)
-let load_piq piqtype piq_parser :Piqi_convert.obj =
+let load_piq piqtype piq_parser =
   if !flag_piq_frameless_input
   then (
     if !first_load
@@ -146,14 +146,14 @@ let load_piq piqtype piq_parser :Piqi_convert.obj =
 
 let first_write = ref true
 
-let write_pb ch (obj: Piqi_convert.obj) =
+let write_pb ch obj =
   if !first_write
   then first_write := false
   else piqi_error "converting more than one object to \"pb\" is not allowed";
   Piqi_convert.to_pb_channel ch obj
 
 
-let write_piq ch (obj: Piqi_convert.obj) =
+let write_piq ch obj =
   if !first_write
   then first_write := false
   else
@@ -163,7 +163,7 @@ let write_piq ch (obj: Piqi_convert.obj) =
 
 
 (* write only data and skip Piqi specifications and data hints *)
-let write_data ~is_piqi_input writer ch (obj: Piqi_convert.obj) =
+let write_data ~is_piqi_input writer ch obj =
   match obj with
     | Piqi_convert.Piqi _ when not is_piqi_input ->
         (* ignore embedded Piqi specs if we are not converting .piqi *)
@@ -175,7 +175,7 @@ let write_data ~is_piqi_input writer ch (obj: Piqi_convert.obj) =
 
 
 (* write data and Piqi specifications and data hints *)
-let write_data_and_piqi writer ch (obj: Piqi_convert.obj) =
+let write_data_and_piqi writer ch obj =
   match obj with
     | Piqi_convert.Piqtype _ ->
         (* ignore default type names *)
@@ -282,7 +282,7 @@ let get_parent_piqi (t: T.piqtype) =
   C.get_parent_piqi typedef
 
 
-let get_dependencies (obj :Piqi_convert.obj) ~only_imports =
+let get_dependencies obj ~only_imports =
   let deps =
     match obj with
       | Piqi_convert.Piqi piqi ->

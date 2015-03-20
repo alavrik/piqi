@@ -72,7 +72,7 @@ let parse_binary (x:json) = match x with
   | o -> error o "string constant expected"
 
 
-let rec parse_obj (t:T.piqtype) (x:json) :Piqobj.obj =
+let rec parse_obj (t:T.piqtype) (x:json) =
   match t with
     (* built-in types *)
     | `int -> parse_int x
@@ -89,7 +89,7 @@ let rec parse_obj (t:T.piqtype) (x:json) :Piqobj.obj =
     | `alias t -> `alias (parse_alias t x)
 
 
-and parse_any (x:json) :Piqobj.any =
+and parse_any (x:json) =
   (* detect extended piqi-any format *)
   match x with
     | `Assoc (("piqi_type", `String "piqi-any") :: rem) -> (* extended piqi-any format *)
@@ -117,7 +117,7 @@ and parse_any (x:json) :Piqobj.any =
             | _ -> None
         in
         Any.({
-          Piqobj.default_any with
+          (Piqobj.default_any ()) with
           typename = typename;
           pb = protobuf;
           json_ast = json_ast;
@@ -126,7 +126,7 @@ and parse_any (x:json) :Piqobj.any =
         (* TODO: preserve the original int, float and string literals -- see
          * Piqobj.json_of_any *)
         Any.({
-          Piqobj.default_any with
+          (Piqobj.default_any ()) with
           json_ast = Some json_ast;
         })
 
@@ -192,7 +192,7 @@ and do_parse_field loc t l =
           parse_repeated_field name field_type l
   in
   let fields =
-    List.map (fun x -> F.({t = t; obj = Some x})) values
+    Core.Std.List.map ~f:(fun x -> F.({t = t; obj = Some x})) values
   in
   fields, rem
   
@@ -244,7 +244,7 @@ and parse_repeated_field name field_type l =
   match res with
     | [] -> [], rem (* XXX: allowing repeated field to be acutally missing *)
     | [`List l] ->
-        let res = List.map (parse_obj field_type) l in
+        let res = Core.Std.List.map ~f:(parse_obj field_type) l in
         res, rem
     | [x] -> error x "array expected"
     | _::o::_ -> error_duplicate o name
@@ -267,7 +267,7 @@ and parse_variant t x =
         in
         V.({t = t; option = option})
     | `Assoc l ->
-        let l = List.filter (fun (n, v) -> v <> `Null ()) l in
+        let l = Core.Std.List.filter ~f:(fun (n, v) -> v <> `Null ()) l in
         (match l with
           | [_] -> parse_variant t (`Assoc l)
           | _ -> error x "exactly one non-null option field expected"
@@ -310,7 +310,7 @@ and parse_list t x =
     | `List l ->
         debug "parse_list: %s\n" (some_of t.T.Piqi_list.name);
         let obj_type = some_of t.T.Piqi_list.piqtype in
-        let contents = List.map (parse_obj obj_type) l in
+        let contents = Core.Std.List.map ~f:(parse_obj obj_type) l in
         L.({t = t; obj = contents})
     | _ ->
         error x "array expected"
@@ -326,5 +326,5 @@ and parse_alias t x =
 
 
 let _ =
-  Piqobj.of_json := parse_obj
+  (Piqobj.of_json ()) := parse_obj
 

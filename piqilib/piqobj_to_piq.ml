@@ -101,7 +101,7 @@ let order_record_fields t piqobj_fields =
   List.rev res
 
 
-let rec gen_obj0 ?(piq_format: T.piq_format option) (x:Piqobj.obj) :piq_ast =
+let rec gen_obj0 ?(piq_format: T.piq_format option) x =
   match x with
     (* built-in types *)
     | `int x -> `int (x, "")
@@ -243,5 +243,5 @@ let gen_obj obj = gen_obj obj
 
 
 let _ =
-  Piqobj.to_piq := gen_obj
+  (Piqobj.to_piq ()) := gen_obj
 

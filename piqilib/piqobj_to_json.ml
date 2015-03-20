@@ -49,7 +49,7 @@ let make_name name =
   name, `Bool true
 
 
-let rec gen_obj (x:Piqobj.obj) :json =
+let rec gen_obj x :json =
   match x with
     (* built-in types *)
     | `int x -> `Int x
@@ -132,7 +132,7 @@ and gen_field fields t =
         if fields = [] && omit_missing t
         then []
         else
-          let json_fields = List.map (fun f -> gen_obj (some_of f.obj)) fields in
+          let json_fields = Core.Std.List.map ~f:(fun f -> gen_obj (some_of f.obj)) fields in
           let res = make_named name (`List json_fields) in
           [res]
 
@@ -164,7 +164,7 @@ and gen_enum_option x =
 
 and gen_list x = 
   let open L in
-  `List (List.map gen_obj x.obj)
+  `List (Core.Std.List.map ~f:gen_obj x.obj)
 
 
 and gen_alias x =
@@ -175,5 +175,5 @@ and gen_alias x =
 
 
 let _ =
-  Piqobj.to_json := gen_obj
+  (Piqobj.to_json ()) := gen_obj
 

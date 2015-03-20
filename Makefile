@@ -7,6 +7,7 @@ include $(PIQI_ROOT)/make/Makefile.dirs
 endif
 
 
+export ANNOTATE=yes
 DIRS = piqilib src
 
 

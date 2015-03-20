@@ -23,7 +23,6 @@ open Piqobj_common
 
 module W = Piqi_protobuf
 
-
 (* whether to generate piqi-any in external mode, i.e. only including fields
  * defined for it by piqi.piqi (and not piqi-impl.piqi)
  *)
@@ -131,7 +130,7 @@ let compare_field a b =
 
 
 (* preorder fields by their codes *)
-let order_fields = List.sort compare_field
+let order_fields () = Core.Std.List.sort ~cmp:compare_field
 
 
 (*
@@ -142,7 +141,7 @@ let rec unalias (x:Piqobj.obj) =
 *)
 
 
-let rec gen_obj code (x:Piqobj.obj) =
+let rec gen_obj code x =
   match x with
     (* built-in types *)
     | `int x | `uint x -> gen_int code x
@@ -159,7 +158,7 @@ let rec gen_obj code (x:Piqobj.obj) =
     | `alias x -> gen_alias code x
 
 
-and gen_packed_obj (x:Piqobj.obj) =
+and gen_packed_obj x =
   match x with
     (* built-in types *)
     | `int x | `uint x -> gen_packed_int x
@@ -230,7 +229,7 @@ and gen_any code x =
 and gen_record code x =
   let open R in
   (* TODO, XXX: doing ordering at every generation step is inefficient *)
-  let fields = order_fields x.field in
+  let fields = order_fields () @@ x.field in
 
   let encoded_piq_unparsed =
     match x.unparsed_piq_fields_ref with
@@ -251,9 +250,9 @@ and gen_record code x =
 and gen_fields fields =
   (* check if there's at least one packed field
    * TODO: optimize by keeping track of it statically at the record level *)
-  if List.exists is_packed_field fields
+  if Core.Std.List.exists fields is_packed_field
   then group_gen_fields fields
-  else List.map gen_field fields
+  else Core.Std.List.map ~f:gen_field fields
 
 
 and is_packed_field x = x.F.t.T.Field.protobuf_packed
@@ -391,5 +390,5 @@ and resolve_wire_type ?wire_type this_wire_type =
 
 
 let _ =
-  Piqobj.to_pb := gen_binobj
+  (Piqobj.to_pb ()) := gen_binobj
 

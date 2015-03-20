@@ -376,7 +376,7 @@ let getopt_piq () :piq_ast list =
   piq_ast_list
 
 
-let parse_args (piqtype: T.piqtype) (args: piq_ast list) :Piqobj.obj =
+let parse_args piqtype (args: piq_ast Core.Std.List.t) =
   let ast =
     match args with
       | [x] when not (C.is_container_type piqtype) ->  (* scalar type? *)

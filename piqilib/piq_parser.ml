@@ -178,11 +178,11 @@ let expand_names (x: piq_ast) :piq_ast =
           then typed.Piq_ast.Typed.value <- ast';
           expand_obj_names obj
       | `list l ->
-          `list (List.map aux l)
+          `list (Core.Std.List.map ~f:aux l)
       | `form (name, args) ->
           (* at this stage, after we've run expand_forms, this can not be a
            * named or typed form, so leaving name without a transformation *)
-          `form (name, List.map aux args)
+          `form (name, Core.Std.List.map ~f:aux args)
       | _ ->
           expand_obj_names obj
   and aux obj =
@@ -265,12 +265,12 @@ let expand_forms (x: piq_ast) :piq_ast =
             `list (U.flatmap expand_list_elem l)
           else
             (* process inner elements *)
-            `list (List.map aux l)
+            `list (Core.Std.List.map ~f:aux l)
       | _ ->
           obj
   and expand_list_elem = function
     | `form ((`name _) as name, args) | `form ((`typename _) as name, args) when args <> [] ->
-        let expanded_form = List.map (cons_named_or_typed name) args in
+        let expanded_form = Core.Std.List.map ~f:(cons_named_or_typed name) args in
         List.map aux expanded_form
     | x ->
         [aux x]

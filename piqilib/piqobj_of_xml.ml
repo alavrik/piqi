@@ -94,14 +94,14 @@ let parse_binary xml_elem =
 
 (* get the list of XML elements from the node *)
 let get_record_elements (l: xml list) :xml_elem list =
-  List.map (fun xml ->
+  Core.Std.List.map ~f:(fun xml ->
     match xml with
       | `Elem x -> x
       | `Data s ->
           error xml "XML element is expected as a record field") l
 
 
-let rec parse_obj (t: T.piqtype) (x: xml_elem) :Piqobj.obj =
+let rec parse_obj (t: T.piqtype) (x: xml_elem) =
   match t with
     (* built-in types *)
     | `int -> parse_int x
@@ -146,14 +146,14 @@ and parse_any xml_elem =
             | _ -> None
         in
         Any.({
-          Piqobj.default_any with
+          (Piqobj.default_any ()) with
           typename = typename;
           pb = protobuf;
           xml_ast = xml_ast;
         })
     | _ -> (* regular symbolic piqi-any *)
         Any.({
-          Piqobj.default_any with
+          (Piqobj.default_any ()) with
           xml_ast = Some xml_elem;
         })
 
@@ -217,7 +217,7 @@ and do_parse_field loc t l =
           parse_repeated_field name field_type l
   in
   let fields =
-    List.map (fun x -> F.({t = t; obj = Some x})) values
+    Core.Std.List.map ~f:(fun x -> F.({t = t; obj = Some x})) values
   in
   fields, rem
   
@@ -269,7 +269,7 @@ and parse_repeated_field name field_type l =
   match res with
     | [] -> [], rem (* allowing repeated field to be acutally missing *)
     | l ->
-        let res = List.map (parse_obj field_type) l in
+        let res = Core.Std.List.map ~f:(parse_obj field_type) l in
         res, rem
 
 
@@ -324,7 +324,7 @@ and parse_list t xml_elem =
   debug "parse_list: %s\n" (some_of t.T.Piqi_list.name);
   let obj_type = some_of t.T.Piqi_list.piqtype in
   let _name, l = xml_elem in
-  let contents = List.map (parse_list_item obj_type) l in
+  let contents = Core.Std.List.map ~f:(parse_list_item obj_type) l in
   L.({t = t; obj = contents})
 
 
@@ -347,7 +347,7 @@ and parse_alias t x =
 
 
 let _ =
-  Piqobj.of_xml := parse_obj
+  (Piqobj.of_xml ()) := parse_obj
 
 
 (* parse top-level Piq object formatted as XML *)

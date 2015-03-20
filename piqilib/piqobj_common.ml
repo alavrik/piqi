@@ -29,7 +29,7 @@ module Any = Piqobj.Any
 module L = Piqobj.List
 
 
-let type_of (x: Piqobj.obj) :T.piqtype =
+let type_of x :T.piqtype =
   (* XXX: built-in types should not be used at this point *)
   match x with
     | `int _ -> `int
@@ -51,7 +51,7 @@ let full_typename x =
   C.full_piqi_typename (type_of x)
 
 
-let parse_default piqtype (default :T.any option) :Piqobj.obj option =
+let parse_default piqtype (default : T.any option) =
   match default with
     | _ when not !C.resolve_defaults -> None
     | None -> None

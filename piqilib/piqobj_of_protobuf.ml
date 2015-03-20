@@ -84,7 +84,7 @@ let parse_packed_float ?wire_type x =
     | _ -> assert false (* XXX *)
 
 
-let rec parse_obj0 (t:T.piqtype) x :Piqobj.obj =
+let rec parse_obj0 (t:T.piqtype) x =
   let r0 = reference0 in
   let r = reference in
   match t with
@@ -103,7 +103,7 @@ let rec parse_obj0 (t:T.piqtype) x :Piqobj.obj =
     | `alias t -> `alias (parse_alias0 t x)
 
 
-and parse_packed_obj (t:T.piqtype) x :Piqobj.obj =
+and parse_packed_obj (t:T.piqtype) x =
   match t with
     (* built-in types *)
     | `int -> parse_packed_int x
@@ -137,7 +137,7 @@ and parse_any x =
     | None ->
         (* external mode *)
         let any = Any.({
-          Piqobj.default_any with
+          (Piqobj.default_any ()) with
           typename = piqi_any.Piqi_impl_piqi.Any.typename;
           pb = piqi_any.Piqi_impl_piqi.Any.protobuf;
         })
@@ -234,7 +234,7 @@ and do_parse_field t l =
           else parse_packed_repeated_field code field_type l
   in
   let fields =
-    List.map (fun x ->
+    Core.Std.List.map ~f:(fun x ->
       let res = F.({t = t; obj = Some x}) in
       Piqloc.addrefret x res) values
   in
@@ -365,5 +365,5 @@ and parse_packed_alias t ?wire_type x =
 
 
 let _ =
-  Piqobj.of_pb := parse_binobj
+  (Piqobj.of_pb ()) := parse_binobj
 

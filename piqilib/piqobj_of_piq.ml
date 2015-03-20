@@ -17,7 +17,7 @@
 
 module C = Piqi_common
 open C
-
+open Core.Std
 open Piqobj_common
 
 
@@ -115,7 +115,7 @@ let uint64_to_float x =
   if Int64.compare x 0L < 0 (* big unsigned? *)
   then
     let s = Printf.sprintf "%Lu" x in
-    float_of_string s
+    Float.of_string s
   else
     Int64.to_float x
 
@@ -192,14 +192,14 @@ let check_duplicate name tail =
           let obj = List.hd l in
           error obj ("duplicate field " ^ U.quote name)
         else
-          List.iter (fun obj ->
-            warning obj ("duplicate field " ^ U.quote name)) l
+          List.iter l (fun obj ->
+            warning obj ("duplicate field " ^ U.quote name))
 
 
 (* truncate the string till the first newline or to max_len *)
 let truncate_string s max_len =
   let max_len =
-    try String.index s '\n'
+    try String.index_exn s '\n'
     with Not_found -> max_len
   in
   if String.length s <= max_len
@@ -251,7 +251,7 @@ let rec parse_obj0
       ?(piq_format: T.piq_format option)
       ~try_mode
       ~nested_variant
-      (t: T.piqtype) (x: piq_ast) :Piqobj.obj =
+      t (x: piq_ast) =
   (* fill the location DB *)
   let r f x = reference f x in
   let rr f t x = reference (f t) x in
@@ -317,7 +317,7 @@ and try_parse_obj f t x =
             (depth := depth'; None) (* restore the original depth *)
 
 
-and parse_any x :Piqobj.any =
+and parse_any x =
   (* NOTE: the object is not fully resolved during this stage; at least
    * "obj" should be obtained by parsing "piqtype.ast" at later stages (see
    * Piqi.resolve_defaults for example *)
@@ -334,7 +334,7 @@ and parse_any x :Piqobj.any =
 
     | `typed {Piq_ast.Typed.typename = typename; value = ast} ->
         let any = Any.({
-          Piqobj.default_any with
+          (Piqobj.default_any ()) with
           typename = Some typename;
           piq_ast = Some ast;
         })
@@ -345,7 +345,7 @@ and parse_any x :Piqobj.any =
     | `form (`word "json", [`text s]) ->
         let json_ast = !Piqobj.json_of_string s in
         let any = Any.({
-          Piqobj.default_any with
+          (Piqobj.default_any ()) with
           json_ast = Some json_ast;
           json_string = Some s;
         })
@@ -358,7 +358,7 @@ and parse_any x :Piqobj.any =
     | `form (`word "xml", [`text s]) ->
         let xml_list = !Piqobj.xml_of_string s in
         let any = Any.({
-          Piqobj.default_any with
+          (Piqobj.default_any ()) with
           xml_ast = Some ("undefined", xml_list);
         })
         in
@@ -368,7 +368,7 @@ and parse_any x :Piqobj.any =
 
     | ast ->
         let any = Any.({
-          Piqobj.default_any with
+          (Piqobj.default_any ()) with
           piq_ast = Some ast;
         })
         in
@@ -395,12 +395,12 @@ and parse_record t x =
 
 and do_parse_record loc t l =
   let required_spec, other_spec =
-    List.partition is_required_field t.T.Record.field in
+    List.partition_tf t.T.Record.field is_required_field in
   (* parse required fields first *)
   let fields, rem =
-    List.fold_left (parse_field loc) ([], l) (required_spec @ other_spec) in
+    List.fold_left (required_spec @ other_spec) ~init:([], l) ~f:(parse_field loc) in
   (* issue warnings on unparsed fields *)
-  List.iter handle_unknown_field rem;
+  List.iter rem handle_unknown_field;
   let unparsed_piq_fields_ref =
     if rem <> [] && !C.is_inside_parse_piqi
     then Some (Piqi_objstore.put rem) (* FIXME: potential memory leak *)
@@ -465,9 +465,9 @@ and do_parse_field loc t l =
           parse_repeated_field t name field_type l
   in
   let fields =
-    List.map (fun x ->
+    Core.Std.List.map values ~f:(fun x ->
       let res = F.({t = t; obj = Some x}) in
-      Piqloc.addrefret x res) values
+      Piqloc.addrefret x res)
   in
   fields, rem
   
@@ -583,14 +583,14 @@ and parse_repeated_field f name field_type l =
          * elements *)
         let accu, rem =
           (List.fold_left
-            (fun (accu, rem) x ->
+            ~f:(fun (accu, rem) x ->
               match try_parse_obj f field_type x with
                 | None -> accu, x::rem
-                | Some x -> x::accu, rem) ([], []) l)
+                | Some x -> x::accu, rem) ~init:([], []) l)
         in List.rev accu, List.rev rem
     | l ->
         (* use strict parsing *)
-        let res = List.map (parse_obj field_type ?piq_format:f.T.Field.piq_format) res in
+        let res = Core.Std.List.map res (parse_obj field_type ?piq_format:f.T.Field.piq_format) in
         res, rem
 
 
@@ -770,7 +770,7 @@ and parse_list t = function
 
 and do_parse_list t l =
   let obj_type = some_of t.T.Piqi_list.piqtype in
-  let contents = List.map (parse_obj obj_type ?piq_format:t.T.Piqi_list.piq_format) l in
+  let contents = List.map l (parse_obj obj_type ?piq_format:t.T.Piqi_list.piq_format) in
   L.({t = t; obj = contents})
 
 
@@ -800,7 +800,7 @@ let wrap f x =
   try f x
   with Error (_depth, s, obj) ->
     (* print delayed warnings in case of error *) 
-    List.iter warn_unknown_field (get_unknown_fields ());
+    List.iter (get_unknown_fields ()) warn_unknown_field;
     Piqi_common.error obj s
 
 
@@ -813,5 +813,5 @@ let parse_typed_obj ?piqtype x =
 
 
 let _ =
-  Piqobj.of_piq := parse_obj
+  Piqobj.of_piq  := parse_obj
 

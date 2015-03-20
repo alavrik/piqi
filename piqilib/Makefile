@@ -9,8 +9,10 @@ LIBINSTALL_FILES += \
 	$(wildcard *.cmi) \
 
 
-PACKS = ulex easy-format xmlm base64 bytes
-
+PACKS = ulex easy-format xmlm base64 bytes core core_kernel
+LIBS+=~/.opam/4.02.1/lib/core/core ~/.opam/4.02.1/lib/core_kernel/core_kernel
+export ANNOTATE=yes
+export THREADS = y
 
 SOURCES = \
 	piqi_version.ml \
@@ -77,9 +79,14 @@ SOURCES = \
 
 
 PRE_TARGETS = piqi_version.ml META
+libpiqilib_stubs:
+	ocamlfind ocamlmklib -o piqilib_stubs piqi_c_impl.o
+custom_piqilib_cma:
+	ocamlfind ocamlc -a -cclib -lpiqilib_stubs -dllib -lpiqilib_stubs -o piqilib.cma piqi_version.cmo piqi_piqirun.cmo piqi_piqi.cmo piqloc.cmo piqi_util.cmo piq_ast.cmo piqi_impl_piqi.cmo piqi_boot.cmo piqi_c.cmo piqi_config.cmo piqi_iolist.cmo piqi_name.cmo piqi_common.cmo piqi_file.cmo piqi_command.cmo piqi_protobuf.cmo piqi_db.cmo piq_lexer.cmo piq_parser.cmo piq_gen.cmo piqi_objstore.cmo piqobj.cmo piqobj_common.cmo piqobj_to_protobuf.cmo piqobj_of_protobuf.cmo piqobj_to_piq.cmo piqobj_of_piq.cmo piq.cmo piqi.cmo piqi_pp.cmo piqi_json_parser.cmo piqi_json_gen.cmo piqi_json.cmo piqi_base64.cmo piqobj_to_json.cmo piqobj_of_json.cmo piqi_xml.cmo piqobj_to_xml.cmo piqobj_of_xml.cmo piqi_convert.cmo piqi_compile.cmo piqi_light.cmo piqi_getopt.cmo
 
+POST_TARGETS: libpiqilib_stubs custom_piqilib_cma
 
-all: ncl
+all: bcl ncl POST_TARGETS
 
 
 debug: dcl top
@@ -87,8 +94,9 @@ debug: dcl top
 
 # NOTE: when installing, uninstall first to avoid "already installed" error
 # also, make sure we have the byte-code version of the library built as well
-install: uninstall libinstall
-
+install: uninstall libinstall POST_TARGETS
+	cp dllpiqilib_stubs.so $(shell opam config var lib)/stublibs
+	cp piqilib.cma $(shell opam config var lib)/piqilib
 
 uninstall: libuninstall
 

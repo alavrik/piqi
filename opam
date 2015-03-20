@@ -13,6 +13,7 @@ remove: [
 ]
 build-test: [make "test"]
 depends: [
+  "core_kernel"
   "ocamlfind"
   "easy-format"
   "ulex"

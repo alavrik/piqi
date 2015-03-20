@@ -164,7 +164,7 @@ let add_codes_record r =
     then error r "codes must be defined for either all or none fields"
     else
       (* all field codes are assigned *)
-      let codes = List.map (fun x -> some_of x.T.Field.code) fields in
+      let codes = Core.Std.List.map ~f:(fun x -> some_of x.T.Field.code) fields in
       check_codes codes;
 
       (* pre-order fields by their codes to speed-up further processing *)
@@ -186,7 +186,7 @@ let add_codes_variant v =
     then error v "codes must be defined for either all or none variant options"
     else
       (* all option codes are assigned *)
-      let codes = List.map (fun x -> some_of x.T.Option.code) options in
+      let codes = Core.Std.List.map ~f:(fun x -> some_of x.T.Option.code) options in
       check_codes codes
   )
   else (
@@ -204,7 +204,7 @@ let add_codes_enum v =
     then error v "codes must be defined for either all or none enum options"
     else
       (* all option codes are assigned *)
-      let codes = List.map (fun x -> some_of x.T.Option.code) options in
+      let codes = Core.Std.List.map ~f:(fun x -> some_of x.T.Option.code) options in
       check_enum_codes codes
   )
   else (

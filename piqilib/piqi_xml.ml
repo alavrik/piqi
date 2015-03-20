@@ -76,7 +76,7 @@ let strip_whitespace (l :xml list) =
     | _ ->
       (* there is at least one element in the list; stripping all the data around
        * and between the elements *)
-      List.filter (function `Elem _ -> true | `Data _ -> false) l
+      Core.Std.List.filter ~f:(function `Elem _ -> true | `Data _ -> false) l
 
 
 let do_read_xml_obj xml_parser :xml =

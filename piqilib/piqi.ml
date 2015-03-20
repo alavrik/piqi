@@ -335,10 +335,10 @@ let check_resolved_alias a =
 let check_resolved_def def =
   match def with
     | `record x ->
-        let names = List.map (fun x -> name_of_field x) x.R.field in
+        let names = Core.Std.List.map ~f:(fun x -> name_of_field x) x.R.field in
         check_dup_names "field" names
     | `variant x ->
-        let names = List.map (fun x -> name_of_option x) x.V.option in
+        let names = Core.Std.List.map ~f:(fun x -> name_of_option x) x.V.option in
         (* TODO: also check duplicate names among nested variants (i.e.
          * "non-terminal" nameless sub-variants) *)
         check_dup_names "option" names
@@ -550,7 +550,7 @@ let assert_loc () =
     piqi_warning s
 
 
-let add_fake_loc (obj :Piqobj.obj) =
+let add_fake_loc obj =
   Piqloc.do_add_fake_loc obj ~label:"_self_piqi_default";
   match obj with
     | `enum x ->
