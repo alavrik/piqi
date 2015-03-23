@@ -5,11 +5,9 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 RESULT = piqilib
 
 LIBINSTALL_FILES += \
-	$(wildcard $(RESULT).cma $(RESULT).cmxa $(RESULT).$(EXT_LIB) $(RES_CLIB)) \
+	$(wildcard $(RESULT).cma $(RESULT).cmxa $(RESULT).$(EXT_LIB) $(RES_CLIB) $(DLLSONAME)) \
 	$(wildcard *.cmi) \
 
-
-STATIC = 1 # force creation of static library (don't create dlls)
 
 PACKS = ulex easy-format xmlm base64 bytes
 

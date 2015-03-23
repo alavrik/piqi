@@ -4,3 +4,4 @@
 /piqi_json_parser.ml
 
 /libpiqilib_stubs.a
+/dllpiqilib_stubs.so
