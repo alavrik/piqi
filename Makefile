@@ -10,7 +10,7 @@ endif
 DIRS = piqilib src
 
 
-.PHONY: deps build-dir install strip distclean \
+.PHONY: deps build-dir install test strip distclean \
 	ocaml ocaml-install ocaml-uninstall \
 	doc piqi
 
@@ -90,6 +90,10 @@ ocaml-install: ocaml-uninstall
 ocaml-uninstall:
 	$(MAKE) -C deps uninstall
 	$(MAKE) -C piqilib uninstall
+
+
+test:
+	$(MAKE) -C tests
 
 
 clean::

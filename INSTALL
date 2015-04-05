@@ -104,7 +104,7 @@ INSTALLATION INSTRUCTIONS
 RUNNING TESTS
 =============
 
-        make -C tests
+        make test
 
 
 See tests/README for further information.
