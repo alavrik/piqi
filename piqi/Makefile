@@ -1,4 +1,4 @@
-include ../Makefile.config
+-include ../Makefile.config
 
 
 PIQI_FILES = \

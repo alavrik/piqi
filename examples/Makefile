@@ -1,4 +1,4 @@
-include ../Makefile.config
+-include ../Makefile.config
 
 
 all: test_builtin test_complex

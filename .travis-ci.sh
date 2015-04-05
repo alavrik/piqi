@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -ex
 
@@ -26,15 +26,38 @@ case $TRAVIS_OS_NAME in
         opam install ocamlfind camlp4
         ;;
 
-    *)
-        # build dependencies
-        sudo apt-get install ocaml-nox camlp4-extra ocaml-findlib
+    *)  # linux
 
-        # optional dependencies for running tests and building docs
-        sudo apt-get install libprotoc-dev protobuf-compiler pandoc
+        if [ "$OCAML_VERSION" = "system" ]
+        then
+            # build dependencies
+            sudo apt-get install ocaml-nox camlp4-extra ocaml-findlib
 
-        echo OCaml version
-        ocaml -version
+            # optional dependencies for running tests and building docs
+            #
+            # NOTE: these need to be tested only once, no need to re-run these
+            # tests for all OCaml versions
+            sudo apt-get install libprotoc-dev protobuf-compiler pandoc
+
+            echo "system OCaml version:"
+            ocaml -version
+
+        elif [ -n "${PACKAGE-}" ]
+        then
+            # build using opam, run tests, build package, install package
+            wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-opam.sh
+
+            . .travis-opam.sh
+
+        else
+            # install specific ocaml version
+            wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-ocaml.sh
+
+            . .travis-ocaml.sh
+
+            # install build dependencies using opam
+            opam install ocamlfind camlp4
+        fi
         ;;
 esac
 
@@ -43,9 +66,10 @@ esac
 make deps
 make
 
-make -C tests
+make test
 
-make -C doc html #test
+make doc
 
+# checking for broken doc links -- the test is flaky, disabling for now
+#make -C doc test
 
-# ex: sw=4 ts=4 et

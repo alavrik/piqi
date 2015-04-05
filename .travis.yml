@@ -3,6 +3,13 @@ script: ./.travis-ci.sh
 os:
   - linux
   - osx
+env:
+  - OCAML_VERSION=system
+  - OCAML_VERSION=3.12
+  - OCAML_VERSION=4.00
+  - OCAML_VERSION=4.01
+  - OCAML_VERSION=4.02 PACKAGE="piqilib"  # in addition, test opam package build
+  - OCAML_VERSION=latest
 branches:
   only:
     - master
