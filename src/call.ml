@@ -23,7 +23,7 @@
 
 module C = Piqi_common
 open C
-
+open Core.Std
 
 (* command-line arguments *)
 let output_format = Convert.output_format
@@ -107,12 +107,12 @@ let init_piqi_common data =
   let bin_piqi_list = Piqirun.parse_list Piqirun.parse_string_field buf in
   (* decode and load Piqi modules *)
   let piqi_list =
-      List.map (fun x ->
+      List.map bin_piqi_list (fun x ->
           let buf = Piqirun.init_from_string x in
           let piqi = Piqi.piqi_of_pb buf in
           Piqi_db.add_piqi piqi;
           piqi
-        ) bin_piqi_list
+        )
   in
   piqi_list
 
@@ -148,9 +148,8 @@ let get_http_piqi path =
 
 let find_function piqi name =
   trace "piqi_call: find function %s\n" (U.quote name);
-  try List.find (fun x -> x.T.Func.name = name) piqi.P.resolved_func
-  with Not_found ->
-    piqi_error ("server doesn't implement function: " ^ name)
+  List.find piqi.P.resolved_func (fun x -> x.T.Func.name = name) |>
+  Option.value_exn ?here:None ~error:(Error.of_string @@ "server doesn't implement function: " ^ name) ?message:None
 
 
 let encode_input_data f args =
@@ -203,18 +202,17 @@ let with_open_pipe shell_command f =
       trace "piqi_call: error while calling command: %s\n" (C.string_of_exn exn);
       `error exn
   in
-  let status = Unix.close_process handle in
+  let status = match Unix.close_process handle with
+    | Ok _ -> 0
+    | Error #Unix.Exit.error as e -> Unix.Exit.code e
+    | Error `Signal signal -> piqi_error @@ Signal.to_string signal in
   match status, res with
-    | Unix.WEXITED 0, `ok x -> x
-    | Unix.WEXITED 0, `error exn -> raise exn
-    | Unix.WEXITED 127, _ ->
+    | 0, `ok x -> x
+    | 0, `error exn -> raise exn
+    | 127, _ ->
         piqi_error ("shell command couldn't be executed: " ^ shell_command)
-    | Unix.WEXITED n, _ ->
-        piqi_error ("server exited with error code " ^ (string_of_int n))
-    | Unix.WSIGNALED n, _ ->
-        piqi_error ("server was killed by signal " ^ (string_of_int n))
-    | Unix.WSTOPPED n, _ ->
-        piqi_error ("server was stopped by signal " ^ (string_of_int n))
+    | _ ->
+      piqi_error @@ "Non zero status: " ^ string_of_int status
 
 
 (* NOTE: in future, we may implement a full http client that will open
@@ -415,15 +413,15 @@ let gen_record name x =
   (* first run is to calculate padding *)
   let _ =
     reset_padding ();
-    List.map gen_field x.field
+    List.map x.field gen_field
   in
-  let fields = List.map gen_field x.field in
+  let fields = List.map x.field gen_field in
   if fields = []
   then iol []
   else
     iol [
       gen_typename name; ios ", which ";
-      if List.tl fields = [] (* record contains only one field *)
+      if List.tl_exn fields = [] (* record contains only one field *)
       then ios "is:"
       else ios "is a combination of:";
       ios "\n\n";
@@ -443,9 +441,9 @@ let gen_options options =
   (* first run is to calculate padding *)
   let _ =
     reset_padding ();
-    List.map gen_option options
+    List.map options gen_option
   in
-  let options = List.map gen_option options in
+  let options = List.map options gen_option in
   iol [
     ios "\n\n";
     iod "\n" options;
@@ -531,10 +529,10 @@ let print_help ch piqi =
 
   (* first display functions that don't have input *)
   let func_list = piqi.resolved_func in
-  let l1, l2 = List.partition (fun x -> x.T.Func.input = None) func_list in
+  let l1, l2 = List.partition_tf func_list (fun x -> x.T.Func.input = None) in
   let func_list = l1 @ l2 in
 
-  let func_help = List.map gen_func_help func_list in
+  let func_help = List.map func_list gen_func_help in
   let code =
     match func_help with
       | [] ->
@@ -572,7 +570,7 @@ let run_call url =
         writer ch (Piqi_convert.Piqi piqi)
     else if !flag_piqi_all
     then
-      List.iter (fun piqi -> writer ch (Piqi_convert.Piqi piqi)) piqi_list
+      List.iter piqi_list (fun piqi -> writer ch (Piqi_convert.Piqi piqi))
     else if !flag_piqi_light
     then
       let piqi = last piqi_list in

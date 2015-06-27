@@ -53,7 +53,7 @@ let make_element name contents =
   `Elem (name, contents)
 
 
-let rec gen_obj (x:Piqobj.obj) :xml list =
+let rec gen_obj x :xml Core.Std.List.t =
   match x with
     (* built-in types *)
     | `int x -> gen_scalar Int64.to_string x
@@ -115,7 +115,7 @@ and gen_field fields t =
   (* find all fields of the given type *)
   let fields = List.find_all (fun f -> f.t == t) fields in
   (* generate fields *)
-  List.map (fun f -> gen_obj_element name f.obj) fields
+  Core.Std.List.map ~f:(fun f -> gen_obj_element name f.obj) fields
 
 
 and gen_obj_element name = function
@@ -148,7 +148,7 @@ and gen_enum_option x =
 
 and gen_list x = 
   let open L in
-  List.map (fun x -> make_element "item" (gen_obj x)) x.obj
+  Core.Std.List.map ~f:(fun x -> make_element "item" (gen_obj x)) x.obj
 
 
 and gen_alias x =
@@ -166,7 +166,7 @@ let _ =
 
 
 (* gen top-level XML element *)
-let gen_toplevel_obj (obj: Piqobj.obj) :xml =
+let gen_toplevel_obj obj :xml =
   (* always using <value> as a top-level element; we don't really care what this
    * names is, but it is better to pick one name and stick to it *)
   make_element "value" (gen_obj obj)

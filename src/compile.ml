@@ -84,8 +84,8 @@ let compile self_spec piqi och =
   Config.flag_strict := !Piqi_compile.flag_strict;
 
   (* convert all modules to internal representation *)
-  let piqobj_list = List.map
-    (fun piqi -> Piqi.piqi_to_piqobj piqi ?piqi_piqtype ~add_codes:true)
+  let piqobj_list = Core.Std.List.map
+    ~f:(fun piqi -> Piqi.piqi_to_piqobj piqi ?piqi_piqtype ~add_codes:true)
     piqi_list
   in
   trace "writing output\n";

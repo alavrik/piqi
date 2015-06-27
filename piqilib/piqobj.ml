@@ -14,17 +14,16 @@
    limitations under the License.
 *)
 
-
 module rec Piqobj:
   sig
-    type record = Record.t
+    type field =  Field.t
+    type option =  Option.t
+    type record =  Record.t
     type variant = Variant.t
     type enum = Enum.t
-    type alias = Alias.t
+    type alias =  Alias.t
     type list = List.t
 
-    type field = Field.t
-    type option = Option.t
     type any = Any.t
 
     type typedef =
@@ -32,7 +31,7 @@ module rec Piqobj:
       | `variant of variant
       | `enum of enum
       | `alias of alias
-      | `list of list ]
+      | `list of List.t ]
 
     type obj =
       [ typedef
@@ -120,7 +119,7 @@ and Any:
         mutable typename : string option;
 
         (* internal representation of a typed data object *)
-        mutable obj: Piqobj.obj option;
+        mutable obj:  Piqobj.obj option;
 
         (* external representation in various formats *)
         mutable pb : string option; (* protocol buffers binary *)
@@ -139,7 +138,7 @@ and Any:
 module C = Piqi_common
 
 
-let default_any =
+let default_any () =
   Any.({
     obj = None;
     typename = None;
@@ -168,11 +167,11 @@ let put_any (any: Piqobj.any) :int =
 
 
 (* find Piqobj.any by reference in Piqi_objstore *)
-let get_any (ref: int) :Piqobj.any =
+let get_any (ref: int) : Piqobj.any =
   Piqi_objstore.get ref
 
 
-let any_of_piqi_any (piqi_any: Piqi_impl_piqi.any) :Piqobj.any =
+let any_of_piqi_any (piqi_any: Piqi_impl_piqi.any) : Piqobj.any =
   match piqi_any.Piqi_impl_piqi.Any.ref with
     | Some ref ->
         (* recover internally passed Piqobj.any from an integer reference *)
@@ -183,11 +182,10 @@ let any_of_piqi_any (piqi_any: Piqi_impl_piqi.any) :Piqobj.any =
          * Piqi.resolve_field_default when Piqi is read from Protobuf during
          * Piqi.boot *)
         let any = Any.({
-          default_any with
+          (default_any ()) with
           typename = piqi_any.Piqi_impl_piqi.Any.typename;
           pb = piqi_any.Piqi_impl_piqi.Any.protobuf;
-        })
-        in
+        }) in
         (* cache the value in objstore and in the piqi_any itself *)
         let ref = put_any any in
         C.debug "Piqobj.any_of_piqi_any: creating new any with ref %d\n" ref;
@@ -196,25 +194,25 @@ let any_of_piqi_any (piqi_any: Piqi_impl_piqi.any) :Piqobj.any =
 
 
 (* these functions will be properly set by piqobj_to* modules *)
-let to_pb   (obj: Piqobj.obj) :string = assert false
-let to_piq  (obj: Piqobj.obj) :Piq_ast.ast = assert false
-let to_json (obj: Piqobj.obj) :Piqi_json_type.json = assert false
-let to_xml  (obj: Piqobj.obj) :Piqi_xml_type.xml list = assert false
+let to_pb   obj  = assert false
+let to_piq  obj  = assert false
+let to_json obj  = assert false
+let to_xml  obj  = assert false
 
-let of_pb   (piqtype: Piqi_impl_piqi.piqtype) (x :string) :Piqobj.obj = assert false
-let of_piq  (piqtype: Piqi_impl_piqi.piqtype) (x :Piq_ast.ast) :Piqobj.obj = assert false
-let of_json (piqtype: Piqi_impl_piqi.piqtype) (x :Piqi_json_type.json) :Piqobj.obj = assert false
-let of_xml  (piqtype: Piqi_impl_piqi.piqtype) (x :Piqi_xml_type.xml_elem) :Piqobj.obj = assert false
+let of_pb   piqtype (x :string) = assert false
+let of_piq  piqtype (x :Piq_ast.ast) = assert false
+let of_json piqtype (x :Piqi_json_type.json) = assert false
+let of_xml  piqtype (x :Piqi_xml_type.xml_elem) = assert false
 
-let to_pb = ref to_pb
-let to_piq = ref to_piq
-let to_json = ref to_json
-let to_xml = ref to_xml
-
-let of_pb = ref of_pb
-let of_piq = ref of_piq
-let of_json = ref of_json
-let of_xml = ref of_xml
+let to_pb    = ref to_pb
+let to_piq   = ref to_piq
+let to_json  = ref to_json
+let to_xml   = ref to_xml
+             
+let of_pb    = ref of_pb
+let of_piq   = ref of_piq
+let of_json  = ref of_json
+let of_xml   = ref of_xml
 
 
 (* these function will be set by correspondent piqi_json* and piqi_xml* modules;
@@ -232,7 +230,7 @@ let string_of_json = ref string_of_json
 let string_of_xml  = ref string_of_xml
 
 
-let of_any (piqtype: Piqi_impl_piqi.piqtype) (any :Piqobj.any) :Piqobj.obj option =
+let of_any (piqtype: Piqi_impl_piqi.piqtype) (any :  Piqobj.any) : Piqobj.obj option =
   let open Any in
   if any.pb <> None (* try parsing from Protobuf *)
   then
@@ -255,7 +253,7 @@ let of_any (piqtype: Piqi_impl_piqi.piqtype) (any :Piqobj.any) :Piqobj.obj optio
 
 
 (* resolve obj from any given, possibly given its type *)
-let resolve_obj ?(piqtype: Piqi_impl_piqi.piqtype option) (any :Piqobj.any) :unit =
+let resolve_obj ?(piqtype: Piqi_impl_piqi.piqtype option) (any :  Piqobj.any) :unit =
   let open Any in
   if any.obj <> None
   then () (* already resolved *)
@@ -298,7 +296,7 @@ let piq_of_any (any: Piqobj.any) :Piq_ast.ast option =
     )
 
 
-let pb_of_any (any: Piqobj.any) :string option =
+let pb_of_any any =
   let open Any in
   match any.pb with
     | (Some _) as res -> res
@@ -316,7 +314,7 @@ let pb_of_any (any: Piqobj.any) :string option =
     )
 
 
-let json_of_any (any: Piqobj.any) :Piqi_json_type.json option =
+let json_of_any (any:  Piqobj.any) :Piqi_json_type.json option =
   let open Any in
   match any.json_ast with
     | Some _ when any.json_string <> None ->
@@ -347,7 +345,7 @@ let json_of_any (any: Piqobj.any) :Piqi_json_type.json option =
     )
 
 
-let xml_of_any (any: Piqobj.any) :Piqi_xml_type.xml list option =
+let xml_of_any (any:  Piqobj.any) :Piqi_xml_type.xml list option =
   let open Any in
   match any.xml_ast with
     | Some (_name, xml_list) -> Some xml_list

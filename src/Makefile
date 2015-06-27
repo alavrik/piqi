@@ -5,7 +5,8 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 RESULT = piqi
 
 
-PACKS = unix
+PACKS = unix core 
+export THREADS=yes
 
 # pick piqilib manually -- we don't install it to the build directory to keep it
 # in sync with ocamldep-generated stuff; at the same time, we avoid extending

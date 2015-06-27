@@ -70,7 +70,7 @@ let get_self_spec_piqtype ?(filename="") self_spec typename =
 
 
 (* make piqi/piqi-list top-level record from the list of piqi piqobjs *)
-let make_piqi_list_piqobj piqi_list_piqtype (piqi_piqobj_list: Piqobj.obj list) :Piqobj.obj =
+let make_piqi_list_piqobj piqi_list_piqtype (piqi_piqobj_list: Piqobj.obj Core.Std.List.t) =
   let r =
     match piqi_list_piqtype with
       | `record r -> r
@@ -78,7 +78,7 @@ let make_piqi_list_piqobj piqi_list_piqtype (piqi_piqobj_list: Piqobj.obj list) 
   in
   (* the first and the only record field should correspond to the piqi type *)
   let f = List.hd r.R.field in
-  let fields = List.map (fun x -> Piqobj.Field.({t = f; obj = Some x})) piqi_piqobj_list in
+  let fields = Core.Std.List.map ~f:(fun x -> Piqobj.Field.({t = f; obj = Some x})) piqi_piqobj_list in
   let record = Piqobj.Record.({t = r; field = fields; unparsed_piq_fields_ref = None}) in
   `record record
 
@@ -108,8 +108,8 @@ let compile ?(extensions=[]) self_spec_bin ifile =
   Config.flag_strict := !flag_strict;
 
   (* convert all modules to internal representation *)
-  let piqobj_list = List.map
-    (fun piqi -> Piqi.piqi_to_piqobj piqi ~piqi_piqtype ~add_codes:true)
+  let piqobj_list = Core.Std.List.map
+    ~f:(fun piqi -> Piqi.piqi_to_piqobj piqi ~piqi_piqtype ~add_codes:true)
     piqi_list
   in
 

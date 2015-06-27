@@ -53,7 +53,7 @@ module U = Piqi_util
 
 
 type piq_ast = Piq_ast.ast
-
+open Core.Std
 
 (*
  * common global variables
@@ -69,7 +69,7 @@ let is_inside_parse_piqi = ref false
 (* a subset of "Piqi.piqi_spec.P.resolved_typedef" (i.e. Piqi self-spec) that
  * corresponds to built-in types (built-in types are aliases that have
  * .piqi-type property defined; this value is set from Piqi.boot () function *)
-let builtin_typedefs :T.typedef list ref = ref []
+let builtin_typedefs :T.typedef Core.Std.List.t ref = ref []
 
 
 (*
@@ -212,7 +212,7 @@ let is_container_type t =
  * "piqi" or it includes another module named "piqi" *)
 let is_self_spec (piqi: T.piqi) =
   (* XXX: cache this information to avoid computing it over and over again *)
-  List.exists
+  List.exists piqi.P.included_piqi
     (fun x ->
       match x.P.modname with
         | None -> false
@@ -221,7 +221,6 @@ let is_self_spec (piqi: T.piqi) =
              * for a self-spec *)
             Piqi_name.get_local_name modname = "piqi"
     )
-    piqi.P.included_piqi
 
 
 (* check if any of the module's definitions depends on "piqi-any" type *)
@@ -235,13 +234,13 @@ let depends_on_piqi_any (piqi: T.piqi) =
       | None -> false
     in
     match x with
-      | `record x -> List.exists (fun x -> is_any_opt x.F.piqtype) x.R.field
-      | `variant x -> List.exists (fun x -> is_any_opt x.O.piqtype) x.V.option
+      | `record x -> List.exists x.R.field (fun x -> is_any_opt x.F.piqtype)
+      | `variant x -> List.exists x.V.option (fun x -> is_any_opt x.O.piqtype)
       | `list x -> is_any (some_of x.L.piqtype)
       | `enum _ -> false
       | `alias _ -> false (* don't check aliases, we do unalias instead *)
   in
-  List.exists aux piqi.P.resolved_typedef
+  List.exists piqi.P.resolved_typedef aux
 
 
 (* 
@@ -258,7 +257,7 @@ let strerr loc s =
 
 
 let string_of_exn exn =
-  Printexc.to_string exn
+  Exn.to_string exn
   (* this is not supported in all runtime modes, and it is not compatible with
    * OCaml 3.10 *)
   (*
@@ -333,7 +332,7 @@ let eprintf_if cond fmt =
       Printf.kfprintf (fun stderr -> flush stderr) stderr fmt
     end
   else
-    Printf.ikfprintf (fun _ -> ()) stderr fmt
+    Printf.kfprintf (fun _ -> ()) stderr fmt
 #else
 let eprintf_if cond fmt =
   if cond

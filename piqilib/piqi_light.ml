@@ -41,7 +41,7 @@ let gen_default_ast ast =
   if String.contains str '\n' (* multiline? *)
   then
     let lines = Piq_gen.split_text str in
-    let lines = List.map ios lines in
+    let lines = Core.Std.List.map ~f:ios lines in
     iol [
       ios " ="; indent;
         iod "\n" lines;
@@ -75,7 +75,7 @@ let gen_field x =
 
 let gen_record x =
   let open R in
-  let fields = List.map gen_field x.field in
+  let fields = Core.Std.List.map ~f:gen_field x.field in
   iol [
     eol; ios "  {"; indent;
       iod "\n" fields;
@@ -93,7 +93,7 @@ let gen_option x =
 
 let gen_enum x =
   let open E in
-  let options = List.map gen_option x.option in
+  let options = Core.Std.List.map ~f:gen_option x.option in
   iol [
     indent;
       iod "\n" options; (* XXX: print on the same line? *)
@@ -103,7 +103,7 @@ let gen_enum x =
 
 let gen_variant x =
   let open V in
-  let options = List.map gen_option x.option in
+  let options = Core.Std.List.map ~f:gen_option x.option in
   iol [
     indent;
       iod "\n" options; (* XXX: try to print on the same line? *)
@@ -155,7 +155,7 @@ let gen_sep l =
 
 
 let gen_defs (defs:T.typedef list) =
-  let l = List.map gen_def defs in
+  let l = Core.Std.List.map ~f:gen_def defs in
   iol [
     iod "\n\n" l; gen_sep l
   ]
@@ -174,7 +174,7 @@ let gen_import x =
 
 
 let gen_imports l =
-  let l = List.map gen_import l in
+  let l = Core.Std.List.map ~f:gen_import l in
   iol [
     iod "\n" l; gen_sep l
   ]
@@ -182,7 +182,7 @@ let gen_imports l =
 
 let gen_includes l =
   let open Includ in
-  let l = List.map (fun x -> ios "include " ^^ ios x.modname) l in
+  let l = Core.Std.List.map ~f:(fun x -> ios "include " ^^ ios x.modname) l in
   iol [
     iod "\n" l; gen_sep l
   ]
@@ -234,7 +234,7 @@ let gen_extension x =
   if names <> [] && items <> []
   then
     let res = iol [
-      ios "extend "; iod " " (List.map ios names); indent;
+      ios "extend "; iod " " (Core.Std.List.map ~f:ios names); indent;
         iod "\n" items;
       unindent;
     ]
@@ -267,7 +267,7 @@ let gen_param name = function
 
 let gen_function f =
   let open T.Func in
-  let params = List.concat [
+  let params = Core.Std.List.concat [
       gen_param "input" f.input;
       gen_param "output" f.output;
       gen_param "error" f.error;
@@ -281,7 +281,7 @@ let gen_function f =
 
 
 let gen_functions l =
-  let l = List.map gen_function l in
+  let l = Core.Std.List.map ~f:gen_function l in
   iol [
     iod "\n\n" l; gen_sep l
   ]

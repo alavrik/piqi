@@ -22,7 +22,6 @@ open C
 module Idtable = Piqi_db.Idtable
 type idtable = T.typedef Idtable.t
 
-
 (* start in boot_mode by default, it will be switched off later (see below) *)
 let is_boot_mode = ref true
 
@@ -335,15 +334,15 @@ let check_resolved_alias a =
 let check_resolved_def def =
   match def with
     | `record x ->
-        let names = List.map (fun x -> name_of_field x) x.R.field in
+        let names = Core.Std.List.map ~f:(fun x -> name_of_field x) x.R.field in
         check_dup_names "field" names
     | `variant x ->
-        let names = List.map (fun x -> name_of_option x) x.V.option in
+        let names = Core.Std.List.map ~f:(fun x -> name_of_option x) x.V.option in
         (* TODO: also check duplicate names among nested variants (i.e.
          * "non-terminal" nameless sub-variants) *)
         check_dup_names "option" names
     | `enum x ->
-        let names = List.map (fun x -> name_of_option x) x.E.option in
+        let names = Core.Std.List.map ~f:name_of_option x.E.option in
         check_dup_names "enum option" names
     | `alias x ->
         check_resolved_alias x
@@ -373,7 +372,7 @@ let check_no_infinite_types ~parent defs =
   let get_color node =
     if List.memq node !black
     then `black
-    else if List.memq node !grey
+    else if List.memq node !grey 
     then `grey
     else `white
   in
@@ -550,7 +549,7 @@ let assert_loc () =
     piqi_warning s
 
 
-let add_fake_loc (obj :Piqobj.obj) =
+let add_fake_loc obj =
   Piqloc.do_add_fake_loc obj ~label:"_self_piqi_default";
   match obj with
     | `enum x ->
@@ -598,7 +597,7 @@ let copy_obj (x:'a) :'a =
 let copy_obj x = reference copy_obj x
 
 
-let copy_obj_list l = List.map copy_obj l
+let copy_obj_list l = Core.Std.List.map ~f:copy_obj l
 
 
 let copy_variant ?(copy_parts=true) x =
@@ -632,10 +631,10 @@ let copy_def ~copy_parts (x:T.typedef) =
   Piqloc.addrefret x res
 
 
-let copy_defs ?(copy_parts=true) defs = List.map (copy_def ~copy_parts) defs
+let copy_defs ?(copy_parts=true) defs = Core.Std.List.map ~f:(copy_def ~copy_parts) defs
 
 
-let copy_imports l = List.map copy_obj l
+let copy_imports l = Core.Std.List.map ~f:copy_obj l
 
 
 let resolve_defs ~piqi idtable (defs:T.typedef list) =
@@ -849,7 +848,7 @@ let parse_piqi ast =
 let is_unknown_field custom_fields x =
   match x with
     | `named {Piq_ast.Named.name = name} | `name name ->
-        if List.mem name custom_fields
+        if List.mem  name custom_fields
         then false (* field is a custom field, i.e. "known" *)
         else true
     | _ -> true
@@ -920,7 +919,7 @@ let idtable_of_functions funcs =
 (* convert the map of extended elements back to list; while doing this, preserve
  * the original order *)
 let list_of_idtable idtable l name_of_elem =
-  List.map (fun x -> Idtable.find idtable (name_of_elem x)) l
+  Core.Std.List.map ~f:(fun x -> Idtable.find idtable (name_of_elem x)) l
 
 
 (* find record field by name *)
@@ -964,7 +963,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
   (* Piqloc.trace := false; *)
   debug "apply_extensions(0)\n";
   let obj_ast = mlobj_to_ast obj_def obj_gen_f obj in
-  let extension_asts = List.map Piqobj.piq_of_piqi_any extension_entries in
+  let extension_asts = Core.Std.List.map ~f:Piqobj.piq_of_piqi_any extension_entries in
 
   let override l =
     if not override
@@ -982,7 +981,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
       *)
       let is_overridden = function
           | `named x ->
-              let res = List.mem x.Piq_ast.Named.name extension_labels in
+              let res = List.mem x.Piq_ast.Named.name extension_labels  in
               (*
               if res then Printf.eprintf "overridden: %s\n" x.T.Named.name;
               *)
@@ -1203,7 +1202,7 @@ let partition_extensions extensions =
   let open Extend in
   (* get a list of (what, [extension]) pairs from all extensions *)
   let l = U.flatmap
-    (fun x -> List.map (fun what -> what, x.override, (x.piqi_with @ x.quote)) x.what)
+    (fun x -> Core.Std.List.map ~f:(fun what -> what, x.override, (x.piqi_with @ x.quote)) x.what)
     extensions
   in
   let d, f, i =
@@ -1348,7 +1347,7 @@ let process_func f =
 
 let get_function_defs (non_func_defs: T.typedef list) resolved_funs =
   (* get definitions derived from function parameters *)
-  let defs_pairs = List.map process_func resolved_funs in
+  let defs_pairs = Core.Std.List.map ~f:process_func resolved_funs in
   let defs_pairs = List.concat defs_pairs in
 
   let defs, name_setter_assoc_l = List.split defs_pairs in
@@ -1580,7 +1579,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
       (* extensions are not applicable for non-Piq representation *)
       []
     else
-      List.map (fun x -> Includ.({modname = x; unparsed_piq_ast = None}))
+      Core.Std.List.map ~f:(fun x -> Includ.({modname = x; unparsed_piq_ast = None}))
       (find_extensions piqi)
   in
   let includes = piqi.P.includ @ extension_includes in
@@ -1604,7 +1603,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
       List.iter (fun p ->
         if List.exists (fun pp -> pp == piqi) p.P.included_piqi
         then
-          p.P.included_piqi <- List.map (
+          p.P.included_piqi <- Core.Std.List.map ~f:(
             fun pp -> if pp == piqi then extended_piqi else pp
           ) p.P.included_piqi
       ) included_piqi;
@@ -1669,7 +1668,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   let funs = piqi.P.func in
 
   (* check for duplicate function names *)
-  let func_names = List.map (fun x -> x.T.Func.name) funs in
+  let func_names = Core.Std.List.map ~f:(fun x -> x.T.Func.name) funs in
   List.iter check_name func_names;
   check_dup_names "function" func_names;
 
@@ -1679,7 +1678,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
     else extend_functions funs func_extensions custom_fields
   in
   (* preserve the original functions *)
-  let resolved_funs = List.map copy_obj extended_funs in
+  let resolved_funs = Core.Std.List.map ~f:copy_obj extended_funs in
   piqi.P.resolved_func <- resolved_funs;
   piqi.P.extended_func <- extended_funs;
 
@@ -1878,7 +1877,7 @@ and load_includes ~include_path piqi l =
   let new_include_path = piqi :: include_path in
 
   let l = remove_extensions l include_path in
-  let included_piqi = List.map (load_include piqi ~include_path:new_include_path) l in
+  let included_piqi = Core.Std.List.map ~f:(load_include piqi ~include_path:new_include_path) l in
 
   let process_recursive_piqi p =
     trace "included piqi module %s forms a loop\n" (U.quote (some_of p.P.modname));
@@ -2072,7 +2071,7 @@ let reconsitute_extended_functions funs func_typedefs =
       error = reconstitute_param f "error" f.error;
     })
   in
-  List.map reconsitute_extended_function funs
+  Core.Std.List.map ~f:reconsitute_extended_function funs
 
 
 (* transform functions to remove embedded type definitions *)
@@ -2137,7 +2136,7 @@ let expand_piqi ~extensions ~functions piqi =
         (* add embedded definitions from function to the list of top-level defs *)
         typedef = res_piqi.typedef @ func_typedefs;
         (* remove embedded defintions from function parameters *)
-        func = List.map expand_function res_piqi.func;
+        func = Core.Std.List.map ~f:expand_function res_piqi.func;
       }
   in res_piqi
 

@@ -9,8 +9,9 @@ LIBINSTALL_FILES += \
 	$(wildcard *.cmi) \
 
 
-PACKS = ulex easy-format xmlm base64 bytes
-
+PACKS = ulex easy-format xmlm base64 bytes core core_kernel
+export ANNOTATE=yes
+export THREADS = y
 
 SOURCES = \
 	piqi_version.ml \
@@ -78,8 +79,7 @@ SOURCES = \
 
 PRE_TARGETS = piqi_version.ml META
 
-
-all: ncl
+all: bcl ncl
 
 
 debug: dcl top
@@ -88,7 +88,6 @@ debug: dcl top
 # NOTE: when installing, uninstall first to avoid "already installed" error
 # also, make sure we have the byte-code version of the library built as well
 install: uninstall libinstall
-
 
 uninstall: libuninstall
 

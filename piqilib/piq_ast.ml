@@ -105,7 +105,7 @@ let transform_ast path f (ast:ast) =
         (match f x with [res] -> res | _ -> assert false)
     | `list l ->
         (* haven't reached the leaf node => continue tree traversal *)
-        let res = List.map (aux p) l in
+        let res = Core.Std.List.map ~f:(aux p) l in
         `list res
     | `named {Named.name = n; value = v} when List.hd p = n ->
         (* found path element => continue tree traversal *)
@@ -127,8 +127,8 @@ let map_words (ast:ast) f :ast =
     | `typed ({Typed.value = ast} as x) ->
         let ast = aux ast in
        `typed {x with Typed.value = ast}
-    | `list l -> `list (List.map aux l)
-    | `form (name, args) -> `form (aux name, List.map aux args)
+    | `list l -> `list (Core.Std.List.map ~f:aux l)
+    | `form (name, args) -> `form (aux name, Core.Std.List.map ~f:aux args)
     | x -> x
   in
   aux ast

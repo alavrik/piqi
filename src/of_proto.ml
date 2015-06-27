@@ -191,7 +191,7 @@ let gen_enum ?(path=[]) x =
   let open ProtoEnum in
   let new_path = (some_of x.name) :: path in
   let name = make_piqi_name new_path in
-  let consts = List.map (gen_enum_value path) x.value in
+  let consts = Core.Std.List.map ~f:(gen_enum_value path) x.value in
   iod "\n" [
     ios ".enum [";
       ios ".name " ^^ ios name;
@@ -431,11 +431,11 @@ let rec gen_message idtable ?(path=[]) x =
   let open ProtoMessage in
   let path = (some_of x.name) :: path in
   let name = make_piqi_name path in
-  let fields = List.map (gen_field idtable) x.field in
+  let fields = Core.Std.List.map ~f:(gen_field idtable) x.field in
 
   let proto_name = make_proto_name path in
   let extensions = Idtable.find_extensions idtable proto_name in
-  let extension_fields = List.map (gen_extension_field idtable) extensions in
+  let extension_fields = Core.Std.List.map ~f:(gen_extension_field idtable) extensions in
 
   let record =
     iod "\n" [
@@ -447,8 +447,8 @@ let rec gen_message idtable ?(path=[]) x =
     ]
   in
   (* gen nested definitions *)
-  let messages = List.map (gen_message idtable ~path) x.nested_type in
-  let enums = List.map (gen_enum ~path) x.enum_type in
+  let messages = Core.Std.List.map ~f:(gen_message idtable ~path) x.nested_type in
+  let enums = Core.Std.List.map ~f:(gen_enum ~path) x.enum_type in
   iod "\n" [
     record;
     iod "\n" messages;
@@ -517,7 +517,7 @@ let name_imports idtable filenames =
     (x, counter) :: seen_names
   in
   let pairs =
-    List.map (fun x ->
+    Core.Std.List.map ~f:(fun x ->
       let modname, optional = gen_local_modname x in
       x, modname, optional) filenames
   in
@@ -532,9 +532,9 @@ let gen_proto idtable (x:ProtoFile.t) =
     (* this is needed for resolving extensions *)
     Idtable.enter_package idtable x.package (some_of x.name);
 
-    let imports = List.map (gen_import idtable) x.dependency in
-    let messages = List.map (gen_message idtable) x.message_type in
-    let enums = List.map gen_enum x.enum_type in
+    let imports = Core.Std.List.map ~f:(gen_import idtable) x.dependency in
+    let messages = Core.Std.List.map ~f:(gen_message idtable) x.message_type in
+    let enums = Core.Std.List.map ~f:gen_enum x.enum_type in
     let package =
       match x.package with
         | None -> iol []
@@ -636,7 +636,7 @@ let proto_to_wire ifile ofile =
   (* build -I parameters for protoc *)
   let paths = List.rev !paths in
   let includes =
-    String.concat "" (List.map (fun x -> "-I" ^ x ^ " ") paths)
+    String.concat "" (Core.Std.List.map ~f:(fun x -> "-I" ^ x ^ " ") paths)
   in
   let cmd = Printf.sprintf
     "protoc %s--include_imports --descriptor_set_out=%s %s" includes ofile ifile

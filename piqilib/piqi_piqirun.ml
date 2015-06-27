@@ -127,7 +127,7 @@ module IBuf =
             else
               let res = x.s.[x.pos] in
               x.pos <- x.pos + 1;
-              Char.code res
+              int_of_char res
         | Channel x ->
             (try input_byte x
              with End_of_file -> raise End_of_buffer)
@@ -149,7 +149,7 @@ module IBuf =
               x.pos <- x.pos + length;
               res
         | Channel x ->
-            let start_pos = pos_in x in
+            let start_pos = pos buf in
             let s = Bytes.create length in
             (try Pervasives.really_input x s 0 length
              with End_of_file -> raise End_of_buffer
@@ -771,14 +771,14 @@ let parse_optional_field code parse_value ?default l =
 
 let parse_repeated_field code parse_value l =
   let res, rem = find_fields code l in
-  List.map parse_value res, rem
+  Core.Std.List.map res parse_value, rem
 
 
 (* similar to List.map but store results in a newly created output array *)
 let map_l2a f l =
   let len = List.length l in
   (* create and initialize the results array *)
-  let a = Array.make len (Obj.magic 1) in
+  let a = Core.Std.Array.create len (Obj.magic 1) in
   let rec aux i = function
     | [] -> ()
     | h::t ->
@@ -824,7 +824,7 @@ let parse_packed_array_field elem_size parse_packed_value buf =
   then IBuf.error buf "invalid packed fixed-width field";
 
   (* create a new array for results *)
-  let a = Array.make elem_count (Obj.magic 1) in
+  let a = Core.Std.Array.create elem_count (Obj.magic 1) in
   (* parse packed elements and store resuts in the array *)
   for i = 0 to elem_count - 1
   do
@@ -837,8 +837,8 @@ let parse_packed_array_field elem_size parse_packed_value buf =
 (* the same as List.flatten (List.map (fun x -> List.rev (f x)) l), but more
  * efficient and tail recursive *)
 let rev_flatmap f l =
-  let l = List.rev_map f l in
-  List.fold_left (fun accu x -> List.rev_append x accu) [] l
+  let l = Core.Std.List.rev_map ~f l in
+  Core.Std.List.fold_left l ~init:[] ~f:(fun accu x -> List.rev_append x accu) 
 
 
 let parse_packed_repeated_field code parse_packed_value parse_value l =
@@ -891,7 +891,7 @@ let parse_list_elem parse_value (code, x) =
 
 let parse_list parse_value obj =
   let l = parse_record obj in
-  List.map (parse_list_elem parse_value) l
+  Core.Std.List.map l (parse_list_elem parse_value)
 
 
 let parse_array parse_value obj =
@@ -942,8 +942,8 @@ module OBuf =
     (* auxiliary iolist type and related primitives *)
     type t =
         Ios of string
-      | Iol of t list
-      | Iol_size of int * (t list) (* iolist with known size *)
+      | Iol of t Core.Std.List.t
+      | Iol_size of int * (t Core.Std.List.t) (* iolist with known size *)
       | Iob of char
       | IBuf of IBuf.t
 
@@ -957,7 +957,7 @@ module OBuf =
     let to_buffer0 buf l =
       let rec aux = function
         | Ios s -> Buffer.add_string buf s
-        | Iol l | Iol_size (_, l) -> List.iter aux l
+        | Iol l | Iol_size (_, l) -> Core.Std.List.iter l aux
         | Iob b -> Buffer.add_char buf b
         | IBuf (IBuf.String x) -> Buffer.add_substring buf x.s x.pos (x.len - x.pos)
         | IBuf (IBuf.Channel x) -> assert false
@@ -967,7 +967,7 @@ module OBuf =
     (* iolist output size *)
     let rec size = function
       | Ios s -> String.length s
-      | Iol l -> List.fold_left (fun accu x -> accu + (size x)) 0 l
+      | Iol l -> Core.Std.List.fold_left ~f:(fun accu x -> accu + (size x)) ~init:0 l
       | Iol_size (size, _) -> size
       | Iob _ -> 1
       | IBuf x -> IBuf.size x
@@ -1009,7 +1009,7 @@ let to_channel = OBuf.to_channel
 
 
 let iob i = (* IO char represented as Ios '_' *)
-  iob (Char.chr i)
+  iob @@ char_of_int i
 
 
 (*
@@ -1081,7 +1081,7 @@ let gen_signed_varint32_value x =
 let gen_key ktype code =
   (* make sure that the field code is in the valid range *)
   assert (code < 1 lsl 29 && code >= 1);
-  if code land (1 lsl 28) <> 0 && Sys.word_size == 32
+  if code land (1 lsl 28) <> 0 && Sys.word_size = 32
   then
     (* prevent an overflow of 31-bit OCaml integer on 32-bit platform *)
     let ktype = Int32.of_int ktype in
@@ -1147,7 +1147,7 @@ let gen_fixed32_value x = (* little-endian *)
   let x = ref x in
   for i = 0 to 3
   do
-    let b = Char.chr (Int32.to_int (Int32.logand !x 0xFFl)) in
+    let b = char_of_int @@ Int32.to_int @@ Int32.logand !x 0xFFl in
     Bytes.set s i b;
     x := Int32.shift_right_logical !x 8
   done;
@@ -1159,7 +1159,7 @@ let gen_fixed64_value x = (* little-endian *)
   let x = ref x in
   for i = 0 to 7
   do
-    let b = Char.chr (Int64.to_int (Int64.logand !x 0xFFL)) in
+    let b = char_of_int @@ Int64.to_int  @@ Int64.logand !x 0xFFL in
     Bytes.set s i b;
     x := Int64.shift_right_logical !x 8
   done;
@@ -1312,7 +1312,7 @@ let gen_parsed_field (code, value) =
 
 
 let gen_parsed_field_list l =
-  List.map gen_parsed_field l
+  Core.Std.List.map l gen_parsed_field
 
 
 (*
@@ -1390,7 +1390,7 @@ let gen_optional_field code f = function
 
 
 let gen_repeated_field code f l =
-  iol (List.map (f code) l)
+  iol (Core.Std.List.map l ~f:(f code))
 
 
 (* similar to Array.map but produces list instead of array *)
@@ -1422,7 +1422,7 @@ let gen_packed_repeated_field_common code contents =
 
 
 let gen_packed_repeated_field code f l =
-  let contents = iol_size (List.map f l) in
+  let contents = iol_size (Core.Std.List.map l ~f) in
   gen_packed_repeated_field_common code contents
 
 
@@ -1449,7 +1449,7 @@ let gen_flag code x =
     | true -> gen_bool_field code true
 
 
-let gen_record code contents =
+let gen_record code (contents : 'a Core.Std.List.t) =
   let contents = iol_size contents in
   (* special code meaning that key and length sould not be generated *)
   if code = -1
@@ -1465,8 +1465,9 @@ let gen_record code contents =
 
 (* generate binary representation of <type>_list .proto structure *)
 let gen_list f code l =
+  print_endline "gen_list";
   (* NOTE: using "1" as list element code *)
-  let contents = List.map (f 1) l in
+  let contents = Core.Std.List.map l ~f:(f 1) in
   gen_record code contents
 
 

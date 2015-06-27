@@ -152,7 +152,7 @@ let protoname_of_option o =
 
 
 let gen_proto_custom proto_custom =
-  let l = List.map (fun x -> iol [eol; ios x]) proto_custom in
+  let l = Core.Std.List.map ~f:(fun x -> iol [eol; ios x]) proto_custom in
   iol l
 
 
@@ -171,7 +171,7 @@ let make_default s =
 
 
 (* NOTE: not generating defaults for structured objects *)
-let rec gen_default_obj (x:Piqobj.obj) =
+let rec gen_default_obj x =
   match x with
     (* built-in types *)
     | `int x ->
@@ -235,7 +235,7 @@ let gen_record ?name ?parent r =
   let parent = recalc_import_parent ?parent r.parent in
   let name = recalc_name ?name r.protobuf_name in
   (* field definition list *) 
-  let fdefs = List.map (gen_field parent) r.field in
+  let fdefs = Core.Std.List.map ~f:(gen_field parent) r.field in
   let rdef = iol
     [
       ios "message "; ios name;
@@ -265,7 +265,7 @@ let gen_enum e =
   let open E in
   let enum_name = some_of e.protobuf_name in
   let prefix = e.protobuf_prefix in
-  let const_defs = List.map (gen_const prefix) e.option in
+  let const_defs = Core.Std.List.map ~f:(gen_const prefix) e.option in
   let make_enum_def name =
     iol [
       ios "enum "; ios name; ios " {"; indent;
@@ -303,7 +303,7 @@ let gen_variant ?name ?parent v =
   let parent = recalc_import_parent ?parent v.parent in
   let name = recalc_name ?name v.protobuf_name in
   (* field definition list *) 
-  let vdefs = List.map (gen_option parent) v.option in
+  let vdefs = Core.Std.List.map ~f:(gen_option parent) v.option in
   let vdef = iol
     [
       ios "message "; ios name;
@@ -398,10 +398,10 @@ let gen_import modname =
 
 
 let gen_imports l =
-  let modnames = List.map (fun x -> some_of x.Import.orig_modname) l in
+  let modnames = Core.Std.List.map ~f:(fun x -> some_of x.Import.orig_modname) l in
   (* using C.uniq to prevent importing a module more than once, otherwise protoc
    * will fail to compile *)
-  let l = List.map gen_import (U.uniq modnames) in
+  let l = Core.Std.List.map ~f:gen_import (U.uniq modnames) in
   iol l
 
 
@@ -427,7 +427,7 @@ let gen_piqi (piqi:T.piqi) =
     else iol []
   in
   let proto_custom =
-    List.map (fun x -> iol [ios x; eol; eol]) piqi.P.protobuf_custom
+    Core.Std.List.map ~f:(fun x -> iol [ios x; eol; eol]) piqi.P.protobuf_custom
   in
   iol [
     package;

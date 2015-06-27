@@ -101,7 +101,7 @@ let order_record_fields t piqobj_fields =
   List.rev res
 
 
-let rec gen_obj0 ?(piq_format: T.piq_format option) (x:Piqobj.obj) :piq_ast =
+let rec gen_obj0 ?(piq_format: T.piq_format option) x =
   match x with
     (* built-in types *)
     | `int x -> `int (x, "")
@@ -174,7 +174,7 @@ and gen_record x =
   let open R in
   (* TODO, XXX: doing ordering at every generation step is inefficient *)
   let fields = order_record_fields x.t x.field in
-  let encoded_fields =  List.map gen_field fields in
+  let encoded_fields =  Core.Std.List.map ~f:gen_field fields in
   let encoded_fields =
     match x.unparsed_piq_fields_ref with
       | None -> encoded_fields
@@ -220,7 +220,7 @@ and gen_enum x =
 
 and gen_list x = 
   let open L in
-  `list (List.map (fun obj -> gen_obj obj ?piq_format:x.t.T.Piqi_list.piq_format) x.obj)
+  `list (Core.Std.List.map ~f:(fun obj -> gen_obj obj ?piq_format:x.t.T.Piqi_list.piq_format) x.obj)
 
 
 and gen_alias ?(piq_format: T.piq_format option) x =
