@@ -70,7 +70,7 @@ let get_self_spec_piqtype ?(filename="") self_spec typename =
 
 
 (* make piqi/piqi-list top-level record from the list of piqi piqobjs *)
-let make_piqi_list_piqobj piqi_list_piqtype (piqi_piqobj_list: ('a, 'b) Piqobj.obj Core.Std.List.t) =
+let make_piqi_list_piqobj piqi_list_piqtype (piqi_piqobj_list: Piqobj.obj Core.Std.List.t) =
   let r =
     match piqi_list_piqtype with
       | `record r -> r

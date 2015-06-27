@@ -435,7 +435,7 @@ let format_ast (x :piq_ast) =
           (* we need to take `name in parenthesis unless followed by `named or
            * another `name *)
           let l = preprocess_names l in
-          (aux (List.hd l) ~is_first:true)::(List.map aux (List.tl l))
+          (aux (List.hd l) ~is_first:true)::(Core.Std.List.map ~f:aux (List.tl l))
 
   and format_labeled_ast = function
     | `name n ->

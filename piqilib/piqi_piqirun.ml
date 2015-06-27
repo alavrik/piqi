@@ -26,7 +26,6 @@
  * Runtime support for parsers (decoders).
  *
  *)
-open Core.Std
 
 exception Error of int * string
 
@@ -99,9 +98,7 @@ module IBuf =
     let pos buf =
       match buf with
         | String x -> x.pos + x.start_pos
-        | Channel x -> (In_channel.pos x) |> Int64.to_int |>
-                       function | Some x -> x
-                                | None -> raise (Error (-1, "traditional position in channel failed int64 to int downgrade"))
+        | Channel x -> pos_in x
 
 
     let size buf =
@@ -217,7 +214,7 @@ let parse_varint64 i buf msb x partial_res =
     then
       IBuf.error buf "integer overflow while reading varint"
     else
-      let res = Int64.bit_or res y in
+      let res = Int64.logor res y in
       if msb = 0
       then Varint64 res (* no more octets => return *)
       else
@@ -268,9 +265,9 @@ let parse_fixed32 buf =
     for i = 0 to 3
     do
       let x = IBuf.next_byte buf in
-      let x = Int32.of_int_exn x in
+      let x = Int32.of_int x in
       let x = Int32.shift_left x (i*8) in
-      res := Int32.bit_or !res x
+      res := Int32.logor !res x
     done;
     !res
   with IBuf.End_of_buffer ->
@@ -285,7 +282,7 @@ let parse_fixed64 buf =
       let x = IBuf.next_byte buf in
       let x = Int64.of_int x in
       let x = Int64.shift_left x (i*8) in
-      res := Int64.bit_or !res x
+      res := Int64.logor !res x
     done;
     !res
   with IBuf.End_of_buffer ->
@@ -295,14 +292,14 @@ let parse_fixed64 buf =
 let try_parse_fixed32 buf =
   (* try to read the first byte and don't handle End_of_buffer exception *)
   let b1 = IBuf.next_byte buf in
-  let res = ref (Int32.of_int_exn b1) in
+  let res = ref (Int32.of_int b1) in
   try
     for i = 1 to 3
     do
       let x = IBuf.next_byte buf in
-      let x = Int32.of_int_exn x in
+      let x = Int32.of_int x in
       let x = Int32.shift_left x (i*8) in
-      res := Int32.bit_or !res x
+      res := Int32.logor !res x
     done;
     !res
   with IBuf.End_of_buffer ->
@@ -319,7 +316,7 @@ let try_parse_fixed64 buf =
       let x = IBuf.next_byte buf in
       let x = Int64.of_int x in
       let x = Int64.shift_left x (i*8) in
-      res := Int64.bit_or !res x
+      res := Int64.logor !res x
     done;
     !res
   with IBuf.End_of_buffer ->
@@ -347,12 +344,12 @@ let parse_field_header buf =
         let field_code = key lsr 3 in
         wire_type, field_code
 
-    | Varint64 key when Int64.bit_and key 0xffff_ffff_0000_0000L <> 0L ->
+    | Varint64 key when Int64.logand key 0xffff_ffff_0000_0000L <> 0L ->
         IBuf.error buf "field code is too big"
 
     | Varint64 key ->
-        let wire_type = Int64.to_int_exn (Int64.bit_and key 7L) in
-        let field_code = Int64.to_int_exn (Int64.shift_right_logical key 3) in
+        let wire_type = Int64.to_int (Int64.logand key 7L) in
+        let field_code = Int64.to_int (Int64.shift_right_logical key 3) in
         wire_type, field_code
     | _ -> assert false
 
@@ -408,8 +405,8 @@ let rec zigzag_varint_of_varint = function
       let res = (x lsr 1) lxor sign in
       Varint res
   | Varint64 x ->
-      let sign = Int64.neg (Int64.bit_and x 1L) in
-      let res = Int64.bit_xor (Int64.shift_right_logical x 1) sign in
+      let sign = Int64.neg (Int64.logand x 1L) in
+      let res = Int64.logxor (Int64.shift_right_logical x 1) sign in
       Varint64 res
   | Top_block buf -> zigzag_varint_of_varint (parse_toplevel_header buf)
   | obj -> error obj "varint expected"
@@ -429,11 +426,11 @@ let max_uint =
 
 let int64_of_uint x =
   (* prevent turning into a negative value *)
-  Int64.bit_and (Int64.of_int x) max_uint
+  Int64.logand (Int64.of_int x) max_uint
 
 let int64_of_uint32 x =
   (* prevent turning into a negative value *)
-  Int64.bit_and (Int64.of_int32 x) 0x0000_0000_ffff_ffffL
+  Int64.logand (Int64.of_int32 x) 0x0000_0000_ffff_ffffL
 
 
 (* this encoding is only for unsigned integers *)
@@ -441,7 +438,7 @@ let rec int_of_varint obj =
   match obj with
     | Varint x -> x
     | Varint64 x ->
-        let res = Int64.to_int_exn x in
+        let res = Int64.to_int x in
         if int64_of_uint res <> x
         then error obj "int overflow in 'int_of_varint'";
         res
@@ -454,7 +451,7 @@ let rec int_of_signed_varint obj =
   match obj with
     | Varint x -> x
     | Varint64 x ->
-        let res = Int64.to_int_exn x in
+        let res = Int64.to_int x in
         if Int64.of_int res <> x
         then error obj "int overflow in 'int_of_signed_varint'";
         res
@@ -513,7 +510,7 @@ let rec int32_of_varint obj =
          * int32 or int *)
         int32_of_varint (Varint64 (int64_of_uint x))
     | Varint64 x ->
-        let res = Int64.to_int32_exn x in
+        let res = Int64.to_int32 x in
         if int64_of_uint32 res <> x
         then error obj "int32 overflow in 'int32_of_varint'";
         res
@@ -527,10 +524,10 @@ let rec int32_of_signed_varint obj =
     | Varint x ->
         (* don't bother handling separate cases for now: which type is wider --
          * int32 or int *)
-        int32_of_signed_varint (Varint64 (Int64.of_int_exn x))
+        int32_of_signed_varint (Varint64 (Int64.of_int x))
     | Varint64 x ->
-        let res = Int64.to_int32_exn x in
-        if Int64.of_int32_exn res <> x
+        let res = Int64.to_int32 x in
+        if Int64.of_int32 res <> x
         then error obj "int32 overflow in 'int32_of_signed_varint'";
         res
     | Top_block buf -> int32_of_signed_varint (parse_toplevel_header buf)
@@ -774,14 +771,14 @@ let parse_optional_field code parse_value ?default l =
 
 let parse_repeated_field code parse_value l =
   let res, rem = find_fields code l in
-  List.map res parse_value, rem
+  Core.Std.List.map res parse_value, rem
 
 
 (* similar to List.map but store results in a newly created output array *)
 let map_l2a f l =
   let len = List.length l in
   (* create and initialize the results array *)
-  let a = Array.create len (Obj.magic 1) in
+  let a = Core.Std.Array.create len (Obj.magic 1) in
   let rec aux i = function
     | [] -> ()
     | h::t ->
@@ -827,7 +824,7 @@ let parse_packed_array_field elem_size parse_packed_value buf =
   then IBuf.error buf "invalid packed fixed-width field";
 
   (* create a new array for results *)
-  let a = Array.create elem_count (Obj.magic 1) in
+  let a = Core.Std.Array.create elem_count (Obj.magic 1) in
   (* parse packed elements and store resuts in the array *)
   for i = 0 to elem_count - 1
   do
@@ -840,8 +837,8 @@ let parse_packed_array_field elem_size parse_packed_value buf =
 (* the same as List.flatten (List.map (fun x -> List.rev (f x)) l), but more
  * efficient and tail recursive *)
 let rev_flatmap f l =
-  let l = List.rev_map ~f l in
-  List.fold_left l ~init:[] ~f:(fun accu x -> List.rev_append x accu) 
+  let l = Core.Std.List.rev_map ~f l in
+  Core.Std.List.fold_left l ~init:[] ~f:(fun accu x -> List.rev_append x accu) 
 
 
 let parse_packed_repeated_field code parse_packed_value parse_value l =
@@ -894,7 +891,7 @@ let parse_list_elem parse_value (code, x) =
 
 let parse_list parse_value obj =
   let l = parse_record obj in
-  List.map l (parse_list_elem parse_value)
+  Core.Std.List.map l (parse_list_elem parse_value)
 
 
 let parse_array parse_value obj =
@@ -960,7 +957,7 @@ module OBuf =
     let to_buffer0 buf l =
       let rec aux = function
         | Ios s -> Buffer.add_string buf s
-        | Iol l | Iol_size (_, l) -> List.iter l aux
+        | Iol l | Iol_size (_, l) -> Core.Std.List.iter l aux
         | Iob b -> Buffer.add_char buf b
         | IBuf (IBuf.String x) -> Buffer.add_substring buf x.s x.pos (x.len - x.pos)
         | IBuf (IBuf.Channel x) -> assert false
@@ -970,7 +967,7 @@ module OBuf =
     (* iolist output size *)
     let rec size = function
       | Ios s -> String.length s
-      | Iol l -> List.fold_left ~f:(fun accu x -> accu + (size x)) ~init:0 l
+      | Iol l -> Core.Std.List.fold_left ~f:(fun accu x -> accu + (size x)) ~init:0 l
       | Iol_size (size, _) -> size
       | Iob _ -> 1
       | IBuf x -> IBuf.size x
@@ -1012,7 +1009,7 @@ let to_channel = OBuf.to_channel
 
 
 let iob i = (* IO char represented as Ios '_' *)
-  iob (Char.of_int_exn i)
+  iob @@ char_of_int i
 
 
 (*
@@ -1021,7 +1018,7 @@ let iob i = (* IO char represented as Ios '_' *)
 
 let gen_varint64_value x =
   let rec aux x =
-    let b = Int64.to_int_exn (Int64.bit_and x 0x7FL) in (* base 128 *)
+    let b = Int64.to_int (Int64.logand x 0x7FL) in (* base 128 *)
     let rem = Int64.shift_right_logical x 7 in
     (* Printf.printf "x: %LX, byte: %X, rem: %LX\n" x b rem; *)
     if rem = 0L
@@ -1060,7 +1057,7 @@ let gen_signed_varint_value x =
 
 let gen_unsigned_varint32_value x =
   let rec aux x =
-    let b = Int32.to_int_exn (Int32.bit_and x 0x7Fl) in (* base 128 *)
+    let b = Int32.to_int (Int32.logand x 0x7Fl) in (* base 128 *)
     let rem = Int32.shift_right_logical x 7 in
     if rem = 0l
     then [iob b]
@@ -1077,7 +1074,7 @@ let gen_signed_varint32_value x =
   (* negative varints are encoded as bit-complement 64-bit varints, always
    * producing 10-bytes long value *)
   if Int32.compare x 0l < 0 (* x < 0? *)
-  then gen_varint64_value (Int64.of_int32_exn x)
+  then gen_varint64_value (Int64.of_int32 x)
   else gen_unsigned_varint32_value x
 
 
@@ -1087,9 +1084,9 @@ let gen_key ktype code =
   if code land (1 lsl 28) <> 0 && Sys.word_size = 32
   then
     (* prevent an overflow of 31-bit OCaml integer on 32-bit platform *)
-    let ktype = Int32.of_int_exn ktype in
-    let code = Int32.of_int_exn code in
-    let x = Int32.bit_or ktype (Int32.shift_left code 3) in
+    let ktype = Int32.of_int ktype in
+    let code = Int32.of_int code in
+    let x = Int32.logor ktype (Int32.shift_left code 3) in
     gen_unsigned_varint32_value x
   else
     gen_unsigned_varint_value (ktype lor (code lsl 3))
@@ -1150,7 +1147,7 @@ let gen_fixed32_value x = (* little-endian *)
   let x = ref x in
   for i = 0 to 3
   do
-    let b = Char.of_int_exn (Int32.to_int_exn (Int32.bit_and !x 0xFFl)) in
+    let b = char_of_int @@ Int32.to_int @@ Int32.logand !x 0xFFl in
     Bytes.set s i b;
     x := Int32.shift_right_logical !x 8
   done;
@@ -1162,7 +1159,7 @@ let gen_fixed64_value x = (* little-endian *)
   let x = ref x in
   for i = 0 to 7
   do
-    let b = Char.of_int_exn (Int64.to_int_exn (Int64.bit_and !x 0xFFL)) in
+    let b = char_of_int @@ Int64.to_int  @@ Int64.logand !x 0xFFL in
     Bytes.set s i b;
     x := Int64.shift_right_logical !x 8
   done;
@@ -1197,13 +1194,13 @@ let zigzag_of_int x =
 let zigzag_of_int32 x =
   (* encode signed integer using ZigZag encoding;
    * NOTE: using arithmetic right shift *)
-  Int32.bit_xor (Int32.shift_left x 1) (Int32.shift_right x 31)
+  Int32.logxor (Int32.shift_left x 1) (Int32.shift_right x 31)
 
 
 let zigzag_of_int64 x =
   (* encode signed integer using ZigZag encoding;
    * NOTE: using arithmetic right shift *)
-  Int64.bit_xor (Int64.shift_left x 1) (Int64.shift_right x 63)
+  Int64.logxor (Int64.shift_left x 1) (Int64.shift_right x 63)
 
 
 (*
@@ -1233,7 +1230,7 @@ let int64_to_fixed64 code x =
   gen_fixed64_field code x
 
 let int64_to_fixed32 code x =
-  gen_fixed32_field code (Int64.to_int32_exn x)
+  gen_fixed32_field code (Int64.to_int32 x)
 
 let int64_to_signed_fixed64 = int64_to_fixed64
 
@@ -1315,7 +1312,7 @@ let gen_parsed_field (code, value) =
 
 
 let gen_parsed_field_list l =
-  List.map l gen_parsed_field
+  Core.Std.List.map l gen_parsed_field
 
 
 (*
@@ -1347,7 +1344,7 @@ let int64_to_packed_fixed64 x =
   gen_fixed64_value x
 
 let int64_to_packed_fixed32 x =
-  gen_fixed32_value (Int64.to_int32_exn x)
+  gen_fixed32_value (Int64.to_int32 x)
 
 let int64_to_packed_signed_fixed64 = int64_to_packed_fixed64
 
@@ -1393,7 +1390,7 @@ let gen_optional_field code f = function
 
 
 let gen_repeated_field code f l =
-  iol (List.map l ~f:(f code))
+  iol (Core.Std.List.map l ~f:(f code))
 
 
 (* similar to Array.map but produces list instead of array *)
@@ -1425,7 +1422,7 @@ let gen_packed_repeated_field_common code contents =
 
 
 let gen_packed_repeated_field code f l =
-  let contents = iol_size (List.map l ~f) in
+  let contents = iol_size (Core.Std.List.map l ~f) in
   gen_packed_repeated_field_common code contents
 
 
@@ -1468,8 +1465,9 @@ let gen_record code (contents : 'a Core.Std.List.t) =
 
 (* generate binary representation of <type>_list .proto structure *)
 let gen_list f code l =
+  print_endline "gen_list";
   (* NOTE: using "1" as list element code *)
-  let contents = List.map l ~f:(f 1) in
+  let contents = Core.Std.List.map l ~f:(f 1) in
   gen_record code contents
 
 

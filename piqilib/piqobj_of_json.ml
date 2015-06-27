@@ -326,5 +326,5 @@ and parse_alias t x =
 
 
 let _ =
-  (Piqobj.of_json ()) := parse_obj
+  Piqobj.of_json := parse_obj
 

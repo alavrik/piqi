@@ -365,5 +365,5 @@ and parse_packed_alias t ?wire_type x =
 
 
 let _ =
-  (Piqobj.of_pb ()) := parse_binobj
+  Piqobj.of_pb := parse_binobj
 

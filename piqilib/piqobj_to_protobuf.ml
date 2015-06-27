@@ -390,5 +390,5 @@ and resolve_wire_type ?wire_type this_wire_type =
 
 
 let _ =
-  (Piqobj.to_pb ()) := gen_binobj
+  Piqobj.to_pb := gen_binobj
 

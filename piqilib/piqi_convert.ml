@@ -28,8 +28,8 @@ exception EOF
 (* internal representation of an object being convert *)
 type ('a, 'b) obj =
   | Piqtype of string
-  | Typed_piqobj of ('a, 'b) Piqobj.obj
-  | Piqobj of ('a, 'b) Piqobj.obj
+  | Typed_piqobj of Piqobj.obj
+  | Piqobj of Piqobj.obj
   | Piqi of T.piqi
 
 

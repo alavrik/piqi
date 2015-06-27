@@ -16,25 +16,25 @@
 
 module rec Piqobj:
   sig
-    type ('a, 'b) field = ('a, 'b) Field.t
-    type ('a, 'b) option = ('a, 'b) Option.t
-    type ('a, 'b) record = ('a, 'b) Record.t
-    type ('a, 'b) variant = ('a, 'b) Variant.t
-    type ('a, 'b) enum = ('a, 'b) Enum.t
-    type ('a, 'b) alias =  ('a, 'b) Alias.t
-    type 'a list = 'a Core.Std.List.t
+    type field =  Field.t
+    type option =  Option.t
+    type record =  Record.t
+    type variant = Variant.t
+    type enum = Enum.t
+    type alias =  Alias.t
+    type list = List.t
 
-    type ('a, 'b) any = ('a, 'b) Any.t
+    type any = Any.t
 
-    type ('a, 'b) typedef =
-      [ `record of ('a, 'b) record
-      | `variant of ('a, 'b) variant
-      | `enum of ('a, 'b) enum
-      | `alias of ('a, 'b) alias
-      | `list of ('a, 'b) List.t ]
+    type typedef =
+      [ `record of record
+      | `variant of variant
+      | `enum of enum
+      | `alias of alias
+      | `list of List.t ]
 
-    type ('a, 'b) obj =
-      [ ('a, 'b) typedef
+    type obj =
+      [ typedef
         (* built-in types *)
       | `int of int64 (* XXX: use big_int for internal representation? *)
       | `uint of int64
@@ -43,83 +43,83 @@ module rec Piqobj:
       | `string of string
       | `binary of string
 
-      | `any of ('a, 'b) any ]
+      | `any of any ]
   end = Piqobj
 
 and Record:
   sig
-    type ('a, 'b) t =
+    type t =
       {
         mutable t : Piqi_impl_piqi.record;
-        mutable field : ('a, 'b) Piqobj.field list;
+        mutable field : Piqobj.field list;
         mutable unparsed_piq_fields_ref : int option;
       }
   end = Record
 
 and Field:
   sig
-    type ('a, 'b) t =
+    type t =
       {
         mutable t : Piqi_impl_piqi.field;
-        mutable obj: ('a, 'b) Piqobj.obj option;
+        mutable obj: Piqobj.obj option;
       }
   end = Field
 
 and Variant:
   sig
-    type ('a, 'b) t =
+    type t =
       {
         mutable t : Piqi_impl_piqi.variant;
-        mutable option : ('a, 'b) Piqobj.option;
+        mutable option : Piqobj.option;
       }
   end = Variant
 
 and Enum:
   sig
-    type ('a, 'b) t =
+    type t =
       {
         mutable t : Piqi_impl_piqi.enum;
-        mutable option : ('a, 'b) Piqobj.option;
+        mutable option : Piqobj.option;
       }
   end = Enum
 
 and Option:
   sig
-    type ('a, 'b) t =
+    type t =
       {
         mutable t : Piqi_impl_piqi.option;
-        mutable obj: ('a, 'b) Piqobj.obj option; (* None for named options, i.e. constants *)
+        mutable obj: Piqobj.obj option; (* None for named options, i.e. constants *)
       }
   end = Option
 
 and List:
   sig
-    type ('a, 'b) t =
+    type t =
       {
         mutable t : Piqi_impl_piqi.piqi_list;
-        mutable obj: ('a, 'b) Piqobj.obj list;
+        mutable obj: Piqobj.obj list;
       }
   end = List
 
 and Alias:
   sig
-    type ('a, 'b ) t =
+    type t =
       {
         mutable t : Piqi_impl_piqi.alias;
-        mutable obj: ('a, 'b) Piqobj.obj;
+        mutable obj: Piqobj.obj;
       }
   end = Alias
 
 and Any:
   sig
-    type ('a, 'b) t =
+    type t =
       {
         (* type of the object, when the type is known (NOTE: object can be
          * untyped *)
         mutable typename : string option;
 
         (* internal representation of a typed data object *)
-        mutable obj: (('a, 'b) Piqobj.obj) option;
+        mutable obj:  Piqobj.obj option;
 
         (* external representation in various formats *)
         mutable pb : string option; (* protocol buffers binary *)
@@ -153,7 +153,7 @@ let default_any () =
 
 (* store Piqobj.any and return reference of the stored object in Piqi_objstore
  *)
-let put_any (any: ('a, 'b) Piqobj.any) :int =
+let put_any (any: Piqobj.any) :int =
   let open Any in
   match any.ref with
     | Some ref -> ref
@@ -167,11 +167,11 @@ let put_any (any: ('a, 'b) Piqobj.any) :int =
 
 
 (* find Piqobj.any by reference in Piqi_objstore *)
-let get_any (ref: int) : ('a, 'b) Piqobj.any =
+let get_any (ref: int) : Piqobj.any =
   Piqi_objstore.get ref
 
 
-let any_of_piqi_any (piqi_any: Piqi_impl_piqi.any) : ('a, 'b) Piqobj.any =
+let any_of_piqi_any (piqi_any: Piqi_impl_piqi.any) : Piqobj.any =
   match piqi_any.Piqi_impl_piqi.Any.ref with
     | Some ref ->
         (* recover internally passed Piqobj.any from an integer reference *)
@@ -204,7 +204,7 @@ let of_piq  piqtype (x :Piq_ast.ast) = assert false
 let of_json piqtype (x :Piqi_json_type.json) = assert false
 let of_xml  piqtype (x :Piqi_xml_type.xml_elem) = assert false
 
-let to_pb    = ref Piqobj_to_protobuf.gen_binobj
+let to_pb    = ref to_pb
 let to_piq   = ref to_piq
 let to_json  = ref to_json
 let to_xml   = ref to_xml
@@ -230,7 +230,7 @@ let string_of_json = ref string_of_json
 let string_of_xml  = ref string_of_xml
 
 
-let of_any (piqtype: Piqi_impl_piqi.piqtype) (any :('a, 'b) Piqobj.any) : ('a, 'b) Piqobj.obj option =
+let of_any (piqtype: Piqi_impl_piqi.piqtype) (any :  Piqobj.any) : Piqobj.obj option =
   let open Any in
   if any.pb <> None (* try parsing from Protobuf *)
   then
@@ -253,7 +253,7 @@ let of_any (piqtype: Piqi_impl_piqi.piqtype) (any :('a, 'b) Piqobj.any) : ('a, '
 
 
 (* resolve obj from any given, possibly given its type *)
-let resolve_obj ?(piqtype: Piqi_impl_piqi.piqtype option) (any :('a, 'b) Piqobj.any) :unit =
+let resolve_obj ?(piqtype: Piqi_impl_piqi.piqtype option) (any :  Piqobj.any) :unit =
   let open Any in
   if any.obj <> None
   then () (* already resolved *)
@@ -280,7 +280,7 @@ let resolve_obj ?(piqtype: Piqi_impl_piqi.piqtype option) (any :('a, 'b) Piqobj.
   )
 
 
-let piq_of_any (any: ('a, 'b) Piqobj.any) :Piq_ast.ast option =
+let piq_of_any (any: Piqobj.any) :Piq_ast.ast option =
   let open Any in
   match any.piq_ast with
     | (Some _) as res -> res
@@ -314,7 +314,7 @@ let pb_of_any any =
     )
 
 
-let json_of_any (any:  ('a, 'b) Piqobj.any) :Piqi_json_type.json option =
+let json_of_any (any:  Piqobj.any) :Piqi_json_type.json option =
   let open Any in
   match any.json_ast with
     | Some _ when any.json_string <> None ->
@@ -345,7 +345,7 @@ let json_of_any (any:  ('a, 'b) Piqobj.any) :Piqi_json_type.json option =
     )
 
 
-let xml_of_any (any:  ('a, 'b) Piqobj.any) :Piqi_xml_type.xml list option =
+let xml_of_any (any:  Piqobj.any) :Piqi_xml_type.xml list option =
   let open Any in
   match any.xml_ast with
     | Some (_name, xml_list) -> Some xml_list

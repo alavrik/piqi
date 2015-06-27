@@ -162,7 +162,7 @@ let gen_obj obj = gen_obj obj
 
 
 let _ =
-  (Piqobj.to_xml ()) := gen_obj
+  Piqobj.to_xml := gen_obj
 
 
 (* gen top-level XML element *)

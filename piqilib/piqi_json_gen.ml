@@ -124,11 +124,11 @@ let write_float ob x =
 
 let test_float () =
   let l = [ 0.; 1.; -1. ] in
-  let l = l @ List.map (fun x -> 2. *. x +. 1.) l in
-  let l = l @ List.map (fun x -> x /. sqrt 2.) l in
-  let l = l @ List.map (fun x -> x *. sqrt 3.) l in
-  let l = l @ List.map cos l in
-  let l = l @ List.map (fun x -> x *. 1.23e50) l in
+  let l = l @ Core.Std.List.map ~f:(fun x -> 2. *. x +. 1.) l in
+  let l = l @ Core.Std.List.map ~f:(fun x -> x /. sqrt 2.) l in
+  let l = l @ Core.Std.List.map ~f:(fun x -> x *. sqrt 3.) l in
+  let l = l @ Core.Std.List.map ~f:cos l in
+  let l = l @ Core.Std.List.map ~f:(fun x -> x *. 1.23e50) l in
   let l = l @ [ infinity; neg_infinity ] in
   List.iter (
     fun x -> 
@@ -278,9 +278,9 @@ let rec format (x : json) =
     | `Floatlit s
     | `Stringlit s -> Atom (s, atom)
     | `List [] -> Atom ("[]", atom)
-    | `List l -> List (("[", ",", "]", array), List.map format l)
+    | `List l -> List (("[", ",", "]", array), Core.Std.List.map ~f:format l)
     | `Assoc [] -> Atom ("{}", atom)
-    | `Assoc l -> List (("{", ",", "}", record), List.map format_field l)
+    | `Assoc l -> List (("{", ",", "}", record), Core.Std.List.map ~f:format_field l)
 	    
 and format_field (name, x) =
   let s = sprintf "%s:" (json_string_of_string name) in

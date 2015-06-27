@@ -175,5 +175,5 @@ and gen_alias x =
 
 
 let _ =
-  (Piqobj.to_json ()) := gen_obj
+  Piqobj.to_json := gen_obj
 

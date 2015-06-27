@@ -271,7 +271,7 @@ let expand_forms (x: piq_ast) :piq_ast =
   and expand_list_elem = function
     | `form ((`name _) as name, args) | `form ((`typename _) as name, args) when args <> [] ->
         let expanded_form = Core.Std.List.map ~f:(cons_named_or_typed name) args in
-        List.map aux expanded_form
+        Core.Std.List.map ~f:aux expanded_form
     | x ->
         [aux x]
   and aux obj =

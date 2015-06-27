@@ -770,7 +770,7 @@ and parse_list t = function
 
 and do_parse_list t l =
   let obj_type = some_of t.T.Piqi_list.piqtype in
-  let contents = List.map l (parse_obj obj_type ?piq_format:t.T.Piqi_list.piq_format) in
+  let contents = Core.Std.List.map l (parse_obj obj_type ?piq_format:t.T.Piqi_list.piq_format) in
   L.({t = t; obj = contents})
 
 

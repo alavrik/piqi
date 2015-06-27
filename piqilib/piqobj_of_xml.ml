@@ -347,7 +347,7 @@ and parse_alias t x =
 
 
 let _ =
-  (Piqobj.of_xml ()) := parse_obj
+  Piqobj.of_xml := parse_obj
 
 
 (* parse top-level Piq object formatted as XML *)
