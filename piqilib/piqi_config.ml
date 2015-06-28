@@ -14,6 +14,9 @@
    limitations under the License.
 *)
 
+module U = Piqi_util
+open U.Std
+
 
 (* .piqi search paths *)
 let paths = ref []
@@ -31,7 +34,7 @@ let piqi_path =
         | "Win32" -> ';'
         | _ -> ':'
     in
-    let l = Piqi_util.string_split s sep in
+    let l = U.string_split s sep in
     List.filter (fun s -> s <> "") l (* remove empty segments *)
   with
     Not_found -> []

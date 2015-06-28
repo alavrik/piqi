@@ -15,7 +15,8 @@
 *)
 
 
-open Piqi_common
+module C = Piqi_common
+open C
 
 
 let usage = "Usage: piqi json-pp [options] [<.json file>] [output file]\nOptions:"

@@ -99,11 +99,11 @@ let find_piqi_file ?(extra_paths=[]) modname =
        *)
       if String.contains base_name '_'
       then
-        let base_name = Piqi_util.underscores_to_dashes base_name in
+        let base_name = U.underscores_to_dashes base_name in
         check_exact_file dir_name base_name ext
       else if String.contains base_name '-'
       then
-        let base_name = Piqi_util.dashes_to_underscores base_name in
+        let base_name = U.dashes_to_underscores base_name in
         check_exact_file dir_name base_name ext
       else false
   in

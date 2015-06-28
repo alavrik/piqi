@@ -21,6 +21,7 @@
 
 
 module C = Piqi_common
+open C.Std
 
 
 (* command-line parameters *)
@@ -214,9 +215,9 @@ let run_command f =
     | C.Piqi_error s ->
         cleanup_on_error ();
         die s
-    | Piqi_common.Error (loc, s) ->
+    | C.Error (loc, s) ->
         cleanup_on_error ();
-        die (Piqi_common.strerr loc s)
+        die (C.strerr loc s)
     | Sys_error s ->
         cleanup_on_error ();
         die ("uncaught system error: " ^ s)

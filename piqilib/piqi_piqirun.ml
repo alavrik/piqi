@@ -59,6 +59,58 @@ type string_slice =
   }
 
 
+(* the below alternative tail-recursive implementation of stdlib's List.map is
+ * copied from Core (https://github.com/janestreet/core_kernel)
+ *
+ * note that the order of arguments was changed back to match the one of
+ * stdlib's
+ *)
+
+let list_map_slow f l = List.rev (List.rev_map f l)
+
+let rec list_count_map f l ctr =
+  match l with
+  | [] -> []
+  | [x1] ->
+    let f1 = f x1 in
+    [f1]
+  | [x1; x2] ->
+    let f1 = f x1 in
+    let f2 = f x2 in
+    [f1; f2]
+  | [x1; x2; x3] ->
+    let f1 = f x1 in
+    let f2 = f x2 in
+    let f3 = f x3 in
+    [f1; f2; f3]
+  | [x1; x2; x3; x4] ->
+    let f1 = f x1 in
+    let f2 = f x2 in
+    let f3 = f x3 in
+    let f4 = f x4 in
+    [f1; f2; f3; f4]
+  | x1 :: x2 :: x3 :: x4 :: x5 :: tl ->
+    let f1 = f x1 in
+    let f2 = f x2 in
+    let f3 = f x3 in
+    let f4 = f x4 in
+    let f5 = f x5 in
+    f1 :: f2 :: f3 :: f4 :: f5 ::
+      (if ctr > 1000
+        then list_map_slow f tl
+        else list_count_map f tl (ctr + 1))
+
+let list_map f l = list_count_map f l 0
+
+
+module List =
+  struct
+    include List
+
+    let map = list_map
+  end
+
+
 module IBuf =
   struct
     type t =

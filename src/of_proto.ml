@@ -29,7 +29,8 @@ module ProtoEnum = D.Enum_descriptor_proto
 module ProtoEnumValue = D.Enum_value_descriptor_proto
 
 
-open Piqi_common
+module C = Piqi_common
+open C
 open Iolist
 
 

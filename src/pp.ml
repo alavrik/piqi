@@ -15,7 +15,8 @@
 *)
 
 
-open Piqi_common 
+module C = Piqi_common
+open C
 
 
 (* command-line parameters *)

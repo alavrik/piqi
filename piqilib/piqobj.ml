@@ -137,6 +137,8 @@ and Any:
 
 
 module C = Piqi_common
+module U = C.U
+open C.Std
 
 
 let default_any =
@@ -264,7 +266,7 @@ let resolve_obj ?(piqtype: Piqi_impl_piqi.piqtype option) (any :Piqobj.any) :uni
       (* cache typename
        * XXX: do not use fully qualified names for locally defined types? *)
       if any.typename = None
-      then any.typename <- Some (Piqi_common.full_piqi_typename piqtype);
+      then any.typename <- Some (C.full_piqi_typename piqtype);
 
       let obj = of_any piqtype any in
       any.obj <- obj
@@ -329,7 +331,7 @@ let json_of_any (any: Piqobj.any) :Piqi_json_type.json option =
          * that we can print it nicely while preserving the original int, float
          * and string literals *)
         Piqloc.pause (); (* no need to preserve location information here *)
-        let json_ast = Piqi_util.with_bool Piqi_config.pp_mode true (fun () -> !json_of_string s) in
+        let json_ast = U.with_bool Piqi_config.pp_mode true (fun () -> !json_of_string s) in
         Piqloc.resume ();
         Some json_ast
     | (Some _) as res -> res

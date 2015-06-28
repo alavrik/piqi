@@ -15,7 +15,8 @@
 *)
 
 
-open Piqi_common
+module C = Piqi_common
+open C
 
 
 module L = Piq_lexer
@@ -465,7 +466,7 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
     (match name with
       | #Piq_ast.form_name -> () (* this is valid form *)
       | obj when args <> [] ->
-          Piqi_common.error obj
+          C.error obj
             "invalid form name: only words, names and typenames are allowed"
       | _ ->
           (* this is an ast element in parenthesis -- passing it through; we

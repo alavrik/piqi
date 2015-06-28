@@ -18,6 +18,9 @@
  * Piq AST (abstract syntax tree)
  *)
 
+module U = Piqi_util
+open U.Std
+
 
 module rec Piq_ast :
              sig
@@ -97,7 +100,7 @@ let transform_ast path f (ast:ast) =
   let rec aux p = function
     | `list l when p = [] -> (* leaf node *)
         (* f replaces, removes element, or splices elements of the list *)
-        let res = Piqi_util.flatmap f l in
+        let res = U.flatmap f l in
         `list res
     | x when p = [] -> (* leaf node *)
         (* expecting f to replace the existing value, no other modifications

@@ -1,6 +1,6 @@
 
 The Piqi project
-Copyright 2009, 2010, 2011, 2012, 2013 Anton Lavrik
+Copyright 2009, 2010, 2011, 2012, 2013, 2014, 2015 Anton Lavrik
 
 This distribution includes software originally developed by Anton Lavrik as a
 part of the Piqi project (http://piqi.org).
@@ -81,4 +81,25 @@ src/descriptor.proto
     THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
     (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+piqilib/piqi_piqirun.ml
+piqilib/piqi_util.ml
+=======================
+
+    Implementation of the following functions is based on the Core_kernel
+    library:
+
+        Piqi_piqirun.list_map
+        Piqi_util.list_append
+
+    Homepage: https://github.com/janestreet/core_kernel
+
+    Copyright (C) 2008-
+      Jane Street Group, LLC
+      1 New York Plaza, 33rd Floor
+      New York, NY 10004
+      USA
+
+    Licensed under the terms of the Apache License Version 2.
 

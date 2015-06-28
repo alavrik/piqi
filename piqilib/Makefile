@@ -18,8 +18,8 @@ SOURCES = \
 	piqi_piqirun.ml \
 	piqi_piqi.ml \
 	\
-	piqloc.ml \
 	piqi_util.ml \
+	piqloc.ml \
 	piq_ast.ml \
 	\
 	piqi_impl_piqi.ml \

@@ -18,6 +18,68 @@
  * commonly used utility functions
  *)
 
+
+(* the below alternative tail-recursive implementation of stdlib's List.append
+ * was copied from Core (https://github.com/janestreet/core_kernel)
+ *)
+
+let list_slow_append l1 l2 = List.rev_append (List.rev l1) l2
+
+
+let rec list_count_append l1 l2 count =
+  match l2 with
+  | [] -> l1
+  | _ ->
+    match l1 with
+    | []               ->                         l2
+    | [x1]             -> x1                   :: l2
+    | [x1; x2]         -> x1 :: x2             :: l2
+    | [x1; x2; x3]     -> x1 :: x2 :: x3       :: l2
+    | [x1; x2; x3; x4] -> x1 :: x2 :: x3 :: x4 :: l2
+    | x1 :: x2 :: x3 :: x4 :: x5 :: tl ->
+      x1 :: x2 :: x3 :: x4 :: x5 ::
+        (if count > 1000
+         then list_slow_append tl l2
+         else list_count_append tl l2 (count + 1))
+
+let list_append l1 l2 = list_count_append l1 l2 0
+
+
+let list_concat l =
+  let rec aux accu = function
+    | [] -> List.rev accu
+    | h::t -> aux (List.rev_append h accu) t
+  in
+  aux [] l
+
+
+module Std =
+  struct
+    module List =
+      struct
+        include List
+
+        let map = Piqi_piqirun.list_map
+        let append = list_append
+        let concat = list_concat
+      end
+
+    let ( @ ) = List.append
+  end
+
+
+open Std
+
+
+(* list flatmap *)
+let flatmap f l =
+  let rec aux accu = function
+    | [] -> List.rev accu
+    | h::t -> aux (List.rev_append (f h) accu) t
+  in
+  aux [] l
+
+
 (* substitute character [x] with [y] in string [s] *)
 let string_subst_char s x y =
   if not (String.contains s x)
@@ -97,10 +159,6 @@ let with_bool bool_ref value f =
    with exn ->
      bool_ref := saved_value;
      raise exn
-
-
-(* list flatmap *)
-let flatmap f l =  List.concat (List.map f l)
 
 
 let find_dups l =

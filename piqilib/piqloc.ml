@@ -15,6 +15,9 @@
    limitations under the License.
 *)
 
+module U = Piqi_util
+open U.Std
+
 
 type loc = string * int * int (* file, line, column *)
 

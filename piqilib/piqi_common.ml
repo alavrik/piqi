@@ -51,6 +51,11 @@ module Iolist = Piqi_iolist
 
 module U = Piqi_util
 
+(* NOTE: Std can be opened explicitly as U.Std or C.Std or included implicitly
+ * by opening Piqi_common *)
+module Std = U.Std
+include Std
+
 
 type piq_ast = Piq_ast.ast
 

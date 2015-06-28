@@ -46,6 +46,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *)
 
 {
+  module C = Piqi_common
+  open C.Std
+
   type json = Piqi_json_type.json
 
   module Lexing =
@@ -120,7 +123,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   let custom_error descr v lexbuf =
     let loc = location v lexbuf in
-    Piqi_common.error_at loc descr
+    C.error_at loc descr
 
 
   let lexer_error descr v lexbuf =

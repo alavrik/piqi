@@ -26,6 +26,7 @@
 
 
 module C = Piqi_common
+open C.Std
 
 
 type xml = Piqi_xml_type.xml

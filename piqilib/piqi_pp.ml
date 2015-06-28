@@ -15,7 +15,8 @@
 *)
 
 
-open Piqi_common 
+module C = Piqi_common
+open C
 
 
 let prettyprint_ast ch ast =

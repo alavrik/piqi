@@ -15,6 +15,9 @@
    limitations under the License.
 *)
 
+module C = Piqi_common
+open C.Std
+
 
 exception Error0 of string (* internally used error exception *)
 
