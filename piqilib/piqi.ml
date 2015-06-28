@@ -878,22 +878,19 @@ let parse_scoped_name name =
     | _ -> assert false (* this has been checked already *)
 
 
-(* replace the first list element for which [f] returns true with [x]
- *
- * NOTE: non-tail recursive
- *)
+(* replace the first list element for which [f] returns true with [x] *)
 let list_replace l f x =
-  let rec aux = function
+  let rec aux accu = function
     | [] ->
         (* we were supposed to replace an item before we reached the end of the
          * list *)
         assert false
     | h::t ->
         if f h
-        then x::t
-        else h::(aux t)
+        then List.rev_append accu (x::t)
+        else aux (h::accu) t
   in
-  aux l
+  aux [] l
 
 
 let name_of_function x = x.T.Func.name

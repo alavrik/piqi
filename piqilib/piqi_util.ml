@@ -45,14 +45,6 @@ let rec list_count_append l1 l2 count =
 let list_append l1 l2 = list_count_append l1 l2 0
 
 
-let list_concat l =
-  let rec aux accu = function
-    | [] -> List.rev accu
-    | h::t -> aux (List.rev_append h accu) t
-  in
-  aux [] l
-
-
 module Std =
   struct
     module List =
@@ -60,8 +52,40 @@ module Std =
         include List
 
         let map = Piqi_piqirun.list_map
+
         let append = list_append
-        let concat = list_concat
+
+        let concat l =
+          let rec aux accu = function
+            | [] -> rev accu
+            | h::t -> aux (rev_append h accu) t
+          in
+          aux [] l
+
+        let flatten = concat
+
+        let fold_right f l accu =
+          fold_left (fun a b -> f b a) accu (rev l)
+
+        let split l =
+          let rec aux accu_a accu_b = function
+            | [] ->
+                rev accu_a, rev accu_b
+            | (a,b)::t ->
+                aux (a::accu_a) (b::accu_b) t
+          in
+          aux [] [] l
+
+        let combine l1 l2 =
+          let rec aux accu l1 l2 =
+            match l1, l2 with
+              | [], [] -> rev accu
+              | (h1::t1), (h2::t2) ->
+                  aux ((h1, h2)::accu) t1 t2
+              | (_, _) ->
+                  invalid_arg "List.combine"
+          in
+          aux [] l1 l2
       end
 
     let ( @ ) = List.append
