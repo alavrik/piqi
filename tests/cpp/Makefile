@@ -11,7 +11,7 @@ prep:
 test:
 	$(PIQI) to-proto piqi.piqi
 	protoc --cpp_out=. piqi.piqi.proto
-	$(MAKE) -f Makefile.cpp
+	$(MAKE) -f Makefile.test
 	#protoc --decode=piqi_org.piqi.piqi piqi.piqi.proto < piqi.piqi.pb > t.ptext
 	./ctest > t.ptext1
 	#cmp t.ptext*
@@ -19,5 +19,5 @@ test:
 
 clean:
 	rm -f piqi.piqi.* t.*
-	$(MAKE) -f Makefile.cpp clean
+	$(MAKE) -f Makefile.test clean
 
