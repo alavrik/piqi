@@ -128,8 +128,8 @@ piqi_files:
 
 
 piqi_ml:
-	$(PIQIC) $(PIQIC_FLAGS) --cc --pp piqi-impl.piqi
-	$(PIQIC) $(PIQIC_FLAGS) --pp piqi.piqi
+	$(PIQIC) $(PIQIC_FLAGS) --cc piqi-impl.piqi
+	$(PIQIC) $(PIQIC_FLAGS) piqi.piqi
 
 
 piqi_boot:

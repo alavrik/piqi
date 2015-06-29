@@ -5,7 +5,7 @@ include $(PIQI_ROOT)/make/Makefile.ocaml
 RESULT = expand_piqi_boot
 SOURCES = \
 	piqi_piqirun.ml \
-	piqloc.ml piqi_util.ml piq_ast.ml  \
+	piqi_util.ml piqloc.ml piq_ast.ml  \
 	piqi_impl_piqi.ml piqi_boot.ml
 
 
