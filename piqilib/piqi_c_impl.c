@@ -78,7 +78,7 @@ value camlidl_piqi_c_piqi_strtoull(
 	value _v_str)
 {
   char *str; /*in*/
-  int64 _res;
+  int64_t _res;
   value _vres;
 
   str = String_val(_v_str);
