@@ -1,9 +1,11 @@
-opam-version: "1"
+opam-version: "1.2"
 maintainer: "alavrik@piqi.org"
 build: [
   ["./configure" "--prefix" prefix]
   [make]
   [make "ocaml"]
+]
+install: [
   [make "install"]
   [make "ocaml-install"]
 ]
@@ -21,3 +23,4 @@ depends: [
   "base64" {>="2.0.0"}
   "base-bytes"
 ]
+dev-repo: "git://github.com/alavrik/piqi"

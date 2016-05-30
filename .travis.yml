@@ -9,7 +9,7 @@ env:
   - OCAML_VERSION=4.00
   - OCAML_VERSION=4.01
   - OCAML_VERSION=4.02 PACKAGE="piqilib"  # in addition, test opam package build
-  - OCAML_VERSION=latest
+  - OCAML_VERSION=4.03
 branches:
   only:
     - master

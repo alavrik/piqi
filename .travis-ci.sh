@@ -3,73 +3,56 @@
 set -ex
 
 
-case $TRAVIS_OS_NAME in
-    osx)
+if [ -n "${PACKAGE-}" ]
+then
+    # build using opam, run tests, build package, install package
+
+    wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-opam.sh
+
+    # opam lint is way too demanding and varies from version to version
+    export OPAM_LINT=false
+
+    . .travis-opam.sh
+
+else
+    # install ocaml, install basic build dependencies, run standard build
+
+    if [ "$OCAML_VERSION" = "system" ]
+    then
+        # ignore this branch on Mac Os X
+        test "$TRAVIS_OS_NAME" = "osx" && exit 0
+
         # build dependencies
-        brew install opam
+        sudo apt-get install ocaml-nox camlp4-extra ocaml-findlib
 
-        # optional dependencies for running tests
-        brew install protobuf
+        # optional dependencies for running tests and building docs
+        #
+        # NOTE: these need to be tested only once, no need to re-run these
+        # tests for all OCaml versions
+        sudo apt-get install libprotoc-dev protobuf-compiler pandoc
 
-        echo OCaml version
+        echo "system OCaml version:"
         ocaml -version
 
-        echo OPAM versions
-        opam --version
-        opam --git-version
+    else
+        # install specific ocaml version
+        wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-ocaml.sh
 
-        export OPAMYES=1
-        rm -rf ~/.opam
+        . .travis-ocaml.sh
 
-        opam init
-        eval `opam config env`
+        # install basic build dependencies using opam
         opam install ocamlfind camlp4
-        ;;
-
-    *)  # linux
-
-        if [ "$OCAML_VERSION" = "system" ]
-        then
-            # build dependencies
-            sudo apt-get install ocaml-nox camlp4-extra ocaml-findlib
-
-            # optional dependencies for running tests and building docs
-            #
-            # NOTE: these need to be tested only once, no need to re-run these
-            # tests for all OCaml versions
-            sudo apt-get install libprotoc-dev protobuf-compiler pandoc
-
-            echo "system OCaml version:"
-            ocaml -version
-
-        elif [ -n "${PACKAGE-}" ]
-        then
-            # build using opam, run tests, build package, install package
-            wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-opam.sh
-
-            . .travis-opam.sh
-
-        else
-            # install specific ocaml version
-            wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-ocaml.sh
-
-            . .travis-ocaml.sh
-
-            # install build dependencies using opam
-            opam install ocamlfind camlp4
-        fi
-        ;;
-esac
+    fi
 
 
-./configure
-make deps
-make
+    ./configure
+    make deps
+    make
 
-make test
+    make test
 
-make doc
+    make doc
 
-# checking for broken doc links -- the test is flaky, disabling for now
-#make -C doc test
-
+    # checking for broken doc links -- the test is flaky, disabling for now
+    #make -C doc test
+fi
