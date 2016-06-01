@@ -15,6 +15,9 @@ test:
 	$(PIQI) convert --type bool --piq-frameless-input true frameless.primitive.piq
 	$(PIQI) convert --type frameless/r --piq-frameless-input true frameless.container.piq
 
+	$(PIQI) check --type options/v options_invalid.piq; test $$? -eq 1
+	$(PIQI) check --type options/v options_valid.piq
+
 
 clean:
 	rm -f *.pib *.json

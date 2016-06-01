@@ -1,0 +1,14 @@
+.record [
+  .name foo
+]
+
+.record [
+  .name bar
+  .field [ .type int ]
+]
+
+.variant [
+  .name v
+  .option [ .type foo ]
+  .option [ .type bar ]
+]

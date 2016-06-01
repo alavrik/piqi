@@ -729,8 +729,8 @@ and parse_name_option o name =
   let n = C.name_of_option o in
   if equals_name n o.piq_alias name
   then
-    match o.name, o.piqtype with
-      | Some _, Some _ ->
+    match o.piqtype with
+      | Some _ ->
           error name ("value expected for option " ^ U.quote n)
       | _ ->
           Some O.({t = o; obj = None})
