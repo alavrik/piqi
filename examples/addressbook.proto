@@ -1,7 +1,7 @@
 // This file was taken from Google Protocol Buffers source distribution. It is
 // also available here:
 //
-//     http://protobuf.googlecode.com/svn/trunk/examples/addressbook.proto
+//     https://github.com/google/protobuf/blob/v2.6.1/examples/addressbook.proto
 
 package tutorial;
 
