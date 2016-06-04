@@ -126,9 +126,9 @@ To build a Windows (win32) executable on Linux:
 
 2. Install OCaml cross-compiler
 
-        opam switch 4.00.1
+        opam switch 4.02.1
         opam repo add win https://github.com/vouillon/opam-windows-repository.git
-        opam install win32-ocaml win32-ocamlfind
+        opam install win32-ocaml win32-ocamlfind camlp4
 
         See up-to-date instructions at https://github.com/vouillon/opam-windows-repository
 
