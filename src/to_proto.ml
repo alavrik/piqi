@@ -599,7 +599,7 @@ let protoname_defs (defs:T.typedef list) =
 
 
 (* generate warning when deprecated fiels are used and provde some backwards
- * compatibiliy *)
+ * compatibility *)
 let check_transform_piqi piqi =
   (* handle deprecated .proto-package *)
   (match piqi.P.proto_package with

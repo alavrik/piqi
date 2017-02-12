@@ -119,7 +119,7 @@ let default_anon_fun s =
         (* the first positional argument is input file *)
         ifile := s
     | 2 ->
-        (* the second positional argument is output file unless overriden by -o
+        (* the second positional argument is output file unless overridden by -o
          * option *)
         if !ofile = ""
         then ofile := s

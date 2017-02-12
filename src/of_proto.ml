@@ -680,7 +680,7 @@ let proto_to_piqi ifile =
   (* convert .proto file to wire format using protoc --descriptor_set_out= *)
   proto_to_wire ifile wirefile;
 
-  (* read .proto defintion from wire file *)
+  (* read .proto definition from wire file *)
   let proto_set = read_proto_wire wirefile in
 
   (* convert .proto to .piqi string *)

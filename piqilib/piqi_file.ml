@@ -71,7 +71,7 @@ let make_os_path name =
     | _ -> name
 
 
-(* find piqi file in search paths given its (relative) splitted name *)
+(* find piqi file in search paths given its (relative) split name *)
 let find_piqi_file ?(extra_paths=[]) modname =
   let dir_name, base_name = Piqi_name.split_name modname in
   let dir_name =

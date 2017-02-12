@@ -165,7 +165,7 @@ let full_piqi_typename x =
           parent_name ^ "/" ^ name
     | _ -> (* built-in type *)
         (* XXX: normally built-in types should be used at the time when this
-         * funciton is used *)
+         * function is used *)
         name
 
 

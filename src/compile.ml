@@ -102,7 +102,7 @@ let compile self_spec piqi och =
         List.iter write_piq piqobj_list
     | "piqi" ->
         (* NOTE: with output_format = "piqi" we can output only one modele --
-         * the one that's beeing compiled; it comes last in the list *)
+         * the one that's being compiled; it comes last in the list *)
         let piqobj = List.hd (List.rev piqobj_list) in
         let ast = Piqi_convert.gen_piq (Piqi_convert.Piqobj piqobj) in
         Piqi_pp.prettyprint_piqi_ast och ast

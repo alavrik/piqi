@@ -256,7 +256,7 @@ Options:
 
 Usage: `piqi json-pp [options] [<.json file>] [output file]`
 
-Pretty-prints JSON files. Input file may contain several properly formated JSON
+Pretty-prints JSON files. Input file may contain several properly formatted JSON
 objects represented as UTF-8 text as defined by [RFC
 4627](http://www.ietf.org/rfc/rfc4627.txt).
 

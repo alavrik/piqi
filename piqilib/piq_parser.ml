@@ -314,7 +314,7 @@ let retry_parse_uint s =
 let parse_uint s =
   (* NOTE:
    * OCaml doesn't support large unsingned decimal integer literals. For
-   * intance, this call failes with exception (Failure "int_of_string"):
+   * instance, this call failes with exception (Failure "int_of_string"):
    *
    *      Int64.of_string (Printf.sprintf "%Lu" 0xffff_ffff_ffff_ffffL)
    *
@@ -474,7 +474,7 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
            * and to be consisten with "identity" forms like (.foo) *)
           ()
     );
-    (* contruct a resulting form from name and args *)
+    (* construct a resulting form from name and args *)
     let pair = (name, args) in
     let res = `form pair in
     Piqloc.addloc startloc pair;

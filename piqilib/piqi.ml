@@ -779,7 +779,7 @@ let mlobj_to_piqobj piqtype wire_generator mlobj =
   let binobj = Piqirun.gen_binobj wire_generator mlobj in
   debug_loc "mlobj_to_piqobj(1.5)";
 
-  (* dont' resolve defaults when reading wire *)
+  (* don't' resolve defaults when reading wire *)
   let piqobj =
     U.with_bool C.is_inside_parse_piqi true
     (fun () ->
@@ -975,7 +975,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
         ) extension_asts
       in
       (*
-      List.iter (Printf.eprintf "extesion label: %s\n") extension_labels;
+      List.iter (Printf.eprintf "extension label: %s\n") extension_labels;
       *)
       let is_overridden = function
           | `named x ->
@@ -1194,7 +1194,7 @@ let apply_defs_extensions defs extensions custom_fields =
   list_of_idtable idtable defs C.typedef_name
 
 
-(* partition extensions into typedef extesions, function extensions and import
+(* partition extensions into typedef extensions, function extensions and import
  * extensions *)
 let partition_extensions extensions =
   let open Extend in
@@ -1230,7 +1230,7 @@ let get_imported_defs imports =
 
 
 let make_param_name func param_name =
-  (* construct the type name as a concatentation of the function name and
+  (* construct the type name as a concatenation of the function name and
    * -input|output|error *)
   let func_name = func.T.Func.name in
   let type_name = func_name ^ "-" ^ param_name in
@@ -1314,7 +1314,7 @@ let resolve_param func param_name param =
 
 (* return func, [(def, (def_name, set_f))], where
  *
- * [def] is a definition derived from the function's input/output/erorr
+ * [def] is a definition derived from the function's input/output/error
  * parameter
  *
  * [def_name] is the definition's name
@@ -1459,7 +1459,7 @@ let find_piqi_file from_piqi modname =
     in
     (modname, fname)
   else  (* regular module loaded from a .piqi file *)
-    (* add the referee dirname as a .piqi search path in front of the curent
+    (* add the referee dirname as a .piqi search path in front of the current
      * working directory, which is always the first element of the search path
      * list *)
     let dir = Filename.dirname (some_of from_piqi.P.file) in
@@ -1653,7 +1653,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   let idtable = Idtable.empty in
   let idtable = add_imported_typedefs idtable imported_defs in
 
-  (* add built-in type defintions to the idtable *)
+  (* add built-in type definitions to the idtable *)
   let idtable =
     if not !Config.flag_no_builtin_types && not !is_boot_mode && not (C.is_self_spec piqi)
     then add_typedefs idtable !C.builtin_typedefs
@@ -1707,7 +1707,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
         apply_defs_extensions defs defs_extensions custom_fields
     )
   in
-  (* preserve the original defintions by making a copy *)
+  (* preserve the original definitions by making a copy *)
   let resolved_defs = copy_defs extended_defs in
 
   (* set resolved_func.resolved_input/output/error fields to their correspondent
@@ -1738,7 +1738,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
    * and option codes instead of auto-enumerated ones
    *
    * NOTE: code assignment is needed only for .piqi, Piqi specifications encoded
-   * in other formats must already include explicitly speficied (and correct!)
+   * in other formats must already include explicitly specified (and correct!)
    * wire codes.
    *
    * NOTE: this step must be performed before resolving defaults -- this is
@@ -1747,7 +1747,7 @@ let rec process_piqi ?modname ?(include_path=[]) ?(fname="") ?(ast: piq_ast opti
   if ast <> None && C.is_self_spec piqi
   then Piqi_protobuf.add_hashcodes resolved_defs;
 
-  (* check defs, resolve defintion names to types, assign codes, resolve default
+  (* check defs, resolve definition names to types, assign codes, resolve default
    * fields *)
   let idtable = resolve_defs idtable resolved_defs ~piqi in
 
@@ -1952,7 +1952,7 @@ let find_embedded_piqtype name =
 
 
 (*
- * booting code; preparing the initial statically defined piqi defintions
+ * booting code; preparing the initial statically defined piqi definitions
  *)
 let boot () =
   trace "boot(0)\n";
@@ -2133,7 +2133,7 @@ let expand_piqi ~extensions ~functions piqi =
         res_piqi with
         (* add embedded definitions from function to the list of top-level defs *)
         typedef = res_piqi.typedef @ func_typedefs;
-        (* remove embedded defintions from function parameters *)
+        (* remove embedded definitions from function parameters *)
         func = List.map expand_function res_piqi.func;
       }
   in res_piqi
@@ -2211,7 +2211,7 @@ let piqi_to_piqobj
 
   (* include all automatically assigned hash-based codes for fiels and options;
    * this is a protection against changing the hashing algorithm: even if new
-   * piqi versions use a different hashing algorith, previous self-definitions
+   * piqi versions use a different hashing algorithm, previous self-definitions
    * will be still readable *)
   if C.is_self_spec piqi
   then Piqi_protobuf.add_hashcodes piqi_spec.P.typedef

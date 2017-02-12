@@ -351,7 +351,7 @@ let argv_start_index = ref 0
 
 (* find the position of the first argument after "--" *)
 let rest_fun arg =
-  if !argv_start_index = 0 (* first argument after first occurence of "--" *)
+  if !argv_start_index = 0 (* first argument after first occurrence of "--" *)
   then argv_start_index := !Arg.current + 1
   else ()
 

@@ -310,7 +310,7 @@ let try_parse_varint buf =
 
 
 (* TODO, XXX: check signed overflow *)
-(* TODO: optimize for little-endian achitecture *)
+(* TODO: optimize for little-endian architecture *)
 let parse_fixed32 buf =
   try
     let res = ref 0l in
@@ -798,7 +798,7 @@ let parse_default binobj =
   buf
 
 
-(* XXX, NOTE: using default with requried or optional-default fields *)
+(* XXX, NOTE: using default with required or optional-default fields *)
 let parse_required_field code parse_value ?default l =
   let res, rem = find_field code l in
   match res with
