@@ -145,9 +145,9 @@ expand_piqi_boot:
 	echo "#print_length 1000000;; #print_depth 1000000;;" > expand_piqi_boot.ocaml
 	(set -e; \
 	 echo "let piqi_spec ="; \
-	 echo "Piqi_boot.piqi_spec;;" | ./expand_piqi_boot.top -noprompt -init expand_piqi_boot.ocaml | sed -e '1,3d'; \
+	 echo "let t = Piqi_boot.piqi_spec;;" | ./expand_piqi_boot.top -noprompt -init expand_piqi_boot.ocaml | sed -e '1,3d'; \
 	 echo "let piqi_lang ="; \
-	 echo "Piqi_boot.piqi_lang;;" | ./expand_piqi_boot.top -noprompt -init expand_piqi_boot.ocaml | sed -e '1,3d'; \
+	 echo "let t = Piqi_boot.piqi_lang;;" | ./expand_piqi_boot.top -noprompt -init expand_piqi_boot.ocaml | sed -e '1,3d'; \
 	) > piqi_boot_expanded.ml
 	mv piqi_boot_expanded.ml piqi_boot.ml
 	rm -f expand_piqi_boot.ocaml

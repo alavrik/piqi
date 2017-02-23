@@ -18,7 +18,7 @@
 let load_file fname =
   let ch = open_in fname in
   let len = in_channel_length ch in
-  let res = String.create len in
+  let res = Bytes.create len in
   really_input ch res 0 len;
   close_in ch;
   res
