@@ -75,7 +75,7 @@ let add_unknown_field x =
 
 let get_unknown_fields () =
   let res = List.rev !unknown_fields in
-  (* reset unkown field list state *)
+  (* reset unknown field list state *)
   unknown_fields := [];
   res
 
@@ -578,7 +578,7 @@ and parse_repeated_field f name field_type l =
   let res, rem = find_fields name f.T.Field.piq_alias field_type l in
   match res with
     | [] -> 
-        (* XXX: ignore errors occuring when unknown element is present in the
+        (* XXX: ignore errors occurring when unknown element is present in the
          * list allowing other fields to find their members among the list of
          * elements *)
         let accu, rem =

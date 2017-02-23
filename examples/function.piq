@@ -1,4 +1,4 @@
-% input/ouput/error of functions defined in function.piqi
+% input/output/error of functions defined in function.piqi
 
 :function/bar-input [ 10 ]
 :function/bar-output 1

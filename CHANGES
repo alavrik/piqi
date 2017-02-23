@@ -88,7 +88,7 @@ Piq language:
 
 Miscellaneous:
 
-  - Compatiblity with OCaml 4.02.0
+  - Compatibility with OCaml 4.02.0
   - Various code layout and build improvements
 
 
@@ -651,7 +651,7 @@ piqic:
 
   - (ocaml, erlang) Normalize Piqi identifiers by default, i.e. convert
     "CamlCase" identifiers to "caml-case".
-  - (ocaml, erlang) Don't generate codecs and types for unused defintions from
+  - (ocaml, erlang) Don't generate codecs and types for unused definitions from
     the boot module.
 
 piqirun-ocaml:

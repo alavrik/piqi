@@ -53,7 +53,7 @@ let pre_process_piqi ~fname ?ast piqi =
   piqi.P.is_embedded <- Some true;
 
   (* can't process it right away, because not all dependencies could be loaded
-   * already; this is expecially ciritical in case of mutually-recursive
+   * already; this is especially ciritical in case of mutually-recursive
    * includes; just do bare minimum so that we could add to Piqi_db and process
    * it later *)
   let piqi = Piqi.pre_process_piqi piqi ~fname ?ast in
@@ -61,7 +61,7 @@ let pre_process_piqi ~fname ?ast piqi =
   (* so that we could find it by name later *)
   Piqi_db.add_piqi piqi;
 
-  (* preserve location information so that exising location info for Piqi
+  (* preserve location information so that existing location info for Piqi
    * modules won't be discarded by subsequent Piqloc.reset() calls *)
   Piqloc.preserve ();
 

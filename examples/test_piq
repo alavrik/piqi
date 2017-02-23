@@ -20,7 +20,7 @@ $PIQI check $f.piq
 
 
 # convert to "piq" encoding and print to stdout. "piq" encoding is used as
-# default ouput encoding. Input encoding is determined by file's extension
+# default output encoding. Input encoding is determined by file's extension
 # unless specified explicitly.
 $PIQI convert $f.piq
 

@@ -323,7 +323,7 @@ let make_curl_command
       | Some x -> "--data-binary @-"
   in
   (*
-    -i stands for output reponse http header in addition to payload data
+    -i stands for output response http header in addition to payload data
     -s stands for silent
   *)
   String.concat " " [

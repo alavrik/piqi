@@ -147,7 +147,7 @@ let reset () =
 
 
 (* Preserve location information by copying the contents of db to preserved_db
- * so that exising location info won't be discarded by subsequent reset() calls.
+ * so that existing location info won't be discarded by subsequent reset() calls.
  *)
 let preserve () =
   preserved_db := !db @ !preserved_db;

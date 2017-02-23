@@ -242,7 +242,7 @@ and parse_optional_field name field_type default l =
 and parse_repeated_field name field_type l =
   let res, rem = find_fields name l in
   match res with
-    | [] -> [], rem (* XXX: allowing repeated field to be acutally missing *)
+    | [] -> [], rem (* XXX: allowing repeated field to be actually missing *)
     | [`List l] ->
         let res = List.map (parse_obj field_type) l in
         res, rem

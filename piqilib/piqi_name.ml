@@ -130,7 +130,7 @@ let is_normal_name s =
   aux 0
 
 
-(* convert an arbitary valid name to lowercase name which words are separated by
+(* convert an arbitrary valid name to lowercase name which words are separated by
  * dashes; for example "CamelCase" will become "camel-case"; already lowercased
  * names will remain intact *)
 let normalize_name s =
