@@ -97,3 +97,7 @@ $PIQI convert -t pib $f.piq.json
 
 # convert .pib back to .json
 $PIQI convert -t json $f.piq.json.pib
+
+
+# convert to json encoding, with extended piqi-any
+$PIQI convert --gen-extended-piqi-any -t json $f.piq

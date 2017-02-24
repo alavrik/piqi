@@ -128,6 +128,7 @@ and parse_any xml_elem =
         let typename_obj, rem = parse_optional_field "type" `string None rem in
         let protobuf_obj, rem = parse_optional_field "protobuf" `binary None rem in
         let xml_obj, rem = parse_optional_field "xml" `any None rem in
+        let piq_obj, rem = parse_optional_field "piq" `string None rem in
         (* issue warnings on unparsed fields *)
         List.iter handle_unknown_field rem;
         let typename =
@@ -145,11 +146,19 @@ and parse_any xml_elem =
             | Some (`any {Any.xml_ast = xml_ast}) -> xml_ast
             | _ -> None
         in
+        let piq_ast =
+          match piq_obj with
+            | Some (`string x) ->
+                let piq_ast = !Piqobj.piq_of_string x in
+                Some piq_ast
+            | _ -> None
+        in
         Any.({
           Piqobj.default_any with
           typename = typename;
           pb = protobuf;
           xml_ast = xml_ast;
+          piq_ast = piq_ast;
         })
     | _ -> (* regular symbolic piqi-any *)
         Any.({

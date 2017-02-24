@@ -145,20 +145,29 @@ and parse_any x =
         (* if there's no typed protobuf, look for untyped JSON or XML values *)
         if any.Any.pb = None
         then (
-          let json = piqi_any.T.Any.json in
-          let xml = piqi_any.T.Any.xml in
-          match json, xml with
-            | Some s, _ ->
-                let json_ast = !Piqobj.json_of_string s in
-                any.Any.json_ast <- Some json_ast; (* same as in Piqobj_of_piq.parse_any *)
-                any.Any.json_string <- Some s
-            | _, Some s ->
-                let xml_list = !Piqobj.xml_of_string s in
-                any.Any.xml_ast <- Some ("undefined", xml_list) (* same as in Piqobj_of_piq.parse_any *)
-            | None, None ->
-                (* XXX: hmm... no protobuf, JSON, XML -- what are we dealing with
-                 * here? *)
-                ()
+          let json_string = piqi_any.T.Any.json in
+          let xml_string = piqi_any.T.Any.xml in
+          let piq_string = piqi_any.T.Any.piq in
+          if json_string <> None
+          then (
+              let json_ast = !Piqobj.json_of_string (some_of json_string) in
+              any.Any.json_ast <- Some json_ast; (* same as in Piqobj_of_piq.parse_any *)
+              any.Any.json_string <- json_string
+          )
+          else if xml_string <> None
+          then  (
+              let xml_list = !Piqobj.xml_of_string (some_of xml_string) in
+              any.Any.xml_ast <- Some ("undefined", xml_list) (* same as in Piqobj_of_piq.parse_any *)
+          )
+          else if piq_string <> None
+          then (
+              let piq_ast = !Piqobj.piq_of_string (some_of piq_string) in
+              any.Any.piq_ast <- Some piq_ast; (* same as in Piqobj_of_piq.parse_any *)
+          )
+          else
+            (* XXX: hmm... no protobuf, JSON, XML, Piq -- what are we
+             * dealing with here? *)
+            ()
         );
         any
 

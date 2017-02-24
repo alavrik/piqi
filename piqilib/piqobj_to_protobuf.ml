@@ -216,12 +216,23 @@ and gen_any code x =
                 let s = !Piqobj.string_of_xml (`Elem ("value", xml_elems)) in
                 Some s
       in
+      let piq =
+        if protobuf <> None || json <> None || xml <> None
+        then None
+        else
+          match Piqobj.piq_of_any x with
+            | None -> None
+            | Some piq_ast ->
+                let s = !Piqobj.string_of_piq piq_ast in
+                Some s
+      in
       T.Any.({
         (T.default_any ()) with
         typename = typename;
         protobuf = protobuf;
         json = json;
         xml = xml;
+        piq = piq;
       })
   in
   T.gen__any code piqi_any

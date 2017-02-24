@@ -224,14 +224,19 @@ let of_xml = ref of_xml
  * TODO: find a better module for these functions *)
 let json_of_string (x:string) :Piqi_json_type.json = assert false
 let xml_of_string  (x:string) :Piqi_xml_type.xml list = assert false
+let piq_of_string  (x:string) :Piq_ast.ast = assert false
 
 let string_of_json (x :Piqi_json_type.json) :string = assert false
 let string_of_xml  (x :Piqi_xml_type.xml) :string = assert false
+let string_of_piq  (x :Piq_ast.ast) :string = assert false
 
 let json_of_string = ref json_of_string
 let xml_of_string  = ref xml_of_string
+let piq_of_string  = ref piq_of_string
+
 let string_of_json = ref string_of_json
 let string_of_xml  = ref string_of_xml
+let string_of_piq  = ref string_of_piq
 
 
 let of_any (piqtype: Piqi_impl_piqi.piqtype) (any :Piqobj.any) :Piqobj.obj option =

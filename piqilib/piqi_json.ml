@@ -209,5 +209,6 @@ let json_of_string s :Piqi_json_type.json =
         C.error s "string doesn't have JSON data"
 
 let _ =
-  Piqobj.json_of_string := (fun x -> json_of_string x)
+  Piqobj.json_of_string := (fun x -> json_of_string x);
+  Piqobj.string_of_json := (fun x -> Piqi_json_gen.pretty_to_string x ~indent:true)
 

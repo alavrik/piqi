@@ -99,6 +99,7 @@ and parse_any (x:json) :Piqobj.any =
         let typename_obj, rem = parse_optional_field "type" `string None rem in
         let protobuf_obj, rem = parse_optional_field "protobuf" `binary None rem in
         let json_obj, rem = parse_optional_field "json" `any None rem in
+        let piq_obj, rem = parse_optional_field "piq" `string None rem in
         (* issue warnings on unparsed fields *)
         List.iter handle_unknown_field rem;
         let typename =
@@ -116,11 +117,19 @@ and parse_any (x:json) :Piqobj.any =
             | Some (`any {Any.json_ast = json_ast}) -> json_ast
             | _ -> None
         in
+        let piq_ast =
+          match piq_obj with
+            | Some (`string x) ->
+                let piq_ast = !Piqobj.piq_of_string x in
+                Some piq_ast
+            | _ -> None
+        in
         Any.({
           Piqobj.default_any with
           typename = typename;
           pb = protobuf;
           json_ast = json_ast;
+          piq_ast = piq_ast;
         })
     | json_ast -> (* regular symbolic piqi-any *)
         (* TODO: preserve the original int, float and string literals -- see

@@ -335,6 +335,15 @@
         .type string
         .optional
     ]
+
+    .field [
+        % arbitrary Piq value serialized in as utf-8 string; when "type" field
+        % is present, the Piq value must correspond to this type
+
+        .name piq
+        .type string
+        .optional
+    ]
 ]
 
 

@@ -312,7 +312,3 @@ let pretty_to_channel ?(indent=false) oc x =
   else Easy_format.Pretty.to_channel oc (format x);
   output_char oc '\n' (* make sure that text file ends with a newline *)
 
-
-let _ =
-  Piqobj.string_of_json := (fun x -> pretty_to_string x ~indent:true)
-

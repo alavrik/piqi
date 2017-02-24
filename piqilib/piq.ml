@@ -147,3 +147,33 @@ let process_typedefs typedefs =
   List.iter check_typedef_piq_alias typedefs;
   ()
 
+
+(* for internal use only: string -> piq_ast *)
+let piq_of_string s :piq_ast =
+  let piq_parser = Piq_parser.init_from_string "embedded" s in
+  let res =
+    try Piq_parser.read_all piq_parser
+    with C.Error ((_, lnum', cnum'), error) ->
+      (* string location can be missing when we parse from Piq embedded some
+       * other representation, e.g. Protobuf or XML *)
+      let (fname, lnum, cnum) =
+        try Piqloc.find s
+        with Not_found -> ("embedded", 1, -1)
+      in
+      (* XXX, TODO: adjust location -- this does't work well if there are
+       * escaped characters in a Json string; in particular, newlines (which are
+       * always escaped in json strings) will throw things off significantly *)
+      let loc = (fname, lnum + lnum' - 1, cnum + cnum') in
+      C.error_at loc ("error parsing embedded Piq: " ^ error)
+  in
+  match res with
+    | [x] -> x
+    | _::o::_ ->
+        C.error o "string includes more than one Piq value"
+    | [] ->
+        C.error s "string doesn't have Piq data"
+
+let _ =
+  Piqobj.piq_of_string := (fun x -> piq_of_string x);
+  Piqobj.string_of_piq := (fun x -> Piq_gen.to_string x ~nl:false)
+

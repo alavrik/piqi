@@ -91,13 +91,16 @@ and gen_any x =
     let json = make_json_field "json" (Piqobj.json_of_any x) (fun json_ast ->
       json_ast)
     in
+    let piq = make_json_field "piq" (Piqobj.piq_of_any x) (fun piq_ast ->
+      `String (!Piqobj.string_of_piq piq_ast))
+    in
     `Assoc (
       (* this field indicates that this is an extended piqi-any representation
        * (it is necessary for detecting which variant of piqi-any represenation
        * is used and to make either representation automatically reversible) *)
       ("piqi_type", `String "piqi-any") ::
       (* actual content *)
-      (typename @ protobuf @ json)
+      (typename @ protobuf @ json @ piq)
     )
 
 

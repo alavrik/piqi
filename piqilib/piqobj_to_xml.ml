@@ -90,15 +90,18 @@ and gen_any x =
     let protobuf = make_xml_field "protobuf" (Piqobj.pb_of_any x) (fun pb ->
       [`Data (Piqi_base64.encode pb)])
     in
-    let json = make_xml_field "xml" (Piqobj.xml_of_any x) (fun xml_list ->
+    let xml = make_xml_field "xml" (Piqobj.xml_of_any x) (fun xml_list ->
       xml_list)
+    in
+    let piq = make_xml_field "piq" (Piqobj.piq_of_any x) (fun piq_ast ->
+      [`Data (!Piqobj.string_of_piq piq_ast)])
     in
     (* this field indicates that this is an extended piqi-any representation
      * (it is necessary for detecting which variant of piqi-any represenation
      * is used and to make either representation automatically reversible) *)
     `Elem ("piqi-type", [`Data "piqi-any"]) ::
     (* actual content *)
-    (typename @ protobuf @ json)
+    (typename @ protobuf @ xml @ piq)
 
 
 and gen_record x =

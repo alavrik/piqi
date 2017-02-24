@@ -109,7 +109,8 @@ let get_current_piqtype user_piqtype locref =
       error locref "type of object is unknown"
 
 
-let read_piq_ast piq_parser user_piqtype :piq_ast = if not !Piqi_config.piq_frameless_input  (* regular (framed) mode *) then
+let read_piq_ast piq_parser user_piqtype :piq_ast =
+  if not !Piqi_config.piq_frameless_input  (* regular (framed) mode *) then
     match Piq_parser.read_next piq_parser with
       | Some ast -> ast
       | None -> raise EOF
@@ -532,6 +533,8 @@ let gen_json obj =
   let piqi_typename, json = gen_json_common obj ~plain:false in
   (* adding "piqi_type": name as a first field of the serialized JSON object *)
   match json with
+    | `Assoc (("piqi_type", _) :: _) ->  (* already generated for piqi-any objects in --gen-extended-piqi-any mode *)
+        json
     | `Assoc l ->
         let piqi_type = ("piqi_type", `String piqi_typename) in
         `Assoc (piqi_type :: l)
