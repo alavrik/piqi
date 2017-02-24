@@ -306,6 +306,19 @@ let piqi_spec =
            protobuf_packed = false; json_name = None;
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false};
+          {Piqi_impl_piqi.Field.name = Some "piq-allow-unnesting";
+           typename = Some "bool"; mode = `optional;
+           default =
+            Some
+             {Piqi_impl_piqi.Any.typename = Some "bool";
+              protobuf = Some "\b\000"; json = None; xml = None; piq = None;
+              ref = None};
+           deprecated = false; piqtype = None; unparsed_piq_ast = None;
+           piq_format = None; piq_positional = None; piq_alias = None;
+           protobuf_name = None; code = Some 172744920l;
+           protobuf_packed = false; json_name = None;
+           json_omit_missing = None; getopt_letter = None; getopt_doc = None;
+           proto_name = None; wire_packed = false};
           {Piqi_impl_piqi.Field.name = Some "protobuf-name";
            typename = Some "string"; mode = `optional; default = None;
            deprecated = false; piqtype = None; unparsed_piq_ast = None;
@@ -331,7 +344,8 @@ let piqi_spec =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -458,7 +472,8 @@ let piqi_spec =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `enum
@@ -524,7 +539,8 @@ let piqi_spec =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -606,7 +622,8 @@ let piqi_spec =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -660,8 +677,9 @@ let piqi_spec =
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
         unparsed_piq_ast = None; piq_positional = None;
-        protobuf_name = Some "piqi_enum"; protobuf_custom = [];
-        json_name = None; proto_custom = []; proto_name = None};
+        piq_allow_unnesting = false; protobuf_name = Some "piqi_enum";
+        protobuf_custom = []; json_name = None; proto_custom = [];
+        proto_name = None};
      `record
        {Piqi_impl_piqi.Record.name = Some "alias";
         field =
@@ -726,7 +744,8 @@ let piqi_spec =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -786,7 +805,8 @@ let piqi_spec =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -852,7 +872,8 @@ let piqi_spec =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -873,7 +894,8 @@ let piqi_spec =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -916,7 +938,8 @@ let piqi_spec =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -951,7 +974,8 @@ let piqi_spec =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -965,7 +989,8 @@ let piqi_spec =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None}];
    import = []; func = []; custom_field = []; extended_typedef = [];
@@ -1285,6 +1310,19 @@ let piqi_lang =
            protobuf_packed = false; json_name = None;
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false};
+          {Piqi_impl_piqi.Field.name = Some "piq-allow-unnesting";
+           typename = Some "bool"; mode = `optional;
+           default =
+            Some
+             {Piqi_impl_piqi.Any.typename = Some "bool";
+              protobuf = Some "\b\000"; json = None; xml = None; piq = None;
+              ref = None};
+           deprecated = false; piqtype = None; unparsed_piq_ast = None;
+           piq_format = None; piq_positional = None; piq_alias = None;
+           protobuf_name = None; code = Some 172744920l;
+           protobuf_packed = false; json_name = None;
+           json_omit_missing = None; getopt_letter = None; getopt_doc = None;
+           proto_name = None; wire_packed = false};
           {Piqi_impl_piqi.Field.name = Some "protobuf-name";
            typename = Some "string"; mode = `optional; default = None;
            deprecated = false; piqtype = None; unparsed_piq_ast = None;
@@ -1326,7 +1364,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -1468,7 +1507,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `enum
@@ -1550,7 +1590,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -1640,7 +1681,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -1710,8 +1752,9 @@ let piqi_lang =
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
         unparsed_piq_ast = None; piq_positional = None;
-        protobuf_name = Some "piqi_enum"; protobuf_custom = [];
-        json_name = None; proto_custom = []; proto_name = None};
+        piq_allow_unnesting = false; protobuf_name = Some "piqi_enum";
+        protobuf_custom = []; json_name = None; proto_custom = [];
+        proto_name = None};
      `record
        {Piqi_impl_piqi.Record.name = Some "alias";
         field =
@@ -1784,7 +1827,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -1867,7 +1911,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -1963,7 +2008,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -1984,7 +2030,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -2027,7 +2074,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -2065,7 +2113,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -2079,7 +2128,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `record
@@ -2093,7 +2143,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `variant
@@ -2166,7 +2217,8 @@ let piqi_lang =
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
-        unparsed_piq_ast = None; piq_positional = None; protobuf_name = None;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = false; protobuf_name = None;
         protobuf_custom = []; json_name = None; proto_custom = [];
         proto_name = None};
      `variant

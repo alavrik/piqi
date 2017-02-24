@@ -77,6 +77,7 @@ and Record:
       mutable name: Piqi_piqi.name;
       mutable field: Piqi_piqi.field list;
       mutable piq_positional: bool option;
+      mutable piq_allow_unnesting: bool;
       mutable protobuf_name: string option;
       mutable protobuf_custom: string list;
       mutable json_name: string option;
@@ -345,6 +346,7 @@ and parse_record x =
   let _protobuf_name, x = Piqirun.parse_optional_field 90072013 parse_string x in
   let _protobuf_custom, x = Piqirun.parse_repeated_field 112352691 parse_string x in
   let _name, x = Piqirun.parse_required_field 150958667 parse_name x in
+  let _piq_allow_unnesting, x = Piqirun.parse_required_field 172744920 parse_bool x ~default:"\b\000" in
   let _piq_positional, x = Piqirun.parse_optional_field 197354217 parse_bool x in
   let _json_name, x = Piqirun.parse_optional_field 515275216 parse_string x in
   Piqirun.check_unparsed_fields x;
@@ -353,6 +355,7 @@ and parse_record x =
     Record.protobuf_name = _protobuf_name;
     Record.protobuf_custom = _protobuf_custom;
     Record.name = _name;
+    Record.piq_allow_unnesting = _piq_allow_unnesting;
     Record.piq_positional = _piq_positional;
     Record.json_name = _json_name;
   }
@@ -701,9 +704,10 @@ and gen__record code x =
   let _protobuf_name = Piqirun.gen_optional_field 90072013 gen__string x.Record.protobuf_name in
   let _protobuf_custom = Piqirun.gen_repeated_field 112352691 gen__string x.Record.protobuf_custom in
   let _name = Piqirun.gen_required_field 150958667 gen__name x.Record.name in
+  let _piq_allow_unnesting = Piqirun.gen_required_field 172744920 gen__bool x.Record.piq_allow_unnesting in
   let _piq_positional = Piqirun.gen_optional_field 197354217 gen__bool x.Record.piq_positional in
   let _json_name = Piqirun.gen_optional_field 515275216 gen__string x.Record.json_name in
-  Piqirun.gen_record code (_field :: _protobuf_name :: _protobuf_custom :: _name :: _piq_positional :: _json_name :: [])
+  Piqirun.gen_record code (_field :: _protobuf_name :: _protobuf_custom :: _name :: _piq_allow_unnesting :: _piq_positional :: _json_name :: [])
 
 and gen__field code x =
   let _code = Piqirun.gen_optional_field 29667629 gen__int32 x.Field.code in
@@ -896,6 +900,7 @@ and default_record () =
     Record.protobuf_name = None;
     Record.protobuf_custom = [];
     Record.name = default_name ();
+    Record.piq_allow_unnesting = parse_bool (Piqirun.parse_default "\b\000");
     Record.piq_positional = None;
     Record.json_name = None;
   }

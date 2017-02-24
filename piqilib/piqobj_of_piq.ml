@@ -251,6 +251,7 @@ let rec parse_obj0
       ?(piq_format: T.piq_format option)
       ~try_mode
       ~nested_variant
+      ~labeled
       (t: T.piqtype) (x: piq_ast) :Piqobj.obj =
   (* fill the location DB *)
   let r f x = reference f x in
@@ -264,14 +265,14 @@ let rec parse_obj0
     | `binary -> `binary (r parse_binary x)
     | `any -> `any (r parse_any x)
     (* custom types *)
-    | `record t -> `record (rr parse_record t x)
+    | `record t -> `record (rr (parse_record ~labeled) t x)
     | `variant t -> `variant (rr (parse_variant ~try_mode ~nested:nested_variant) t x)
     | `enum t -> `enum (rr (parse_enum ~try_mode ~nested:nested_variant) t x)
     | `list t -> `list (rr parse_list t x)
-    | `alias t -> `alias (reference (parse_alias t ?piq_format ~try_mode ~nested_variant) x)
+    | `alias t -> `alias (reference (parse_alias t ?piq_format ~try_mode ~nested_variant ~labeled) x)
 
-and parse_obj ?(try_mode=false) ?(nested_variant=false) ?piq_format t x =
-  reference (parse_obj0 ~try_mode ~nested_variant ?piq_format t) x
+and parse_obj ?(try_mode=false) ?(nested_variant=false) ?(labeled=false) ?piq_format t x =
+  reference (parse_obj0 ~try_mode ~nested_variant ~labeled ?piq_format t) x
 
 
 and parse_typed_obj ?piqtype x = 
@@ -375,17 +376,24 @@ and parse_any x :Piqobj.any =
         Piqloc.addrefret ast any
 
 
-and parse_record t x =
-  match x with
-    | `list l ->
-        incr depth;
-        (* NOTE: pass locating information as a separate parameter since empty
-         * list is unboxed and doesn't provide correct location information *)
-        let loc = x in
-        let res = do_parse_record loc t l in
-        decr depth;
-        res
-    | o -> error_exp_list o
+and parse_record ~labeled t x =
+  let l =
+    match x with
+      | `list l ->
+          l
+      | x when labeled && t.T.Record.piq_allow_unnesting ->
+          (* allow field unnesting for a labeled record *)
+          [x]
+      | o ->
+          error_exp_list o
+  in
+  incr depth;
+  (* NOTE: pass locating information as a separate parameter since empty
+   * list is unboxed and doesn't provide correct location information *)
+  let loc = x in
+  let res = do_parse_record loc t l in
+  decr depth;
+  res
  (*
   * 1. parse required fields first by label, type or (sub)type = anonymous
   * 2. parse the rest in the order they are listed in the original specification
@@ -486,7 +494,7 @@ and parse_required_field f loc name field_type l =
         end
     | x::tail ->
         check_duplicate name tail;
-        let obj = parse_obj field_type x ?piq_format:f.T.Field.piq_format in
+        let obj = parse_obj field_type x ?piq_format:f.T.Field.piq_format ~labeled:true in
         obj, rem
 
 
@@ -568,7 +576,7 @@ and parse_optional_field f name field_type default l =
         end
     | x::tail ->
         check_duplicate name tail;
-        let obj = Some (parse_obj field_type x ?piq_format:f.T.Field.piq_format) in
+        let obj = Some (parse_obj field_type x ?piq_format:f.T.Field.piq_format ~labeled:true) in
         obj, rem
 
 
@@ -590,7 +598,7 @@ and parse_repeated_field f name field_type l =
         in List.rev accu, List.rev rem
     | l ->
         (* use strict parsing *)
-        let res = List.map (parse_obj field_type ?piq_format:f.T.Field.piq_format) res in
+        let res = List.map (parse_obj field_type ?piq_format:f.T.Field.piq_format ~labeled:true) res in
         res, rem
 
 
@@ -747,7 +755,7 @@ and parse_named_option o name x =
       | _, None ->
           error x ("value can not be specified for option " ^ U.quote n)
       | _, Some t ->
-          let obj = Some (parse_obj t x ?piq_format:o.piq_format) in
+          let obj = Some (parse_obj t x ?piq_format:o.piq_format ~labeled:true) in
           Some O.({t = o; obj = obj})
   else
     None
@@ -775,7 +783,7 @@ and do_parse_list t l =
 
 
 (* XXX: roll-up multiple enclosed aliases into one? *)
-and parse_alias ?(piq_format: T.piq_format option) ~try_mode ~nested_variant t x =
+and parse_alias ?(piq_format: T.piq_format option) ~try_mode ~nested_variant ~labeled t x =
   (* upper-level setting overrides lower-level setting *)
   let this_piq_format = t.T.Alias.piq_format in
   let piq_format =
@@ -784,7 +792,7 @@ and parse_alias ?(piq_format: T.piq_format option) ~try_mode ~nested_variant t x
     else piq_format
   in
   let piqtype = some_of t.T.Alias.piqtype in
-  let obj = parse_obj piqtype x ?piq_format ~try_mode ~nested_variant in
+  let obj = parse_obj piqtype x ?piq_format ~try_mode ~nested_variant ~labeled in
   A.({t = t; obj = obj})
 
 

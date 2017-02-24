@@ -53,6 +53,31 @@
 
 
 .extend [
+    .typedef record
+
+    .with.field [
+        % allows to omit nesting for singular scalar and explicitly labeleled
+        % fields
+        %
+        % by default, all record fields must be placed/nested under a [ ... ]
+        % block
+        %
+        % explicitly setting this to true allows to omit nesting for a singular
+        % scalar or labeled field, under a labeled record. For example:
+        %
+        %     .foo [ 10 ]       <->  .foo 10
+        %     .foo [ .bar ]     <->  .foo.bar
+        %     .foo [ .bar 10 ]  <->  .foo.bar 10
+
+        .name piq-allow-unnesting
+        .type bool
+        .optional
+        .default false
+    ]
+]
+
+
+.extend [
     (.typedef field option)
 
     .with.field [
