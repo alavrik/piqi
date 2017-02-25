@@ -404,10 +404,8 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
     | L.String (t, s, raw_s) ->
         let loc = loc () in
         make_string loc t s raw_s
-    | L.Word s when s.[0] = '.' -> (* name part of the named pair *)
-        parse_named_or_typed s make_named ~chain
-    | L.Word s when s.[0] = ':' -> (* typename part of the typed pair *)
-        parse_named_or_typed s make_typed ~chain
+    | L.Name s ->
+        parse_named_or_typed s ~chain
     | L.Word s ->
         let word_loc = loc () in
         Piqloc.addloc word_loc s;
@@ -502,7 +500,7 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
       | _ when len > 1 && s.[0] = '-' && s.[1] >= '0' && s.[1] <= '9' -> parse_number s
       | _ -> `word s (* just a word *)
 
-  and parse_named_or_typed s make_f ~chain =
+  and parse_named_or_typed s ~chain =
     let loc = loc () in
     (* cut the first character which is '.' or ':' *)
     let n = String.sub s 1 (String.length s - 1) in
@@ -513,7 +511,11 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
       then parse_named_part ()
       else None
     in
-    let res = make_f n value in
+    let res =
+      if s.[0] = '.'
+      then make_named n value
+      else make_typed n value  (* s.[0] = ':' *)
+    in
     (*
     let res = expand_obj_names res in
     *)
@@ -523,7 +525,7 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
     let t = peek_token () in
     match t with
       (* name delimiters *)
-      | L.Word s when s.[0] = '.' || s.[0] = ':' -> (* other name or type *)
+      | L.Name s -> (* other name or type *)
           None
       | L.Rbr | L.Rpar (* closing parenthesis or bracket *)
       | L.EOF -> (* end of input *)

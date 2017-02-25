@@ -227,7 +227,7 @@ let parse_name_arg s =
   then (
     let s = Bytes.of_string s in
     Bytes.set s 0 '.'; (* replace '-' with '.' to turn it into a Piq name *)
-    Piq_lexer.Word (Bytes.unsafe_to_string s)
+    Piq_lexer.Name (Bytes.unsafe_to_string s)
   )
   else error ("invalid name: " ^ U.quote s)
 
@@ -307,7 +307,7 @@ let parse_argv start =
               (* creating Piq name: '.' followed by the letter *)
               let word = Bytes.create 2 in
               Bytes.set word 0 '.'; Bytes.set word 1 c;
-              let tok = Piq_lexer.Word (Bytes.unsafe_to_string word) in
+              let tok = Piq_lexer.Name (Bytes.unsafe_to_string word) in
               (make_token i tok) :: (aux (j+1))
           | _ ->
               error i ("invalid single-letter argument: " ^ Char.escaped c)
