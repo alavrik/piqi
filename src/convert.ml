@@ -141,7 +141,7 @@ let load_piq piqtype piq_parser :Piqi_convert.obj =
     then first_load := false
     else raise Piqi_convert.EOF
   );
-  Piqi_convert.load_piq piqtype piq_parser
+  Piqi_convert.load_piq piqtype piq_parser ~skip_trailing_comma:true
 
 
 let first_write = ref true

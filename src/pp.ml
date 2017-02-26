@@ -32,7 +32,7 @@ let open_piq fname =
 
 
 let read_piq_obj piq_parser =
-  let res = Piq_parser.read_next piq_parser ~expand_abbr:!flag_expand_abbr in
+  let res = Piq_parser.read_next piq_parser ~expand_abbr:!flag_expand_abbr ~skip_trailing_comma:true in
   (* reset location db to allow GC to collect previously read objects *)
   Piqloc.reset ();
   res

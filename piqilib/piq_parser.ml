@@ -379,7 +379,7 @@ let parse_number s =
  * a simple piq parser
  *)
 
-let read_next ?(expand_abbr=true) (fname, lexstream) =
+let read_next ?(expand_abbr=true) ?(skip_trailing_comma=false) (fname, lexstream) =
   let location = ref (0,0) in
   let loc () =
     let line, col = !location in
@@ -427,6 +427,7 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
         Piqloc.addloc text_loc text;
         Piqloc.addret (`text text)
     | L.Star -> error "unexpected *"
+    | L.Comma -> error "unexpected ,"
     | L.EOF -> error "unexpected end of input"
 
   (* TODO, XXX: move this functionality to the lexer *)
@@ -550,6 +551,7 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
       | L.Name s -> (* other name or type *)
           None
       | L.Rbr | L.Rpar (* closing parenthesis or bracket *)
+      | L.Comma
       | L.EOF -> (* end of input *)
           None
       (* something else *)
@@ -559,17 +561,23 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
   and parse_list () =
     let startloc = loc () in
     (* parse list elements until ] *)
-    let l = parse_elements L.Rbr in
+    let l = parse_elements L.Rbr ~optional_commas:true in
     let res = `list l in
     Piqloc.addloc startloc l;
     Piqloc.addret res
 
-  and parse_elements closing_token =
+  and parse_elements ?(optional_commas=false) closing_token =
+    let parse_element t =
+      let node = parse_common t in
+      (* skip an optional comma *)
+      if optional_commas && peek_token () = L.Comma then junk_token ();
+      node
+    in
     let rec aux accu =
       let t = next_token () in
       if t = closing_token
       then List.rev accu
-      else aux ((parse_common t)::accu)
+      else aux ((parse_element t)::accu)
     in aux []
   in
   let parse_top () =
@@ -578,6 +586,8 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
       | L.EOF -> None
       | _ ->
           let ast = parse_common t in
+          (* skip an optional trailing comma *)
+          if skip_trailing_comma && peek_token () = L.Comma then junk_token ();
           let res =
             if expand_abbr
             then expand ast (* expand built-in syntax abbreviations *)
@@ -592,9 +602,10 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
 
 let read_all ?(expand_abbr=true) piq_parser =
   let rec aux accu =
-    match read_next piq_parser ~expand_abbr with
+    match read_next piq_parser ~expand_abbr ~skip_trailing_comma:true with
       | None -> List.rev accu
-      | Some x -> aux (x::accu)
+      | Some x ->
+          aux (x::accu)
   in aux []
 
 

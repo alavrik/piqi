@@ -109,9 +109,9 @@ let get_current_piqtype user_piqtype locref =
       error locref "type of object is unknown"
 
 
-let read_piq_ast piq_parser user_piqtype :piq_ast =
+let read_piq_ast ~skip_trailing_comma piq_parser user_piqtype :piq_ast =
   if not !Piqi_config.piq_frameless_input  (* regular (framed) mode *) then
-    match Piq_parser.read_next piq_parser with
+    match Piq_parser.read_next piq_parser ~skip_trailing_comma with
       | Some ast -> ast
       | None -> raise EOF
   else  (* frameless mode *)
@@ -145,8 +145,8 @@ let piqi_of_piq fname ast =
   pre_process_piqi piqi ~fname ~ast
 
 
-let load_piq (user_piqtype: T.piqtype option) piq_parser :obj =
-  let ast = read_piq_ast piq_parser user_piqtype in
+let load_piq (user_piqtype: T.piqtype option) ?(skip_trailing_comma=false) piq_parser :obj =
+  let ast = read_piq_ast piq_parser user_piqtype ~skip_trailing_comma in
   let fname, _ = piq_parser in (* TODO: improve getting a filename from parser *)
   match ast with
     | `typename typename ->
