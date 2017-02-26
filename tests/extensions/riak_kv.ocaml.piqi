@@ -1,7 +1,7 @@
 .include [ .module riak_kv ]
 
 .extend [
-    (.field RpbListKeysResp.done RpbMapRedResp.done)
+    .field* [ RpbListKeysResp.done RpbMapRedResp.done ]
 
     .with.ocaml-name "isdone"
 ]

@@ -12,7 +12,7 @@
 
 
 .extend [
-    (.typedef record field variant option enum alias list import function)
+    .typedef* [ record field variant option enum alias list import function ]
 
     .with.field [
         .name ocaml-name
@@ -46,7 +46,7 @@
 
 % flag for representing repeated fields and lists as OCaml arrays
 .extend [
-    (.typedef field list)
+    .typedef* [ field list ]
 
     .with.field [
         .name ocaml-array

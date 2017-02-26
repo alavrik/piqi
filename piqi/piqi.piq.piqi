@@ -23,7 +23,7 @@
 
 
 .extend [
-    (.typedef alias list field option)
+    .typedef* [ alias list field option ]
 
     .with.field [
         .type piq-format
@@ -33,7 +33,7 @@
 
 
 .extend [
-    (.typedef field record)
+    .typedef* [ field record ]
 
     .with.field [
         % allows to control explicitly whether to accept a field if it is specified
@@ -78,7 +78,7 @@
 
 
 .extend [
-    (.typedef field option)
+    .typedef* [ field option ]
 
     .with.field [
         % this allows to specify an alternative name a field or an option; used

@@ -232,6 +232,7 @@ type token =
   | Rpar (* ) *)
   | Lbr (* [ *)
   | Rbr (* ] *)
+  | Star (* * *)
   | String of string_type * string * string (* ascii | utf8 | binary, parsed literal, original literal *)
   | Word of string  (* ASCII alphanumeric, plus a couple of other characters *)
   | Name of string  (* identifier starting with '.' or ':' *)
@@ -376,6 +377,7 @@ let rec token0 buf = lexer
   | ')' -> Rpar
   | '[' -> Lbr
   | ']' -> Rbr
+  | '*' -> Star
   | '"'([^'"']|"\\\"")*'"' -> (* string literal *)
       let s = Ulexing.utf8_lexeme lexbuf in
       let s = String.sub s 1 (String.length s - 2) in (* cut double-quotes *)

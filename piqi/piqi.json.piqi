@@ -23,7 +23,7 @@
 
 
 .extend [
-    (.typedef record field variant option enum alias list)
+    .typedef* [ record field variant option enum alias list ]
 
     .with.field [
         .name json-name

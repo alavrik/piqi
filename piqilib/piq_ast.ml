@@ -136,3 +136,13 @@ let map_words (ast:ast) f :ast =
   in
   aux ast
 
+
+let is_infix_form (form_name:form_name) (args:ast list) =
+  match form_name with
+    | `word _ -> false
+    | `name _ | `typename _ ->
+        (match args with
+          | [`name _] | [`named _] | [`typed _] -> true
+          | _::_::_ -> true
+          | _ -> false
+        )

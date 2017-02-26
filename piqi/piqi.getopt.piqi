@@ -24,7 +24,7 @@
 
 % a single-letter getopt option or flag
 .extend [
-    (.typedef field option)
+    .typedef* [ field option ]
 
     .with.field [
         .name getopt-letter

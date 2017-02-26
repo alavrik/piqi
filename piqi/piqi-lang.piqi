@@ -45,7 +45,7 @@
 
 
 .extend [
-    (.field function.input function.output function.error)
+    .field* [ function.input function.output function.error ]
     .override
 
     .with.type function-param
@@ -53,7 +53,7 @@
 
 
 .extend [
-    (.field record.name variant.name enum.name list.name alias.name)
+    .field* [ record.name variant.name enum.name list.name alias.name ]
     .override
 
     .with (.mode.optional)
@@ -140,7 +140,7 @@
 %
 
 .extend [
-    (.typedef piqi record variant list enum)
+    .typedef* [ piqi record variant list enum ]
 
     .with.field [
         % same as protobuf-custom in Piqi-0.5.*
@@ -154,7 +154,7 @@
 
 
 .extend [
-    (.typedef record field variant option enum alias list)
+    .typedef* [ record field variant option enum alias list ]
 
     .with.field [
         % same as protobuf-name in Piqi-0.5.*
@@ -182,7 +182,7 @@
 
 
 .extend [
-    (.typedef field list)
+    .typedef* [ field list ]
 
     .with.field [
         % same as protobuf-packed in Piqi-0.5.*

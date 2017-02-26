@@ -260,19 +260,21 @@ let expand_forms (x: piq_ast) :piq_ast =
            *)
           obj
       | `list l ->
-          if List.exists (function `form (`name _, _) | `form (`typename _, _) -> true | _ -> false) l
-          then
-            (* expand and splice the results of named and typed form expansion *)
-            `list (U.flatmap expand_list_elem l)
-          else
-            (* process inner elements *)
-            `list (List.map aux l)
+          `list (expand_list l)
       | _ ->
           obj
+  and expand_list l =  (* small optimization *)
+    if List.exists (function `form (`name _, _) | `form (`typename _, _) -> true | _ -> false) l
+    then
+      (* expand and splice the results of named and typed form expansion *)
+      U.flatmap expand_list_elem l
+    else
+      (* process inner elements *)
+      List.map aux l
   and expand_list_elem = function
     | `form ((`name _) as name, args) | `form ((`typename _) as name, args) when args <> [] ->
-        let expanded_form = List.map (cons_named_or_typed name) args in
-        List.map aux expanded_form
+        let args = expand_list args in
+        List.map (cons_named_or_typed name) args
     | x ->
         [aux x]
   and aux obj =
@@ -424,6 +426,7 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
         let text_loc = (fname, line - 1, col) in
         Piqloc.addloc text_loc text;
         Piqloc.addret (`text text)
+    | L.Star -> error "unexpected *"
     | L.EOF -> error "unexpected end of input"
 
   (* TODO, XXX: move this functionality to the lexer *)
@@ -451,18 +454,15 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
              * them into `typed and `named *)
             parse_common t ~chain:false
     in
-    (* parse form args *)
-    let rec aux accu =
-      let t = next_token () in
-      match t with
-        | L.Rpar -> List.rev accu
-        | _ -> aux ((parse_common t)::accu)
-    in
-    let args = aux [] in
+    (* parse form args unil ) *)
+    let args = parse_elements L.Rpar in
     (* check that this is one of `typename, `name or `word and for example not a
      * number *)
     (match name with
-      | #Piq_ast.form_name -> () (* this is valid form *)
+      | #Piq_ast.form_name as form_name ->
+          (* this is a valid form *)
+          if Piq_ast.is_infix_form form_name args
+          then C.warning form_name "this style of named expansion form is deprecated, use <name>* [...] instead"
       | obj when args <> [] ->
           C.error obj
             "invalid form name: only words, names and typenames are allowed"
@@ -506,15 +506,37 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
     let n = String.sub s 1 (String.length s - 1) in
     Piqloc.addloc loc n;
 
-    let value =
-      if chain
-      then parse_named_part ()
-      else None
-    in
-    let res =
+    let make_named_or_typed n value =
       if s.[0] = '.'
       then make_named n value
       else make_typed n value  (* s.[0] = ':' *)
+    in
+
+    let res =
+      if not chain  (* inside of parsing a ( ... ) form *)
+      then (
+        make_named_or_typed n None
+      )
+      else if peek_token () = L.Star
+      then  (  (* parsing infix form: .name * [ ... ] *)
+        junk_token ();
+        if next_token () <> L.Lbr
+        then error "[ expected after .<name> *"
+        else (
+          let name = make_named_or_typed n None in
+          (* parse list elements until ] *)
+          let args = parse_elements L.Rbr in
+          (* construct a resulting form from name and args *)
+          let pair = (name, args) in
+          let res = `form pair in
+          Piqloc.addloc loc pair;
+          res
+        )
+      )
+      else (  (* regular named or typed *)
+        let value = parse_named_part () in
+        make_named_or_typed n value
+      )
     in
     (*
     let res = expand_obj_names res in
@@ -536,15 +558,18 @@ let read_next ?(expand_abbr=true) (fname, lexstream) =
 
   and parse_list () =
     let startloc = loc () in
+    (* parse list elements until ] *)
+    let l = parse_elements L.Rbr in
+    let res = `list l in
+    Piqloc.addloc startloc l;
+    Piqloc.addret res
+
+  and parse_elements closing_token =
     let rec aux accu =
       let t = next_token () in
-      match t with
-        | L.Rbr -> 
-            let l = List.rev accu in
-            let res = `list l in
-            Piqloc.addloc startloc l;
-            Piqloc.addret res
-        | _ -> aux ((parse_common t)::accu)
+      if t = closing_token
+      then List.rev accu
+      else aux ((parse_common t)::accu)
     in aux []
   in
   let parse_top () =

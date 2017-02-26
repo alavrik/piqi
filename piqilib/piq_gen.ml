@@ -422,7 +422,12 @@ let format_ast (x :piq_ast) =
                   | `name s -> "." ^ s
                   | `typename s -> ":" ^ s
               in
-              make_form name (map_aux args)
+              if Piq_ast.is_infix_form form_name args
+              then
+                let name = name ^ "*" in
+                make_label (make_atom name) (make_list (map_aux args))
+              else
+                make_form name (map_aux args)
           | ast -> (* this is an ast element in parenthesis *)
               make_parens (aux ast)
         )

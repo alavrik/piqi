@@ -151,7 +151,7 @@
 %
 
 .extend [
-    (.typedef record field variant option enum alias list)
+    .typedef* [ record field variant option enum alias list ]
 
     .with.field [
         .name protobuf-name
@@ -162,7 +162,7 @@
 
 
 .extend [
-    (.typedef piqi record variant list enum)
+    .typedef* [ piqi record variant list enum ]
 
     .with.field [
         % arbitrary string that will be included in .proto message and enum
@@ -242,7 +242,7 @@
 
 
 .extend [
-    (.typedef field option)
+    .typedef* [ field option ]
 
     .with.field [
         % for fields and variant options: unique integer field id
@@ -259,7 +259,7 @@
 
 
 .extend [
-    (.typedef field list)
+    .typedef* [ field list ]
 
     % indication that Protobuf "packed" format is used for repeated fields or
     % list elements
