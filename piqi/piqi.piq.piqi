@@ -72,7 +72,6 @@
         .name piq-allow-unnesting
         .type bool
         .optional
-        .default false
     ]
 ]
 

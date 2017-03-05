@@ -121,7 +121,7 @@ and Record:
       mutable is_func_param: bool;
       mutable unparsed_piq_ast: Piqi_impl_piqi.uint option;
       mutable piq_positional: bool option;
-      mutable piq_allow_unnesting: bool;
+      mutable piq_allow_unnesting: bool option;
       mutable protobuf_name: string option;
       mutable protobuf_custom: string list;
       mutable json_name: string option;
@@ -524,7 +524,7 @@ and parse_record x =
   let _wire_field, x = Piqirun.parse_repeated_field 112412530 parse_field x in
   let _proto_name, x = Piqirun.parse_optional_field 139663632 parse_string x in
   let _name, x = Piqirun.parse_optional_field 150958667 parse_name x in
-  let _piq_allow_unnesting, x = Piqirun.parse_required_field 172744920 parse_bool x ~default:"\b\000" in
+  let _piq_allow_unnesting, x = Piqirun.parse_optional_field 172744920 parse_bool x in
   let _piq_positional, x = Piqirun.parse_optional_field 197354217 parse_bool x in
   let _parent, x = Piqirun.parse_optional_field 226362666 parse_namespace x in
   let _is_func_param, x = incr_count_if_true ( Piqirun.parse_flag 367658567 x ) in
@@ -1138,7 +1138,7 @@ and gen__record code x =
   let _wire_field = Piqirun.gen_repeated_field 112412530 gen__field x.Record.wire_field in
   let _proto_name = Piqirun.gen_optional_field 139663632 gen__string x.Record.proto_name in
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Record.name in
-  let _piq_allow_unnesting = Piqirun.gen_required_field 172744920 gen__bool x.Record.piq_allow_unnesting in
+  let _piq_allow_unnesting = Piqirun.gen_optional_field 172744920 gen__bool x.Record.piq_allow_unnesting in
   let _piq_positional = Piqirun.gen_optional_field 197354217 gen__bool x.Record.piq_positional in
   let _parent = Piqirun.gen_optional_field 226362666 gen__namespace x.Record.parent in
   let _is_func_param = reference_if_true  Piqirun.gen_flag 367658567 x.Record.is_func_param in
@@ -1462,7 +1462,7 @@ and default_record () =
     Record.wire_field = [];
     Record.proto_name = None;
     Record.name = None;
-    Record.piq_allow_unnesting = parse_bool (Piqirun.parse_default "\b\000");
+    Record.piq_allow_unnesting = None;
     Record.piq_positional = None;
     Record.parent = None;
     Record.is_func_param = false;

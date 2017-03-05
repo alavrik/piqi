@@ -383,7 +383,7 @@ and parse_record ~labeled t x =
     match x with
       | `list l ->
           l
-      | x when labeled && t.T.Record.piq_allow_unnesting ->
+      | x when labeled && t.T.Record.piq_allow_unnesting = Some true ->
           (* allow field unnesting for a labeled record *)
           [x]
       | o ->

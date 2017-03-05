@@ -43,7 +43,7 @@
 
 
 .extend [
-    (.typedef record variant enum alias list)
+    .typedef* [ record variant enum alias list ]
 
     .with.field [
         .name parent
@@ -114,7 +114,7 @@
 
 
 .extend [
-    (.typedef alias record variant enum list)
+    .typedef* [ alias record variant enum list ]
 
     % if type definition is a function parameter, i.e. was defined inside
     % function definition
@@ -126,7 +126,7 @@
 
 
 .extend [
-    (.typedef alias list field option)
+    .typedef* [ alias list field option ]
 
     .with.field [
         .type piqtype
@@ -180,10 +180,10 @@
     % NOTE: this field is treated very specially -- see piqi_wire.ml,
     % piqobj_of_piq.ml ...
 
-    (.typedef
+    .typedef* [
         record field variant option enum alias list piqi import function
         extend include
-    )
+    ]
 
     .with.field [
         .name unparsed-piq-ast

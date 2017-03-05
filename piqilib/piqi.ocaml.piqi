@@ -21,22 +21,22 @@
 %
 
 .extend [
-    (.typedef int uint)
+    .typedef* [ int uint ]
     .with.ocaml-type "int"
 ]
 
 .extend [
-    (.typedef int32 uint32)
+    .typedef* [ int32 uint32 ]
     .with.ocaml-type "int32"
 ]
 
 .extend [
-    (.typedef int64 uint64)
+    .typedef* [ int64 uint64 ]
     .with.ocaml-type "int64"
 ]
 
 .extend [
-    (.typedef float64 float32)
+    .typedef* [ float64 float32 ]
     .with.ocaml-type "float"
 ]
 
@@ -65,7 +65,7 @@
 ]
 
 .extend [
-    (.field piqi.module import.module)
+    .field* [ piqi.module import.module ]
 
     .with.ocaml-name "modname"
 ]
@@ -84,5 +84,5 @@
 ]
 
 
-(.custom-field ocaml-type ocaml-name)
+.custom-field* [ ocaml-type ocaml-name ]
 
