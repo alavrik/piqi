@@ -32,6 +32,8 @@ let is_boot_mode = ref true
 let piqi_lang_def :T.piqtype ref = ref `bool
 (* resolved type definition for the Piqi specification *)
 let piqi_spec_def :T.piqtype ref = ref `bool
+(* resolved type definition for the Piq AST node specification *)
+let piq_def :T.piqtype ref = ref `bool
 
 (* resolved "typedef" type definition
  * Will be appropriately initialized during boot stage (see below) *)
@@ -45,6 +47,7 @@ let import_def :T.piqtype ref = ref `bool
 (* loaded in boot () -- see below *)
 let piqi_spec :T.piqi option ref = ref None
 let piqi_lang :T.piqi option ref = ref None
+let piq_spec :T.piqi option ref = ref None
 
 let is_boot_piqi piqi =
   match !piqi_spec with
@@ -68,6 +71,9 @@ let register_processing_hook (f :idtable -> T.piqi -> unit) =
 
   debug "register_processing_hook(1.6)\n";
   f idtable (some_of !piqi_spec);
+
+  debug "register_processing_hook(1.7)\n";
+  f idtable (some_of !piq_spec);
 
   debug "register_processing_hook(1)\n";
   (* add the hook to the list of registered hooks *)
@@ -1983,6 +1989,7 @@ let boot () =
   piqi_lang_def := find_embedded_piqtype "piqi";
   (* resolved type definition for the Piqi specification *)
   piqi_spec_def := Piqi_db.find_piqtype "embedded/piqi/piqi";
+
   (* resolved "typedef" type definition *)
   typedef_def := find_embedded_piqtype "typedef";
   field_def := find_embedded_piqtype "field";
@@ -1992,6 +1999,16 @@ let boot () =
 
   (* turn boot mode off *)
   is_boot_mode := false;
+
+  (* handle embedded piq spec *)
+  trace "boot_piq(0)\n";
+  let piqi = process_piqi Piqi_boot.piq ~cache:false in
+  piq_spec := Some piqi;
+  (* add the piq spec to the DB under a special name *)
+  piqi.P.modname <- Some "embedded/piq";
+  Piqi_db.add_piqi piqi;
+  piq_def := Piqi_db.find_piqtype "piq";
+  debug "boot_piq(1)\n";
 
   (* resume object location tracking; it was off from the beginning for a reason
    * -- see piqloc.ml for details *)

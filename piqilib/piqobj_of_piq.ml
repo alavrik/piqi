@@ -160,10 +160,10 @@ let parse_string ?piq_format (x :piq_ast) =
         let s = match b with true -> "true" | false -> "false" in
         Piqloc.addrefret x s
 
-    | `ascii_string (s, _) | `utf8_string (s, _) | `text s | `word s ->
+    | `string (s, _) | `text s | `word s ->
         check_piq_format ();
         s
-    | `raw_binary s ->
+    | `raw_string s ->
         if Piq_lexer.is_utf8_string s
         then s
         else unicode_error s
@@ -172,10 +172,12 @@ let parse_string ?piq_format (x :piq_ast) =
 
 
 let parse_binary (x :piq_ast) = match x with
-  | `ascii_string (s, _) | `binary (s, _) | `raw_binary s -> s
-  | `utf8_string (s, _) ->
-      error s "binary contains unicode characters or code points"
-  | o -> error o "binary expected"
+  | `binary (s, _) | `raw_string s -> s
+  | `string (s, _) ->
+      if Piq_lexer.is_ascii_string s
+      then s
+      else error s "binary contains unicode characters or code points"
+  | o ->error o "binary expected"
 
 
 (* some common errors *)
@@ -709,13 +711,11 @@ and parse_option_by_type ~try_mode o x =
           | `string, `word _         when o.piq_format = Some `word -> do_parse ()
 
           (* XXX, TODO: do we need it?
-          | `string, `ascii_string _ when o.piq_format = Some `string -> do_parse ()
-          | `string, `utf8_string _  when o.piq_format = Some `string -> do_parse ()
+          | `string, `string _ when o.piq_format = Some `string -> do_parse ()
           *)
 
-          | `string, `ascii_string _
-          | `string, `utf8_string _
-          | `string, `raw_binary _
+          | `string, `string _
+          | `string, `raw_string _
           | `string, `text _         when o.piq_format = None -> do_parse ()
 
           | `string, `int _
@@ -724,9 +724,9 @@ and parse_option_by_type ~try_mode o x =
           | `string, `bool _
           | `string, `word _         when o.piq_format = None && !Config.piq_relaxed_parsing -> do_parse ()
 
-          | `binary, `ascii_string _
           | `binary, `binary _
-          | `binary, `raw_binary _ -> do_parse ()
+          | `binary, `raw_string _ -> do_parse ()
+          | `binary, `string (s, _) when Piq_lexer.is_ascii_string s -> do_parse ()
           | _ ->
               None
 

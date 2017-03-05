@@ -81,8 +81,7 @@ let piq_addrefret dst (src :piq_ast) =
     | `uint x -> f x
     | `float x -> f x
     | `bool x -> f x
-    | `ascii_string x -> f x
-    | `utf8_string x -> f x
+    | `string x -> f x
     | `binary x -> f x
     | `word x -> f x
     | `text x -> f x
@@ -92,7 +91,7 @@ let piq_addrefret dst (src :piq_ast) =
     | `typed x -> f x
     | `list x -> f x
     | `form x -> f x
-    | `raw_binary x -> f x
+    | `raw_string x -> f x
     | `any _ ->
         assert false
   
@@ -300,9 +299,8 @@ let make_string loc str_type s raw_s =
   let value = (s, raw_s) in
   let res =
     match str_type with
-      | L.String_a -> `ascii_string value
+      | L.String_a | L.String_u -> `string value
       | L.String_b -> `binary value
-      | L.String_u -> `utf8_string value
   in
   Piqloc.addloc loc value;
   Piqloc.addloc loc s;
@@ -413,11 +411,11 @@ let read_next ?(expand_abbr=true) ?(skip_trailing_comma=false) (fname, lexstream
         Piqloc.addloc word_loc s;
         let res = parse_word s in
         Piqloc.addlocret word_loc res
-    | L.Raw_binary s ->
+    | L.Raw_string s ->
         (* Used in pretty-printing mode and in some other cases, similar to
          * String, but we don't parse it -- just pass it through. *)
         Piqloc.addloc (loc ()) s;
-        Piqloc.addret (`raw_binary s)
+        Piqloc.addret (`raw_string s)
     | L.Text text -> 
         let text_loc = loc () in
         let (fname, line, col) = text_loc in

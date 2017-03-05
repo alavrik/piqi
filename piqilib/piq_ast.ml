@@ -31,8 +31,7 @@ type ast =
    | `float of (float * string)
    | `bool of bool
    | `word of string
-   | `ascii_string of (string * string)
-   | `utf8_string of (string * string)
+   | `string of (string * string)
    | `binary of (string * string)
    | `text of string
    | `name of string
@@ -48,12 +47,12 @@ type ast =
     * code), but we decided to support it for consistency *)
    | `form of ast * ast list
 
-   (* Raw binary -- just a sequence of bytes: may be parsed as either binary or
+   (* Raw string -- just a sequence of bytes: may be parsed as either binary or
     * utf8 string
     *
     * NOTE: this is used only in several special cases, and can't be represented
     * in Piq text format directly *)
-   | `raw_binary of string
+   | `raw_string of string
 
    (* reference to Piqobj.any object in Piqi_objstore *)
    | `any of int

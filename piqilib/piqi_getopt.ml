@@ -215,9 +215,9 @@ let parse_word_arg s =
   then
     Piq_lexer.Word s
   else
-    (* Raw binary -- just a sequence of bytes: may be parsed as binary or utf8
+    (* Raw string -- just a sequence of bytes: may be parsed as binary or utf8
      * string *)
-    Piq_lexer.Raw_binary s
+    Piq_lexer.Raw_string s
 
 
 let parse_name_arg s =
@@ -258,9 +258,9 @@ let parse_arg s =
     | s when s.[0] = '@' ->
         let filename = String.sub s 1 (len - 1) in
         let content = read_file filename in
-        (* Raw binary -- just a sequence of bytes: may be parsed as either
+        (* Raw string -- just a sequence of bytes: may be parsed as either
          * binary or utf8 string *)
-        Piq_lexer.Raw_binary content
+        Piq_lexer.Raw_string content
 
     (* parsing long options starting with "--"
      *

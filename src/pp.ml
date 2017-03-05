@@ -23,19 +23,8 @@ open C
 let flag_normalize = ref false
 let flag_expand_abbr = ref false
 let flag_parse_literals = ref false
-
-
-let open_piq fname =
-  let ch = Main.open_input fname in
-  let piq_parser = Piq_parser.init_from_channel fname ch in
-  piq_parser
-
-
-let read_piq_obj piq_parser =
-  let res = Piq_parser.read_next piq_parser ~expand_abbr:!flag_expand_abbr ~skip_trailing_comma:true in
-  (* reset location db to allow GC to collect previously read objects *)
-  Piqloc.reset ();
-  res
+let input_format = ref ""
+let output_format = ref ""
 
 
 let normalize_ast ast =
@@ -48,33 +37,99 @@ let transform_ast ast =
   else ast
 
 
-let prettyprint_piq ch piq_parser =
-  Piqi_config.piq_relaxed_parsing := !Convert.flag_piq_relaxed_parsing;
+let make_reader piq_input_format =
+  let fname = !Main.ifile in
+  let ch = Main.open_input fname in
 
-  let rec aux () =
-    match read_piq_obj piq_parser with
-      | None -> ()
-      | Some ast ->
-          let ast = transform_ast ast in
-          Piqi_pp.prettyprint_ast ch ast;
-          output_char ch '\n';
-          aux ()
-  in aux ()
+  match piq_input_format with
+    | "" ->
+        (* piq reder/parser *)
+        let piq_parser = Piq_parser.init_from_channel fname ch in
+        let piq_ast_parser () =
+          match Piq_parser.read_next piq_parser ~expand_abbr:!flag_expand_abbr ~skip_trailing_comma:true with
+            | Some ast -> ast
+            | None -> raise Piqi_convert.EOF
+        in
+        piq_ast_parser
+    | _ ->
+        (* serialized piq ast reader *)
+        Convert.make_piq_ast_parser piq_input_format fname ch
 
 
-let prettyprint_file filename =
-  let ch = Main.open_output !Main.ofile in
+let write_piq piq_output_format ch piq_ast =
+  match piq_output_format with
+    | "" ->
+        Piqi_pp.prettyprint_ast ch piq_ast;
+        output_char ch '\n'
+    | _ ->
+        Convert.write_piq_ast piq_output_format ch piq_ast
 
-  let piq_parser = open_piq filename in
-  prettyprint_piq ch piq_parser
+
+let make_writer piq_output_format =
+  write_piq piq_output_format
+
+
+let check_input_or_output_format name format =
+  match format with
+    | "piq" -> ()
+    | "piqi" -> ()
+    | x ->
+        piqi_error ("unknown " ^ name ^ " format: " ^ U.quote x)
+
+
+let validate_options input_format output_format =
+  check_input_or_output_format "input" input_format;
+  check_input_or_output_format "output" output_format;
+  ()
+
+
+let prettyprint_file () =
+  Convert.init ();
+
+  let input_format, piq_input_format = Convert.get_input_format !input_format in
+  let output_format, piq_output_format = Convert.get_output_format !output_format in
+
+  validate_options input_format output_format;
+
+  let reader = make_reader piq_input_format in
+  let writer = make_writer piq_output_format in
+
+  (* open output file *)
+  let och = Main.open_output !Main.ofile in
+
+  try
+    while true do
+      let ast = reader () in
+
+      let ast = transform_ast ast in
+
+      writer och ast;
+
+      (* reset location db to allow GC to collect previously read objects *)
+      Piqloc.reset ();
+    done
+  with Piqi_convert.EOF -> ()
 
 
 let usage = "Usage: piqi pp [options] [<.piqi|.piq file>] [output file]\nOptions:"
 
 
+(* command-line parameters *)
+let arg_f =
+    "-f", Arg.Set_string input_format,
+    "piq|piq.pb|piq.json|piq.xml|piq.piq input format (piq is used by default)"
+
+let arg_t =
+    "-t", Arg.Set_string output_format,
+    "piq|piq.pb|piq.json|piq.xml|piq.piq output format (piq is used by default)"
+
+
 let speclist = Main.common_speclist @
   [
     Main.arg_o;
+
+    (* input *)
+    arg_f;
 
     "--normalize-words", Arg.Set flag_normalize,
     "normalize all words while pretty-printing (convert CamelCase to camel-case)";
@@ -87,13 +142,16 @@ let speclist = Main.common_speclist @
 
     Convert.arg__piq_relaxed_parsing;
 
+    (* output *)
+    arg_t;
+
     Main.arg__;
   ]
 
 
 let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:2;
-  prettyprint_file !Main.ifile
+  prettyprint_file ()
 
  
 let _ =

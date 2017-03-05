@@ -68,6 +68,19 @@ let is_utf8_string s =
   classify_string s <> String_b
 
 
+let is_ascii_string s =
+  let len = String.length s in
+  let rec aux i =
+    if i >= len
+    then true
+    else
+      if Char.code s.[i] <= 127
+      then aux (i + 1)
+      else false
+  in
+  aux 0
+
+
 let type_of_char c =
   if c <= 127
   then String_a
@@ -239,12 +252,12 @@ type token =
   | Name of string  (* identifier starting with '.' or ':' *)
   | Text of string
   | EOF
-  (* Raw binary -- just a sequence of bytes: may be parsed as either binary or
+  (* Raw string -- just a sequence of bytes: may be parsed as either binary or
    * utf8 string
    *
    * NOTE: this is used only in several special cases, and can't be represented
    * in Piq text format directly *)
-  | Raw_binary of string
+  | Raw_string of string
 
 
 let regexp newline = ('\n' | "\r\n")

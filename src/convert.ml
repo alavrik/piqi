@@ -125,6 +125,10 @@ let resolve_typename () =
   else None
 
 
+let make_reader load_f input_param =
+  (fun () -> load_f input_param)
+
+
 (* ensuring that Piqi_convert.load_pb is called exactly one time *)
 let load_pb piqtype protobuf :Piqi_convert.obj =
   if !first_load
@@ -134,7 +138,7 @@ let load_pb piqtype protobuf :Piqi_convert.obj =
 
 
 (* making sure Piqi_convert.load_piq is called exactly once in frameless mode *)
-let load_piq piqtype piq_parser :Piqi_convert.obj =
+let load_piq_text piqtype piq_parser :Piqi_convert.obj =
   if !flag_piq_frameless_input
   then (
     if !first_load
@@ -142,6 +146,75 @@ let load_piq piqtype piq_parser :Piqi_convert.obj =
     else raise Piqi_convert.EOF
   );
   Piqi_convert.load_piq piqtype piq_parser ~skip_trailing_comma:true
+
+
+let piq_ast_of_obj obj =
+  let pb = Piqi_convert.to_pb_string obj in
+
+  let piq_node = Piq_piqi.parse_piq_node (Piqi_piqirun.init_from_string pb) in
+  Piq.of_portable_ast piq_node
+
+
+let piq_piqtype = !Piqi.piq_def
+
+
+let obj_of_piq_ast piq_ast =
+  let piq_node = Piq.to_portable_ast piq_ast in
+  let pb = Piqi_piqirun.to_string (Piq_piqi.gen_piq_node piq_node) in
+
+  Piqi_convert.from_pb_string piq_piqtype pb
+
+
+let load_piq_ast piqtype piq_ast_parser :Piqi_convert.obj =
+  let piq_ast = piq_ast_parser () in
+  Piqi_convert.load_piq_from_ast piqtype piq_ast
+
+
+let load_piq piqtype piq_parser =
+  match piq_parser with
+    | `piq_text_parser x -> load_piq_text piqtype x
+    | `piq_ast_parser x -> load_piq_ast piqtype x
+
+
+let make_piq_ast_parser piq_input_format fname ch =
+  let piq_reader =
+    match piq_input_format with
+      | "pb" ->
+          let buf = Piqirun.init_from_channel ch in
+          make_reader (load_pb piq_piqtype) buf
+
+      | "json" ->
+          let json_parser = Piqi_json_parser.init_from_channel ch ~fname in
+          make_reader (Piqi_convert.load_json (Some piq_piqtype)) json_parser
+
+      | "xml" ->
+          let xml_parser = Piqi_xml.init_from_channel ch ~fname in
+          make_reader (Piqi_convert.load_xml piq_piqtype) xml_parser
+
+      | "piq" ->
+          let piq_parser = Piq_parser.init_from_channel fname ch in
+          make_reader (load_piq_text (Some piq_piqtype)) piq_parser
+
+      | x ->
+          piqi_error ("unknown piq input format: " ^ U.quote x)
+  in
+  let piq_ast_parser () =
+    let obj = piq_reader () in
+    piq_ast_of_obj obj
+  in
+  piq_ast_parser
+
+
+let piq_parser_init_from_channel piq_input_format fname ch =
+  match piq_input_format with
+    | "" ->
+        (* piq -> ? conversion *)
+        let piq_parser = Piq_parser.init_from_channel fname ch in
+        `piq_text_parser piq_parser
+    | _ ->
+        (* piq ast -> ? conversion *)
+        let piq_ast_parser = make_piq_ast_parser piq_input_format fname ch in
+        `piq_ast_parser piq_ast_parser
 
 
 let first_write = ref true
@@ -153,13 +226,29 @@ let write_pb ch (obj: Piqi_convert.obj) =
   Piqi_convert.to_pb_channel ch obj
 
 
-let write_piq ch (obj: Piqi_convert.obj) =
+let write_piq_ast piq_output_format ch piq_ast =
+  let obj = obj_of_piq_ast piq_ast in
+  match piq_output_format with
+    | "piq" -> Piqi_convert.to_piq_channel ch obj
+    | "json" -> Piqi_convert.to_json_channel ch obj
+    | "xml" -> Piqi_convert.to_xml_channel ch obj
+    | "pb" -> write_pb ch obj
+    | x ->
+        piqi_error ("unknown piq output format: " ^ U.quote x)
+
+
+let write_piq piq_output_format ch (obj: Piqi_convert.obj) =
   if !first_write
   then first_write := false
   else
     if !flag_piq_frameless_output
     then piqi_error "converting more than one object to frameless \"piq\" is not allowed";
-  Piqi_convert.to_piq_channel ch obj
+  match piq_output_format with
+    | "" ->
+        Piqi_convert.to_piq_channel ch obj
+    | _ ->
+        let piq_ast = Piqi_convert.gen_piq obj ~preserve_loc:true in
+        write_piq_ast piq_output_format ch piq_ast
 
 
 (* write only data and skip Piqi specifications and data hints *)
@@ -183,11 +272,7 @@ let write_data_and_piqi writer ch (obj: Piqi_convert.obj) =
     | _ -> writer ch obj
 
 
-let make_reader load_f input_param =
-  (fun () -> load_f input_param)
-
-
-let make_reader input_format =
+let make_reader input_format piq_input_format =
   let fname = !Main.ifile in
   let ch = Main.open_input fname in
 
@@ -211,7 +296,7 @@ let make_reader input_format =
         make_reader (Piqi_convert.load_xml piqtype) xml_parser
 
     | "piq" ->
-        let piq_parser = Piq_parser.init_from_channel fname ch in
+        let piq_parser = piq_parser_init_from_channel piq_input_format fname ch in
         make_reader (load_piq (resolve_typename ())) piq_parser
 
     | "piqi" when !typename <> "" ->
@@ -228,7 +313,7 @@ let make_reader input_format =
         piqi_error ("unknown input format: " ^ U.quote x)
 
 
-let make_writer ?(is_piqi_input=false) output_format =
+let make_writer ?(is_piqi_input=false) output_format piq_output_format =
   (* XXX: We need to resolve all defaults before converting to JSON or XML since
    * they are dynamic formats, and it would be too unreliable and inefficient
    * to let a consumer decide what a default value for a field should be in case
@@ -238,8 +323,7 @@ let make_writer ?(is_piqi_input=false) output_format =
       | "json" | "xml" -> true
       | _ -> false);
   match output_format with
-    | "" (* default output format is "piq" *)
-    | "piq" -> write_piq
+    | "piq" -> write_piq piq_output_format
     | "pib" -> Piqi_convert.to_pib_channel
     | "json" ->
         write_data_and_piqi Piqi_convert.to_json_channel
@@ -309,22 +393,17 @@ let get_dependencies (obj :Piqi_convert.obj) ~only_imports =
   remove_update_seen deps
 
 
-let validate_options input_format =
+let validate_options input_format output_format =
   let typename_str =
     if !typename = ""
     then ""
     else "values of type " ^ U.quote !typename ^ " "
   in
-  let output_format_str =
-    if !output_format = ""
-    then "piq" (* default output format is "piq" *)
-    else !output_format
-  in
-  trace "converting %sfrom .%s to .%s\n" typename_str input_format output_format_str;
+  trace "converting %sfrom .%s to .%s\n" typename_str input_format output_format;
 
   if !flag_embed_piqi
   then (
-    match !output_format with
+    match output_format with
       | "pb" | "xml" ->
           if input_format = "piqi"
           then
@@ -384,9 +463,6 @@ let do_convert ?writer ?(is_piq_output=false) reader =
           (* flush all yet unwritten piqi modules at EOF *)
           write_piqi piqi_list
       | Some obj ->
-          (* reset location db to allow GC collect previously read
-           * objects *)
-          Piqloc.reset ();
           let piqi_list =
             match obj with
               | Piqi_convert.Piqi piqi when not (Piqi.is_processed piqi) ->
@@ -401,6 +477,11 @@ let do_convert ?writer ?(is_piq_output=false) reader =
                   (* return empty list as a new value of piqi_list *)
                   []
           in
+
+          (* reset location db to allow GC collect previously read
+           * objects *)
+          Piqloc.reset ();
+
           aux piqi_list
   in
   aux []
@@ -420,40 +501,65 @@ let init () =
     )
 
 
-let get_input_format () =
-  if !input_format <> ""
-  then !input_format
-  else Piqi_file.get_extension !Main.ifile
+let get_input_or_output_format = function
+  | "piq.piq" ->  "piq","piq"
+  | "piq.json" -> "piq","json"
+  | "piq.xml" ->  "piq","xml"
+  | "piq.pb" ->   "piq","pb"
+  | x -> x, ""
+
+
+let get_input_format input_format =
+  match input_format with
+    | "" ->
+        (match Piqi_file.get_extension !Main.ifile with
+          | "piq" ->  "piq", ""
+          | "json" -> "json", ""
+          | "xml" ->  "xml", ""
+          | "pb" ->   "pb", ""
+          | "pib" ->  "pib", ""
+          | "piqi" ->  "piqi", ""
+          | _ ->      "", ""
+        )
+    | x ->
+        get_input_or_output_format x
+
+
+let get_output_format output_format =
+  match output_format with
+    | "" -> "piq", ""  (* default output format is "piq" *)
+    | x -> get_input_or_output_format x
 
 
 let convert_file () =
   init ();
-  let input_format = get_input_format () in
 
-  validate_options input_format;
+  let input_format, piq_input_format = get_input_format !input_format in
 
-  let reader = make_reader input_format in
+  let orig_output_format = !output_format in
+  let output_format, piq_output_format = get_output_format !output_format in
+
+  validate_options input_format output_format;
+
+  let reader = make_reader input_format piq_input_format in
+
   let is_piqi_input = (input_format = "piqi" || !typename = "piqi") in
-  let writer = make_writer !output_format ~is_piqi_input in
+  let writer = make_writer output_format piq_output_format ~is_piqi_input in
+
   (* open output file *)
   let ofile =
     match !Main.ofile with
-      | "" when !output_format = "" -> "" (* print "piq" to stdout by default *)
-      | "" when !Main.ifile <> "" && !Main.ifile <> "-" ->
-          let output_extension = !output_format in
+      | "" when orig_output_format = "" -> "" (* print "piq" to stdout by default *)
+      | "" when !Main.ifile <> "" && !Main.ifile <> "-" && piq_output_format = "" ->
+          let output_extension = output_format in
           !Main.ifile ^ "." ^ output_extension
       | x -> x
   in
   let och = Main.open_output ofile in
 
-  let is_piq_output =
-    match !output_format with
-      | "" | "piq" -> true
-      | _ -> false
-  in
   (* main convert cycle *)
   trace "piqi convert: main loop\n";
-  do_convert reader ~writer:(writer och) ~is_piq_output
+  do_convert reader ~writer:(writer och) ~is_piq_output:(output_format = "piq")
 
 
 let run () =

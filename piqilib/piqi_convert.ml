@@ -145,9 +145,8 @@ let piqi_of_piq fname ast =
   pre_process_piqi piqi ~fname ~ast
 
 
-let load_piq (user_piqtype: T.piqtype option) ?(skip_trailing_comma=false) piq_parser :obj =
-  let ast = read_piq_ast piq_parser user_piqtype ~skip_trailing_comma in
-  let fname, _ = piq_parser in (* TODO: improve getting a filename from parser *)
+let load_piq_from_ast (user_piqtype: T.piqtype option) ast :obj =
+  let fname = "" in
   match ast with
     | `typename typename ->
         (* (:typename) *)
@@ -178,6 +177,11 @@ let load_piq (user_piqtype: T.piqtype option) ?(skip_trailing_comma=false) piq_p
           Piqobj obj
 
 
+let load_piq (user_piqtype: T.piqtype option) ?(skip_trailing_comma=false) piq_parser :obj =
+  let ast = read_piq_ast piq_parser user_piqtype ~skip_trailing_comma in
+  load_piq_from_ast user_piqtype ast
+
+
 let original_piqi piqi =
   let orig_piqi = some_of piqi.P.original_piqi in
   (* make sure that the module's name is set *)
@@ -197,8 +201,8 @@ let piqi_to_piq piqi =
   piqi_ast_to_piq piqi_ast
 
 
-let gen_piq (obj :obj) =
-  Piqloc.pause (); (* no need to preserve location information here *)
+let gen_piq ?(preserve_loc=false) (obj :obj) =
+  if not preserve_loc then Piqloc.pause (); (* no need to preserve location information here *)
   let f () =
     match obj with
       | Piqtype typename ->
@@ -211,7 +215,7 @@ let gen_piq (obj :obj) =
           Piqobj_to_piq.gen_obj obj
   in
   let res = U.with_bool Piqobj_to_piq.is_external_mode true f in
-  Piqloc.resume ();
+  if not preserve_loc then Piqloc.resume ();
   res
 
 

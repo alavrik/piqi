@@ -134,6 +134,13 @@ let find_load_piqi_typedefs ~auto_load_piqi modname =
 let find_typedef ?(auto_load_piqi=true) name =
   (* XXX: check global type name before loading? *)
   trace "looking for type: %s\n" name;
+
+  let name =
+    if name = "piq"
+    then "embedded/piq/piq-node"
+    else name
+  in
+
   let modname, typename = Piqi_name.split_name name in
   let typedefs = find_load_piqi_typedefs modname ~auto_load_piqi in
   find_local_typedef typedefs typename

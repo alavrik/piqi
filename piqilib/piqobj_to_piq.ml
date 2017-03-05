@@ -32,19 +32,6 @@ let is_external_mode = ref false
 let gen_float x = `float (x, "")
 
 
-let is_ascii_string s =
-  let len = String.length s in
-  let rec aux i =
-    if i >= len
-    then true
-    else
-      if Char.code s.[i] <= 127
-      then aux (i + 1)
-      else false
-  in
-  aux 0
-
-
 let gen_string ?piq_format s =
   match piq_format with
    | Some `text ->
@@ -54,17 +41,13 @@ let gen_string ?piq_format s =
    | Some `word when Piq_lexer.is_valid_word s ->
        `word s
    | _ ->
-      if is_ascii_string s
-      then
-        `ascii_string (s, "")
-      else
-        `utf8_string (s, "")
+       `string (s, "")
 
 
 let gen_binary s =
-  if is_ascii_string s
+  if Piq_lexer.is_ascii_string s
   then
-    `ascii_string (s, "")
+    `string (s, "")
   else
     `binary (s, "")
 

@@ -27,6 +27,7 @@ let load_file fname =
 let main () =
   let piqi_lang_binobj = load_file "piqi-lang.piqi.pb" in
   let piqi_spec_binobj = load_file "piqi.piqi.pb" in
+  let piq_binobj = load_file "piq.piqi.pb" in
 
   Printf.printf "let parse_piqi_binobj x = Piqi_piqirun.parse_binobj Piqi_impl_piqi.parse_piqi x\n\n";
 
@@ -39,6 +40,11 @@ let main () =
   Printf.printf "  let piqi_spec_binobj =\n";
   Printf.printf "    \"%s\"\n" (String.escaped piqi_spec_binobj);
   Printf.printf "  in parse_piqi_binobj piqi_spec_binobj\n\n";
+
+  Printf.printf "let piq =\n";
+  Printf.printf "  let piq_binobj =\n";
+  Printf.printf "    \"%s\"\n" (String.escaped piq_binobj);
+  Printf.printf "  in parse_piqi_binobj piq_binobj\n\n";
   ()
 
 

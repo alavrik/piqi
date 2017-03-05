@@ -26,14 +26,13 @@ open C
 
 
 (* command-line arguments *)
-let output_format = Convert.output_format
 let typename = Convert.typename
 
 
 let validate_options () =
   if !typename = "" (* pretty-print mode *)
   then (
-    if !output_format <> ""
+    if !Convert.output_format <> ""
     then piqi_error "option -t can not be used without --type";
   )
 
@@ -59,7 +58,8 @@ let getopt_command () =
         in
         Piqi_pp.prettyprint_ast och ast
     | _ ->
-        let writer = Convert.make_writer !output_format in
+        let output_format, piq_output_format = Convert.get_output_format !Convert.output_format in
+        let writer = Convert.make_writer output_format piq_output_format in
         let piqtype = Piqi_convert.find_type !typename in
         let piqobj = Piqi_getopt.parse_args piqtype piq_ast_list in
 

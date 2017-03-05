@@ -20,6 +20,8 @@ SOURCES = \
 	\
 	piqi_util.ml \
 	piqloc.ml \
+	\
+	piq_piqi.ml \
 	piq_ast.ml \
 	\
 	piqi_impl_piqi.ml \
@@ -130,13 +132,15 @@ piqi_files:
 piqi_ml:
 	$(PIQIC) $(PIQIC_FLAGS) --cc piqi-impl.piqi
 	$(PIQIC) $(PIQIC_FLAGS) piqi.piqi
+	$(PIQIC) $(PIQIC_FLAGS) piq.piqi
 
 
 piqi_boot:
 	$(PIQI) convert -t pb piqi-lang.piqi
 	$(PIQI) convert -t pb piqi.piqi
+	$(PIQI) convert -t pb piq.piqi
 	ocaml gen_piqi_boot.ml > piqi_boot.ml
-	rm piqi-lang.piqi.pb piqi.piqi.pb
+	rm piqi-lang.piqi.pb piqi.piqi.pb piq.piqi.pb
 
 
 # turn piqi specs serialized as Protobuf into OCaml data structures (optional)
@@ -148,6 +152,8 @@ expand_piqi_boot:
 	 echo "let t = Piqi_boot.piqi_spec;;" | ./expand_piqi_boot.top -noprompt -init expand_piqi_boot.ocaml | sed -e '1,3d'; \
 	 echo "let piqi_lang ="; \
 	 echo "let t = Piqi_boot.piqi_lang;;" | ./expand_piqi_boot.top -noprompt -init expand_piqi_boot.ocaml | sed -e '1,3d'; \
+	 echo "let piq ="; \
+	 echo "let t = Piqi_boot.piq;;" | ./expand_piqi_boot.top -noprompt -init expand_piqi_boot.ocaml | sed -e '1,3d'; \
 	) > piqi_boot_expanded.ml
 	mv piqi_boot_expanded.ml piqi_boot.ml
 	rm -f expand_piqi_boot.ocaml

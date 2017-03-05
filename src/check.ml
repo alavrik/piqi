@@ -43,8 +43,8 @@ let speclist = Main.common_speclist @
 let check_file () =
   Convert.init ();
 
-  let input_format = Convert.get_input_format () in
-  let reader = Convert.make_reader input_format in
+  let input_format, piq_input_format = Convert.get_input_format !Convert.input_format in
+  let reader = Convert.make_reader input_format piq_input_format in
 
   (* main convert cycle *)
   Convert.do_convert reader
