@@ -24,11 +24,13 @@ module rec Piq_piqi:
         | `typename of Piq_piqi.name
         | `typed of Piq_piqi.typed
         | `list of Piq_piqi.piq_list
+        | `splice of Piq_piqi.splice
       ]
     type piq_node = Piq_node.t
     type loc = Loc.t
     type piq_list = Piq_piqi.piq_node list
     type named = Named.t
+    type splice = Splice.t
     type typed = Typed.t
   end = Piq_piqi
 and Piq_node:
@@ -53,6 +55,13 @@ and Named:
       mutable value: Piq_piqi.piq_node;
     }
   end = Named
+and Splice:
+  sig
+    type t = {
+      mutable name: Piq_piqi.name;
+      mutable item: Piq_piqi.piq_node list;
+    }
+  end = Splice
 and Typed:
   sig
     type t = {
@@ -129,6 +138,9 @@ and parse_piq x =
     | 14 ->
         let res = parse_piq_list x in
         `list res
+    | 15 ->
+        let res = parse_splice x in
+        `splice res
     | _ -> Piqirun.error_variant x code
 
 and parse_piq_node x =
@@ -169,6 +181,16 @@ and parse_named x =
   {
     Named.name = _name;
     Named.value = _value;
+  }
+
+and parse_splice x =
+  let x = Piqirun.parse_record x in
+  let _name, x = Piqirun.parse_required_field 1 parse_name x in
+  let _item, x = Piqirun.parse_repeated_field 2 parse_piq_node x in
+  Piqirun.check_unparsed_fields x;
+  {
+    Splice.name = _name;
+    Splice.item = _item;
   }
 
 and parse_typed x =
@@ -220,6 +242,7 @@ and gen__piq code (x:Piq_piqi.piq) =
     | `typename x -> gen__name 12 x
     | `typed x -> gen__typed 13 x
     | `list x -> gen__piq_list 14 x
+    | `splice x -> gen__splice 15 x
   )]
 
 and gen__piq_node code x =
@@ -244,6 +267,11 @@ and gen__named code x =
   let _value = Piqirun.gen_required_field 2 gen__piq_node x.Named.value in
   Piqirun.gen_record code (_name :: _value :: [])
 
+and gen__splice code x =
+  let _name = Piqirun.gen_required_field 1 gen__name x.Splice.name in
+  let _item = Piqirun.gen_repeated_field 2 gen__piq_node x.Splice.item in
+  Piqirun.gen_record code (_name :: _item :: [])
+
 and gen__typed code x =
   let _typename = Piqirun.gen_required_field 1 gen__name x.Typed.typename in
   let _value = Piqirun.gen_required_field 2 gen__piq_node x.Typed.value in
@@ -265,6 +293,7 @@ let gen_word x = gen__word (-1) x
 let gen_name x = gen__name (-1) x
 let gen_piq_list x = gen__piq_list (-1) x
 let gen_named x = gen__named (-1) x
+let gen_splice x = gen__splice (-1) x
 let gen_typed x = gen__typed (-1) x
 
 
@@ -295,6 +324,11 @@ and default_named () =
   {
     Named.name = default_name ();
     Named.value = default_piq_node ();
+  }
+and default_splice () =
+  {
+    Splice.name = default_name ();
+    Splice.item = [];
   }
 and default_typed () =
   {

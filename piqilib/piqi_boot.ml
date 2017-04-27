@@ -2331,7 +2331,12 @@ let piq =
            typename = Some "piq-list"; deprecated = false; piqtype = None;
            unparsed_piq_ast = None; piq_format = None; piq_alias = None;
            protobuf_name = None; code = None; json_name = None;
-           getopt_letter = None; getopt_doc = None; proto_name = None}];
+           getopt_letter = None; getopt_doc = None; proto_name = None};
+          {Piqi_impl_piqi.Option.name = None; typename = Some "splice";
+           deprecated = false; piqtype = None; unparsed_piq_ast = None;
+           piq_format = None; piq_alias = None; protobuf_name = None;
+           code = None; json_name = None; getopt_letter = None;
+           getopt_doc = None; proto_name = None}];
         parent = None; is_func_param = false; unparsed_piq_ast = None;
         protobuf_name = None; protobuf_custom = []; json_name = None;
         proto_custom = []; proto_name = None};
@@ -2417,6 +2422,28 @@ let piq =
            proto_name = None; wire_packed = false};
           {Piqi_impl_piqi.Field.name = Some "value";
            typename = Some "piq-node"; mode = `required; default = None;
+           deprecated = false; piqtype = None; unparsed_piq_ast = None;
+           piq_format = None; piq_positional = None; piq_alias = None;
+           protobuf_name = None; code = None; protobuf_packed = false;
+           json_name = None; json_omit_missing = None; getopt_letter = None;
+           getopt_doc = None; proto_name = None; wire_packed = false}];
+        parent = None; wire_field = []; is_func_param = false;
+        unparsed_piq_ast = None; piq_positional = None;
+        piq_allow_unnesting = None; protobuf_name = None;
+        protobuf_custom = []; json_name = None; proto_custom = [];
+        proto_name = None};
+     `record
+       {Piqi_impl_piqi.Record.name = Some "splice";
+        field =
+         [{Piqi_impl_piqi.Field.name = None; typename = Some "name";
+           mode = `required; default = None; deprecated = false;
+           piqtype = None; unparsed_piq_ast = None; piq_format = None;
+           piq_positional = None; piq_alias = None; protobuf_name = None;
+           code = None; protobuf_packed = false; json_name = None;
+           json_omit_missing = None; getopt_letter = None; getopt_doc = None;
+           proto_name = None; wire_packed = false};
+          {Piqi_impl_piqi.Field.name = Some "item";
+           typename = Some "piq-node"; mode = `repeated; default = None;
            deprecated = false; piqtype = None; unparsed_piq_ast = None;
            piq_format = None; piq_positional = None; piq_alias = None;
            protobuf_name = None; code = None; protobuf_packed = false;

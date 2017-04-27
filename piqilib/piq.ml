@@ -205,7 +205,9 @@ let rec to_portable_ast (ast:piq_ast) :Piq_piqi.piq_node =
           `typed Piq_piqi.Typed.({typename = typename; value = to_portable_ast value})
       | `list l ->
           `list (List.map to_portable_ast l)
-      (* these shouldn't be used for plain Piq ASTs *)
+      | `form (`name name, args) ->
+          `splice {Piq_piqi.Splice.name = name; Piq_piqi.Splice.item = List.map to_portable_ast args}
+      (* XXX, TODO: any shouldn't be used in plain Piq ASTs? *)
       | `form _ -> assert false
       | `any _ -> assert false
   in
@@ -213,6 +215,8 @@ let rec to_portable_ast (ast:piq_ast) :Piq_piqi.piq_node =
 
 
 let addloc loc ast =
+  (* TODO: this is not enough -- need to add location to the option values
+   * themselves *)
   Piqloc.setloc loc;
   (match ast with
     | `int (x, _) -> Piqloc.add x
@@ -232,39 +236,47 @@ let addloc loc ast =
         Piqloc.add typename
     | `list l ->
         Piqloc.add l
-    (* these shouldn't be used for plain Piq ASTs *)
-    | `form _ -> assert false
+    | `form ((`name s) as name, args) ->
+        Piqloc.add s;
+        Piqloc.add name
+    (* XXX, TODO: any shouldn't be used in plain Piq ASTs? *)
+    | `form (_, _) -> assert false
     | `any _ -> assert false
   );
   Piqloc.add ast
 
 
 let rec of_portable_ast (piq_node:Piq_piqi.piq_node) :piq_ast =
-  let ast =
-    match piq_node.Piq_piqi.Piq_node.piq with
-      | `int x -> `int (x, "")
-      | `uint x -> `uint (x, "")
-      | `float x -> `float (x, "")
-      | `bool x -> `bool x
-      | `string x -> `string (x, "")
-      | `raw_string x -> `raw_string x
-      | `word x -> `word x
-      | `text x -> `text x
-      | `binary x -> `binary (x, "")
-      | `name x -> `name x
-      | `typename x -> `typename x
-      | `named {Piq_piqi.Named.name = name; Piq_piqi.Named.value = value} ->
-          `named Piq_ast.Named.({name = name; value = of_portable_ast value})
-      | `typed {Piq_piqi.Typed.typename = typename; Piq_piqi.Typed.value = value} ->
-          `typed Piq_ast.Typed.({typename = typename; value = of_portable_ast value})
-      | `list l ->
-          `list (List.map of_portable_ast l)
+  let rec aux piq_node =
+    let ast =
+      match piq_node.Piq_piqi.Piq_node.piq with
+        | `int x -> `int (x, "")
+        | `uint x -> `uint (x, "")
+        | `float x -> `float (x, "")
+        | `bool x -> `bool x
+        | `string x -> `string (x, "")
+        | `raw_string x -> `raw_string x
+        | `word x -> `word x
+        | `text x -> `text x
+        | `binary x -> `binary (x, "")
+        | `name x -> `name x
+        | `typename x -> `typename x
+        | `named {Piq_piqi.Named.name = name; Piq_piqi.Named.value = value} ->
+            `named Piq_ast.Named.({name = name; value = aux value})
+        | `typed {Piq_piqi.Typed.typename = typename; Piq_piqi.Typed.value = value} ->
+            `typed Piq_ast.Typed.({typename = typename; value = aux value})
+        | `list l ->
+            `list (List.map aux l)
+        | `splice {Piq_piqi.Splice.name = name; Piq_piqi.Splice.item = items} ->
+            `form (`name name, List.map aux items)
+    in
+    let open Piq_piqi.Loc in
+    (match piq_node.Piq_piqi.Piq_node.loc with
+      | None -> ()
+      | Some {file = file; line = line; column = column} ->
+          let loc = (file, line, column) in
+          addloc loc ast
+    );
+    ast
   in
-  let open Piq_piqi.Loc in
-  (match piq_node.Piq_piqi.Piq_node.loc with
-    | None -> ()
-    | Some {file = file; line = line; column = column} ->
-        let loc = (file, line, column) in
-        addloc loc ast
-  );
-  ast
+  aux piq_node

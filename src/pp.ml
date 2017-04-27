@@ -22,6 +22,8 @@ open C
 (* command-line parameters *)
 let flag_normalize = ref false
 let flag_expand_abbr = ref false
+let flag_expand_names = ref false
+let flag_expand_splices = ref false
 let flag_parse_literals = ref false
 let input_format = ref ""
 let output_format = ref ""
@@ -32,9 +34,22 @@ let normalize_ast ast =
 
 
 let transform_ast ast =
-  if !flag_normalize
-  then normalize_ast ast
-  else ast
+  let ast =
+    if !flag_expand_names
+    then Piq_parser.expand_names ast
+    else ast
+  in
+  let ast =
+    if !flag_expand_splices
+    then Piq_parser.expand_splices ast
+    else ast
+  in
+  let ast =
+    if !flag_normalize
+    then normalize_ast ast
+    else ast
+  in
+  ast
 
 
 let make_reader piq_input_format =
@@ -46,7 +61,7 @@ let make_reader piq_input_format =
         (* piq reder/parser *)
         let piq_parser = Piq_parser.init_from_channel fname ch in
         let piq_ast_parser () =
-          match Piq_parser.read_next piq_parser ~expand_abbr:!flag_expand_abbr ~skip_trailing_comma:true with
+          match Piq_parser.read_next piq_parser ~skip_trailing_comma:true with
             | Some ast -> ast
             | None -> raise Piqi_convert.EOF
         in
@@ -135,7 +150,13 @@ let speclist = Main.common_speclist @
     "normalize all words while pretty-printing (convert CamelCase to camel-case)";
 
     "--expand-abbr", Arg.Set flag_expand_abbr,
-    "expand built-in syntax abbreviations";
+    "expand built-in syntax abbreviations, equivalent to --expand-names --expand-splices";
+
+    "--expand-names", Arg.Set flag_expand_names,
+    "expand chained names, e.g. .foo.bar ...";
+
+    "--expand-splices", Arg.Set flag_expand_splices,
+    "expand splices, e.g. foo* [ ... ]";
 
     "--parse-literals", Arg.Set flag_parse_literals,
     "deprecated: this option has no effect";
@@ -151,6 +172,13 @@ let speclist = Main.common_speclist @
 
 let run () =
   Main.parse_args () ~speclist ~usage ~min_arg_count:0 ~max_arg_count:2;
+
+  if !flag_expand_abbr
+  then (
+    flag_expand_names := true;
+    flag_expand_splices := true;
+  );
+
   prettyprint_file ()
 
  

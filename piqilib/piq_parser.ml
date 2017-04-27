@@ -180,7 +180,7 @@ let expand_names (x: piq_ast) :piq_ast =
       | `list l ->
           `list (List.map aux l)
       | `form (name, args) ->
-          (* at this stage, after we've run expand_forms, this can not be a
+          (* at this stage, after we've run expand_splices, this can not be a
            * named or typed form, so leaving name without a transformation *)
           `form (name, List.map aux args)
       | _ ->
@@ -220,8 +220,8 @@ let cons_named_or_typed name v =
         cons_typed n v
 
 
-(* expand named and typed forms *)
-let expand_forms (x: piq_ast) :piq_ast =
+(* expand named and typed splices *)
+let expand_splices (x: piq_ast) :piq_ast =
   let rec aux0 obj =
     match obj with
       | `form (name, args) when args = [] ->
@@ -283,13 +283,13 @@ let expand_forms (x: piq_ast) :piq_ast =
 
 (* expand built-in syntax abbreviations *)
 let expand x =
-  (* expand (...) when possible *)
-  let x = expand_forms x in
+  (* expand (.foo ...) or .foo* [ ... ] when possible *)
+  let x = expand_splices x in
   (* expand multi-component names *)
   let x = expand_names x in
   (*
     (* check if expansion produces correct location bindings *)
-    let x = expand_forms x in
+    let x = expand_splices x in
     let x = expand_names x in
   *)
   x
@@ -377,7 +377,7 @@ let parse_number s =
  * a simple piq parser
  *)
 
-let read_next ?(expand_abbr=true) ?(skip_trailing_comma=false) (fname, lexstream) =
+let read_next ?(skip_trailing_comma=false) (fname, lexstream) =
   let location = ref (0,0) in
   let loc () =
     let line, col = !location in
@@ -586,11 +586,7 @@ let read_next ?(expand_abbr=true) ?(skip_trailing_comma=false) (fname, lexstream
           let ast = parse_common t in
           (* skip an optional trailing comma *)
           if skip_trailing_comma && peek_token () = L.Comma then junk_token ();
-          let res =
-            if expand_abbr
-            then expand ast (* expand built-in syntax abbreviations *)
-            else ast (* return as it is *)
-          in Some res
+          Some ast
   in
   try parse_top ()
   with L.Error (s, (line, col)) ->
@@ -598,9 +594,9 @@ let read_next ?(expand_abbr=true) ?(skip_trailing_comma=false) (fname, lexstream
     error_at (fname, line, col) s
 
 
-let read_all ?(expand_abbr=true) piq_parser =
+let read_all piq_parser =
   let rec aux accu =
-    match read_next piq_parser ~expand_abbr ~skip_trailing_comma:true with
+    match read_next piq_parser ~skip_trailing_comma:true with
       | None -> List.rev accu
       | Some x ->
           aux (x::accu)

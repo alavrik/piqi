@@ -685,8 +685,8 @@ let check_defs ~piqi idtable defs =
 
 
 let read_piqi_common fname piq_parser :piq_ast =
-  (* don't expand abbreviations until we construct the containing object *)
-  let res = Piq_parser.read_all piq_parser ~expand_abbr:false in
+  (* NOTE: not expanding abbreviations until we construct the containing object *)
+  let res = Piq_parser.read_all piq_parser in
 
   if res = []
   then piqi_warning ("piqi file is empty: " ^ fname);
@@ -967,7 +967,7 @@ let apply_extensions obj obj_def obj_parse_f obj_gen_f extension_entries custom_
   (* Piqloc.trace := false; *)
   debug "apply_extensions(0)\n";
   let obj_ast = mlobj_to_ast obj_def obj_gen_f obj in
-  let extension_asts = List.map Piqobj.piq_of_piqi_any extension_entries in
+  let extension_asts = List.map (fun x -> Piq_parser.expand (Piqobj.piq_of_piqi_any x)) extension_entries in
 
   let override l =
     if not override

@@ -179,6 +179,7 @@ let load_piq_from_ast (user_piqtype: T.piqtype option) ast :obj =
 
 let load_piq (user_piqtype: T.piqtype option) ?(skip_trailing_comma=false) piq_parser :obj =
   let ast = read_piq_ast piq_parser user_piqtype ~skip_trailing_comma in
+  let ast = Piq_parser.expand ast in
   load_piq_from_ast user_piqtype ast
 
 

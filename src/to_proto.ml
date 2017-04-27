@@ -207,6 +207,7 @@ let gen_default x =
   match x.default, x.piqtype with
     | Some any, Some piqtype ->
         let ast = Piqobj.piq_of_piqi_any any in
+        let ast = Piq_parser.expand ast in
         let piqobj = Piqobj_of_piq.parse_obj piqtype ast in
         gen_default_obj piqobj
     | _, _ -> iol [] (* there is no default *)

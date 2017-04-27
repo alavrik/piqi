@@ -387,6 +387,7 @@ let parse_args (piqtype: T.piqtype) (args: piq_ast list) :Piqobj.obj =
           let loc = (getopt_filename, 0, 1) in
           Piqloc.addlocret loc res
   in
+  let ast = Piq_parser.expand ast in
   let piqobj = U.with_bool Config.piq_relaxed_parsing true
     (fun () -> Piqobj_of_piq.parse_obj piqtype ast)
   in

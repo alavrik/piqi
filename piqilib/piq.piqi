@@ -48,6 +48,9 @@
         .name list
         .type piq-list
     ]
+    .option [
+        .type splice
+    ]
 ]
 
 
@@ -102,6 +105,18 @@
     .field [
         .name value
         .type piq-node
+    ]
+]
+
+
+.record [
+    .name splice
+
+    .field [ .type name ]
+    .field [
+        .name item
+        .type piq-node
+        .repeated
     ]
 ]
 
