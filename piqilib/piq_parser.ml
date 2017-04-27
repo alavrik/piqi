@@ -559,16 +559,16 @@ let read_next ?(skip_trailing_comma=false) (fname, lexstream) =
   and parse_list () =
     let startloc = loc () in
     (* parse list elements until ] *)
-    let l = parse_elements L.Rbr ~optional_commas:true in
+    let l = parse_elements L.Rbr in
     let res = `list l in
     Piqloc.addloc startloc l;
     Piqloc.addret res
 
-  and parse_elements ?(optional_commas=false) closing_token =
+  and parse_elements closing_token =
     let parse_element t =
       let node = parse_common t in
       (* skip an optional comma *)
-      if optional_commas && peek_token () = L.Comma then junk_token ();
+      if peek_token () = L.Comma then junk_token ();
       node
     in
     let rec aux accu =
