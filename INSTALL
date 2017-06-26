@@ -110,8 +110,8 @@ RUNNING TESTS
 See tests/README for further information.
 
 
-CROSS-COMPILATION
-=================
+CROSS-COMPILATION (OLD)
+=======================
 
 To build a Windows (win32) executable on Linux:
 
@@ -139,3 +139,23 @@ To build a Windows (win32) executable on Linux:
         make
         make strip  # optional
 
+
+CROSS-COMPILATION (NEW)
+=======================
+
+To build a Windows (win64) executable on Linux/MacOsX:
+
+
+1. Install OCaml cross-compiler
+
+  Follow instructions here: https://github.com/whitequark/opam-cross-windows
+
+  Make sure to use 64-bit comiler as 32-bit build is currently failing:
+  https://github.com/ocaml/opam-repository/issues/6925
+
+2. Build
+
+        ./configure --toolchain windows
+        make deps
+        make
+        make strip  # optional

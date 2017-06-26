@@ -15,6 +15,7 @@ echo "
 Configuration:
   -h, --help              display this help and exit
   --host HOST             cross-compile toolchain prefix, e.g. i686-w64-mingw32
+  --toolchain NAME        cross-compile toolchain name, e.g. windows
 
 Installation directories:
   --prefix PREFIX         install piqi executables in PREFIX/bin/
@@ -41,6 +42,9 @@ do
     case "$opt" in
         --prefix | --prefix=*)
             PREFIX="$opt_value"
+            ;;
+        --toolchain | --toolchain=*)
+            TOOLCHAIN="$opt_value"
             ;;
         --ocaml-libdir | --ocaml-libdir=*)
             OCAML_LIBDIR="$opt_value"
@@ -99,12 +103,20 @@ echo "export PIQI_PATH := \$(PIQI_ROOT)" >> $M
 echo "export PIQI := \$(PIQI_ROOT)/src/piqi" >> $M
 echo >> $M
 
-# we have to define these for cross-compilation
-if [ -n "$SYSTEM_HOST" ]
+if [ -n "$SYSTEM_HOST" ]  # cross-compilation
 then
     echo "export OCAMLFIND := $SYSTEM_HOST-ocamlfind" >> $M
     echo "export AR := $SYSTEM_HOST-ar" >> $M
     echo "STRIP := $SYSTEM_HOST-strip" >> $M
+
+    # skipping everything else in cross-compilation mode; namely, we have to
+    # cross-compile deps that come with the package
+    echo "export SYSTEM := unix" >> $M
+elif [ -n "$TOOLCHAIN" ]  # another, more modern cross-compilation method
+then
+    echo "export OCAMLFIND_TOOLCHAIN := $TOOLCHAIN" >> $M
+    echo "export AR = \$(shell ocamlfind -toolchain $TOOLCHAIN ocamlopt -c -ccopt --print-prog-name=ar .c 2>/dev/null)" >> $M
+    echo "STRIP = \$(shell ocamlfind -toolchain $TOOLCHAIN ocamlopt -c -ccopt --print-prog-name=strip .c 2>/dev/null)" >> $M
 
     # skipping everything else in cross-compilation mode; namely, we have to
     # cross-compile deps that come with the package

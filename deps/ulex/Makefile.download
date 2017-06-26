@@ -5,8 +5,7 @@ MD5 := ce49a013bc4a0e085977a9fe157017bf
 
 UPSTREAM_FILES := \
 	cset.ml ulexing.ml ulexing.mli ulex.ml ulex.mli utf8.ml utf8.mli utf16.ml utf16.mli \
-        pa_ulex.ml \
-	META
+        pa_ulex.ml
 
 
 UPSTREAM_DIR := upstream

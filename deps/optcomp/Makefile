@@ -1,4 +1,5 @@
 OCAMLMAKEFILE := ../../make/OCamlMakefile
+unexport OCAMLFIND_TOOLCHAIN
 
 
 RESULT = optcomp
