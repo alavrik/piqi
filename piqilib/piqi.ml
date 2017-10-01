@@ -565,38 +565,54 @@ let add_fake_loc (obj :Piqobj.obj) =
         ()
 
 
+let resolve_default_value piqi_any piqtype =
+  assert_loc ();
+  debug_loc "resolve_default_value(0)";
+
+  let any = Piqobj.any_of_piqi_any piqi_any in
+  Piqobj.resolve_obj any ~piqtype;
+
+  (* make sure we add fake locations for the default values of the
+   * embedded self-specifications; currently, there's only one such value
+   * which is field.mode = required *)
+  if !is_boot_mode
+  then add_fake_loc (some_of any.Piqobj.Any.obj);
+
+  (* NOTE: fixing (preserving) location counters which get skewed during
+   * parsing defaults *)
+  Piqloc.icount := !Piqloc.ocount;
+  debug_loc "resolve_default_value(1)";
+  ()
+
+
 let resolve_field_default x =
   let open F in
   match x.default, x.piqtype with
     | None, _ -> () (* no default *)
     | Some piqi_any, Some piqtype ->
-        assert_loc ();
-        debug_loc "resolve_default_value(0)";
-
-        let any = Piqobj.any_of_piqi_any piqi_any in
-
         debug "resolve_field_default: %s\n" (C.name_of_field x);
-        Piqobj.resolve_obj any ~piqtype;
+        resolve_default_value piqi_any piqtype
+    | _ ->
+        assert false
 
-        (* make sure we add fake locations for the default values of the
-         * embedded self-specifications; currently, there's only one such value
-         * which is field.mode = required *)
-        if !is_boot_mode
-        then add_fake_loc (some_of any.Piqobj.Any.obj);
 
-        (* NOTE: fixing (preserving) location counters which get skewed during
-         * parsing defaults *)
-        Piqloc.icount := !Piqloc.ocount;
-        debug_loc "resolve_default_value(1)";
-        ()
+let resolve_field_piq_flag_default x =
+  let open F in
+  match x.piq_flag_default, x.piqtype with
+    | None, _ -> () (* no default *)
+    | Some piqi_any, Some piqtype ->
+        debug "resolve_field_default: %s\n" (C.name_of_field x);
+        resolve_default_value piqi_any piqtype
     | _ ->
         assert false
 
 
 let resolve_defaults = function
   | `record x ->
-      List.iter resolve_field_default x.R.field
-  | _ -> ()
+      List.iter resolve_field_default x.R.field;
+      List.iter resolve_field_piq_flag_default x.R.field
+  | _ ->
+      ()
 
 
 let copy_obj (x:'a) :'a =
@@ -644,6 +660,28 @@ let copy_defs ?(copy_parts=true) defs = List.map (copy_def ~copy_parts) defs
 let copy_imports l = List.map copy_obj l
 
 
+let transform_flag x =
+  let open F in
+
+  if x.typename = None
+  then (
+    x.typename <- Some "bool";
+    x.default <- Some (Piqobj.make_piqi_any_from_obj (`bool false));
+  );
+
+  if x.typename = Some "bool" && x.piq_flag_default = None
+  then (
+    x.piq_flag_default <- Some (Piqobj.make_piqi_any_from_obj (`bool true));
+  )
+
+
+let transform_flags = function
+  | `record x ->
+      List.iter transform_flag x.R.field
+  | _ ->
+      ()
+
+
 let resolve_defs ~piqi idtable (defs:T.typedef list) =
   (*
   (* a fresh copy of defs is needed, since we can't alter the original ones:
@@ -652,6 +690,12 @@ let resolve_defs ~piqi idtable (defs:T.typedef list) =
 
   (* check definitions validity *)
   List.iter check_def defs;
+
+  (* transform piq flags (i.e. .name ... .optional) into boolean fields:
+   *
+   *   .name ... .optional .type bool .default false .piq-flag-default true
+   *)
+  List.iter transform_flags defs;
 
   (* add definitions to the map: def name -> def *)
   let idtable = add_typedefs idtable defs in
@@ -2174,7 +2218,13 @@ let expand_piqi ~extensions ~functions piqi =
 let lang_to_spec piqi =
   let open P in
   (* expand includes, extensions and functions *)
-  expand_piqi piqi ~extensions:true ~functions:true
+  let res_piqi = expand_piqi piqi ~extensions:true ~functions:true in
+  (* transform piq flags (i.e. .name ... .optional) into boolean fields:
+   *
+   *   .name ... .optional .type bool .default false .piq-flag-default true
+   *)
+  List.iter transform_flags res_piqi.typedef;
+  res_piqi
 
 
 (* is_external_mode=true means that defaults and potentially other piqi-any

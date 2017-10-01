@@ -162,25 +162,8 @@ and do_parse_record loc t l =
 
 
 and parse_field loc (accu, rem) t =
-  let fields, rem =
-    match t.T.Field.piqtype with
-      | None -> do_parse_flag t rem
-      | Some _ -> do_parse_field loc t rem
-  in
+  let fields, rem = do_parse_field loc t rem in
   (List.rev_append fields accu, rem)
-
-
-and do_parse_flag t l =
-  let open T.Field in
-  let name = some_of t.json_name in
-  debug "do_parse_flag: %s\n" name;
-  let res, rem = find_flags name l in
-  match res with
-    | [] -> [], rem
-    | [x] ->
-        let res = F.({t = t; obj = None}) in
-        [res], rem
-    | _::o::_ -> error_duplicate o name
 
 
 and do_parse_field loc t l =
@@ -219,19 +202,6 @@ and find_fields (name:string) (l:(string*json) list) :(json list * (string*json)
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
     | (n, v)::t when n = name -> aux (v::accu) rem t
-    | h::t -> aux accu (h::rem) t
-  in
-  aux [] [] l
-
-
-(* find flags by name, return found flags and remaining fields *)
-and find_flags (name:string) (l:(string*json) list) :(string list * (string*json) list) =
-  let rec aux accu rem = function
-    | [] -> List.rev accu, List.rev rem
-    | (n, `Bool true)::t when n = name -> aux (n::accu) rem t
-    | (n, `Null ())::t when n = name -> aux accu rem t (* skipping *)
-    | (n, _)::t when n = name ->
-        error n ("value can not be specified for flag " ^ U.quote n)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l

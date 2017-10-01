@@ -141,6 +141,7 @@ and Field:
       mutable unparsed_piq_ast: Piqi_impl_piqi.uint option;
       mutable piq_format: Piqi_impl_piqi.piq_format option;
       mutable piq_positional: bool option;
+      mutable piq_flag_default: Piqi_impl_piqi.piqi_any option;
       mutable piq_alias: Piqi_impl_piqi.name option;
       mutable protobuf_name: string option;
       mutable code: int32 option;
@@ -149,6 +150,7 @@ and Field:
       mutable json_omit_missing: bool option;
       mutable getopt_letter: Piqi_impl_piqi.word option;
       mutable getopt_doc: string option;
+      mutable internal: bool;
       mutable proto_name: string option;
       mutable wire_packed: bool;
     }
@@ -335,10 +337,6 @@ let refer ref obj =
         if not (Obj.is_int (Obj.repr obj))
         then Piqloc.addrefret ref obj
         else obj
-let incr_count_if_true ((obj, _) as res) =
-        if obj then ignore(next_count());
-        res
-
 let rec parse_namespace x =
   let code, x = Piqirun.parse_variant x in
   let count = next_count() in refer count (
@@ -521,13 +519,13 @@ and parse_record x =
   let _field, x = Piqirun.parse_repeated_field 9671866 parse_field x in
   let _protobuf_name, x = Piqirun.parse_optional_field 90072013 parse_string x in
   let _protobuf_custom, x = Piqirun.parse_repeated_field 112352691 parse_string x in
-  let _wire_field, x = Piqirun.parse_repeated_field 112412530 parse_field x in
+  let _wire_field = [] in
   let _proto_name, x = Piqirun.parse_optional_field 139663632 parse_string x in
   let _name, x = Piqirun.parse_optional_field 150958667 parse_name x in
   let _piq_allow_unnesting, x = Piqirun.parse_optional_field 172744920 parse_bool x in
   let _piq_positional, x = Piqirun.parse_optional_field 197354217 parse_bool x in
-  let _parent, x = Piqirun.parse_optional_field 226362666 parse_namespace x in
-  let _is_func_param, x = incr_count_if_true ( Piqirun.parse_flag 367658567 x ) in
+  let _parent = None in
+  let _is_func_param = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res) in
   let _proto_custom, x = Piqirun.parse_repeated_field 405875126 parse_string x in
   let _json_name, x = Piqirun.parse_optional_field 515275216 parse_string x in
   Piqirun.check_unparsed_fields x;
@@ -552,19 +550,21 @@ and parse_field x =
   let count = next_count() in refer count (
   let _unparsed_piq_ast, x = Piqirun.parse_optional_field 1 parse_uint x in
   let _code, x = Piqirun.parse_optional_field 29667629 parse_int32 x in
-  let _deprecated, x = incr_count_if_true ( Piqirun.parse_flag 69402483 x ) in
+  let _deprecated, x = Piqirun.parse_required_field 69402483 parse_bool x ~default:"\b\000" in
   let _protobuf_name, x = Piqirun.parse_optional_field 90072013 parse_string x in
+  let _piq_flag_default, x = Piqirun.parse_optional_field 112451637 parse_piqi_any x in
   let _proto_name, x = Piqirun.parse_optional_field 139663632 parse_string x in
   let _mode, x = Piqirun.parse_required_field 140563299 parse_field_mode x ~default:"\b\223\162\138\147\001" in
+  let _internal, x = Piqirun.parse_required_field 141977405 parse_bool x ~default:"\b\000" in
   let _name, x = Piqirun.parse_optional_field 150958667 parse_name x in
-  let _piqtype, x = Piqirun.parse_optional_field 170743570 parse_piqtype x in
-  let _protobuf_packed, x = incr_count_if_true ( Piqirun.parse_flag 179842426 x ) in
+  let _piqtype = None in
+  let _protobuf_packed, x = Piqirun.parse_required_field 179842426 parse_bool x ~default:"\b\000" in
   let _piq_positional, x = Piqirun.parse_optional_field 197354217 parse_bool x in
   let _json_omit_missing, x = Piqirun.parse_optional_field 201807079 parse_bool x in
   let _getopt_letter, x = Piqirun.parse_optional_field 215188758 parse_word x in
   let _typename, x = Piqirun.parse_optional_field 218690234 parse_typename x in
   let _piq_format, x = Piqirun.parse_optional_field 296833484 parse_piq_format x in
-  let _wire_packed, x = incr_count_if_true ( Piqirun.parse_flag 422905280 x ) in
+  let _wire_packed, x = Piqirun.parse_required_field 422905280 parse_bool x ~default:"\b\000" in
   let _piq_alias, x = Piqirun.parse_optional_field 434682011 parse_name x in
   let _getopt_doc, x = Piqirun.parse_optional_field 442330184 parse_string x in
   let _default, x = Piqirun.parse_optional_field 465819841 parse_piqi_any x in
@@ -575,8 +575,10 @@ and parse_field x =
     Field.code = _code;
     Field.deprecated = _deprecated;
     Field.protobuf_name = _protobuf_name;
+    Field.piq_flag_default = _piq_flag_default;
     Field.proto_name = _proto_name;
     Field.mode = _mode;
+    Field.internal = _internal;
     Field.name = _name;
     Field.piqtype = _piqtype;
     Field.protobuf_packed = _protobuf_packed;
@@ -616,8 +618,8 @@ and parse_variant x =
   let _proto_name, x = Piqirun.parse_optional_field 139663632 parse_string x in
   let _name, x = Piqirun.parse_optional_field 150958667 parse_name x in
   let _option, x = Piqirun.parse_repeated_field 192598901 parse_option x in
-  let _parent, x = Piqirun.parse_optional_field 226362666 parse_namespace x in
-  let _is_func_param, x = incr_count_if_true ( Piqirun.parse_flag 367658567 x ) in
+  let _parent = None in
+  let _is_func_param = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res) in
   let _proto_custom, x = Piqirun.parse_repeated_field 405875126 parse_string x in
   let _json_name, x = Piqirun.parse_optional_field 515275216 parse_string x in
   Piqirun.check_unparsed_fields x;
@@ -639,11 +641,11 @@ and parse_option x =
   let count = next_count() in refer count (
   let _unparsed_piq_ast, x = Piqirun.parse_optional_field 1 parse_uint x in
   let _code, x = Piqirun.parse_optional_field 29667629 parse_int32 x in
-  let _deprecated, x = incr_count_if_true ( Piqirun.parse_flag 69402483 x ) in
+  let _deprecated, x = Piqirun.parse_required_field 69402483 parse_bool x ~default:"\b\000" in
   let _protobuf_name, x = Piqirun.parse_optional_field 90072013 parse_string x in
   let _proto_name, x = Piqirun.parse_optional_field 139663632 parse_string x in
   let _name, x = Piqirun.parse_optional_field 150958667 parse_name x in
-  let _piqtype, x = Piqirun.parse_optional_field 170743570 parse_piqtype x in
+  let _piqtype = None in
   let _getopt_letter, x = Piqirun.parse_optional_field 215188758 parse_word x in
   let _typename, x = Piqirun.parse_optional_field 218690234 parse_typename x in
   let _piq_format, x = Piqirun.parse_optional_field 296833484 parse_piq_format x in
@@ -676,9 +678,9 @@ and parse_enum x =
   let _proto_name, x = Piqirun.parse_optional_field 139663632 parse_string x in
   let _name, x = Piqirun.parse_optional_field 150958667 parse_name x in
   let _option, x = Piqirun.parse_repeated_field 192598901 parse_option x in
-  let _parent, x = Piqirun.parse_optional_field 226362666 parse_namespace x in
+  let _parent = None in
   let _protobuf_prefix, x = Piqirun.parse_optional_field 366391188 parse_string x in
-  let _is_func_param, x = incr_count_if_true ( Piqirun.parse_flag 367658567 x ) in
+  let _is_func_param = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res) in
   let _proto_custom, x = Piqirun.parse_repeated_field 405875126 parse_string x in
   let _json_name, x = Piqirun.parse_optional_field 515275216 parse_string x in
   Piqirun.check_unparsed_fields x;
@@ -704,13 +706,13 @@ and parse_alias x =
   let _proto_name, x = Piqirun.parse_optional_field 139663632 parse_string x in
   let _name, x = Piqirun.parse_optional_field 150958667 parse_name x in
   let _protobuf_type, x = Piqirun.parse_optional_field 157803580 parse_string x in
-  let _piqtype, x = Piqirun.parse_optional_field 170743570 parse_piqtype x in
+  let _piqtype = None in
   let _protobuf_wire_type, x = Piqirun.parse_optional_field 198202944 parse_protobuf_wire_type x in
   let _piqi_type, x = Piqirun.parse_optional_field 198318774 parse_piqi_type x in
   let _typename, x = Piqirun.parse_optional_field 218690234 parse_typename x in
-  let _parent, x = Piqirun.parse_optional_field 226362666 parse_namespace x in
+  let _parent = None in
   let _piq_format, x = Piqirun.parse_optional_field 296833484 parse_piq_format x in
-  let _is_func_param, x = incr_count_if_true ( Piqirun.parse_flag 367658567 x ) in
+  let _is_func_param = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res) in
   let _json_name, x = Piqirun.parse_optional_field 515275216 parse_string x in
   Piqirun.check_unparsed_fields x;
   {
@@ -737,14 +739,14 @@ and parse_piqi_list x =
   let _protobuf_custom, x = Piqirun.parse_repeated_field 112352691 parse_string x in
   let _proto_name, x = Piqirun.parse_optional_field 139663632 parse_string x in
   let _name, x = Piqirun.parse_optional_field 150958667 parse_name x in
-  let _piqtype, x = Piqirun.parse_optional_field 170743570 parse_piqtype x in
-  let _protobuf_packed, x = incr_count_if_true ( Piqirun.parse_flag 179842426 x ) in
+  let _piqtype = None in
+  let _protobuf_packed, x = Piqirun.parse_required_field 179842426 parse_bool x ~default:"\b\000" in
   let _typename, x = Piqirun.parse_required_field 218690234 parse_typename x in
-  let _parent, x = Piqirun.parse_optional_field 226362666 parse_namespace x in
+  let _parent = None in
   let _piq_format, x = Piqirun.parse_optional_field 296833484 parse_piq_format x in
-  let _is_func_param, x = incr_count_if_true ( Piqirun.parse_flag 367658567 x ) in
+  let _is_func_param = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res) in
   let _proto_custom, x = Piqirun.parse_repeated_field 405875126 parse_string x in
-  let _wire_packed, x = incr_count_if_true ( Piqirun.parse_flag 422905280 x ) in
+  let _wire_packed, x = Piqirun.parse_required_field 422905280 parse_bool x ~default:"\b\000" in
   let _json_name, x = Piqirun.parse_optional_field 515275216 parse_string x in
   Piqirun.check_unparsed_fields x;
   {
@@ -768,31 +770,31 @@ and parse_piqi x =
   let x = Piqirun.parse_record x in
   let count = next_count() in refer count (
   let _unparsed_piq_ast, x = Piqirun.parse_optional_field 1 parse_uint x in
-  let _ast, x = Piqirun.parse_optional_field 4849474 parse_piq_ast x in
+  let _ast = None in
   let _modname, x = Piqirun.parse_optional_field 13841580 parse_word x in
-  let _imported_typedef, x = Piqirun.parse_repeated_field 43698114 parse_typedef x in
+  let _imported_typedef = [] in
   let _file, x = Piqirun.parse_optional_field 62639740 parse_string x in
-  let _extended_func, x = Piqirun.parse_repeated_field 79393432 parse_func x in
+  let _extended_func = [] in
   let _protobuf_custom, x = Piqirun.parse_repeated_field 112352691 parse_string x in
-  let _resolved_import, x = Piqirun.parse_repeated_field 114029658 parse_import x in
+  let _resolved_import = [] in
   let _extend, x = Piqirun.parse_repeated_field 119198170 parse_extend x in
   let _import, x = Piqirun.parse_repeated_field 142778725 parse_import x in
-  let _included_piqi, x = Piqirun.parse_repeated_field 146026754 parse_piqi x in
-  let _extended_typedef, x = Piqirun.parse_repeated_field 150338679 parse_typedef x in
+  let _included_piqi = [] in
+  let _extended_typedef = [] in
   let _custom_field, x = Piqirun.parse_repeated_field 162247646 parse_word x in
-  let _is_embedded, x = Piqirun.parse_optional_field 260007309 parse_bool x in
-  let _resolved_func, x = Piqirun.parse_repeated_field 268445433 parse_func x in
+  let _is_embedded = None in
+  let _resolved_func = [] in
   let _includ, x = Piqirun.parse_repeated_field 301399592 parse_includ x in
-  let _func_typedef, x = Piqirun.parse_repeated_field 301864450 parse_typedef x in
+  let _func_typedef = [] in
   let _proto_package, x = Piqirun.parse_optional_field 333467105 parse_string x in
   let _func, x = Piqirun.parse_repeated_field 340962072 parse_func x in
   let _protobuf_package, x = Piqirun.parse_optional_field 376215364 parse_string x in
   let _proto_custom, x = Piqirun.parse_repeated_field 405875126 parse_string x in
   let _typedef, x = Piqirun.parse_repeated_field 416823115 parse_typedef x in
-  let _extended_import, x = Piqirun.parse_repeated_field 430482873 parse_import x in
-  let _resolved_typedef, x = Piqirun.parse_repeated_field 448232118 parse_typedef x in
-  let _original_piqi, x = Piqirun.parse_optional_field 455316941 parse_piqi x in
-  let _extended_func_typedef, x = Piqirun.parse_repeated_field 512364886 parse_typedef x in
+  let _extended_import = [] in
+  let _resolved_typedef = [] in
+  let _original_piqi = None in
+  let _extended_func_typedef = [] in
   Piqirun.check_unparsed_fields x;
   {
     Piqi.unparsed_piq_ast = _unparsed_piq_ast;
@@ -828,9 +830,9 @@ and parse_import x =
   let count = next_count() in refer count (
   let _unparsed_piq_ast, x = Piqirun.parse_optional_field 1 parse_uint x in
   let _modname, x = Piqirun.parse_required_field 13841580 parse_word x in
-  let _orig_modname, x = Piqirun.parse_optional_field 65590849 parse_string x in
+  let _orig_modname = None in
   let _name, x = Piqirun.parse_optional_field 150958667 parse_name x in
-  let _piqi, x = Piqirun.parse_optional_field 173536529 parse_piqi x in
+  let _piqi = None in
   Piqirun.check_unparsed_fields x;
   {
     Import.unparsed_piq_ast = _unparsed_piq_ast;
@@ -863,12 +865,12 @@ and parse_func x =
   let x = Piqirun.parse_record x in
   let count = next_count() in refer count (
   let _unparsed_piq_ast, x = Piqirun.parse_optional_field 1 parse_uint x in
-  let _resolved_input, x = Piqirun.parse_optional_field 95864501 parse_typedef x in
+  let _resolved_input = None in
   let _name, x = Piqirun.parse_required_field 150958667 parse_name x in
-  let _resolved_output, x = Piqirun.parse_optional_field 181035510 parse_typedef x in
+  let _resolved_output = None in
   let _output, x = Piqirun.parse_optional_field 209784577 parse_function_param x in
   let _error, x = Piqirun.parse_optional_field 321506248 parse_function_param x in
-  let _resolved_error, x = Piqirun.parse_optional_field 448974451 parse_typedef x in
+  let _resolved_error = None in
   let _input, x = Piqirun.parse_optional_field 505267210 parse_function_param x in
   Piqirun.check_unparsed_fields x;
   {
@@ -931,7 +933,7 @@ and parse_extend x =
   let x = Piqirun.parse_record x in
   let count = next_count() in refer count (
   let _unparsed_piq_ast, x = Piqirun.parse_optional_field 1 parse_uint x in
-  let _override, x = incr_count_if_true ( Piqirun.parse_flag 153625164 x ) in
+  let _override, x = Piqirun.parse_required_field 153625164 parse_bool x ~default:"\b\000" in
   let _what, x = Piqirun.parse_repeated_field 251110212 parse_extend_target x in
   let _piqi_with, x = Piqirun.parse_repeated_field 251164166 parse_piqi_any x in
   let _quote, x = Piqirun.parse_repeated_field 365880944 parse_piqi_any x in
@@ -977,11 +979,6 @@ let refer obj =
         then Piqloc.addref obj count
 let reference f code x = refer x; f code x
 let reference1 f x = refer x; f x
-let reference_if_true f code x =
-        if x
-        then reference f code x
-        else f code x
-
 let rec gen__namespace code (x:Piqi_impl_piqi.namespace) =
   refer x;
   Piqirun.gen_record code [(match x with
@@ -1135,39 +1132,37 @@ and gen__record code x =
   let _field = Piqirun.gen_repeated_field 9671866 gen__field x.Record.field in
   let _protobuf_name = Piqirun.gen_optional_field 90072013 gen__string x.Record.protobuf_name in
   let _protobuf_custom = Piqirun.gen_repeated_field 112352691 gen__string x.Record.protobuf_custom in
-  let _wire_field = Piqirun.gen_repeated_field 112412530 gen__field x.Record.wire_field in
   let _proto_name = Piqirun.gen_optional_field 139663632 gen__string x.Record.proto_name in
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Record.name in
   let _piq_allow_unnesting = Piqirun.gen_optional_field 172744920 gen__bool x.Record.piq_allow_unnesting in
   let _piq_positional = Piqirun.gen_optional_field 197354217 gen__bool x.Record.piq_positional in
-  let _parent = Piqirun.gen_optional_field 226362666 gen__namespace x.Record.parent in
-  let _is_func_param = reference_if_true  Piqirun.gen_flag 367658567 x.Record.is_func_param in
   let _proto_custom = Piqirun.gen_repeated_field 405875126 gen__string x.Record.proto_custom in
   let _json_name = Piqirun.gen_optional_field 515275216 gen__string x.Record.json_name in
-  Piqirun.gen_record code (_unparsed_piq_ast :: _field :: _protobuf_name :: _protobuf_custom :: _wire_field :: _proto_name :: _name :: _piq_allow_unnesting :: _piq_positional :: _parent :: _is_func_param :: _proto_custom :: _json_name :: [])
+  Piqirun.gen_record code (_unparsed_piq_ast :: _field :: _protobuf_name :: _protobuf_custom :: _proto_name :: _name :: _piq_allow_unnesting :: _piq_positional :: _proto_custom :: _json_name :: [])
 
 and gen__field code x =
   refer x;
   let _unparsed_piq_ast = Piqirun.gen_optional_field 1 gen__uint x.Field.unparsed_piq_ast in
   let _code = Piqirun.gen_optional_field 29667629 gen__int32 x.Field.code in
-  let _deprecated = reference_if_true  Piqirun.gen_flag 69402483 x.Field.deprecated in
+  let _deprecated = Piqirun.gen_required_field 69402483 gen__bool x.Field.deprecated in
   let _protobuf_name = Piqirun.gen_optional_field 90072013 gen__string x.Field.protobuf_name in
+  let _piq_flag_default = Piqirun.gen_optional_field 112451637 gen__piqi_any x.Field.piq_flag_default in
   let _proto_name = Piqirun.gen_optional_field 139663632 gen__string x.Field.proto_name in
   let _mode = Piqirun.gen_required_field 140563299 gen__field_mode x.Field.mode in
+  let _internal = Piqirun.gen_required_field 141977405 gen__bool x.Field.internal in
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Field.name in
-  let _piqtype = Piqirun.gen_optional_field 170743570 gen__piqtype x.Field.piqtype in
-  let _protobuf_packed = reference_if_true  Piqirun.gen_flag 179842426 x.Field.protobuf_packed in
+  let _protobuf_packed = Piqirun.gen_required_field 179842426 gen__bool x.Field.protobuf_packed in
   let _piq_positional = Piqirun.gen_optional_field 197354217 gen__bool x.Field.piq_positional in
   let _json_omit_missing = Piqirun.gen_optional_field 201807079 gen__bool x.Field.json_omit_missing in
   let _getopt_letter = Piqirun.gen_optional_field 215188758 gen__word x.Field.getopt_letter in
   let _typename = Piqirun.gen_optional_field 218690234 gen__typename x.Field.typename in
   let _piq_format = Piqirun.gen_optional_field 296833484 gen__piq_format x.Field.piq_format in
-  let _wire_packed = reference_if_true  Piqirun.gen_flag 422905280 x.Field.wire_packed in
+  let _wire_packed = Piqirun.gen_required_field 422905280 gen__bool x.Field.wire_packed in
   let _piq_alias = Piqirun.gen_optional_field 434682011 gen__name x.Field.piq_alias in
   let _getopt_doc = Piqirun.gen_optional_field 442330184 gen__string x.Field.getopt_doc in
   let _default = Piqirun.gen_optional_field 465819841 gen__piqi_any x.Field.default in
   let _json_name = Piqirun.gen_optional_field 515275216 gen__string x.Field.json_name in
-  Piqirun.gen_record code (_unparsed_piq_ast :: _code :: _deprecated :: _protobuf_name :: _proto_name :: _mode :: _name :: _piqtype :: _protobuf_packed :: _piq_positional :: _json_omit_missing :: _getopt_letter :: _typename :: _piq_format :: _wire_packed :: _piq_alias :: _getopt_doc :: _default :: _json_name :: [])
+  Piqirun.gen_record code (_unparsed_piq_ast :: _code :: _deprecated :: _protobuf_name :: _piq_flag_default :: _proto_name :: _mode :: _internal :: _name :: _protobuf_packed :: _piq_positional :: _json_omit_missing :: _getopt_letter :: _typename :: _piq_format :: _wire_packed :: _piq_alias :: _getopt_doc :: _default :: _json_name :: [])
 
 and gen__field_mode code x =
   refer x;
@@ -1192,28 +1187,25 @@ and gen__variant code x =
   let _proto_name = Piqirun.gen_optional_field 139663632 gen__string x.Variant.proto_name in
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Variant.name in
   let _option = Piqirun.gen_repeated_field 192598901 gen__option x.Variant.option in
-  let _parent = Piqirun.gen_optional_field 226362666 gen__namespace x.Variant.parent in
-  let _is_func_param = reference_if_true  Piqirun.gen_flag 367658567 x.Variant.is_func_param in
   let _proto_custom = Piqirun.gen_repeated_field 405875126 gen__string x.Variant.proto_custom in
   let _json_name = Piqirun.gen_optional_field 515275216 gen__string x.Variant.json_name in
-  Piqirun.gen_record code (_unparsed_piq_ast :: _protobuf_name :: _protobuf_custom :: _proto_name :: _name :: _option :: _parent :: _is_func_param :: _proto_custom :: _json_name :: [])
+  Piqirun.gen_record code (_unparsed_piq_ast :: _protobuf_name :: _protobuf_custom :: _proto_name :: _name :: _option :: _proto_custom :: _json_name :: [])
 
 and gen__option code x =
   refer x;
   let _unparsed_piq_ast = Piqirun.gen_optional_field 1 gen__uint x.Option.unparsed_piq_ast in
   let _code = Piqirun.gen_optional_field 29667629 gen__int32 x.Option.code in
-  let _deprecated = reference_if_true  Piqirun.gen_flag 69402483 x.Option.deprecated in
+  let _deprecated = Piqirun.gen_required_field 69402483 gen__bool x.Option.deprecated in
   let _protobuf_name = Piqirun.gen_optional_field 90072013 gen__string x.Option.protobuf_name in
   let _proto_name = Piqirun.gen_optional_field 139663632 gen__string x.Option.proto_name in
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Option.name in
-  let _piqtype = Piqirun.gen_optional_field 170743570 gen__piqtype x.Option.piqtype in
   let _getopt_letter = Piqirun.gen_optional_field 215188758 gen__word x.Option.getopt_letter in
   let _typename = Piqirun.gen_optional_field 218690234 gen__typename x.Option.typename in
   let _piq_format = Piqirun.gen_optional_field 296833484 gen__piq_format x.Option.piq_format in
   let _piq_alias = Piqirun.gen_optional_field 434682011 gen__name x.Option.piq_alias in
   let _getopt_doc = Piqirun.gen_optional_field 442330184 gen__string x.Option.getopt_doc in
   let _json_name = Piqirun.gen_optional_field 515275216 gen__string x.Option.json_name in
-  Piqirun.gen_record code (_unparsed_piq_ast :: _code :: _deprecated :: _protobuf_name :: _proto_name :: _name :: _piqtype :: _getopt_letter :: _typename :: _piq_format :: _piq_alias :: _getopt_doc :: _json_name :: [])
+  Piqirun.gen_record code (_unparsed_piq_ast :: _code :: _deprecated :: _protobuf_name :: _proto_name :: _name :: _getopt_letter :: _typename :: _piq_format :: _piq_alias :: _getopt_doc :: _json_name :: [])
 
 and gen__enum code x =
   refer x;
@@ -1223,12 +1215,10 @@ and gen__enum code x =
   let _proto_name = Piqirun.gen_optional_field 139663632 gen__string x.Enum.proto_name in
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Enum.name in
   let _option = Piqirun.gen_repeated_field 192598901 gen__option x.Enum.option in
-  let _parent = Piqirun.gen_optional_field 226362666 gen__namespace x.Enum.parent in
   let _protobuf_prefix = Piqirun.gen_optional_field 366391188 gen__string x.Enum.protobuf_prefix in
-  let _is_func_param = reference_if_true  Piqirun.gen_flag 367658567 x.Enum.is_func_param in
   let _proto_custom = Piqirun.gen_repeated_field 405875126 gen__string x.Enum.proto_custom in
   let _json_name = Piqirun.gen_optional_field 515275216 gen__string x.Enum.json_name in
-  Piqirun.gen_record code (_unparsed_piq_ast :: _protobuf_name :: _protobuf_custom :: _proto_name :: _name :: _option :: _parent :: _protobuf_prefix :: _is_func_param :: _proto_custom :: _json_name :: [])
+  Piqirun.gen_record code (_unparsed_piq_ast :: _protobuf_name :: _protobuf_custom :: _proto_name :: _name :: _option :: _protobuf_prefix :: _proto_custom :: _json_name :: [])
 
 and gen__alias code x =
   refer x;
@@ -1237,15 +1227,12 @@ and gen__alias code x =
   let _proto_name = Piqirun.gen_optional_field 139663632 gen__string x.Alias.proto_name in
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Alias.name in
   let _protobuf_type = Piqirun.gen_optional_field 157803580 gen__string x.Alias.protobuf_type in
-  let _piqtype = Piqirun.gen_optional_field 170743570 gen__piqtype x.Alias.piqtype in
   let _protobuf_wire_type = Piqirun.gen_optional_field 198202944 gen__protobuf_wire_type x.Alias.protobuf_wire_type in
   let _piqi_type = Piqirun.gen_optional_field 198318774 gen__piqi_type x.Alias.piqi_type in
   let _typename = Piqirun.gen_optional_field 218690234 gen__typename x.Alias.typename in
-  let _parent = Piqirun.gen_optional_field 226362666 gen__namespace x.Alias.parent in
   let _piq_format = Piqirun.gen_optional_field 296833484 gen__piq_format x.Alias.piq_format in
-  let _is_func_param = reference_if_true  Piqirun.gen_flag 367658567 x.Alias.is_func_param in
   let _json_name = Piqirun.gen_optional_field 515275216 gen__string x.Alias.json_name in
-  Piqirun.gen_record code (_unparsed_piq_ast :: _protobuf_name :: _proto_name :: _name :: _protobuf_type :: _piqtype :: _protobuf_wire_type :: _piqi_type :: _typename :: _parent :: _piq_format :: _is_func_param :: _json_name :: [])
+  Piqirun.gen_record code (_unparsed_piq_ast :: _protobuf_name :: _proto_name :: _name :: _protobuf_type :: _protobuf_wire_type :: _piqi_type :: _typename :: _piq_format :: _json_name :: [])
 
 and gen__piqi_list code x =
   refer x;
@@ -1254,55 +1241,37 @@ and gen__piqi_list code x =
   let _protobuf_custom = Piqirun.gen_repeated_field 112352691 gen__string x.Piqi_list.protobuf_custom in
   let _proto_name = Piqirun.gen_optional_field 139663632 gen__string x.Piqi_list.proto_name in
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Piqi_list.name in
-  let _piqtype = Piqirun.gen_optional_field 170743570 gen__piqtype x.Piqi_list.piqtype in
-  let _protobuf_packed = reference_if_true  Piqirun.gen_flag 179842426 x.Piqi_list.protobuf_packed in
+  let _protobuf_packed = Piqirun.gen_required_field 179842426 gen__bool x.Piqi_list.protobuf_packed in
   let _typename = Piqirun.gen_required_field 218690234 gen__typename x.Piqi_list.typename in
-  let _parent = Piqirun.gen_optional_field 226362666 gen__namespace x.Piqi_list.parent in
   let _piq_format = Piqirun.gen_optional_field 296833484 gen__piq_format x.Piqi_list.piq_format in
-  let _is_func_param = reference_if_true  Piqirun.gen_flag 367658567 x.Piqi_list.is_func_param in
   let _proto_custom = Piqirun.gen_repeated_field 405875126 gen__string x.Piqi_list.proto_custom in
-  let _wire_packed = reference_if_true  Piqirun.gen_flag 422905280 x.Piqi_list.wire_packed in
+  let _wire_packed = Piqirun.gen_required_field 422905280 gen__bool x.Piqi_list.wire_packed in
   let _json_name = Piqirun.gen_optional_field 515275216 gen__string x.Piqi_list.json_name in
-  Piqirun.gen_record code (_unparsed_piq_ast :: _protobuf_name :: _protobuf_custom :: _proto_name :: _name :: _piqtype :: _protobuf_packed :: _typename :: _parent :: _piq_format :: _is_func_param :: _proto_custom :: _wire_packed :: _json_name :: [])
+  Piqirun.gen_record code (_unparsed_piq_ast :: _protobuf_name :: _protobuf_custom :: _proto_name :: _name :: _protobuf_packed :: _typename :: _piq_format :: _proto_custom :: _wire_packed :: _json_name :: [])
 
 and gen__piqi code x =
   refer x;
   let _unparsed_piq_ast = Piqirun.gen_optional_field 1 gen__uint x.Piqi.unparsed_piq_ast in
-  let _ast = Piqirun.gen_optional_field 4849474 gen__piq_ast x.Piqi.ast in
   let _modname = Piqirun.gen_optional_field 13841580 gen__word x.Piqi.modname in
-  let _imported_typedef = Piqirun.gen_repeated_field 43698114 gen__typedef x.Piqi.imported_typedef in
   let _file = Piqirun.gen_optional_field 62639740 gen__string x.Piqi.file in
-  let _extended_func = Piqirun.gen_repeated_field 79393432 gen__func x.Piqi.extended_func in
   let _protobuf_custom = Piqirun.gen_repeated_field 112352691 gen__string x.Piqi.protobuf_custom in
-  let _resolved_import = Piqirun.gen_repeated_field 114029658 gen__import x.Piqi.resolved_import in
   let _extend = Piqirun.gen_repeated_field 119198170 gen__extend x.Piqi.extend in
   let _import = Piqirun.gen_repeated_field 142778725 gen__import x.Piqi.import in
-  let _included_piqi = Piqirun.gen_repeated_field 146026754 gen__piqi x.Piqi.included_piqi in
-  let _extended_typedef = Piqirun.gen_repeated_field 150338679 gen__typedef x.Piqi.extended_typedef in
   let _custom_field = Piqirun.gen_repeated_field 162247646 gen__word x.Piqi.custom_field in
-  let _is_embedded = Piqirun.gen_optional_field 260007309 gen__bool x.Piqi.is_embedded in
-  let _resolved_func = Piqirun.gen_repeated_field 268445433 gen__func x.Piqi.resolved_func in
   let _includ = Piqirun.gen_repeated_field 301399592 gen__includ x.Piqi.includ in
-  let _func_typedef = Piqirun.gen_repeated_field 301864450 gen__typedef x.Piqi.func_typedef in
   let _proto_package = Piqirun.gen_optional_field 333467105 gen__string x.Piqi.proto_package in
   let _func = Piqirun.gen_repeated_field 340962072 gen__func x.Piqi.func in
   let _protobuf_package = Piqirun.gen_optional_field 376215364 gen__string x.Piqi.protobuf_package in
   let _proto_custom = Piqirun.gen_repeated_field 405875126 gen__string x.Piqi.proto_custom in
   let _typedef = Piqirun.gen_repeated_field 416823115 gen__typedef x.Piqi.typedef in
-  let _extended_import = Piqirun.gen_repeated_field 430482873 gen__import x.Piqi.extended_import in
-  let _resolved_typedef = Piqirun.gen_repeated_field 448232118 gen__typedef x.Piqi.resolved_typedef in
-  let _original_piqi = Piqirun.gen_optional_field 455316941 gen__piqi x.Piqi.original_piqi in
-  let _extended_func_typedef = Piqirun.gen_repeated_field 512364886 gen__typedef x.Piqi.extended_func_typedef in
-  Piqirun.gen_record code (_unparsed_piq_ast :: _ast :: _modname :: _imported_typedef :: _file :: _extended_func :: _protobuf_custom :: _resolved_import :: _extend :: _import :: _included_piqi :: _extended_typedef :: _custom_field :: _is_embedded :: _resolved_func :: _includ :: _func_typedef :: _proto_package :: _func :: _protobuf_package :: _proto_custom :: _typedef :: _extended_import :: _resolved_typedef :: _original_piqi :: _extended_func_typedef :: [])
+  Piqirun.gen_record code (_unparsed_piq_ast :: _modname :: _file :: _protobuf_custom :: _extend :: _import :: _custom_field :: _includ :: _proto_package :: _func :: _protobuf_package :: _proto_custom :: _typedef :: [])
 
 and gen__import code x =
   refer x;
   let _unparsed_piq_ast = Piqirun.gen_optional_field 1 gen__uint x.Import.unparsed_piq_ast in
   let _modname = Piqirun.gen_required_field 13841580 gen__word x.Import.modname in
-  let _orig_modname = Piqirun.gen_optional_field 65590849 gen__string x.Import.orig_modname in
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Import.name in
-  let _piqi = Piqirun.gen_optional_field 173536529 gen__piqi x.Import.piqi in
-  Piqirun.gen_record code (_unparsed_piq_ast :: _modname :: _orig_modname :: _name :: _piqi :: [])
+  Piqirun.gen_record code (_unparsed_piq_ast :: _modname :: _name :: [])
 
 and gen__any code x =
   refer x;
@@ -1317,14 +1286,11 @@ and gen__any code x =
 and gen__func code x =
   refer x;
   let _unparsed_piq_ast = Piqirun.gen_optional_field 1 gen__uint x.Func.unparsed_piq_ast in
-  let _resolved_input = Piqirun.gen_optional_field 95864501 gen__typedef x.Func.resolved_input in
   let _name = Piqirun.gen_required_field 150958667 gen__name x.Func.name in
-  let _resolved_output = Piqirun.gen_optional_field 181035510 gen__typedef x.Func.resolved_output in
   let _output = Piqirun.gen_optional_field 209784577 gen__function_param x.Func.output in
   let _error = Piqirun.gen_optional_field 321506248 gen__function_param x.Func.error in
-  let _resolved_error = Piqirun.gen_optional_field 448974451 gen__typedef x.Func.resolved_error in
   let _input = Piqirun.gen_optional_field 505267210 gen__function_param x.Func.input in
-  Piqirun.gen_record code (_unparsed_piq_ast :: _resolved_input :: _name :: _resolved_output :: _output :: _error :: _resolved_error :: _input :: [])
+  Piqirun.gen_record code (_unparsed_piq_ast :: _name :: _output :: _error :: _input :: [])
 
 and gen__piqi_bundle code x =
   refer x;
@@ -1351,7 +1317,7 @@ and gen__function_param code (x:Piqi_impl_piqi.function_param) =
 and gen__extend code x =
   refer x;
   let _unparsed_piq_ast = Piqirun.gen_optional_field 1 gen__uint x.Extend.unparsed_piq_ast in
-  let _override = reference_if_true  Piqirun.gen_flag 153625164 x.Extend.override in
+  let _override = Piqirun.gen_required_field 153625164 gen__bool x.Extend.override in
   let _what = Piqirun.gen_repeated_field 251110212 gen__extend_target x.Extend.what in
   let _piqi_with = Piqirun.gen_repeated_field 251164166 gen__piqi_any x.Extend.piqi_with in
   let _quote = Piqirun.gen_repeated_field 365880944 gen__piqi_any x.Extend.quote in
@@ -1465,7 +1431,7 @@ and default_record () =
     Record.piq_allow_unnesting = None;
     Record.piq_positional = None;
     Record.parent = None;
-    Record.is_func_param = false;
+    Record.is_func_param = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Record.proto_custom = [];
     Record.json_name = None;
   }
@@ -1473,19 +1439,21 @@ and default_field () =
   {
     Field.unparsed_piq_ast = None;
     Field.code = None;
-    Field.deprecated = false;
+    Field.deprecated = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Field.protobuf_name = None;
+    Field.piq_flag_default = None;
     Field.proto_name = None;
-    Field.mode = parse_field_mode (Piqirun.parse_default "\b\223\162\138\147\001");
+    Field.mode = (Piqloc.pause (); let res = parse_field_mode (Piqirun.parse_default "\b\223\162\138\147\001") in Piqloc.resume (); res);
+    Field.internal = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Field.name = None;
     Field.piqtype = None;
-    Field.protobuf_packed = false;
+    Field.protobuf_packed = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Field.piq_positional = None;
     Field.json_omit_missing = None;
     Field.getopt_letter = None;
     Field.typename = None;
     Field.piq_format = None;
-    Field.wire_packed = false;
+    Field.wire_packed = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Field.piq_alias = None;
     Field.getopt_doc = None;
     Field.default = None;
@@ -1501,7 +1469,7 @@ and default_variant () =
     Variant.name = None;
     Variant.option = [];
     Variant.parent = None;
-    Variant.is_func_param = false;
+    Variant.is_func_param = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Variant.proto_custom = [];
     Variant.json_name = None;
   }
@@ -1509,7 +1477,7 @@ and default_option () =
   {
     Option.unparsed_piq_ast = None;
     Option.code = None;
-    Option.deprecated = false;
+    Option.deprecated = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Option.protobuf_name = None;
     Option.proto_name = None;
     Option.name = None;
@@ -1531,7 +1499,7 @@ and default_enum () =
     Enum.option = [];
     Enum.parent = None;
     Enum.protobuf_prefix = None;
-    Enum.is_func_param = false;
+    Enum.is_func_param = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Enum.proto_custom = [];
     Enum.json_name = None;
   }
@@ -1548,7 +1516,7 @@ and default_alias () =
     Alias.typename = None;
     Alias.parent = None;
     Alias.piq_format = None;
-    Alias.is_func_param = false;
+    Alias.is_func_param = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Alias.json_name = None;
   }
 and default_piqi_list () =
@@ -1559,13 +1527,13 @@ and default_piqi_list () =
     Piqi_list.proto_name = None;
     Piqi_list.name = None;
     Piqi_list.piqtype = None;
-    Piqi_list.protobuf_packed = false;
+    Piqi_list.protobuf_packed = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Piqi_list.typename = default_typename ();
     Piqi_list.parent = None;
     Piqi_list.piq_format = None;
-    Piqi_list.is_func_param = false;
+    Piqi_list.is_func_param = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Piqi_list.proto_custom = [];
-    Piqi_list.wire_packed = false;
+    Piqi_list.wire_packed = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Piqi_list.json_name = None;
   }
 and default_piqi () =
@@ -1638,7 +1606,7 @@ and default_function_param () = `name (default_name ())
 and default_extend () =
   {
     Extend.unparsed_piq_ast = None;
-    Extend.override = false;
+    Extend.override = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);
     Extend.what = [];
     Extend.piqi_with = [];
     Extend.quote = [];

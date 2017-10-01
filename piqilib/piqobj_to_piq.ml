@@ -157,7 +157,7 @@ and gen_record x =
   let open R in
   (* TODO, XXX: doing ordering at every generation step is inefficient *)
   let fields = order_record_fields x.t x.field in
-  let encoded_fields =  List.map gen_field fields in
+  let encoded_fields = U.flatmap gen_field fields in
   let encoded_fields =
     match x.unparsed_piq_fields_ref with
       | None -> encoded_fields
@@ -171,14 +171,51 @@ and gen_record x =
 and gen_field x =
   let open F in
   let name = name_of_field x.t in
-  let res =
-    match x.obj with
+
+  let is_bool_default default const =
+    match default with
       | None ->
-          make_name name
-      | Some obj ->
-          make_named name (gen_obj obj ?piq_format:x.t.T.Field.piq_format)
+          false
+      | Some piqi_any ->
+          let any = Piqobj.any_of_piqi_any piqi_any in
+          (match any.Piqobj.Any.obj with
+            | None -> false
+            | Some obj -> (Piqobj.unalias obj = `bool const)
+          )
   in
-  Piq_parser.piq_addrefret x res
+  let bool_value =
+    match x.obj with
+      | None -> None
+      | Some obj ->
+          (match Piqobj.unalias obj with
+            | `bool x -> Some x
+            | _ -> None
+          )
+  in
+  if bool_value = Some false && is_bool_default x.t.T.Field.default false
+  then
+    (* FIXME, XXX: excluding explicit .foo false from output makes it
+     * non-reversable
+     *
+     * TODO, XXX: should there be expicit option to skip defaults, including
+     * flag defaults *)
+    []
+  else
+    let res =
+      match x.obj with
+        | None ->  (* flag *)
+            make_name name
+        | Some obj ->
+            if bool_value = Some true && is_bool_default x.t.T.Field.piq_flag_default true
+            then
+              (* FIXME, XXX: converting explicit .foo true to .foo makes it
+               * non-reversable *)
+              make_name name
+            else
+              make_named name (gen_obj obj ?piq_format:x.t.T.Field.piq_format)
+    in
+    let res = Piq_parser.piq_addrefret x res in
+    [res]
 
 
 and gen_variant x =

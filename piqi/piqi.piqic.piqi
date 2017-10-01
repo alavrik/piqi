@@ -31,3 +31,13 @@
     ]
 ]
 
+
+% flag for skipping fields on serialization/deserialization
+.extend [
+    .typedef field
+
+    .with.field [
+        .name internal
+        .optional
+    ]
+]

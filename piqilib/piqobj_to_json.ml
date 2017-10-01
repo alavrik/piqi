@@ -121,7 +121,7 @@ and gen_field fields t =
           let f = List.find pred fields in
           let res =
             match f.obj with
-               | None -> make_name name (* flag *)
+               | None -> assert false  (* flag must be resolved to true or false by now *)
                | Some obj -> make_named name (gen_obj obj)
           in [res]
         with

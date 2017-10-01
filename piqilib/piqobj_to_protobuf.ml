@@ -323,7 +323,8 @@ and gen_field x =
          * (see below) *)
         refer x;
         Piqirun.gen_bool_field code true
-    | Some obj -> gen_obj code obj
+    | Some obj ->
+        gen_obj code obj
 
 
 and gen_variant code x =

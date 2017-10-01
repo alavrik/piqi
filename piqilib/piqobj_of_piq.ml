@@ -293,7 +293,7 @@ and parse_typed_obj ?piqtype x =
     | _ -> error x "typed object expected"
 
 
-and try_parse_obj f t x =
+and try_parse_field_obj f t x =
   (* unwind alias to obtain its real type *)
   match C.unalias t with
     | _ when f.T.Field.piq_positional = Some false ->
@@ -424,37 +424,8 @@ and is_required_field t = (t.T.Field.mode = `required)
 
 
 and parse_field loc (accu, rem) t =
-  let fields, rem =
-    match t.T.Field.piqtype with
-      | None -> do_parse_flag t rem
-      | Some _ -> do_parse_field loc t rem
-  in
+  let fields, rem = do_parse_field loc t rem in
   (List.rev_append fields accu, rem)
-
-
-and do_parse_flag t l =
-  let open T.Field in
-  let name = name_of_field t in
-  debug "do_parse_flag: %s\n" name;
-  (* NOTE: flags can't be positional so we only have to look for them by name *)
-  let res, rem = find_flags name t.piq_alias l in
-  match res with
-    | [] -> [], rem
-    | x::tail ->
-        check_duplicate name tail;
-        match x with
-          | `name _ | `named {Piq_ast.Named.value = `bool true} ->
-              (* flag is considered to be present when it is represented either
-               * as name w/o value or named boolean true value *)
-              let res = F.({t = t; obj = None}) in
-              Piqloc.addref x res;
-              [res], rem
-          | `named {Piq_ast.Named.value = `bool false} ->
-              (* flag is considered missing/unset when its value is false *)
-              [], rem
-          | _ ->
-              (* there are no other possible representations of flags *)
-              assert false
 
 
 and do_parse_field loc t l =
@@ -483,21 +454,41 @@ and do_parse_field loc t l =
   
 
 and parse_required_field f loc name field_type l =
-  let res, rem = find_fields name f.T.Field.piq_alias field_type l in
+  let res, rem = find_fields name f.T.Field.piq_alias l in
   match res with
     | [] ->
         (* try finding the first field which is successfully parsed by
          * 'parse_obj' for a given field type *)
         begin
-          let res, rem = find_first_parsed f field_type l in
+          let res, rem = find_first_parsed_field f field_type l in
           match res with
             | Some x -> x, rem
             | None -> error loc ("missing field " ^ U.quote name)
         end
     | x::tail ->
         check_duplicate name tail;
-        let obj = parse_obj field_type x ?piq_format:f.T.Field.piq_format ~labeled:true in
+        let obj = parse_field_obj f field_type x in
         obj, rem
+
+
+and parse_field_obj f field_type x =
+  match x with
+    | `named named ->
+        let value = named.Piq_ast.Named.value in
+        parse_obj field_type value ?piq_format:f.T.Field.piq_format ~labeled:true
+    | `name name ->
+        (match f.T.Field.piq_flag_default with
+          | Some piqi_any ->
+              let any = Piqobj.any_of_piqi_any piqi_any in
+              (* NOTE: obj must be resolved already *)
+              let obj = some_of any.Any.obj in
+              Piqloc.addrefret x obj  (* XXX *)
+          | None ->
+              error x ("value must be specified for field " ^ U.quote name)
+        )
+    | _ ->
+        (* NOTE: find_fields can return only `name | `named ... *)
+        assert false
 
 
 and equals_name name alt_name x =
@@ -510,65 +501,38 @@ and equals_name name alt_name x =
 
 
 (* find field by name, return found fields and remaining fields *)
-and find_fields (name:string) (alt_name:string option) field_type (l:piq_ast list) :(piq_ast list * piq_ast list) =
+and find_fields (name:string) (alt_name:string option) (l:piq_ast list) :(piq_ast list * piq_ast list) =
   let equals_name = equals_name name alt_name in
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
-    | (`named n)::t when equals_name n.Piq_ast.Named.name -> aux (n.Piq_ast.Named.value::accu) rem t
-    | (`name n)::t when equals_name n ->
-        (match C.unalias field_type with
-          | `bool ->
-              (* allow omitting boolean constant for a boolean field by
-               * interpreting the missing value as "true" *)
-              let value = Piqloc.addrefret n (`bool true) in
-              aux (value::accu) rem t
-          | _ ->
-              error n ("value must be specified for field " ^ U.quote n)
-        )
-    | h::t -> aux accu (h::rem) t
-  in
+    | ((`named named) as h)::t when equals_name named.Piq_ast.Named.name ->
+        aux (h::accu) rem t
+    | ((`name n) as h)::t when equals_name n ->
+        aux (h::accu) rem t
+    | h::t ->
+        aux accu (h::rem) t
+in
   aux [] [] l
 
 
-(* find flags by name, return found flags and remaining fields *)
-and find_flags (name:string) (alt_name:string option) (l:piq_ast list) :(piq_ast list * piq_ast list) =
-  let equals_name = equals_name name alt_name in
-  let rec aux accu rem = function
-    | [] -> List.rev accu, List.rev rem
-    | ((`name n) as h)::t when equals_name n -> aux (h::accu) rem t
-    | ((`named n) as h)::t when equals_name n.Piq_ast.Named.name ->
-        (* allow specifying true or false as flag values: true will be
-         * interpreted as flag presence, false is treated as if the flag was
-         * missing *)
-        (match n.Piq_ast.Named.value with
-          | `bool _ ->
-              aux (h::accu) rem t
-          | _ ->
-              error h ("only true and false can be used as values for flag " ^ U.quote n.Piq_ast.Named.name)
-        )
-    | h::t -> aux accu (h::rem) t
-  in
-  aux [] [] l
-
-
-and find_first_parsed f field_type l =
+and find_first_parsed_field f field_type l =
   let rec aux rem = function
     | [] -> None, l
     | h::t ->
-        match try_parse_obj f field_type h with
+        match try_parse_field_obj f field_type h with
           | None -> aux (h::rem) t
           | x -> x, (List.rev rem) @ t
   in aux [] l
 
 
 and parse_optional_field f name field_type default l =
-  let res, rem = find_fields name f.T.Field.piq_alias field_type l in
+  let res, rem = find_fields name f.T.Field.piq_alias l in
   match res with
     | [] ->
         (* try finding the first field which is successfully parsed by
          * 'parse_obj for a given field_type' *)
         begin
-          let res, rem = find_first_parsed f field_type l in
+          let res, rem = find_first_parsed_field f field_type l in
           match res with
             | Some _ ->
                 res, rem
@@ -578,14 +542,14 @@ and parse_optional_field f name field_type default l =
         end
     | x::tail ->
         check_duplicate name tail;
-        let obj = Some (parse_obj field_type x ?piq_format:f.T.Field.piq_format ~labeled:true) in
+        let obj = Some (parse_field_obj f field_type x) in
         obj, rem
 
 
 (* parse repeated variant field allowing variant names if field name is
  * unspecified *) 
 and parse_repeated_field f name field_type l =
-  let res, rem = find_fields name f.T.Field.piq_alias field_type l in
+  let res, rem = find_fields name f.T.Field.piq_alias l in
   match res with
     | [] -> 
         (* XXX: ignore errors occurring when unknown element is present in the
@@ -594,13 +558,13 @@ and parse_repeated_field f name field_type l =
         let accu, rem =
           (List.fold_left
             (fun (accu, rem) x ->
-              match try_parse_obj f field_type x with
+              match try_parse_field_obj f field_type x with
                 | None -> accu, x::rem
                 | Some x -> x::accu, rem) ([], []) l)
         in List.rev accu, List.rev rem
     | l ->
         (* use strict parsing *)
-        let res = List.map (parse_obj field_type ?piq_format:f.T.Field.piq_format ~labeled:true) res in
+        let res = List.map (parse_field_obj f field_type) res in
         res, rem
 
 

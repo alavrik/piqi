@@ -187,25 +187,8 @@ and parse_record t xml_elem =
 
 
 and parse_field loc (accu, rem) t =
-  let fields, rem =
-    match t.T.Field.piqtype with
-      | None -> do_parse_flag t rem
-      | Some _ -> do_parse_field loc t rem
-  in
+  let fields, rem = do_parse_field loc t rem in
   (List.rev_append fields accu, rem)
-
-
-and do_parse_flag t l =
-  let open T.Field in
-  let name = some_of t.name in (* flag name is always defined *)
-  debug "do_parse_flag: %s\n" name;
-  let res, rem = find_flags name l in
-  match res with
-    | [] -> [], rem
-    | x::tail ->
-        check_duplicate name tail;
-        let res = F.({t = t; obj = None}) in
-        [res], rem
 
 
 and do_parse_field loc t l =
@@ -245,18 +228,6 @@ and find_fields (name:string) (l:xml_elem list) :(xml_elem list * xml_elem list)
   let rec aux accu rem = function
     | [] -> List.rev accu, List.rev rem
     | ((n, _) as h)::t when n = name -> aux (h::accu) rem t
-    | h::t -> aux accu (h::rem) t
-  in
-  aux [] [] l
-
-
-(* find flags by name, return found flags and remaining fields *)
-and find_flags (name:string) (l:xml_elem list) :(string list * xml_elem list) =
-  let rec aux accu rem = function
-    | [] -> List.rev accu, List.rev rem
-    | (n, [])::t when n = name -> aux (n::accu) rem t
-    | (n, _)::t when n = name ->
-        error n ("value can not be specified for flag " ^ U.quote n)
     | h::t -> aux accu (h::rem) t
   in
   aux [] [] l

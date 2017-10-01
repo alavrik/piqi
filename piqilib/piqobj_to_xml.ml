@@ -118,11 +118,11 @@ and gen_field fields t =
   (* find all fields of the given type *)
   let fields = List.find_all (fun f -> f.t == t) fields in
   (* generate fields *)
-  List.map (fun f -> gen_obj_element name f.obj) fields
+  List.map (fun f -> gen_field_obj_element name f.obj) fields
 
 
-and gen_obj_element name = function
-  | None -> make_element name [] (* empty element *)
+and gen_field_obj_element name = function
+  | None -> assert false  (* flag must be resolved to true or false by now *)
   | Some obj -> make_element name (gen_obj obj)
 
 
@@ -135,7 +135,12 @@ and gen_variant x =
 and gen_option x =
   let open O in
   let name = C.name_of_option x.t in
-  gen_obj_element name x.obj
+  gen_option_obj_element name x.obj
+
+
+and gen_option_obj_element name = function
+  | None -> make_element name [] (* empty element *)
+  | Some obj -> make_element name (gen_obj obj)
 
 
 and gen_enum x =

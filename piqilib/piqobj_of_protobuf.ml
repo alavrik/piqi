@@ -197,30 +197,8 @@ and parse_unparsed_piq_fields_ref l =
 
 
 and parse_field (accu, rem) t =
-  let fields, rem =
-    match t.T.Field.piqtype with
-      | None -> do_parse_flag t rem
-      | Some _ -> do_parse_field t rem
-  in
+  let fields, rem = do_parse_field t rem in
   (List.rev_append fields accu, rem)
-
-
-and do_parse_flag t l =
-  let open T.Field in
-  let code = Int32.to_int (some_of t.code) in
-  let res, rem = Piqirun.parse_flag code l in
-  match res with
-    | false -> [], rem
-    | true ->
-        begin
-          let res = F.({t = t; obj = None}) in
-
-          (* skip boolean used to encode empty flag value *)
-          let count = next_count () in
-          Piqloc.addref count res;
-
-          [res], rem
-        end
 
 
 and do_parse_field t l =

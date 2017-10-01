@@ -93,6 +93,7 @@ and Field:
       mutable deprecated: bool;
       mutable piq_format: Piqi_piqi.piq_format option;
       mutable piq_positional: bool option;
+      mutable piq_flag_default: Piqi_piqi.piqi_any option;
       mutable piq_alias: Piqi_piqi.name option;
       mutable protobuf_name: string option;
       mutable code: int32 option;
@@ -101,6 +102,7 @@ and Field:
       mutable json_omit_missing: bool option;
       mutable getopt_letter: Piqi_piqi.word option;
       mutable getopt_doc: string option;
+      mutable internal: bool;
     }
   end = Field
 and Variant:
@@ -363,11 +365,13 @@ and parse_record x =
 and parse_field x =
   let x = Piqirun.parse_record x in
   let _code, x = Piqirun.parse_optional_field 29667629 parse_int32 x in
-  let _deprecated, x =  Piqirun.parse_flag 69402483 x in
+  let _deprecated, x = Piqirun.parse_required_field 69402483 parse_bool x ~default:"\b\000" in
   let _protobuf_name, x = Piqirun.parse_optional_field 90072013 parse_string x in
+  let _piq_flag_default, x = Piqirun.parse_optional_field 112451637 parse_piqi_any x in
   let _mode, x = Piqirun.parse_required_field 140563299 parse_field_mode x ~default:"\b\223\162\138\147\001" in
+  let _internal, x = Piqirun.parse_required_field 141977405 parse_bool x ~default:"\b\000" in
   let _name, x = Piqirun.parse_optional_field 150958667 parse_name x in
-  let _protobuf_packed, x =  Piqirun.parse_flag 179842426 x in
+  let _protobuf_packed, x = Piqirun.parse_required_field 179842426 parse_bool x ~default:"\b\000" in
   let _piq_positional, x = Piqirun.parse_optional_field 197354217 parse_bool x in
   let _json_omit_missing, x = Piqirun.parse_optional_field 201807079 parse_bool x in
   let _getopt_letter, x = Piqirun.parse_optional_field 215188758 parse_word x in
@@ -382,7 +386,9 @@ and parse_field x =
     Field.code = _code;
     Field.deprecated = _deprecated;
     Field.protobuf_name = _protobuf_name;
+    Field.piq_flag_default = _piq_flag_default;
     Field.mode = _mode;
+    Field.internal = _internal;
     Field.name = _name;
     Field.protobuf_packed = _protobuf_packed;
     Field.piq_positional = _piq_positional;
@@ -428,7 +434,7 @@ and parse_variant x =
 and parse_option x =
   let x = Piqirun.parse_record x in
   let _code, x = Piqirun.parse_optional_field 29667629 parse_int32 x in
-  let _deprecated, x =  Piqirun.parse_flag 69402483 x in
+  let _deprecated, x = Piqirun.parse_required_field 69402483 parse_bool x ~default:"\b\000" in
   let _protobuf_name, x = Piqirun.parse_optional_field 90072013 parse_string x in
   let _name, x = Piqirun.parse_optional_field 150958667 parse_name x in
   let _getopt_letter, x = Piqirun.parse_optional_field 215188758 parse_word x in
@@ -496,7 +502,7 @@ and parse_piqi_list x =
   let _protobuf_name, x = Piqirun.parse_optional_field 90072013 parse_string x in
   let _protobuf_custom, x = Piqirun.parse_repeated_field 112352691 parse_string x in
   let _name, x = Piqirun.parse_required_field 150958667 parse_name x in
-  let _protobuf_packed, x =  Piqirun.parse_flag 179842426 x in
+  let _protobuf_packed, x = Piqirun.parse_required_field 179842426 parse_bool x ~default:"\b\000" in
   let _typename, x = Piqirun.parse_required_field 218690234 parse_typename x in
   let _piq_format, x = Piqirun.parse_optional_field 296833484 parse_piq_format x in
   let _json_name, x = Piqirun.parse_optional_field 515275216 parse_string x in
@@ -711,11 +717,13 @@ and gen__record code x =
 
 and gen__field code x =
   let _code = Piqirun.gen_optional_field 29667629 gen__int32 x.Field.code in
-  let _deprecated =  Piqirun.gen_flag 69402483 x.Field.deprecated in
+  let _deprecated = Piqirun.gen_required_field 69402483 gen__bool x.Field.deprecated in
   let _protobuf_name = Piqirun.gen_optional_field 90072013 gen__string x.Field.protobuf_name in
+  let _piq_flag_default = Piqirun.gen_optional_field 112451637 gen__piqi_any x.Field.piq_flag_default in
   let _mode = Piqirun.gen_required_field 140563299 gen__field_mode x.Field.mode in
+  let _internal = Piqirun.gen_required_field 141977405 gen__bool x.Field.internal in
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Field.name in
-  let _protobuf_packed =  Piqirun.gen_flag 179842426 x.Field.protobuf_packed in
+  let _protobuf_packed = Piqirun.gen_required_field 179842426 gen__bool x.Field.protobuf_packed in
   let _piq_positional = Piqirun.gen_optional_field 197354217 gen__bool x.Field.piq_positional in
   let _json_omit_missing = Piqirun.gen_optional_field 201807079 gen__bool x.Field.json_omit_missing in
   let _getopt_letter = Piqirun.gen_optional_field 215188758 gen__word x.Field.getopt_letter in
@@ -725,7 +733,7 @@ and gen__field code x =
   let _getopt_doc = Piqirun.gen_optional_field 442330184 gen__string x.Field.getopt_doc in
   let _default = Piqirun.gen_optional_field 465819841 gen__piqi_any x.Field.default in
   let _json_name = Piqirun.gen_optional_field 515275216 gen__string x.Field.json_name in
-  Piqirun.gen_record code (_code :: _deprecated :: _protobuf_name :: _mode :: _name :: _protobuf_packed :: _piq_positional :: _json_omit_missing :: _getopt_letter :: _typename :: _piq_format :: _piq_alias :: _getopt_doc :: _default :: _json_name :: [])
+  Piqirun.gen_record code (_code :: _deprecated :: _protobuf_name :: _piq_flag_default :: _mode :: _internal :: _name :: _protobuf_packed :: _piq_positional :: _json_omit_missing :: _getopt_letter :: _typename :: _piq_format :: _piq_alias :: _getopt_doc :: _default :: _json_name :: [])
 
 and gen__field_mode code x =
   Piqirun.int32_to_signed_varint code (match x with
@@ -750,7 +758,7 @@ and gen__variant code x =
 
 and gen__option code x =
   let _code = Piqirun.gen_optional_field 29667629 gen__int32 x.Option.code in
-  let _deprecated =  Piqirun.gen_flag 69402483 x.Option.deprecated in
+  let _deprecated = Piqirun.gen_required_field 69402483 gen__bool x.Option.deprecated in
   let _protobuf_name = Piqirun.gen_optional_field 90072013 gen__string x.Option.protobuf_name in
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Option.name in
   let _getopt_letter = Piqirun.gen_optional_field 215188758 gen__word x.Option.getopt_letter in
@@ -785,7 +793,7 @@ and gen__piqi_list code x =
   let _protobuf_name = Piqirun.gen_optional_field 90072013 gen__string x.Piqi_list.protobuf_name in
   let _protobuf_custom = Piqirun.gen_repeated_field 112352691 gen__string x.Piqi_list.protobuf_custom in
   let _name = Piqirun.gen_required_field 150958667 gen__name x.Piqi_list.name in
-  let _protobuf_packed =  Piqirun.gen_flag 179842426 x.Piqi_list.protobuf_packed in
+  let _protobuf_packed = Piqirun.gen_required_field 179842426 gen__bool x.Piqi_list.protobuf_packed in
   let _typename = Piqirun.gen_required_field 218690234 gen__typename x.Piqi_list.typename in
   let _piq_format = Piqirun.gen_optional_field 296833484 gen__piq_format x.Piqi_list.piq_format in
   let _json_name = Piqirun.gen_optional_field 515275216 gen__string x.Piqi_list.json_name in
@@ -907,11 +915,13 @@ and default_record () =
 and default_field () =
   {
     Field.code = None;
-    Field.deprecated = false;
+    Field.deprecated = parse_bool (Piqirun.parse_default "\b\000");
     Field.protobuf_name = None;
+    Field.piq_flag_default = None;
     Field.mode = parse_field_mode (Piqirun.parse_default "\b\223\162\138\147\001");
+    Field.internal = parse_bool (Piqirun.parse_default "\b\000");
     Field.name = None;
-    Field.protobuf_packed = false;
+    Field.protobuf_packed = parse_bool (Piqirun.parse_default "\b\000");
     Field.piq_positional = None;
     Field.json_omit_missing = None;
     Field.getopt_letter = None;
@@ -934,7 +944,7 @@ and default_variant () =
 and default_option () =
   {
     Option.code = None;
-    Option.deprecated = false;
+    Option.deprecated = parse_bool (Piqirun.parse_default "\b\000");
     Option.protobuf_name = None;
     Option.name = None;
     Option.getopt_letter = None;
@@ -969,7 +979,7 @@ and default_piqi_list () =
     Piqi_list.protobuf_name = None;
     Piqi_list.protobuf_custom = [];
     Piqi_list.name = default_name ();
-    Piqi_list.protobuf_packed = false;
+    Piqi_list.protobuf_packed = parse_bool (Piqirun.parse_default "\b\000");
     Piqi_list.typename = default_typename ();
     Piqi_list.piq_format = None;
     Piqi_list.json_name = None;

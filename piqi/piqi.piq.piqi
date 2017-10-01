@@ -53,6 +53,25 @@
 
 
 .extend [
+    .typedef field
+
+    .with.field [
+        % default value when only label is specified, e.g.
+        %
+        %   .foo
+        %
+        % instead of
+        %
+        %   .foo "bar"
+
+        .name piq-flag-default
+        .type piqi-any
+        .optional
+    ]
+]
+
+
+.extend [
     .typedef record
 
     .with.field [

@@ -25,12 +25,14 @@
     .with.field [
         .type piqi
         .optional
+        .internal
     ]
 
     .with.field [
         .name orig-modname
         .type string
         .optional
+        .internal
     ]
 ]
 
@@ -49,6 +51,7 @@
         .name parent
         .type namespace
         .optional
+        .internal
     ]
 ]
 
@@ -61,6 +64,7 @@
         .name wire-field
         .type field
         .repeated
+        .internal
     ]
 ]
 
@@ -68,25 +72,25 @@
 .extend [
     .typedef piqi
 
-    .with.field [ .name extended-typedef .type typedef .repeated ]
-    .with.field [ .name func-typedef .type typedef .repeated ]
-    .with.field [ .name extended-func-typedef .type typedef .repeated ]
+    .with.field [ .name extended-typedef .type typedef .repeated .internal ]
+    .with.field [ .name func-typedef .type typedef .repeated .internal ]
+    .with.field [ .name extended-func-typedef .type typedef .repeated .internal ]
 
-    .with.field [ .name resolved-typedef .type typedef .repeated ]
-    .with.field [ .name imported-typedef .type typedef .repeated ]
+    .with.field [ .name resolved-typedef .type typedef .repeated .internal ]
+    .with.field [ .name imported-typedef .type typedef .repeated .internal ]
 
-    .with.field [ .name resolved-import .type import .repeated ]
-    .with.field [ .name extended-import .type import .repeated ]
+    .with.field [ .name resolved-import .type import .repeated .internal ]
+    .with.field [ .name extended-import .type import .repeated .internal ]
 
-    .with.field [ .name resolved-func .type function .repeated ]
-    .with.field [ .name extended-func .type function .repeated ]
+    .with.field [ .name resolved-func .type function .repeated .internal ]
+    .with.field [ .name extended-func .type function .repeated .internal ]
 
-    .with.field [ .name included-piqi .type piqi .repeated ]
+    .with.field [ .name included-piqi .type piqi .repeated .internal ]
 
-    .with.field [ .name original-piqi .type piqi .optional ]
-    .with.field [ .name ast .type piq-ast .optional ]
+    .with.field [ .name original-piqi .type piqi .optional .internal ]
+    .with.field [ .name ast .type piq-ast .optional .internal ]
 
-    .with.field [ .name is-embedded .type bool .optional ]
+    .with.field [ .name is-embedded .type bool .optional .internal ]
 ]
 
 
@@ -97,18 +101,21 @@
         .name resolved-input
         .type typedef
         .optional
+        .internal
     ]
 
     .with.field [
         .name resolved-output
         .type typedef
         .optional
+        .internal
     ]
 
     .with.field [
         .name resolved-error
         .type typedef
         .optional
+        .internal
     ]
 ]
 
@@ -121,6 +128,7 @@
     .with.field [
         .name is-func-param
         .optional
+        .internal
     ]
 ]
 
@@ -131,6 +139,7 @@
     .with.field [
         .type piqtype
         .optional
+        .internal
     ]
 ]
 
@@ -189,6 +198,7 @@
         .name unparsed-piq-ast
         .type uint
         .optional
+        %.internal
     ]
 ]
 
