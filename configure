@@ -14,7 +14,6 @@ usage() {
 echo "
 Configuration:
   -h, --help              display this help and exit
-  --host HOST             cross-compile toolchain prefix, e.g. i686-w64-mingw32
   --toolchain NAME        cross-compile toolchain name, e.g. windows
 
 Installation directories:
@@ -49,9 +48,6 @@ do
         --ocaml-libdir | --ocaml-libdir=*)
             OCAML_LIBDIR="$opt_value"
             ;;
-        --host | --host=*)
-            SYSTEM_HOST="$opt_value"
-            ;;
         -h|-help|--help)
             usage
             exit 0
@@ -66,15 +62,7 @@ do
 done
 
 
-if [ -z "$SYSTEM_HOST" ]
-then
-    OCAMLFIND=ocamlfind
-else
-    # cross-compilation toolchain
-    OCAMLFIND=$SYSTEM_HOST-ocamlfind
-fi
-
-
+OCAMLFIND=ocamlfind
 OF=`which $OCAMLFIND`
 if [ $? -ne 0 ]
 then
@@ -103,16 +91,7 @@ echo "export PIQI_PATH := \$(PIQI_ROOT)" >> $M
 echo "export PIQI := \$(PIQI_ROOT)/src/piqi" >> $M
 echo >> $M
 
-if [ -n "$SYSTEM_HOST" ]  # cross-compilation
-then
-    echo "export OCAMLFIND := $SYSTEM_HOST-ocamlfind" >> $M
-    echo "export AR := $SYSTEM_HOST-ar" >> $M
-    echo "STRIP := $SYSTEM_HOST-strip" >> $M
-
-    # skipping everything else in cross-compilation mode; namely, we have to
-    # cross-compile deps that come with the package
-    echo "export SYSTEM := unix" >> $M
-elif [ -n "$TOOLCHAIN" ]  # another, more modern cross-compilation method
+if [ -n "$TOOLCHAIN" ]  # cross-compilation
 then
     echo "export OCAMLFIND_TOOLCHAIN := $TOOLCHAIN" >> $M
     echo "export AR = \$(shell ocamlfind -toolchain $TOOLCHAIN ocamlopt -c -ccopt --print-prog-name=ar .c 2>/dev/null)" >> $M
@@ -151,8 +130,6 @@ then
 fi
 echo "ocaml version: $OCAML_VERSION"
 
-# determine presence of the bytes module in the system; with ocamlfind < 1.5 and
-# ocaml >= 4.02 bytes module is present while bytes package is missing
 case $OCAML_VERSION in
     3.*|4.00.*|4.01.*)
         echo "configure: error: OCaml version ($OCAML_VERSION) is too old -- need >= 4.02; See INSTALL for details" 1>&2
