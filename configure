@@ -131,7 +131,7 @@ fi
 
 # figure out which dependencies we need to build
 echo "checking whether necessary dependencies are already installed..."
-for i in xmlm ulex easy-format optcomp base64 bytes
+for i in xmlm ulex easy-format base64
 do
     dir="`$OCAMLFIND query $i 2>/dev/null`"
     if [ $? -eq 0 ]
@@ -154,14 +154,9 @@ echo "ocaml version: $OCAML_VERSION"
 # determine presence of the bytes module in the system; with ocamlfind < 1.5 and
 # ocaml >= 4.02 bytes module is present while bytes package is missing
 case $OCAML_VERSION in
-    3.12.*|4.00.*|4.01.*)
-        ;;
-    3.*)
-        echo "configure: error: OCaml version is too old. See INSTALL for details" 1>&2
+    3.*|4.00.*|4.01.*)
+        echo "configure: error: OCaml version ($OCAML_VERSION) is too old -- need >= 4.02; See INSTALL for details" 1>&2
         exit 1
-        ;;
-    *)
-        echo "OCAML_BYTES_PRESENT = 1" >> $M
         ;;
 esac
 

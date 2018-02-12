@@ -1,4 +1,3 @@
-(*pp camlp4o -I `ocamlfind query optcomp` optcomp.cma *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013, 2014 Anton Lavrik
 
@@ -329,29 +328,23 @@ let print_trace_indent () =
   done
 
 
-#if ocaml_version >= (4, 1)
 let eprintf_if cond fmt =
   if cond
   then
     begin
       print_trace_indent ();
-      (* it turns out OCaml 4.02 doesn't do line buffering for stderr
-       * automatically; flushing stderr ourselves *)
+      (* XXX: it turns out OCaml 4.02 doesn't do line buffering for stderr
+       * automatically; flushing stderr ourselves
+       *
+      Printf.fprintf stderr fmt
+      *)
       Printf.kfprintf (fun stderr -> flush stderr) stderr fmt
     end
   else
-    Printf.ikfprintf (fun _ -> ()) stderr fmt
-#else
-let eprintf_if cond fmt =
-  if cond
-  then
-    begin
-      print_trace_indent ();
-      Printf.fprintf stderr fmt
-    end
-  else
+    (*
     Printf.ifprintf stderr fmt
-#endif
+    *)
+    Printf.ikfprintf (fun _ -> ()) stderr fmt
 
 
 let debug fmt =

@@ -5,16 +5,16 @@ matrix:
     - os: linux
       env: OCAML_VERSION=system
     - os: linux
-      env: OCAML_VERSION=3.12
-    - os: linux
-      env: OCAML_VERSION=4.00
-    - os: linux
-      env: OCAML_VERSION=4.01
-    - os: linux
       env: OCAML_VERSION=4.02
+    - os: linux
+      env: OCAML_VERSION=4.03
+    - os: linux
+      env: OCAML_VERSION=4.04
+    - os: linux
+      env: OCAML_VERSION=4.05
     # in addition, test opam package build (PACKAGE="piqilib")
     - os: linux
-      env: OCAML_VERSION=4.03 PACKAGE="piqilib"
+      env: OCAML_VERSION=4.06 PACKAGE="piqilib"
     # testing only basic install on osx with latest homebrew formulas
     - os: osx
       env: OCAML_VERSION=homebrew

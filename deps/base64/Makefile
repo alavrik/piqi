@@ -5,8 +5,6 @@ RESULT = base64
 
 SOURCES = b64.ml
 
-PACKS = bytes
-
 LIBINSTALL_FILES = b64.mli b64.cmi b64.cmx base64.cma base64.cmxa base64.a
 
 
