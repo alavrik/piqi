@@ -1,6 +1,6 @@
-TARBALL := ulex-1.1.tar.gz
-URL := http://www.cduce.org/download/$(TARBALL)
-MD5 := ce49a013bc4a0e085977a9fe157017bf
+TARBALL := v1.2.tar.gz
+URL := https://github.com/whitequark/ulex/archive/$(TARBALL)
+MD5 := 7d35f33514cda8ba0925afaba437177c
 
 
 UPSTREAM_FILES := \

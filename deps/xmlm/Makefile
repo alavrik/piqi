@@ -5,6 +5,8 @@ RESULT = xmlm
 
 SOURCES = xmlm.ml xmlm.mli
 
+LIBINSTALL_FILES = xmlm.mli xmlm.cmi xmlm.cmx xmlm.cma xmlm.cmxa xmlm.a
+
 
 all: bcl ncl
 

@@ -15,23 +15,7 @@ DIRS = piqilib src
 	doc piqi
 
 
-# export installation and search path for third-party OCaml dependencies
-ifeq ($(MAKECMDGOALS),deps)
-OCAMLFIND_DESTDIR := $(PIQI_BUILD)/lib/ocaml
-ifeq ($(SYSTEM),$(filter $(SYSTEM),mingw mingw64))
-OCAMLFIND_DESTDIR := $(shell cygpath -w $(OCAMLFIND_DESTDIR))
-endif
-export OCAMLFIND_DESTDIR
-
-OCAMLPATH := $(PIQI_ROOT)/deps
-ifeq ($(SYSTEM),$(filter $(SYSTEM),mingw mingw64))
-OCAMLPATH := $(shell cygpath -w $(OCAMLPATH))
-endif
-export OCAMLPATH
-endif
-
-
-# export installation path for third-party deps and piqilib
+# export installation path for piqilib
 ifneq ($(findstring ocaml-,$(MAKECMDGOALS)),)
 ifneq ($(PIQI_OCAML_DESTDIR),)
 export OCAMLFIND_DESTDIR = $(PIQI_OCAML_DESTDIR)
@@ -83,12 +67,10 @@ ocaml:
 
 ocaml-install: ocaml-uninstall
 	test -d $(PIQI_OCAML_DESTDIR) || mkdir -p $(PIQI_OCAML_DESTDIR)
-	$(MAKE) -C deps install
 	$(MAKE) -C piqilib install
 
 
 ocaml-uninstall:
-	$(MAKE) -C deps uninstall
 	$(MAKE) -C piqilib uninstall
 
 

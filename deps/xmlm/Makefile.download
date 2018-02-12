@@ -1,7 +1,7 @@
-VERSION := 1.2.0
-TARBALL := v1.2.0.tar.gz
-URL := https://github.com/dbuenzli/xmlm/archive/$(TARBALL)
-MD5 := 8117ef968659713108be4f07b9252cd3
+VERSION := 1.3.0
+TARBALL := xmlm-1.3.0.tbz
+URL := http://erratique.ch/software/xmlm/releases/$(TARBALL)
+MD5 := d63ce15d913975211196b5079e86a797
 
 
 UPSTREAM_FILES := \
@@ -24,7 +24,7 @@ META: $(UPSTREAM_DIR)/pkg/META
 
 $(UPSTREAM_DIR): $(TARBALL)
 	mkdir -p $(UPSTREAM_DIR)
-	tar -xzf $< -C $(UPSTREAM_DIR) --strip-components=1
+	tar -xjf $< -C $(UPSTREAM_DIR) --strip-components=1
 
 
 $(TARBALL):
