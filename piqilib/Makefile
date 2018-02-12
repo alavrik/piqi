@@ -9,7 +9,7 @@ LIBINSTALL_FILES += \
 	$(wildcard *.cmi) \
 
 
-PACKS = ulex easy-format xmlm base64 bytes
+PACKS = ulex easy-format xmlm base64
 
 
 SOURCES = \

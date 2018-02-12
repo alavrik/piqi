@@ -2,8 +2,11 @@ language: c
 script: ./.travis-ci.sh
 matrix:
   include:
-    - os: linux
-      env: OCAML_VERSION=system
+    # NOTE: commenting out OCAML_VERSION=system because some of ubuntu build
+    # servers (Trusty) have OCaml 4.01
+    #
+    #- os: linux
+    #  env: OCAML_VERSION=system
     - os: linux
       env: OCAML_VERSION=4.02
     - os: linux
