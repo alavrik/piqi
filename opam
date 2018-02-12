@@ -17,6 +17,7 @@ remove: [
   ["ocamlfind" "remove" "piqilib"]
 ]
 build-test: [make "test"]
+available: [ ocaml-version >= "4.02.0" ]
 depends: [
   "ocamlfind"
   "easy-format"
