@@ -167,7 +167,7 @@ and parse_any x =
           else
             (* XXX: hmm... no protobuf, JSON, XML, Piq -- what are we
              * dealing with here? *)
-            ()
+            assert false
         );
         any
 
