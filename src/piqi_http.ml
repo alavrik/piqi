@@ -187,7 +187,7 @@ let rec parse_headers accu = lexer
   | token ->
       let field_name = Ulexing.latin1_lexeme lexbuf in
       let field_value = parse_message_header_tail lexbuf in
-      let lowercase_name = String.lowercase field_name in
+      let lowercase_name = String.lowercase_ascii field_name in
       parse_headers ((lowercase_name, field_value) :: accu) lexbuf
 
   | crlf ->
