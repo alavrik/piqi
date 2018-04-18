@@ -464,6 +464,7 @@ let gen_piqi (piqi:T.piqi) =
     List.map (fun x -> iol [ios x; eol; eol]) piqi.P.protobuf_custom
   in
   iol [
+    ios "syntax = \"proto2\";\n\n";
     package;
     iol proto_custom;
     piqi_import;
