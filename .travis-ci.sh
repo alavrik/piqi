@@ -18,6 +18,9 @@ else
     then
         brew update
 
+        # see https://github.com/Homebrew/homebrew-core/issues/26358
+        brew upgrade python
+
         # build dependencies (Mac OS X)
         brew install ocaml opam
 
