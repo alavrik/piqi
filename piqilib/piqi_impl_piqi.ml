@@ -165,6 +165,7 @@ and Variant:
       mutable unparsed_piq_ast: Piqi_impl_piqi.uint option;
       mutable protobuf_name: string option;
       mutable protobuf_custom: string list;
+      mutable protobuf_oneof: string option;
       mutable json_name: string option;
       mutable proto_custom: string list;
       mutable proto_name: string option;
@@ -617,6 +618,7 @@ and parse_variant x =
   let _protobuf_custom, x = Piqirun.parse_repeated_field 112352691 parse_string x in
   let _proto_name, x = Piqirun.parse_optional_field 139663632 parse_string x in
   let _name, x = Piqirun.parse_optional_field 150958667 parse_name x in
+  let _protobuf_oneof, x = Piqirun.parse_optional_field 154222907 parse_string x in
   let _option, x = Piqirun.parse_repeated_field 192598901 parse_option x in
   let _parent = None in
   let _is_func_param = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res) in
@@ -629,6 +631,7 @@ and parse_variant x =
     Variant.protobuf_custom = _protobuf_custom;
     Variant.proto_name = _proto_name;
     Variant.name = _name;
+    Variant.protobuf_oneof = _protobuf_oneof;
     Variant.option = _option;
     Variant.parent = _parent;
     Variant.is_func_param = _is_func_param;
@@ -1186,10 +1189,11 @@ and gen__variant code x =
   let _protobuf_custom = Piqirun.gen_repeated_field 112352691 gen__string x.Variant.protobuf_custom in
   let _proto_name = Piqirun.gen_optional_field 139663632 gen__string x.Variant.proto_name in
   let _name = Piqirun.gen_optional_field 150958667 gen__name x.Variant.name in
+  let _protobuf_oneof = Piqirun.gen_optional_field 154222907 gen__string x.Variant.protobuf_oneof in
   let _option = Piqirun.gen_repeated_field 192598901 gen__option x.Variant.option in
   let _proto_custom = Piqirun.gen_repeated_field 405875126 gen__string x.Variant.proto_custom in
   let _json_name = Piqirun.gen_optional_field 515275216 gen__string x.Variant.json_name in
-  Piqirun.gen_record code (_unparsed_piq_ast :: _protobuf_name :: _protobuf_custom :: _proto_name :: _name :: _option :: _proto_custom :: _json_name :: [])
+  Piqirun.gen_record code (_unparsed_piq_ast :: _protobuf_name :: _protobuf_custom :: _proto_name :: _name :: _protobuf_oneof :: _option :: _proto_custom :: _json_name :: [])
 
 and gen__option code x =
   refer x;
@@ -1467,6 +1471,7 @@ and default_variant () =
     Variant.protobuf_custom = [];
     Variant.proto_name = None;
     Variant.name = None;
+    Variant.protobuf_oneof = None;
     Variant.option = [];
     Variant.parent = None;
     Variant.is_func_param = (Piqloc.pause (); let res = parse_bool (Piqirun.parse_default "\b\000") in Piqloc.resume (); res);

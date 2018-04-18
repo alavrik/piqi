@@ -291,20 +291,25 @@ let gen_enum e =
     make_enum_def enum_name ^^ eol
 
 
-let gen_option parent o =
+let gen_option_as_field parent o =
   let open Option in
   iod " " [
-    ios "optional"; gen_piqtype' o.piqtype ?parent;
+    gen_piqtype' o.piqtype ?parent;
       protoname_of_option o; ios "="; gen_code o.code ^^ ios ";";
   ]
 
 
-let gen_variant ?name ?parent v =
+let gen_option_as_record_field parent o =
+  let field = gen_option_as_field parent o in
+  ios "optional " ^^ field
+
+
+let gen_variant_as_record ?name ?parent v =
   let open Variant in
   let parent = recalc_import_parent ?parent v.parent in
   let name = recalc_name ?name v.protobuf_name in
   (* field definition list *) 
-  let vdefs = List.map (gen_option parent) v.option in
+  let vdefs = List.map (gen_option_as_record_field parent) v.option in
   let vdef = iol
     [
       ios "message "; ios name;
@@ -315,6 +320,34 @@ let gen_variant ?name ?parent v =
       ios "}"; eol;
     ]
   in vdef
+
+
+let gen_variant_as_oneof ?name ?parent oneof_name v =
+  let open Variant in
+  let parent = recalc_import_parent ?parent v.parent in
+  let name = recalc_name ?name v.protobuf_name in
+  (* field definition list *)
+  let vdefs = List.map (gen_option_as_field parent) v.option in
+  let vdef = iol
+    [
+      ios "message "; ios name;
+      ios " {"; indent;
+        ios "oneof "; ios oneof_name; ios " {"; indent;
+          iod "\n" vdefs;
+          gen_proto_custom v.protobuf_custom;
+          unindent; eol;
+        ios "}"; unindent; eol;
+      ios "}"; eol;
+    ]
+  in vdef
+
+
+let gen_variant ?name ?parent v =
+  match v.Variant.protobuf_oneof with
+    | None ->
+        gen_variant_as_record ?name ?parent v
+    | Some oneof_name ->
+        gen_variant_as_oneof ?name ?parent oneof_name v
 
 
 let gen_list ?name ?parent l =

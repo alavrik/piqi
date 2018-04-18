@@ -269,3 +269,18 @@
     ]
 ]
 
+
+.extend [
+    .typedef variant
+
+    % specifies the name for the protobuf "oneof", when present "piqi to-proto"
+    % wraps all variant options into protobuf's oneof construct:
+    %
+    %   oneof <name> { <options> }
+    %
+    .with.field [
+        .name protobuf-oneof
+        .type string
+        .optional
+    ]
+]

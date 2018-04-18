@@ -21,7 +21,7 @@ let load_file fname =
   let res = Bytes.create len in
   really_input ch res 0 len;
   close_in ch;
-  res
+  Bytes.unsafe_to_string res
 
 
 let main () =

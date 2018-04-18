@@ -112,6 +112,7 @@ and Variant:
       mutable option: Piqi_piqi.option list;
       mutable protobuf_name: string option;
       mutable protobuf_custom: string list;
+      mutable protobuf_oneof: string option;
       mutable json_name: string option;
     }
   end = Variant
@@ -420,6 +421,7 @@ and parse_variant x =
   let _protobuf_name, x = Piqirun.parse_optional_field 90072013 parse_string x in
   let _protobuf_custom, x = Piqirun.parse_repeated_field 112352691 parse_string x in
   let _name, x = Piqirun.parse_required_field 150958667 parse_name x in
+  let _protobuf_oneof, x = Piqirun.parse_optional_field 154222907 parse_string x in
   let _option, x = Piqirun.parse_repeated_field 192598901 parse_option x in
   let _json_name, x = Piqirun.parse_optional_field 515275216 parse_string x in
   Piqirun.check_unparsed_fields x;
@@ -427,6 +429,7 @@ and parse_variant x =
     Variant.protobuf_name = _protobuf_name;
     Variant.protobuf_custom = _protobuf_custom;
     Variant.name = _name;
+    Variant.protobuf_oneof = _protobuf_oneof;
     Variant.option = _option;
     Variant.json_name = _json_name;
   }
@@ -752,9 +755,10 @@ and gen__variant code x =
   let _protobuf_name = Piqirun.gen_optional_field 90072013 gen__string x.Variant.protobuf_name in
   let _protobuf_custom = Piqirun.gen_repeated_field 112352691 gen__string x.Variant.protobuf_custom in
   let _name = Piqirun.gen_required_field 150958667 gen__name x.Variant.name in
+  let _protobuf_oneof = Piqirun.gen_optional_field 154222907 gen__string x.Variant.protobuf_oneof in
   let _option = Piqirun.gen_repeated_field 192598901 gen__option x.Variant.option in
   let _json_name = Piqirun.gen_optional_field 515275216 gen__string x.Variant.json_name in
-  Piqirun.gen_record code (_protobuf_name :: _protobuf_custom :: _name :: _option :: _json_name :: [])
+  Piqirun.gen_record code (_protobuf_name :: _protobuf_custom :: _name :: _protobuf_oneof :: _option :: _json_name :: [])
 
 and gen__option code x =
   let _code = Piqirun.gen_optional_field 29667629 gen__int32 x.Option.code in
@@ -938,6 +942,7 @@ and default_variant () =
     Variant.protobuf_name = None;
     Variant.protobuf_custom = [];
     Variant.name = default_name ();
+    Variant.protobuf_oneof = None;
     Variant.option = [];
     Variant.json_name = None;
   }

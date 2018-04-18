@@ -15,8 +15,8 @@ let piqi_spec =
            code = Some 217697453l; json_name = None; getopt_letter = None;
            getopt_doc = None; proto_name = None}];
         parent = None; is_func_param = false; unparsed_piq_ast = None;
-        protobuf_name = None; protobuf_custom = []; json_name = None;
-        proto_custom = []; proto_name = None};
+        protobuf_name = None; protobuf_custom = []; protobuf_oneof = None;
+        json_name = None; proto_custom = []; proto_name = None};
      `alias
        {Piqi_impl_piqi.Alias.name = Some "protobuf-int32";
         typename = Some "int32"; piqi_type = Some `int; parent = None;
@@ -237,7 +237,8 @@ let piqi_spec =
            getopt_doc = None; proto_name = None}];
         parent = None; is_func_param = false; unparsed_piq_ast = None;
         protobuf_name = Some "piqi_typedef"; protobuf_custom = [];
-        json_name = None; proto_custom = []; proto_name = None};
+        protobuf_oneof = None; json_name = None; proto_custom = [];
+        proto_name = None};
      `enum
        {Piqi_impl_piqi.Enum.name = Some "piqi-type";
         option =
@@ -587,6 +588,14 @@ let piqi_spec =
            deprecated = false; piqtype = None; unparsed_piq_ast = None;
            piq_format = None; piq_positional = None; piq_flag_default = None;
            piq_alias = None; protobuf_name = None; code = Some 112352691l;
+           protobuf_packed = false; json_name = None;
+           json_omit_missing = None; getopt_letter = None; getopt_doc = None;
+           internal = false; proto_name = None; wire_packed = false};
+          {Piqi_impl_piqi.Field.name = Some "protobuf-oneof";
+           typename = Some "string"; mode = `optional; default = None;
+           deprecated = false; piqtype = None; unparsed_piq_ast = None;
+           piq_format = None; piq_positional = None; piq_flag_default = None;
+           piq_alias = None; protobuf_name = None; code = Some 154222907l;
            protobuf_packed = false; json_name = None;
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            internal = false; proto_name = None; wire_packed = false};
@@ -1125,8 +1134,8 @@ let piqi_lang =
            code = Some 217697453l; json_name = None; getopt_letter = None;
            getopt_doc = None; proto_name = None}];
         parent = None; is_func_param = false; unparsed_piq_ast = None;
-        protobuf_name = None; protobuf_custom = []; json_name = None;
-        proto_custom = []; proto_name = None};
+        protobuf_name = None; protobuf_custom = []; protobuf_oneof = None;
+        json_name = None; proto_custom = []; proto_name = None};
      `alias
        {Piqi_impl_piqi.Alias.name = Some "protobuf-int32";
         typename = Some "int32"; piqi_type = Some `int; parent = None;
@@ -1347,7 +1356,8 @@ let piqi_lang =
            getopt_doc = None; proto_name = None}];
         parent = None; is_func_param = false; unparsed_piq_ast = None;
         protobuf_name = Some "piqi_typedef"; protobuf_custom = [];
-        json_name = None; proto_custom = []; proto_name = None};
+        protobuf_oneof = None; json_name = None; proto_custom = [];
+        proto_name = None};
      `enum
        {Piqi_impl_piqi.Enum.name = Some "piqi-type";
         option =
@@ -1737,6 +1747,14 @@ let piqi_lang =
            deprecated = false; piqtype = None; unparsed_piq_ast = None;
            piq_format = None; piq_positional = None; piq_flag_default = None;
            piq_alias = None; protobuf_name = None; code = Some 112352691l;
+           protobuf_packed = false; json_name = None;
+           json_omit_missing = None; getopt_letter = None; getopt_doc = None;
+           internal = false; proto_name = None; wire_packed = false};
+          {Piqi_impl_piqi.Field.name = Some "protobuf-oneof";
+           typename = Some "string"; mode = `optional; default = None;
+           deprecated = false; piqtype = None; unparsed_piq_ast = None;
+           piq_format = None; piq_positional = None; piq_flag_default = None;
+           piq_alias = None; protobuf_name = None; code = Some 154222907l;
            protobuf_packed = false; json_name = None;
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            internal = false; proto_name = None; wire_packed = false};
@@ -2411,8 +2429,8 @@ let piqi_lang =
            code = Some 26300816l; json_name = None; getopt_letter = None;
            getopt_doc = None; proto_name = None}];
         parent = None; is_func_param = false; unparsed_piq_ast = None;
-        protobuf_name = None; protobuf_custom = []; json_name = None;
-        proto_custom = []; proto_name = None};
+        protobuf_name = None; protobuf_custom = []; protobuf_oneof = None;
+        json_name = None; proto_custom = []; proto_name = None};
      `record
        {Piqi_impl_piqi.Record.name = Some "extend";
         field =
@@ -2495,8 +2513,8 @@ let piqi_lang =
            protobuf_name = None; code = Some 340962072l; json_name = None;
            getopt_letter = None; getopt_doc = None; proto_name = None}];
         parent = None; is_func_param = false; unparsed_piq_ast = None;
-        protobuf_name = None; protobuf_custom = []; json_name = None;
-        proto_custom = []; proto_name = None}];
+        protobuf_name = None; protobuf_custom = []; protobuf_oneof = None;
+        json_name = None; proto_custom = []; proto_name = None}];
    import = []; func = []; custom_field = []; extended_typedef = [];
    func_typedef = []; extended_func_typedef = []; resolved_typedef = [];
    imported_typedef = []; resolved_import = []; extended_import = [];
@@ -2588,8 +2606,8 @@ let piq =
            code = None; json_name = None; getopt_letter = None;
            getopt_doc = None; proto_name = None}];
         parent = None; is_func_param = false; unparsed_piq_ast = None;
-        protobuf_name = None; protobuf_custom = []; json_name = None;
-        proto_custom = []; proto_name = None};
+        protobuf_name = None; protobuf_custom = []; protobuf_oneof = None;
+        json_name = None; proto_custom = []; proto_name = None};
      `record
        {Piqi_impl_piqi.Record.name = Some "piq-node";
         field =

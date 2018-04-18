@@ -147,7 +147,7 @@ piqi_boot:
 expand_piqi_boot:
 	$(MAKE) -f Makefile.expand_piqi_boot top
 	echo "#print_length 1000000;; #print_depth 1000000;;" > expand_piqi_boot.ocaml
-	(set -e; \
+	(set -e; export OCAMLTOP_UTF_8=false; \
 	 echo "let piqi_spec ="; \
 	 echo "let t = Piqi_boot.piqi_spec;;" | ./expand_piqi_boot.top -noprompt -init expand_piqi_boot.ocaml | sed -e '1,3d'; \
 	 echo "let piqi_lang ="; \
