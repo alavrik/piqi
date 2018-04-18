@@ -28,13 +28,13 @@ let error_duplicate obj name =
   error obj ("duplicate field: " ^ U.quote name)
 
 
-let handle_unknown_field ((n, _) as x) =
+let handle_unknown_field ((n, _)) =
   let f =
     if !Config.flag_strict
     then error
     else warning
   in
-  f x ("unknown field: " ^ U.quote n)
+  f n ("unknown field: " ^ U.quote n)
 
 
 let parse_int (obj:json) = match obj with
