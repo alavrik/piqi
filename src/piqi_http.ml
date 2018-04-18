@@ -187,7 +187,10 @@ let rec parse_headers accu = lexer
   | token ->
       let field_name = Ulexing.latin1_lexeme lexbuf in
       let field_value = parse_message_header_tail lexbuf in
-      let lowercase_name = String.lowercase_ascii field_name in
+      (* NOTE: we'll have to live with the compilation warning about
+       * String.lowercase being deprecated: can't use String.lowercase_ascii
+       * because it is not supported in OCaml 4.02, it was added in 4.03 *)
+      let lowercase_name = String.lowercase field_name in
       parse_headers ((lowercase_name, field_value) :: accu) lexbuf
 
   | crlf ->
