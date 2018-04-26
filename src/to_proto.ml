@@ -216,7 +216,7 @@ let gen_default x =
 let gen_field parent f =
   let open F in
   let packed =
-    if f.wire_packed
+    if f.protobuf_packed
     then " [packed = true]"
     else ""
   in
@@ -355,7 +355,7 @@ let gen_list ?name ?parent l =
   let parent = recalc_import_parent ?parent l.parent in
   let name = recalc_name ?name l.protobuf_name in
   let packed =
-    if l.wire_packed
+    if l.protobuf_packed
     then " [packed = true]"
     else ""
   in
