@@ -974,6 +974,14 @@ let piqi_spec =
            protobuf_name = None; code = Some 62639740l;
            protobuf_packed = false; json_name = None;
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
+           internal = false; proto_name = None; wire_packed = false};
+          {Piqi_impl_piqi.Field.name = Some "included-file";
+           typename = Some "string"; mode = `repeated; default = None;
+           deprecated = false; piqtype = None; unparsed_piq_ast = None;
+           piq_format = None; piq_positional = None; piq_flag_default = None;
+           piq_alias = None; protobuf_name = None; code = Some 35129965l;
+           protobuf_packed = false; json_name = None;
+           json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            internal = false; proto_name = None; wire_packed = false}];
         parent = None; wire_field = []; is_func_param = false;
         unparsed_piq_ast = None; piq_positional = None;
@@ -1114,8 +1122,8 @@ let piqi_spec =
    resolved_func = []; extended_func = []; included_piqi = [];
    original_piqi = None; ast = None; is_embedded = None;
    unparsed_piq_ast = None; protobuf_custom = []; protobuf_package = None;
-   file = None; includ = []; extend = []; proto_custom = [];
-   proto_package = None}
+   file = None; included_file = []; includ = []; extend = [];
+   proto_custom = []; proto_package = None}
 
 let piqi_lang =
   {Piqi_impl_piqi.Piqi.modname = Some "piqi-lang";
@@ -2214,6 +2222,14 @@ let piqi_lang =
            protobuf_packed = false; json_name = None;
            json_omit_missing = None; getopt_letter = None; getopt_doc = None;
            internal = false; proto_name = None; wire_packed = false};
+          {Piqi_impl_piqi.Field.name = Some "included-file";
+           typename = Some "string"; mode = `repeated; default = None;
+           deprecated = false; piqtype = None; unparsed_piq_ast = None;
+           piq_format = None; piq_positional = None; piq_flag_default = None;
+           piq_alias = None; protobuf_name = None; code = Some 35129965l;
+           protobuf_packed = false; json_name = None;
+           json_omit_missing = None; getopt_letter = None; getopt_doc = None;
+           internal = false; proto_name = None; wire_packed = false};
           {Piqi_impl_piqi.Field.name = None; typename = Some "include";
            mode = `repeated; default = None; deprecated = false;
            piqtype = None; unparsed_piq_ast = None; piq_format = None;
@@ -2521,8 +2537,8 @@ let piqi_lang =
    resolved_func = []; extended_func = []; included_piqi = [];
    original_piqi = None; ast = None; is_embedded = None;
    unparsed_piq_ast = None; protobuf_custom = []; protobuf_package = None;
-   file = None; includ = []; extend = []; proto_custom = [];
-   proto_package = None}
+   file = None; included_file = []; includ = []; extend = [];
+   proto_custom = []; proto_package = None}
 
 let piq =
   {Piqi_impl_piqi.Piqi.modname = Some "piq";
@@ -2761,6 +2777,6 @@ let piq =
    extended_import = []; resolved_func = []; extended_func = [];
    included_piqi = []; original_piqi = None; ast = None; is_embedded = None;
    unparsed_piq_ast = None; protobuf_custom = []; protobuf_package = None;
-   file = None; includ = []; extend = []; proto_custom = [];
-   proto_package = None}
+   file = None; included_file = []; includ = []; extend = [];
+   proto_custom = []; proto_package = None}
 

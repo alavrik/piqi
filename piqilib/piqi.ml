@@ -2288,7 +2288,14 @@ let piqi_to_piqobj
   (* piqi compile mode? TODO: this is a hack; we need a more explicit way to
    * determine whether it is a piqi compile mode *)
   if add_codes
-  then piqi_spec.P.file <- piqi.P.file;
+  then (
+    piqi_spec.P.file <- piqi.P.file;
+
+    (* remove the module itself from the list of included deps (it is always
+     * at the end of the list) *)
+    let included_piqi = List.filter (fun x -> x != piqi) piqi.P.included_piqi in
+    piqi_spec.P.included_file <- List.map (fun x-> some_of x.P.file) included_piqi;
+  );
 
   let ast = piqi_to_ast piqi_spec ~is_external_mode:false in
   let ast = transform_piqi_ast ast in

@@ -25,6 +25,7 @@ open C
 let input_format = ref ""
 let output_format = ref ""
 let input_self_spec = ref ""
+let flag_M = ref false
 
 
 (* NOTE: "piqi compile" command-line interface should be idealy as stable
@@ -48,6 +49,10 @@ let arg__self_spec =
   "--self-spec", Arg.Set_string input_self_spec,
   "<.pb file> input self-spec in .pb format; use '-' for stdin"
 
+let arg_M =
+  "-M", Arg.Set flag_M,
+  "generate one line with 'filename: <list of depenencies>', similar to 'cpp -M'"
+
 
 let speclist = Piqi_compile.getopt_speclist @
   [
@@ -55,7 +60,13 @@ let speclist = Piqi_compile.getopt_speclist @
     arg_f;
     arg_t;
     arg__self_spec;
+    arg_M;
   ]
+
+
+let escape_makefile_filename s =
+  (* TODO, XXX: escape special characters or at least spaces in file names *)
+  s
 
 
 let compile self_spec piqi och =
@@ -89,6 +100,21 @@ let compile self_spec piqi och =
     piqi_list
   in
   trace "writing output\n";
+
+  if !flag_M then (
+    let deps = Piqi.get_piqi_deps piqi ~only_imports:false in
+    (* remove the module itself from the list of included deps (it is always
+     * at the end of the list) *)
+    let deps = List.filter (fun x -> x != piqi) deps in
+    let output_piqi_filename piqi =
+      output_string och (escape_makefile_filename (some_of piqi.P.file))
+    in
+    output_piqi_filename piqi;
+    output_string och ": ";
+    List.iter (fun x -> output_piqi_filename x; output_string och " ") deps;
+  );
+
+  if not !flag_M then
   match !output_format with
     | "piq" | "" ->
         (* NOTE: instead of creating piqi-list, writing modules in regular .piq

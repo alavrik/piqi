@@ -267,6 +267,7 @@ and Piqi:
       mutable protobuf_custom: string list;
       mutable protobuf_package: string option;
       mutable file: string option;
+      mutable included_file: string list;
       mutable includ: Piqi_impl_piqi.includ list;
       mutable extend: Piqi_impl_piqi.extend list;
       mutable proto_custom: string list;
@@ -775,6 +776,7 @@ and parse_piqi x =
   let _unparsed_piq_ast, x = Piqirun.parse_optional_field 1 parse_uint x in
   let _ast = None in
   let _modname, x = Piqirun.parse_optional_field 13841580 parse_word x in
+  let _included_file, x = Piqirun.parse_repeated_field 35129965 parse_string x in
   let _imported_typedef = [] in
   let _file, x = Piqirun.parse_optional_field 62639740 parse_string x in
   let _extended_func = [] in
@@ -803,6 +805,7 @@ and parse_piqi x =
     Piqi.unparsed_piq_ast = _unparsed_piq_ast;
     Piqi.ast = _ast;
     Piqi.modname = _modname;
+    Piqi.included_file = _included_file;
     Piqi.imported_typedef = _imported_typedef;
     Piqi.file = _file;
     Piqi.extended_func = _extended_func;
@@ -1257,6 +1260,7 @@ and gen__piqi code x =
   refer x;
   let _unparsed_piq_ast = Piqirun.gen_optional_field 1 gen__uint x.Piqi.unparsed_piq_ast in
   let _modname = Piqirun.gen_optional_field 13841580 gen__word x.Piqi.modname in
+  let _included_file = Piqirun.gen_repeated_field 35129965 gen__string x.Piqi.included_file in
   let _file = Piqirun.gen_optional_field 62639740 gen__string x.Piqi.file in
   let _protobuf_custom = Piqirun.gen_repeated_field 112352691 gen__string x.Piqi.protobuf_custom in
   let _extend = Piqirun.gen_repeated_field 119198170 gen__extend x.Piqi.extend in
@@ -1268,7 +1272,7 @@ and gen__piqi code x =
   let _protobuf_package = Piqirun.gen_optional_field 376215364 gen__string x.Piqi.protobuf_package in
   let _proto_custom = Piqirun.gen_repeated_field 405875126 gen__string x.Piqi.proto_custom in
   let _typedef = Piqirun.gen_repeated_field 416823115 gen__typedef x.Piqi.typedef in
-  Piqirun.gen_record code (_unparsed_piq_ast :: _modname :: _file :: _protobuf_custom :: _extend :: _import :: _custom_field :: _includ :: _proto_package :: _func :: _protobuf_package :: _proto_custom :: _typedef :: [])
+  Piqirun.gen_record code (_unparsed_piq_ast :: _modname :: _included_file :: _file :: _protobuf_custom :: _extend :: _import :: _custom_field :: _includ :: _proto_package :: _func :: _protobuf_package :: _proto_custom :: _typedef :: [])
 
 and gen__import code x =
   refer x;
@@ -1546,6 +1550,7 @@ and default_piqi () =
     Piqi.unparsed_piq_ast = None;
     Piqi.ast = None;
     Piqi.modname = None;
+    Piqi.included_file = [];
     Piqi.imported_typedef = [];
     Piqi.file = None;
     Piqi.extended_func = [];

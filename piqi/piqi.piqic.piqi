@@ -29,6 +29,16 @@
         .type string
         .optional
     ]
+
+    .with.field [
+        % file names of all included Piqi modules
+        %
+        % we basically need them for generating "piqi compile -M" output
+
+        .name included-file
+        .type string
+        .repeated
+    ]
 ]
 
 

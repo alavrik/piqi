@@ -178,6 +178,7 @@ and Piqi:
       mutable protobuf_custom: string list;
       mutable protobuf_package: string option;
       mutable file: string option;
+      mutable included_file: string list;
     }
   end = Piqi
 and Import:
@@ -523,6 +524,7 @@ and parse_piqi_list x =
 and parse_piqi x =
   let x = Piqirun.parse_record x in
   let _modname, x = Piqirun.parse_optional_field 13841580 parse_word x in
+  let _included_file, x = Piqirun.parse_repeated_field 35129965 parse_string x in
   let _file, x = Piqirun.parse_optional_field 62639740 parse_string x in
   let _protobuf_custom, x = Piqirun.parse_repeated_field 112352691 parse_string x in
   let _import, x = Piqirun.parse_repeated_field 142778725 parse_import x in
@@ -533,6 +535,7 @@ and parse_piqi x =
   Piqirun.check_unparsed_fields x;
   {
     Piqi.modname = _modname;
+    Piqi.included_file = _included_file;
     Piqi.file = _file;
     Piqi.protobuf_custom = _protobuf_custom;
     Piqi.import = _import;
@@ -805,6 +808,7 @@ and gen__piqi_list code x =
 
 and gen__piqi code x =
   let _modname = Piqirun.gen_optional_field 13841580 gen__word x.Piqi.modname in
+  let _included_file = Piqirun.gen_repeated_field 35129965 gen__string x.Piqi.included_file in
   let _file = Piqirun.gen_optional_field 62639740 gen__string x.Piqi.file in
   let _protobuf_custom = Piqirun.gen_repeated_field 112352691 gen__string x.Piqi.protobuf_custom in
   let _import = Piqirun.gen_repeated_field 142778725 gen__import x.Piqi.import in
@@ -812,7 +816,7 @@ and gen__piqi code x =
   let _func = Piqirun.gen_repeated_field 340962072 gen__func x.Piqi.func in
   let _protobuf_package = Piqirun.gen_optional_field 376215364 gen__string x.Piqi.protobuf_package in
   let _typedef = Piqirun.gen_repeated_field 416823115 gen__typedef x.Piqi.typedef in
-  Piqirun.gen_record code (_modname :: _file :: _protobuf_custom :: _import :: _custom_field :: _func :: _protobuf_package :: _typedef :: [])
+  Piqirun.gen_record code (_modname :: _included_file :: _file :: _protobuf_custom :: _import :: _custom_field :: _func :: _protobuf_package :: _typedef :: [])
 
 and gen__import code x =
   let _modname = Piqirun.gen_required_field 13841580 gen__word x.Import.modname in
@@ -992,6 +996,7 @@ and default_piqi_list () =
 and default_piqi () =
   {
     Piqi.modname = None;
+    Piqi.included_file = [];
     Piqi.file = None;
     Piqi.protobuf_custom = [];
     Piqi.import = [];
