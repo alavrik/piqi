@@ -42,6 +42,9 @@ else
         # install basic build dependencies using opam
         opam install ocamlfind camlp4
 
+        # so that tests pass with the latest protobuf version
+        export CXXFLAGS='-std=c++14'
+
     elif [ "$OCAML_VERSION" = "system" ]
     then
         # build dependencies (Ubuntu)
