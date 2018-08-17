@@ -752,16 +752,16 @@ let parse_variant obj =
 
 (* find all fields with the given code in the list of fields sorted by codes *)
 let find_fields code l =
-  let rec aux accu = function
+  let rec aux accu unknown_accu = function
     | (code', obj)::t when code' = code ->
-        aux (obj::accu) t
-    | (code', obj)::t when code' < code ->
+        aux (obj::accu) unknown_accu t
+    | ((code', _) as h)::t when code' < code ->
         (* skipping the field which code is less than the requested one *)
-        aux accu t
+        aux accu (h::unknown_accu) t
     | rem ->
-        List.rev accu, rem
+        List.rev accu, List.rev_append unknown_accu rem
   in
-  aux [] l
+  aux [] [] l
 
 
 (* find the last instance of a field given its code in the list of fields sorted
@@ -773,19 +773,26 @@ let find_field code l =
     | rem -> (* previous field was the last one *)
         Some prev_value, rem
   in
-  let rec find_first_field = function
+  let rec find_first_field unknown_accu = function
     | (code', value)::t when code' = code -> (* field is found *)
         (* check if this is the last instance of it, if not, continue iterating
          * through the list *)
-        try_find_next_field value t
-    | (code', _)::t when code' < code ->
+        let res, rem = try_find_next_field value t in
+        res, List.rev_append unknown_accu rem
+    | ((code', _) as h)::t when code' < code ->
         (* skipping the field which code is less than the requested one *)
-        find_first_field t
+        find_first_field (h::unknown_accu) t
     | rem -> (* not found *)
         None, rem
 
   in
-  find_first_field l
+  match find_first_field [] l with
+    | None, rem ->
+        (* not found => returning the original list *)
+        None, l
+    | res ->
+        (* found => returning found value + everything else *)
+        res
 
 
 let parse_binobj parse_fun binobj =
