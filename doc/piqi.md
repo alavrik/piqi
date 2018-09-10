@@ -406,7 +406,7 @@ There are two special built-in types:
 -   `piqi-any`
 
      This type represents dynamically typed values in one of the supported
-     portable data format (Protobuf, JSON, XML) or completely untyped JSON and
+     data format (Protobuf, JSON, XML, Piq) or completely untyped JSON and
      XML.
 
      At low level, `piqi-any` maps to the `any` record defined in the Piqi
@@ -434,7 +434,7 @@ Type name must be a valid `identifier`.
 
 ### Record
 
-Record is a composite data type that contains zero or more *fields* or *flags*.
+Record is a composite data type that contains zero or more *fields*.
 
 Fields can have the following properties:
 
@@ -447,7 +447,7 @@ Fields can have the following properties:
 
     Field names must be unique across all fields for a given record.
 
--   `type` (optional)
+-   `type`
 
     Field type name refer to one of the following:
 
@@ -458,11 +458,26 @@ Fields can have the following properties:
     -   Type imported from another module. In this case *type name* will have
         the following format: `<import-name>/<type-name>`.
 
-    Field that doesn't specify *type* is called *flag*. Since instance of such
-    field doesn't have associated value, its presence in the record is
-    meaningful by itself. Therefore the name -- *flag*.
+    When defining optional boolean fields with `.default false` it is often
+    convenient to shorten the definition. In such case `.type bool .default
+    false` can be omitted. For example, definition below
 
-    Flags must be defined with `optional` field *mode*.
+        .field [
+            .name flag
+            .optional
+        ]
+
+    is equivalent to
+
+        .field [
+            .name flag
+            .optional
+            .type bool
+            .default false
+
+             % see the Piq language manual to learn what it means
+            .piq-flag-default true 
+        ]
 
 -   `mode` (optional)
 
@@ -556,13 +571,10 @@ Fields can have the following properties:
             .repeated
         ]
 
-        % this is a flag, its presence in the record is meaningful by itself, it
-        % doesn't carry any additional value
+        % this is a shorthand for the full definition that has .type bool
+        % .default false
         .field [
             .name flag
-
-            % NOTE: flags must be defined as .optional; obviously, .default value
-            % doesn't make any sense for flags and thus not allowed
             .optional
         ]
 

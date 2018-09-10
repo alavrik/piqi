@@ -13,6 +13,8 @@ features:
 
     -   reasonable amount of parenthesis compared to S-expressions
 
+    -   optional comma field separators for extra readability
+
     -   comments
 
 -   Rich set of data literals including:
@@ -246,9 +248,9 @@ not begin and end with `-`.
 identifiers.
 
 Piq *name* essentially represents the same concept as *atom* in various
-programming languages and corresponds to *record flags* and *variant flags
-(constants)* in the Piqi data model. Refer to [Piqi documentation](/doc/piqi/)
-for more information.
+programming languages and corresponds to *optional boolean record fields which
+are false by default* and also *variant* and *enum* constants in the Piqi data
+model. Refer to [Piqi documentation](/doc/piqi/) for more information.
 
 **Examples:**
 
@@ -341,6 +343,14 @@ Typed value starts with `typename` followed by a "non-name" value.
 
     [ .a 0 .b 1 ]
 
+Piq also supports optional ,-terminators for list elements. For example:
+
+    [ 1, 2, 3, 4, 5, ]
+
+    [ [1 2], [3 4 5] ]
+
+    [ .a 0, .b 1 ]
+
 This list represents a real (record) data structure that is taken from [person
 example](/examples/#person_piq).
 
@@ -396,10 +406,9 @@ types:
 
 Parenthesis can be used to override default associativity rules.
 
-Since Piq is not a programming language (at least yet), their practical
-application is limited to the cases when we want to define a *name literal* that
-otherwise would be parsed as *named value* (the same applies to *type name
-literal* and *typed value* as well).
+Since Piq is not a programming language, their practical application is limited
+to the cases when we want to define a *name literal* that otherwise would be
+parsed as *named value*.
 
 For example, these expression are valid but parenthesis have no effect, because
 they are applied to single values without any ambiguous context.
@@ -424,12 +433,22 @@ In these examples, parenthesis are necessary:
     [ .foo (.bar) ]
 
     % this is a list of one _named value_ with name ".foo" and value
-    % ".bar (.fum % 1)"
+    % ".bar (.fum 1)"
     [ .foo (.bar (.fum 1)) ]
 
     % this is a list of one _named value_ with name ".foo" and value ".bar (.fum)
     % followed by _integer literal_ "1".
     [ .foo (.bar (.fum)) 1 ]
+
+
+We can achieve a similar effect by using commas between list elements. Often
+times it would be even shorter that using parenthesis. For instance
+
+    [ .foo (.bar) ]
+
+from the above example can be also written as
+
+    [ .foo, .bar ]
 
 
 ### Built-in syntax abbreviation
@@ -464,25 +483,13 @@ Suppose we need to define several *list elements* all having the same name:
 
     [ .foo 1 .foo 2 .foo 3 ]
 
-A built-in macro provides a shorthand for it:
+This can be rewritten to avoid repeating the same name as follows:
+
+    [ .foo* [1 2 3] ]
+
+Note that there is also an equivalent deprecated notation:
 
     [ (.foo 1 2 3) ]
-
-The same idea applies to *type names* and abbreviated cons-names described in
-the previous section:
-
-    [ (:int 1 2 3) ]
-
-    [ (:type.name a b c) ]
-
-will be expanded to
-
-    [ :int 1 :int 2 :int 3 ]
-
-    [ :type.name a :type.name b :type.name c ]
-
-Parentheses are also reserved for future use as *forms* (i.e. macro and function
-calls).
 
 
 ### `json` and `xml` built-in forms
@@ -610,6 +617,40 @@ Examples:
 ]
 ```
 
+In the Piq representation, it is possible to omit field value and specify just
+piq name alone. For example, it is often convenient to allow specifying boolean
+fields as `.foo` instead of `.foo true`.
+
+To allow this, one needs to specify `.piq-flag-default <value>` property. For
+the above example it would be
+
+```
+.field [
+    .name foo
+    .type bool
+    ...
+    .piq-flag-default true
+]
+```
+
+Of course practical applications of this feature are not limited to boolean
+fields. This works with any type. This feature is particularly useful when
+building Piq-based DSLs.
+
+Here is another DSL-oriented feature. If a nested record field contain a single
+scalar or named element, it is possible to omit the surrounding `[ ... ]`
+brackets. For example:
+
+```
+.foo [ 10 ]       <->  .foo 10
+.foo [ .bar ]     <->  .foo.bar
+.foo [ .bar 10 ]  <->  .foo.bar 10
+```
+
+This is enabled by specifying `.piq-allow-unnesting` record-level flag for the
+nested record. Note that nested record field has to be labeled in order for this
+option to take an effect.
+
 
 ### Field aliases
 
@@ -639,7 +680,9 @@ Piq parser supports so called "relaxed" mode. For instance, in Piqi
 [command-line tools](/doc/tools/), it can be enabled by specifying
 `--piq-relaxed-parsing true` option.
 
-In this mode, single-word string literals don't have to be quoted.
+In this mode, single-word string literals don't have to be quoted. A
+single-world unquoted literal must contain alphanumeric ASCII or the
+following characters: `[_-./]`.
 
 For example, word literal `foo` will be treated the same way as string literal
 `"foo"`.

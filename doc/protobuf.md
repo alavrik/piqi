@@ -326,17 +326,23 @@ See the type mapping table above.
 
     There are several nuances.
 
-    Piqi `flags` (i.e. `options` or `fields` without types) are mapped to
-    `optional bool` Proto fields.
-
     Since Protobuf doesn't structured default values for optional fields, such
     default values will be dropped during conversion and a warning message will
     be printed.
 
 -   Enums are mapped to Protobuf enum definitions.
 
--   Variants mapped to Protobuf messages. Each variant `option` is mapped to the
-    correspondent `optional field`.
+-   Variants can be mapped to Protobuf messages or to Protobuf messages with
+    `oneof` section . Each variant `option` is mapped to the correspondent
+    `optional field`.
+
+    `piqi to-proto` command generates Protobuf `oneof` section whenever
+    `.protobuf-oneof <oneof-name>` property is defined in the variant
+    definition.
+
+    At this point, only piqi -> protobuf mapping for `oneof` is supported.
+    Support for the inverse (protobuf -> piqi) mapping may be added in the
+    future.
 
 -   List type is mapped to Protobuf message containing a single repeated `elem`
     field: `repeated elem = 1`.
