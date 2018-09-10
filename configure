@@ -95,6 +95,7 @@ if [ -n "$TOOLCHAIN" ]  # cross-compilation
 then
     echo "export OCAMLFIND_TOOLCHAIN := $TOOLCHAIN" >> $M
     echo "export AR = \$(shell ocamlfind -toolchain $TOOLCHAIN ocamlopt -c -ccopt --print-prog-name=ar .c 2>/dev/null)" >> $M
+    echo "export EXE := .exe" >> $M
     echo "STRIP = \$(shell ocamlfind -toolchain $TOOLCHAIN ocamlopt -c -ccopt --print-prog-name=strip .c 2>/dev/null)" >> $M
 
     # skipping everything else in cross-compilation mode; namely, we have to
