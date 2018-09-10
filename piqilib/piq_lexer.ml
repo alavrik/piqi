@@ -278,6 +278,12 @@ let regexp word_char = (first_word_char | '.' | '/')
 let regexp word = first_word_char word_char *
 
 
+let regexp float_literal =
+  ['0'-'9'] ['0'-'9' '_']*
+  ('.' ['0'-'9' '_']* )?
+  (['e' 'E'] ['+' '-']? ['0'-'9'] ['0'-'9' '_']* )?
+
+
 let is_valid_first_word_char = function
   | 'a'..'z' | 'A'..'Z' | '0'..'9' | '-' | '_' -> true
   | _ -> false
@@ -405,6 +411,15 @@ let rec token0 buf = lexer
       let s = Ulexing.utf8_lexeme lexbuf in
       Name s
   | word ->
+      let s = Ulexing.utf8_lexeme lexbuf in
+      Word s
+
+  (* TODO: this is inconsistent - here, integers qualify as words automatically,
+   * but we have to be specific about floats. Without this clause, floats having
+   * a '+' sign after E (e.g. 2e+08) will lead to "invalid character"
+   * lexing error
+   *)
+  | float_literal ->
       let s = Ulexing.utf8_lexeme lexbuf in
       Word s
 

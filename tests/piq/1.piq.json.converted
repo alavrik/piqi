@@ -33,3 +33,7 @@
 
 :m/v.id foo
 
+:m/v.float 200000000.0
+
+:m/v.float -8e-28
+
