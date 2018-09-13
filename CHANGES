@@ -1,3 +1,47 @@
+Piqi 0.6.14 (September 13, 2018)
+================================
+
+Highlights:
+
+  - Compatibility with OCaml >= 4.02 upto the latest version (4.07.0)
+
+Fixes:
+
+  - Fix "piqi to-proto" broken handling of .protobuf-packed
+
+Piq language:
+
+  - Support commas in lists: optional ,-terminators for list elements
+  - Replace lisp-style name expansion syntax with infix notation:
+    (<name> ...) -> <name>* [ ... ]
+  - Stricter lexical model: restrict Piq words to alphanumeric ASCII and [_-./]
+  - Add a new .piq-allow-unnesting record-level; specifying this flag allows to
+    omit nesting for a singular scalar or labeled field
+  - Add a new .piq-flag-default <value> which resolves field .foo specified
+    without a value to .foo <value>
+
+Piqi language:
+
+  - Unify flags and boolean fields, flags are now fully equivalent to
+    .field [ .name ... .optional .type bool .default false ]
+  - Use new .internal flag for fields which are meant to be ingored during
+    serialization/deserialization
+
+Piqi tools:
+
+  - Very early support for Protobuf2 "oneof" which can be now generated from
+    Piqi variant when .protobuf-oneof <oneof-name> is specified
+  - Add "piqi compile -M", similar to cpp -M
+  - Add experimental support for serializing Piq AST
+  - Add the ability to represent untyped Piq under piqi-any type
+
+Miscellaneous:
+
+  - Compatibility with OCaml upto the latest version (4.07.0)
+  - Remove support for OCaml < 4.02
+  - Better cross-compilation setup for Windows
+
+
 Piqi 0.6.13 (June 1, 2016)
 ==========================
 
