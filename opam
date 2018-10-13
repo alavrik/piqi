@@ -1,12 +1,15 @@
-opam-version: "1.2"
+opam-version: "2.0"
+synopsis:
+  "The Piqi library -- runtime support for multi-format Protobuf/JSON/XML/Piq data serialization and conversion"
+authors: "Anton Lavrik <alavrik@piqi.org>"
 maintainer: "Anton Lavrik <alavrik@piqi.org>"
-author: "Anton Lavrik <alavrik@piqi.org>"
 homepage: "http://piqi.org"
 bug-reports: "https://github.com/alavrik/piqi/issues"
 build: [
   ["./configure" "--prefix" prefix]
   [make]
   [make "ocaml"]
+  [make "test"] {with-test}
 ]
 install: [
   [make "install"]
@@ -16,10 +19,10 @@ remove: [
   ["rm" "-f" "%{prefix}%/bin/piqi"]
   ["ocamlfind" "remove" "piqilib"]
 ]
-build-test: [make "test"]
-available: [ ocaml-version >= "4.02.0" ]
+flags: light-uninstall
 depends: [
-  "ocamlfind"
+  "ocaml" {>= "4.02.0"}
+  "ocamlfind" {build}
   "easy-format"
   "ulex"
   "xmlm"
