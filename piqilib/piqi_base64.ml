@@ -18,12 +18,11 @@
 (* TODO: add more base64 validation; the base64 library doesn't do any
  * validation *)
 let decode x =
-  try
-    B64.decode x
-  with _ ->
-    invalid_arg "Piqi_base64.decode"
+  match Base64.decode x with
+  | Error _ -> invalid_arg "Piqi_base64.decode"
+  | Ok v -> v
 
 
 let encode x =
-  B64.encode x
+  Base64.encode_exn x
 
