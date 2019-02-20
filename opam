@@ -21,7 +21,7 @@ remove: [
 ]
 flags: light-uninstall
 depends: [
-  "ocaml" {>= "4.02.0"}
+  "ocaml" {>= "4.03"}
   "ocamlfind" {build}
   "easy-format"
   "ulex"

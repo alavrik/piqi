@@ -50,7 +50,7 @@ On Windows:
 
 On other Unix systems:
 
-        * OCaml (>= 4.02.0)
+        * OCaml (>= 4.03.0)
 
                 OCaml is available in most Linux distributions. It can also be
                 downloaded from here:
