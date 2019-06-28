@@ -213,34 +213,6 @@ let gen_field_label = function
 
 (*
 Reference implementation from protobuf-2.3.0/src/google/protobuf/stubs/strutil.cc
-
-  while ( *p != '\0') {
-    if ( *p != '\\') {
-      *d++ = *p++;
-    } else {
-        ...
-        case 'a':  *d++ = '\a';  break;
-        case 'b':  *d++ = '\b';  break;
-        case 'f':  *d++ = '\f';  break;
-        case 'n':  *d++ = '\n';  break;
-        case 'r':  *d++ = '\r';  break;
-        case 't':  *d++ = '\t';  break;
-        case 'v':  *d++ = '\v';  break;
-        case '\\': *d++ = '\\';  break;
-        case '?':  *d++ = '\?';  break;    // \?  Who knew?
-        case '\'': *d++ = '\'';  break;
-        case '"':  *d++ = '\"';  break;
-        case '0': case '1': case '2': case '3':  // octal digit: 1 to 3 digits
-        case '4': case '5': case '6': case '7': {
-          char ch = *p - '0';
-          if ( IS_OCTAL_DIGIT(p[1]) )
-            ch = ch * 8 + *++p - '0';
-          if ( IS_OCTAL_DIGIT(p[1]) )      // safe (and easy) to do this twice
-            ch = ch * 8 + *++p - '0';      // now points at last digit
-          *d++ = ch;
-          break;
-        }
-        case 'x': case 'X': {
 *)
 
 
