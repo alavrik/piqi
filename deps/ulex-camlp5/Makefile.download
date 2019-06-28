@@ -1,6 +1,6 @@
-TARBALL := v1.2.tar.gz
-URL := https://github.com/whitequark/ulex/archive/$(TARBALL)
-MD5 := 7d35f33514cda8ba0925afaba437177c
+TARBALL := v1.2-camlp5.tar.gz
+URL := https://github.com/sacerdot/ulex/archive/$(TARBALL)
+MD5 := 60aeff1073fe9bbb1be46b2da3a7618a
 
 
 UPSTREAM_FILES := \
@@ -19,7 +19,7 @@ $(UPSTREAM_FILES): %: $(UPSTREAM_DIR)/%
 
 
 pa_ulex.ml: %: $(UPSTREAM_DIR)/%
-	echo "(*pp camlp4orf *)" > $@
+	echo "(*pp camlp5o pa_macro.cmo pa_extend.cmo q_MLast.cmo *)" > $@
 	cat $< >> $@
 
 

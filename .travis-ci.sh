@@ -40,7 +40,7 @@ else
         eval `opam config env`
 
         # install basic build dependencies using opam
-        opam install ocamlfind camlp4
+        opam install ocamlfind camlp5
 
         # so that tests pass with the latest protobuf version
         export CXXFLAGS='-std=c++14'
@@ -48,7 +48,7 @@ else
     elif [ "$OCAML_VERSION" = "system" ]
     then
         # build dependencies (Ubuntu)
-        sudo apt-get install ocaml-nox camlp4-extra ocaml-findlib
+        sudo apt-get install ocaml-nox camlp5 ocaml-findlib
 
         # optional dependencies for running tests and building docs
         #
@@ -65,7 +65,7 @@ else
         . .travis-ocaml.sh
 
         # install basic build dependencies using opam
-        opam install ocamlfind camlp4
+        opam install ocamlfind camlp5
     fi
 
 

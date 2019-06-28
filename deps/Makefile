@@ -17,7 +17,7 @@ export OCAMLPATH
 
 
 ifndef SKIP-ulex
-DIRS += ulex
+DIRS += ulex-camlp5
 endif
 
 ifndef SKIP-xmlm

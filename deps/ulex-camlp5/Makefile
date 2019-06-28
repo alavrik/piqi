@@ -12,6 +12,8 @@ MODS = ulexing utf16 utf8
 LIBINSTALL_FILES = \
 	$(wildcard $(MODS:=.mli) $(MODS:=.cmi) $(MODS:=.cmx) pa_ulex.cma ulexing.a ulexing.cma ulexing.cmxa)
 
+PACKS = camlp5
+
 
 all: bcl ncl pa_ulex.cma
 
@@ -23,7 +25,7 @@ uninstall: libuninstall
 
 
 pa_ulex.cma:
-	$(MAKE) -f Makefile.camlp4
+	$(MAKE) -f Makefile.camlp5
 
 
 download:
@@ -31,7 +33,7 @@ download:
 
 
 clean::
-	$(MAKE) -f Makefile.camlp4 clean
+	$(MAKE) -f Makefile.camlp5 clean
 	$(MAKE) -f Makefile.download clean
 
 

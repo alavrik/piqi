@@ -21,7 +21,7 @@ PREREQUISITES
 
 On Debian and Ubuntu:
 
-        apt-get install ocaml camlp4-extra ocaml-findlib gcc make sed
+        apt-get install ocaml camlp5 ocaml-findlib gcc make sed
 
 
 On Mac OS X (using Homebrew):
@@ -29,7 +29,7 @@ On Mac OS X (using Homebrew):
         brew install ocaml opam
         opam init
         eval `opam config env`
-        opam install ocamlfind camlp4
+        opam install ocamlfind camlp5
 
         (Here, we used [OPAM](http://opam.ocaml.org/) to build and install
         ocamlfind).
@@ -57,10 +57,7 @@ On other Unix systems:
 
                         http://caml.inria.fr/download.en.html
 
-        * CamlP4 -- Caml Preprocessor and Pretty Printer
-
-                It comes as a part of OCaml source distribution. It should be
-                prepackaged in major Linux distributions as well.
+        * Camlp5 -- Caml Preprocessor and Pretty Printer
 
         * Ocamlfind/Findlib -- library manager for OCaml
 
@@ -128,7 +125,7 @@ To build a Windows (win64) executable on Linux/MacOsX:
         opam switch 4.04.0
         eval `opam config env`
 
-        opam install ocaml-windows ocamlfind camlp4
+        opam install ocaml-windows ocamlfind camlp5
 
 2. Build
 
