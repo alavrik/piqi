@@ -1,6 +1,7 @@
 */upstream
 */META
 !ulex/META
+!base64/META
 */*.ml
 */*.mli
 */*.tar.gz

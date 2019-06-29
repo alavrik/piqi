@@ -1,0 +1,17 @@
+version = "3.2.0"
+description = ""
+requires = "bytes"
+archive(byte) = "base64.cma"
+archive(native) = "base64.cmxa"
+plugin(byte) = "base64.cma"
+plugin(native) = "base64.cmxs"
+package "rfc2045" (
+  directory = "rfc2045"
+  version = "3.2.0"
+  description = ""
+  requires = "bytes"
+  archive(byte) = "base64_rfc2045.cma"
+  archive(native) = "base64_rfc2045.cmxa"
+  plugin(byte) = "base64_rfc2045.cma"
+  plugin(native) = "base64_rfc2045.cmxs"
+)

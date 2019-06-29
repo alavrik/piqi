@@ -3,9 +3,9 @@ OCAMLMAKEFILE := ../../make/OCamlMakefile
 
 RESULT = base64
 
-SOURCES = b64.ml
+SOURCES = base64.ml base64_rfc2045.ml
 
-LIBINSTALL_FILES = b64.mli b64.cmi b64.cmx base64.cma base64.cmxa base64.a
+LIBINSTALL_FILES = base64.mli base64.cmi base64_rfc2045.mli base64_rfc2045.cmi base64.cma base64.cmxa base64.a
 
 
 all: bcl ncl

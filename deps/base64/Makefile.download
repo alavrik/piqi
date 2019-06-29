@@ -1,11 +1,11 @@
-TARBALL := v2.0.0.tar.gz
+TARBALL := v3.2.0.tar.gz
 URL := https://github.com/mirage/ocaml-base64/archive/$(TARBALL)
-MD5 := 52b9736839c83cf88a9fb1373cf2e35c
+MD5 := de7c122c5fbbcd7ec31a3163a27d04c3
 
 
 UPSTREAM_FILES := \
-	b64.ml b64.mli \
-	META
+	base64.ml base64.mli \
+	base64_rfc2045.ml base64_rfc2045.mli \
 
 
 UPSTREAM_DIR := upstream
@@ -14,7 +14,7 @@ UPSTREAM_DIR := upstream
 all: $(TARBALL) $(UPSTREAM_DIR) $(UPSTREAM_FILES)
 
 
-$(UPSTREAM_FILES): %: $(UPSTREAM_DIR)/lib/%
+$(UPSTREAM_FILES): %: $(UPSTREAM_DIR)/src/%
 	cp $< $@
 
 
