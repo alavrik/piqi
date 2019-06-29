@@ -6,7 +6,7 @@ RESULT = ulexing
 SOURCES = cset.ml utf8.ml ulexing.ml utf16.ml ulex.ml
 
 
-OCAMLFIND_PACKAGE = ulex
+OCAMLFIND_PACKAGE = ulex-camlp5
 
 MODS = ulexing utf16 utf8
 LIBINSTALL_FILES = \

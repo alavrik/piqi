@@ -1,6 +1,6 @@
 */upstream
 */META
-!ulex/META
+!ulex-camlp5/META
 !base64/META
 */*.ml
 */*.mli
