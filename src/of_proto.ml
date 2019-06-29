@@ -229,7 +229,7 @@ Reference implementation from protobuf-2.3.0/src/google/protobuf/stubs/strutil.c
         case '\\': *d++ = '\\';  break;
         case '?':  *d++ = '\?';  break;    // \?  Who knew?
         case '\'': *d++ = '\'';  break;
-        case '"':  *d++ = '\"';  break;
+        case '"':  *d++ = '"';  break;
         case '0': case '1': case '2': case '3':  // octal digit: 1 to 3 digits
         case '4': case '5': case '6': case '7': {
           char ch = *p - '0';
