@@ -27,5 +27,6 @@ depends: [
   "ulex-camlp5"
   "xmlm"
   "base64" {>="3.1.0"}
+  "sedlex"
 ]
 dev-repo: "git://github.com/alavrik/piqi"
