@@ -283,6 +283,11 @@ let float_literal =
   Opt ('.', Star ('0'..'9' | '_')),
   Opt (('e' | 'E'), Opt ('+' | '-'), '0'..'9', Star ('0'..'9' | '_'))]
 
+let string_literal =
+  (* FIXME: Not sure how to express "NOT" in the sedlex *)
+  (* '"'([^'"']|"\\\"")*'"' *)
+  [%sedlex.regexp? '"', Star ( any | "\\\""), '"']
+
 (* non-printable characters from ASCII range are not allowed
  * XXX: exclude Unicode non-printable characters as well? *)
 let word = [%sedlex.regexp? Plus (Compl ( '(' | ')' | '[' | ']' | '{' | '}' | '"' | '%' | '#' | 0 .. 0x20 | 127))]
@@ -374,7 +379,7 @@ let rec token0 buf lexbuf = [%sedlex match lexbuf with
   | ']' -> Rbr
   | '*' -> Star
   | ',' -> Comma
-  | '"'([^'"']|"\\\"")*'"' -> (* string literal *)
+  | string_literal ->
       let s = Sedlexing.Utf8.lexeme lexbuf in
       let s = String.sub s 1 (String.length s - 2) in (* cut double-quotes *)
 
