@@ -272,53 +272,20 @@ type token =
 let newline = [%sedlex.regexp? '\n' | "\r\n"]
 let ws = [%sedlex.regexp? Plus (' ' | '\t')]
 
-let regexp name = [':' '.'] ['a'-'z' 'A'-'Z' '0'-'9' '-' '_' '/' '.' ':']+
+let name = [%sedlex.regexp? (':' | '.'), Plus ('a'..'z' | 'A'..'Z' | '0'..'9' | '-' | '_' | '/' | '.' | ':')]
 
 (* ASCII alphanumeric, '-', '_', '.', '/' for representing numbers and unquoted
  * strings (useful e.g. as DSL identifiers)
- *
- * XXX: include all alphanumeric Unicode? *)
-let regexp first_word_char = ['a'-'z' 'A'-'Z' '0'-'9' '-' '_']
+ *)
 
-let regexp word_char = (first_word_char | '.' | '/')
-
-let regexp word = first_word_char word_char *
-
-let regexp float_literal =
-  ['0'-'9'] ['0'-'9' '_']*
-  ('.' ['0'-'9' '_']* )?
-  (['e' 'E'] ['+' '-']? ['0'-'9'] ['0'-'9' '_']* )?
-
-let is_valid_first_word_char = function
-  | 'a'..'z' | 'A'..'Z' | '0'..'9' | '-' | '_' -> true
-  | _ -> false
-
-let is_valid_word_char = function
-  | '.' | '/' -> true
-  | x -> is_valid_first_word_char x
+let float_literal =
+  [%sedlex.regexp?  ('0'..'9'), Star ('0'..'9' | '_'),
+  Opt ('.', Star ('0'..'9' | '_')),
+  Opt (('e' | 'E'), Opt ('+' | '-'), '0'..'9', Star ('0'..'9' | '_'))]
 
 (* non-printable characters from ASCII range are not allowed
  * XXX: exclude Unicode non-printable characters as well? *)
 let word = [%sedlex.regexp? Plus (Compl ( '(' | ')' | '[' | ']' | '{' | '}' | '"' | '%' | '#' | 0 .. 0x20 | 127))]
-
-(* accepts the same language as the regexp above *)
-let is_valid_word s =
-  let len = String.length s in
-  (* NOTE: it works transparently on utf8 strings *)
-  let rec check_chars i =
-    if i >= len
-    then true
-    else
-      if is_valid_word_char s.[i]
-      then check_chars (i + 1)
-      else false
-  in
-  if len = 0
-  then false
-  else if not (is_valid_first_word_char s.[0])
-  then false
-  else check_chars 1
-
 
 type buf =
   {

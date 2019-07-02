@@ -118,7 +118,7 @@ let rec blit_to_int s spos a apos n =
 
 let to_int_array s pos bytes =
   let n = compute_len s pos bytes in
-  let a = Array.create n 0 in
+  let a = Array.make n 0 in
   blit_to_int s pos a 0 n;
   a
 
