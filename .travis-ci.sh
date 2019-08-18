@@ -49,8 +49,10 @@ else
         . .travis-ocaml.sh
     fi
 
+    opam install --deps-only ./opam
+
     ./configure
-    make deps
+
     make
 
     make test

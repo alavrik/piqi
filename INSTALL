@@ -44,6 +44,8 @@ To cross-compile for Windows, see the "CROSS-COMPILATION" section below
 
         opam install --deps-only ./opam
 
+        also available as "make deps" shortcut
+
 
 INSTALLATION INSTRUCTIONS
 =========================
@@ -52,19 +54,15 @@ INSTALLATION INSTRUCTIONS
 
         Run "./configure --help" for the list of available options.
 
-2. Install third-party dependencies
-
-        make deps
-
-3. Build Piqi
+2. Build Piqi
 
         make
 
-4. Install the "piqi" binary along with the "piqi.1" man page
+3. Install the "piqi" binary along with the "piqi.1" man page
 
         make install
 
-5. (Optional) build HTML documentation -- see doc/README.md for more details
+4. (Optional) build HTML documentation -- see doc/README.md for more details
 
         make doc
 
