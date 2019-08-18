@@ -91,10 +91,10 @@ To build a Windows (win64) executable on Linux/MacOsX:
         brew install mingw-w64 gawk
 
         opam repository add windows git://github.com/ocaml-cross/opam-cross-windows
-        opam switch 4.04.0
+        opam switch 4.08.0
         eval `opam config env`
 
-        opam install ocaml-windows ocamlfind camlp5
+        opam install ocaml-windows64 sedlex-windows easy-format-windows
 
 2. Build
 

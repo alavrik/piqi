@@ -104,6 +104,7 @@ then
 
     # figure out which dependencies we need to build
     echo "checking whether necessary dependencies are already installed..."
+    export OCAMLFIND_TOOLCHAIN=$TOOLCHAIN
     for i in xmlm easy-format base64
     do
         dir="`$OCAMLFIND query $i 2>/dev/null`"

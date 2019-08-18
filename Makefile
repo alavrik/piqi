@@ -24,10 +24,13 @@ endif
 
 
 deps: build-dir
-	@#$(MAKE) -C deps download
-	@#$(MAKE) -C deps
-	@#$(MAKE) -C deps uninstall install
+ifndef OCAMLFIND_TOOLCHAIN
 	opam install -y --deps-only ./opam
+else
+	$(MAKE) -C deps download
+	$(MAKE) -C deps
+	$(MAKE) -C deps uninstall install
+endif
 
 
 build-dir:
@@ -48,7 +51,7 @@ install:
 # especially useful for cross-compilation
 STRIP ?= strip
 strip:
-	$(STRIP) src/piqi
+	$(STRIP) src/piqi$(EXE)
 
 
 # re-generate _piqi.ml from .piqi and copy the latest version of piqilib.ml  --
