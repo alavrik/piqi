@@ -1,4 +1,3 @@
-(*pp camlp5o -I `ocamlfind query ulex-camlp5` pa_ulex.cma *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2017 Anton Lavrik
 
@@ -17,6 +16,9 @@
 
 module C = Piqi_common
 open C.Std
+
+
+module Utf8 = Piqi_utf8
 
 
 exception Error0 of string (* internally used error exception *)
@@ -87,9 +89,9 @@ let type_of_char c =
   else String_b
 
 
-let regexp digit = ['0'-'9']
-let regexp odigit = ['0'-'7']
-let regexp xdigit = ['0'-'9''a'-'f''A'-'F']
+let digit = [%sedlex.regexp? '0'..'9']
+let odigit = [%sedlex.regexp? '0'..'7']
+let xdigit = [%sedlex.regexp? '0'..'9' | 'a'..'f' | 'A'..'F']
 
 
 let make_char c =
@@ -98,13 +100,12 @@ let make_char c =
 
 let escaped_lexeme lexbuf =
   (* strip the first symbol *)
-  let start = Ulexing.get_start lexbuf in
-  let pos = Ulexing.get_pos lexbuf in
-  Ulexing.utf8_sub_lexeme lexbuf 1 (pos - start - 1)
+  let len = Sedlexing.lexeme_length lexbuf in
+  Sedlexing.Utf8.sub_lexeme lexbuf 1 (len - 1)
 
 
 (* XXX: add support for a b f v escapes? *)
-let parse_string_escape = lexer
+let parse_string_escape lexbuf = [%sedlex match lexbuf with
   | '\\' -> make_char '\\'
   | '"' -> make_char '"'
   | 't' -> make_char '\t'
@@ -113,26 +114,29 @@ let parse_string_escape = lexer
   (* XXX: disable it for now, since specifying decimals this way may make more
    * sense:
   | odigit odigit odigit ->
-      let c = int_of_ostring (Ulexing.utf8_lexeme lexbuf) in
+      let c = int_of_ostring (Sedlexing.Utf8.lexeme lexbuf) in
       (type_of_char c),c
   *)
-  | "x" xdigit xdigit ->
+  | 'x', xdigit, xdigit ->
       let c = int_of_xstring (escaped_lexeme lexbuf) in
       (type_of_char c),c
-  | 'u' xdigit xdigit xdigit xdigit ->
+  | 'u', xdigit, xdigit, xdigit, xdigit ->
       let c = int_of_xstring (escaped_lexeme lexbuf) in
       String_u,c
-  | 'U' xdigit xdigit xdigit xdigit xdigit xdigit xdigit xdigit ->
+  | 'U', xdigit, xdigit, xdigit, xdigit, xdigit, xdigit, xdigit, xdigit ->
       (* XXX: check code validity so that it doesn't exeed allocated limit *)
       let c = int_of_xstring (escaped_lexeme lexbuf) in
       String_u,c
-  | _ -> error "invalid string escape literal"
+  | _ ->
+      let s = Sedlexing.Utf8.lexeme lexbuf in
+      error ("invalid string escape literal " ^ s)
+]
 
 
 (* returns the list of integers representing codepoints *)
 (* XXX: allow only printable characters in strings? *)
 (* XXX: provide a method for wraping a string to several lines? *)
-let rec parse_string_literal ltype l = lexer
+let rec parse_string_literal ltype l lexbuf = [%sedlex match lexbuf with
   | '\\' ->
       let ctype, c = parse_string_escape lexbuf in
       let ltype =
@@ -146,14 +150,15 @@ let rec parse_string_literal ltype l = lexer
           | _,_ -> ltype (* leave the previous type *)
         in
       parse_string_literal ltype (c::l) lexbuf
-  | [0-0x1F 127] -> (* XXX: what about unicode non-printable chars? *)
+  | (0 .. 0x1F) | 127 -> (* XXX: what about unicode non-printable chars? *)
       (* do not allow non-printables to appear in string literals -- one
        * should use correspondent escaped specifications instead *)
       error "invalid string literal" 
   | eof ->
       ltype,(List.rev l)
-  | _ ->
-      let c = Ulexing.lexeme_char lexbuf 0 in
+  | any ->
+      let c = Sedlexing.lexeme_char lexbuf 0 in
+      let c = Uchar.to_int c in
       let ltype =
         match ltype with
            String_b when c > 127 -> error "invalid string literal" 
@@ -161,6 +166,11 @@ let rec parse_string_literal ltype l = lexer
          | _ -> ltype
       in
       parse_string_literal ltype (c::l) lexbuf
+  | _ ->
+      let c = Sedlexing.lexeme_char lexbuf 0 in
+      let c = Uchar.to_int c in
+      error ("invalid string codepoint " ^ string_of_int c)
+]
 
 
 let utf8_of_list l =
@@ -181,7 +191,7 @@ let string_of_list l =
 
 
 let parse_string_literal s =
-  let lexbuf = Ulexing.from_utf8_string s in
+  let lexbuf = Sedlexing.Utf8.from_string s in
   let str_type, l = parse_string_literal String_a [] lexbuf in
   let parsed_str =
     match str_type with
@@ -260,29 +270,27 @@ type token =
   | Raw_string of string
 
 
-let regexp newline = ('\n' | "\r\n")
-let regexp ws = [' ' '\t']+
+let newline = [%sedlex.regexp? '\n' | "\r\n"]
+let ws = [%sedlex.regexp? Plus (' ' | '\t')]
 
+let name = [%sedlex.regexp? (':' | '.'), Plus ('a'..'z' | 'A'..'Z' | '0'..'9' | '-' | '_' | '/' | '.' | ':')]
 
-let regexp name = [':' '.'] ['a'-'z' 'A'-'Z' '0'-'9' '-' '_' '/' '.' ':']+
-
+let string_literal = [%sedlex.regexp? '"', Star (Compl '"' | "\\\""), '"']
 
 (* ASCII alphanumeric, '-', '_', '.', '/' for representing numbers and unquoted
  * strings (useful e.g. as DSL identifiers)
  *
  * XXX: include all alphanumeric Unicode? *)
-let regexp first_word_char = ['a'-'z' 'A'-'Z' '0'-'9' '-' '_']
+let first_word_char = [%sedlex.regexp? ('a'..'z' | 'A'..'Z' | '0'..'9' | '-' | '_')]
 
-let regexp word_char = (first_word_char | '.' | '/')
+let word_char = [%sedlex.regexp? (first_word_char | '.' | '/')]
 
-let regexp word = first_word_char word_char *
+let word = [%sedlex.regexp? first_word_char, Star (word_char)]
 
-
-let regexp float_literal =
-  ['0'-'9'] ['0'-'9' '_']*
-  ('.' ['0'-'9' '_']* )?
-  (['e' 'E'] ['+' '-']? ['0'-'9'] ['0'-'9' '_']* )?
-
+let float_literal =
+  [%sedlex.regexp?  ('0'..'9'), Star ('0'..'9' | '_'),
+  Opt ('.', Star ('0'..'9' | '_')),
+  Opt (('e' | 'E'), Opt ('+' | '-'), '0'..'9', Star ('0'..'9' | '_'))]
 
 let is_valid_first_word_char = function
   | 'a'..'z' | 'A'..'Z' | '0'..'9' | '-' | '_' -> true
@@ -292,8 +300,7 @@ let is_valid_word_char = function
   | '.' | '/' -> true
   | x -> is_valid_first_word_char x
 
-
-(* accepts the same language as the regexp above *)
+(* accepts the same language as the word regexp above *)
 let is_valid_word s =
   let len = String.length s in
   (* NOTE: it works transparently on utf8 strings *)
@@ -314,7 +321,7 @@ let is_valid_word s =
 
 type buf =
   {
-    lexbuf : Ulexing.lexbuf;
+    lexbuf : Sedlexing.lexbuf;
 
     mutable lcount : int; (* line counter *)
     mutable lstart : int; (* buffer position of the latest line *)
@@ -336,12 +343,12 @@ let make_buf lexbuf =
 
 let update_line_counter buf =
   buf.lcount <- buf.lcount + 1;
-  buf.lstart <- Ulexing.lexeme_end buf.lexbuf
+  buf.lstart <- Sedlexing.lexeme_end buf.lexbuf
 
 
 let get_column buf = 
   (* NOTE: ennumerating columns from 1 *)
-  (Ulexing.lexeme_start buf.lexbuf) - buf.lstart + 1
+  (Sedlexing.lexeme_start buf.lexbuf) - buf.lstart + 1
 
 
 let update_column buf =
@@ -358,7 +365,7 @@ let location buf =
   buf.lcount, buf.col
 
 
-let rec token0 buf = lexer
+let rec token0 buf lexbuf = [%sedlex match lexbuf with
   | newline ->
       (* update line counter, drop column counter and move on *)
       update_line_counter buf;
@@ -369,16 +376,16 @@ let rec token0 buf = lexer
       error "invalid character"
   | "%%" ->
       error "'%%' literal is reserved for future versions"
-  | '%' ( [^'%' '\n'] [^'\n']* )? newline? -> (* skip single line comment *)
+  | '%', Opt ( Compl ('%' | '\n'), Star (Compl '\n') ), Opt newline -> (* skip single line comment *)
       update_line_counter buf;
       token0 buf lexbuf 
-  | '#' newline? -> (* verbatim empty text *)
+  | '#', Opt newline -> (* verbatim empty text *)
       Text ""
-  | '#' [^' '] ->
+  | '#', Compl ' ' ->
       error "space is expected after '#'"
-  | '#' [' '] [^'\n']* newline? -> (* verbatim text *)
+  | '#', ' ', Star (Compl '\n'), Opt newline -> (* verbatim text *)
       (* TODO: restrict string literal to contain only printable characters *)
-      let s = Ulexing.utf8_lexeme lexbuf in
+      let s = Sedlexing.Utf8.lexeme lexbuf in
       let len = String.length s in
       if len = 0
       then Text ""
@@ -399,8 +406,8 @@ let rec token0 buf = lexer
   | ']' -> Rbr
   | '*' -> Star
   | ',' -> Comma
-  | '"'([^'"']|"\\\"")*'"' -> (* string literal *)
-      let s = Ulexing.utf8_lexeme lexbuf in
+  | string_literal ->
+      let s = Sedlexing.Utf8.lexeme lexbuf in
       let s = String.sub s 1 (String.length s - 2) in (* cut double-quotes *)
 
       let (str_type, parsed_str) = parse_string_literal s in
@@ -408,10 +415,10 @@ let rec token0 buf = lexer
 
   | '"' -> error "string literal overrun"
   | name ->
-      let s = Ulexing.utf8_lexeme lexbuf in
+      let s = Sedlexing.Utf8.lexeme lexbuf in
       Name s
   | word ->
-      let s = Ulexing.utf8_lexeme lexbuf in
+      let s = Sedlexing.Utf8.lexeme lexbuf in
       Word s
 
   (* TODO: this is inconsistent - here, integers qualify as words automatically,
@@ -420,11 +427,12 @@ let rec token0 buf = lexer
    * lexing error
    *)
   | float_literal ->
-      let s = Ulexing.utf8_lexeme lexbuf in
+      let s = Sedlexing.Utf8.lexeme lexbuf in
       Word s
 
   | eof -> EOF
   | _ -> error "invalid character"
+]
 
 
 (* error reporter *)
@@ -444,10 +452,9 @@ let token1 buf =
     tok
   with
     | Error0 s -> error buf s
-    | Ulexing.Error -> error buf "lexing internal error"
-    | Ulexing.InvalidCodepoint i -> 
+    | Sedlexing.InvalidCodepoint i -> 
         error buf ("invalid unicode code point " ^ string_of_int i)
-    | Utf8.MalFormed ->
+    | Sedlexing.MalFormed ->
         error buf "malformed utf-8"
 
 
@@ -465,17 +472,17 @@ let token buf =
 
 
 let init_from_string s =
-  let lexbuf = Ulexing.from_utf8_string s in
+  let lexbuf = Sedlexing.Utf8.from_string s in
   make_buf lexbuf
 
 
 let init_from_stream s =
-  let lexbuf = Ulexing.from_utf8_stream s in
+  let lexbuf = Sedlexing.Utf8.from_stream s in
   make_buf lexbuf
 
 
 let init_from_channel ch =
-  let lexbuf = Ulexing.from_utf8_channel ch in
+  let lexbuf = Sedlexing.Utf8.from_channel ch in
   make_buf lexbuf
 
 

@@ -1,4 +1,3 @@
-(*pp camlp5o -I `ocamlfind query ulex-camlp5` pa_ulex.cma *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2017 Anton Lavrik
 
@@ -244,12 +243,12 @@ Reference implementation from protobuf-2.3.0/src/google/protobuf/stubs/strutil.c
 *)
 
 
-let regexp digit = ['0'-'9']
-let regexp odigit = ['0'-'7']
-let regexp xdigit = ['0'-'9''a'-'f''A'-'F']
+let digit = [%sedlex.regexp? '0'..'9']
+let odigit = [%sedlex.regexp? '0'..'7']
+let xdigit = [%sedlex.regexp? '0'..'9' | 'a'..'f' | 'A'..'F']
 
 
-let parse_string_escape = lexer
+let parse_string_escape lexbuf = [%sedlex match lexbuf with
   | 'a' ->  '\007'
   | 'b' ->  '\008'
   | 'f' ->  '\012'
@@ -261,34 +260,37 @@ let parse_string_escape = lexer
   | '?' ->  '?'
   | '\'' -> '\''
   | '"' ->  '"'
-  | odigit odigit odigit ->
-      let v = Ulexing.latin1_lexeme lexbuf in
+  | odigit, odigit, odigit ->
+      let v = Sedlexing.Latin1.lexeme lexbuf in
       Char.chr (Piq_lexer.int_of_ostring v)
-  | ("x" | "X") xdigit xdigit ->
-      let v = Ulexing.latin1_sub_lexeme lexbuf 1 2
-      in
+  | ("x" | "X"), xdigit, xdigit ->
+      let v = Sedlexing.Latin1.sub_lexeme lexbuf 1 2 in
       Char.chr (Piq_lexer.int_of_xstring v)
   | _ ->
       piqi_error "error: invalid string escape literal in .proto"
+]
 
 
 (* returns the list of integers representing codepoints *)
-let rec parse_string_literal buf = lexer
+let rec parse_string_literal buf lexbuf = [%sedlex match lexbuf with
   | '\\' ->
       let c = parse_string_escape lexbuf in
       Buffer.add_char buf c;
       parse_string_literal buf lexbuf
   | eof ->
       Buffer.contents buf
-  | _ ->
-      let c = Ulexing.latin1_lexeme_char lexbuf 0 in
+  | any ->
+      let c = Sedlexing.Latin1.lexeme_char lexbuf 0 in
       Buffer.add_char buf c;
       parse_string_literal buf lexbuf
+  | _ ->
+      piqi_error "invalid string character in .proto"
+]
 
 
 let parse_string_literal s =
   let buf = Buffer.create (String.length s) in
-  let lexbuf = Ulexing.from_latin1_string s in
+  let lexbuf = Sedlexing.Latin1.from_string s in
   parse_string_literal buf lexbuf
 
 

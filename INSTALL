@@ -19,59 +19,30 @@ architectures supported by OCaml. See the list of supported platforms at
 PREREQUISITES
 =============
 
+1. Install OCaml and opam (package manager for OCaml)
+
 On Debian and Ubuntu:
 
-        apt-get install ocaml camlp5 ocaml-findlib gcc make sed
-
+        apt-get install opam
 
 On Mac OS X (using Homebrew):
 
         brew install ocaml opam
+
+On other systems, see [OPAM](http://opam.ocaml.org/)
+
+To cross-compile for Windows, see the "CROSS-COMPILATION" section below
+
+
+2. Configure opam
+
         opam init
         eval `opam config env`
-        opam install ocamlfind camlp5
-
-        (Here, we used [OPAM](http://opam.ocaml.org/) to build and install
-        ocamlfind).
 
 
-On Windows:
+3. Install dependencies
 
-        See the "CROSS-COMPILATION" section below for instructions on building a
-        Windows executable on Linux and Mac OS X.
-
-        For building native Windows binaries, download and install OCaml for
-        Windows from here:
-
-                http://protz.github.io/ocaml-installer/
-
-        For building under Cygwin, follow the steps from the next section.
-
-
-On other Unix systems:
-
-        * OCaml (>= 4.03.0)
-
-                OCaml is available in most Linux distributions. It can also be
-                downloaded from here:
-
-                        http://caml.inria.fr/download.en.html
-
-        * Camlp5 -- Caml Preprocessor and Pretty Printer
-
-        * Ocamlfind/Findlib -- library manager for OCaml
-
-                If installed separately form prepackaged OCaml distribution, it
-                is recommended to build it from sources after you build/install
-                OCaml. It can be downloaded from here:
-
-                        http://projects.camlcity.org/projects/findlib.html
-        * C compiler
-
-                GCC works. Other compilers should work if they are able to build
-                OCaml.
-
-        * GNU make, sed and probably some other tools.
+        opam install --deps-only ./opam
 
 
 INSTALLATION INSTRUCTIONS
@@ -81,7 +52,7 @@ INSTALLATION INSTRUCTIONS
 
         Run "./configure --help" for the list of available options.
 
-2. Build third-party dependencies
+2. Install third-party dependencies
 
         make deps
 

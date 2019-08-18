@@ -24,9 +24,10 @@ endif
 
 
 deps: build-dir
-	$(MAKE) -C deps download
-	$(MAKE) -C deps
-	$(MAKE) -C deps uninstall install
+	@#$(MAKE) -C deps download
+	@#$(MAKE) -C deps
+	@#$(MAKE) -C deps uninstall install
+	opam install -y --deps-only ./opam
 
 
 build-dir:

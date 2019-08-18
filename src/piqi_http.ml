@@ -1,4 +1,3 @@
-(*pp camlp5o -I `ocamlfind query ulex-camlp5` pa_ulex.cma *)
 (*
    Copyright 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2017, 2018 Anton Lavrik
 
@@ -27,13 +26,13 @@
  * definitions from HTTP/1.1 standard
  *)
 
-let regexp cr = '\r'
-let regexp lf = '\n'
-let regexp sp = ' '  (* space *)
-let regexp ht = '\t' (* horisontal tab *)
-let regexp crlf = cr lf
+let cr = [%sedlex.regexp? '\r']
+let lf = [%sedlex.regexp? '\n']
+let sp = [%sedlex.regexp? ' ' ]  (* space *)
+let ht = [%sedlex.regexp? '\t']  (* horisontal tab *)
+let crlf = [%sedlex.regexp? cr, lf]
 
-let regexp digit = ['0'-'9']
+let digit = [%sedlex.regexp? '0'..'9']
 
 
 (*
@@ -47,8 +46,8 @@ let regexp digit = ['0'-'9']
   TEXT           = <any OCTET except CTLs,
                    but including LWS>
 *)
-let regexp lws = crlf? (sp | ht)+
-let regexp text = [^ 0-31 127] | lws
+let lws = [%sedlex.regexp? Opt crlf, Plus (sp | ht)]
+let text = [%sedlex.regexp? Compl (0 .. 31 | 127) | lws]
 
 
 (*
@@ -58,7 +57,7 @@ let regexp text = [^ 0-31 127] | lws
                  | "/" | "[" | "]" | "?" | "="
                  | "{" | "}" | SP | HT
 *)
-let regexp token = [^ "()<>@,;:\\\"/[]?={} \t" 0-31 127-255 ]+
+let token = [%sedlex.regexp? Plus (Compl ((Chars "()<>@,;:\\\"/[]?={} \t") | 0 .. 31 | 127 .. 255))]
 
 
 (* HTTP message:
@@ -75,17 +74,17 @@ let regexp token = [^ "()<>@,;:\\\"/[]?={} \t" 0-31 127-255 ]+
   Reason-Phrase  = *<TEXT, excluding CR, LF>
 *)
 
-let regexp http_version = "HTTP" "/" digit+ "." digit+
+let http_version = [%sedlex.regexp? "HTTP", "/", Plus digit, ".", Plus digit]
 
-let regexp status_code = digit digit digit
+let status_code = [%sedlex.regexp? digit, digit, digit]
 
 (* XXX: what does excluding CR, LF mean? *)
-let regexp reason_phrase = [^ 0-31 127 '\r' '\n']*
+let reason_phrase = [%sedlex.regexp? Star (Compl (0 .. 31 | 127 | '\r' | '\n'))]
 
-let regexp status_line = http_version sp status_code sp reason_phrase crlf
+let status_line = [%sedlex.regexp? http_version, sp, status_code, sp, reason_phrase, crlf]
 
-let regexp status_line_head = http_version sp
-let regexp status_line_tail = sp reason_phrase crlf
+let status_line_head = [%sedlex.regexp? http_version, sp]
+let status_line_tail = [%sedlex.regexp? sp, reason_phrase, crlf]
 
 
 (* HTTP header:
@@ -98,11 +97,11 @@ let regexp status_line_tail = sp reason_phrase crlf
 *)
 
 (* NOTE, XXX: this regexp doesn't include quoted-string case, only "*TEXT" *)
-let regexp field_value = text*
+let field_value = [%sedlex.regexp? Star text]
 
-let regexp message_header = token ":" field_value?
+let message_header = [%sedlex.regexp? token, ":", Opt field_value]
 
-let regexp message_header_tail = ":" field_value?
+let message_header_tail = [%sedlex.regexp? ":", Opt field_value]
 
 
 (*
@@ -125,24 +124,27 @@ let handle_exn context exn =
   in error (context ^ ": " ^ s)
 
 
-let parse_status_line_head = lexer
+let parse_status_line_head lexbuf = [%sedlex match lexbuf with
   | status_line_head -> ()
   | eof -> unexpected_eof ()
   | _ -> invalid_character ()
+]
 
 
-let parse_status_code = lexer
+let parse_status_code lexbuf = [%sedlex match lexbuf with
   | status_code ->
-      let s = Ulexing.latin1_lexeme lexbuf in
+      let s = Sedlexing.Latin1.lexeme lexbuf in
       int_of_string s
   | eof -> unexpected_eof ()
   | _ -> invalid_character ()
+]
 
 
-let parse_status_line_tail = lexer
+let parse_status_line_tail lexbuf = [%sedlex match lexbuf with
   | status_line_tail -> ()
   | eof -> unexpected_eof ()
   | _ -> invalid_character ()
+]
 
 
 let parse_status_line lexbuf =
@@ -160,32 +162,36 @@ let skip_lexeme_ws lexbuf pos len =
     if pos = len (* end of lexeme *)
     then pos
     else
-      let i = Ulexing.lexeme_char lexbuf pos in
-      let c = Char.chr i in
-      match c with
-        | ' ' | '\t' -> aux (pos + 1) (* skip ws char *)
-        | _ -> pos
+      let c = Sedlexing.lexeme_char lexbuf pos in
+      let is_ws_char =
+        let code = Uchar.to_int c in
+        code = Char.code ' ' || code = Char.code '\t'
+      in
+      if is_ws_char
+      then aux (pos + 1)  (* skip ws char *)
+      else pos
   in
   aux pos
 
 
-let parse_message_header_tail = lexer
-  | message_header_tail crlf ->
+let parse_message_header_tail lexbuf = [%sedlex match lexbuf with
+  | message_header_tail, crlf ->
       (* chop crlf at the end of the string (-2) *)
-      let len = Ulexing.lexeme_length lexbuf - 2 in
+      let len = Sedlexing.lexeme_length lexbuf - 2 in
       (* skip ':' character in front of the value *)
       let pos = 1 in
       (* skip whitespace in front of the value *)
       let pos = skip_lexeme_ws lexbuf pos len in
-      let value = Ulexing.latin1_sub_lexeme lexbuf pos (len - pos) in
+      let value = Sedlexing.Latin1.sub_lexeme lexbuf pos (len - pos) in
       value
   | eof -> unexpected_eof ()
   | _ -> invalid_character ()
+]
 
 
-let rec parse_headers accu = lexer
+let rec parse_headers accu lexbuf = [%sedlex match lexbuf with
   | token ->
-      let field_name = Ulexing.latin1_lexeme lexbuf in
+      let field_name = Sedlexing.Latin1.lexeme lexbuf in
       let field_value = parse_message_header_tail lexbuf in
       (* NOTE: we'll have to live with the compilation warning about
        * String.lowercase being deprecated: can't use String.lowercase_ascii
@@ -198,12 +204,13 @@ let rec parse_headers accu = lexer
 
   | eof -> unexpected_eof ()
   | _ -> invalid_character ()
+]
 
 
 let parse_headers lexbuf =
   try
     let headers = parse_headers [] lexbuf in
-    let body_offset = Ulexing.lexeme_end lexbuf in
+    let body_offset = Sedlexing.lexeme_end lexbuf in
     (headers, body_offset)
   with exn ->
     handle_exn "error parsing HTTP headers" exn
@@ -215,7 +222,7 @@ let parse_response_header buf len =
     then buf
     else String.sub buf 0 len
   in
-  let lexbuf = Ulexing.from_latin1_string str in
+  let lexbuf = Sedlexing.Latin1.from_string str in
   let status_code = parse_status_line lexbuf in
   let headers, body_offset = parse_headers lexbuf in
   (status_code, headers, body_offset)

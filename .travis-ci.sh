@@ -22,7 +22,7 @@ else
         brew upgrade python
 
         # build dependencies (Mac OS X)
-        brew install ocaml opam
+        brew install opam
 
         # optional dependencies for running tests
         brew install protobuf
@@ -39,35 +39,15 @@ else
         opam init
         eval `opam config env`
 
-        # install basic build dependencies using opam
-        opam install ocamlfind camlp5
-
         # so that tests pass with the latest protobuf version
         export CXXFLAGS='-std=c++14'
 
-    elif [ "$OCAML_VERSION" = "system" ]
-    then
-        # build dependencies (Ubuntu)
-        sudo apt-get install ocaml-nox camlp5 ocaml-findlib
-
-        # optional dependencies for running tests and building docs
-        #
-        # NOTE: these need to be tested only once, no need to re-run these
-        # tests for all OCaml versions
-        sudo apt-get install libprotoc-dev protobuf-compiler pandoc
-
-        echo "system OCaml version:"
-        ocaml -version
     else
         # install specific ocaml version
         wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-ocaml.sh
 
         . .travis-ocaml.sh
-
-        # install basic build dependencies using opam
-        opam install ocamlfind camlp5
     fi
-
 
     ./configure
     make deps

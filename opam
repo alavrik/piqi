@@ -24,7 +24,7 @@ depends: [
   "ocaml" {>= "4.03"}
   "ocamlfind" {build}
   "easy-format"
-  "ulex-camlp5"
+  "sedlex"
   "xmlm"
   "base64" {>="3.1.0"}
 ]

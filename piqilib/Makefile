@@ -9,8 +9,7 @@ LIBINSTALL_FILES += \
 	$(wildcard *.cmi) \
 
 
-PACKS = ulex-camlp5 easy-format xmlm base64
-
+PACKS = easy-format xmlm base64 sedlex sedlex.ppx
 
 SOURCES = \
 	piqi_version.ml \
@@ -39,6 +38,7 @@ SOURCES = \
 	piqi_protobuf.ml \
 	piqi_db.ml \
 	\
+	piqi_utf8.ml \
 	piq_lexer.ml \
 	piq_parser.ml \
 	piq_gen.ml \

@@ -164,13 +164,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       if i = pos + bytes
       then n
       else begin
-        let w = Utf8.width.(Char.code s.[i]) in
+        let w = Piqi_utf8.width.(Char.code s.[i]) in
         if w > 0 && i + w <= pos + bytes
         then (
           (* check if the next unicode char is correctly encoded in utf8 *)
-          ignore (Utf8.next s i);
+          ignore (Piqi_utf8.next s i);
           aux (succ n) (i + w)
-        ) else raise Utf8.MalFormed
+        ) else raise Piqi_utf8.MalFormed
       end
     in
     aux 0 pos
@@ -179,7 +179,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   let check_adjust_utf8 v lexbuf s start len =
     let utf8_len =
       try utf8_length s start len
-      with Utf8.MalFormed ->
+      with Piqi_utf8.MalFormed ->
         custom_error "Invalid utf-8 sequence" v lexbuf
     in
     v.utf8_delta <- v.utf8_delta + (len - utf8_len)
@@ -345,7 +345,7 @@ and finish_escaped_char v = parse
   | 't'  { Buffer.add_char v.buf '\t' }
   | 'u' (( hex hex hex hex ) as s)
          { let i = Piq_lexer.int_of_xstring s in
-           Utf8.store v.buf i }
+           Piqi_utf8.store v.buf i }
   | _    { lexer_error "Invalid escape sequence" v lexbuf }
   | eof  { custom_error "Unexpected end of input" v lexbuf }
 
