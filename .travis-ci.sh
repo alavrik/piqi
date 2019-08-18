@@ -22,7 +22,7 @@ else
         brew upgrade python
 
         # build dependencies (Mac OS X)
-        brew install opam
+        brew install ocaml opam
 
         # optional dependencies for running tests
         brew install protobuf
