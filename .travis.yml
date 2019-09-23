@@ -17,6 +17,8 @@ matrix:
         # in addition, test opam package build (PACKAGE="piqilib")
     - os: linux
       env: OCAML_VERSION=4.08 PACKAGE="piqilib"
+    - os: linux
+      env: OCAML_VERSION=4.09 PACKAGE="piqilib"
     # testing only basic install on osx with latest homebrew formulas
     - os: osx
       env: OCAML_VERSION=homebrew
