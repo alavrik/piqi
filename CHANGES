@@ -1,3 +1,13 @@
+Piqi 0.6.15 (September 28, 2018)
+================================
+
+Miscellaneous:
+
+  - Switch from ulex to sedlex
+  - Rely on opam for installing third-party dependencies
+  - Bump minimal supported OCaml version from 4.02 to 4.03
+
+
 Piqi 0.6.14 (September 13, 2018)
 ================================
 
