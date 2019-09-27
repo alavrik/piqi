@@ -18,6 +18,9 @@ test:
 	$(PIQI) check --type options/v options_invalid.piq; test $$? -eq 1
 	$(PIQI) check --type options/v options_valid.piq
 
+	$(PIQI) check allow_omit_label_invalid.piq; test $$? -eq 1
+	$(PIQI) check allow_omit_label_valid.piq
+
 
 clean:
 	rm -f *.pib *.json

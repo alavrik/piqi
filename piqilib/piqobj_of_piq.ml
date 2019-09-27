@@ -653,12 +653,17 @@ and parse_option_by_type ~try_mode o x =
           | _ ->
               None
         )
-    | _, Some t ->
+    (* TODO: do not support this behavior by default, only when
+     * piq-allow-omit-label is specified for options
+     *
+     * TODO: unify .piq-allow-omit-label and .piq-positional
+     *)
+    | None, Some t when o.piq_alias = None ->
         let do_parse () =
           let obj = Some (parse_obj t x ?piq_format:o.piq_format) in
           Some O.({t = o; obj = obj})
         in
-        match C.unalias t, x with
+        (match C.unalias t, x with
           | `bool, `bool _
 
           | `int, `int _
@@ -693,7 +698,9 @@ and parse_option_by_type ~try_mode o x =
           | `binary, `string (s, _) when Piq_lexer.is_ascii_string s -> do_parse ()
           | _ ->
               None
-
+        )
+    | _, Some _ ->  (* either name or piq_alias are defined *)
+        None
 
 
 and parse_name_option o name =

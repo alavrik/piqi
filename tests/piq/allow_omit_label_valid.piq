@@ -1,0 +1,50 @@
+:piqi [
+    .module m
+
+    .record [
+        .name r
+
+        .field [
+            .name f
+            .type v
+            .piq-positional true
+        ]
+    ]
+
+    .record [
+        .name rr
+
+        .field [
+            .name f
+            .type vv
+            .piq-positional true
+        ]
+    ]
+
+    .variant [
+        .name v
+
+        .option [
+            .piq-alias oo
+            .type string
+        ]
+    ]
+
+    .variant [
+        .name vv
+
+        .option [
+            .type string
+        ]
+    ]
+]
+
+:m/r [
+    % this is valid, because of .piq-positional
+    .oo "foo"
+]
+
+:m/rr [
+    % this is valid, because of a) .piq-positional and b) there is no .name nor .piq-alias in option definition
+    "foo"
+]
