@@ -20,7 +20,7 @@ build: [
     "dune"
     "build"
     "-p"
-    piqi piqilib
+    "piqi,piqilib"
     "-j"
     jobs
     "@install"

@@ -75,5 +75,9 @@
 
 (rule
  (target piqi_version.ml)
+ (deps
+  (file make_version.sh)
+  (file ../VERSION))
+ (package piqilib)
  (action (with-stdout-to %{target}
           (bash ./make_version.sh))))
