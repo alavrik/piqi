@@ -1,5 +1,4 @@
 (executable
  (name run)
  (public_name piqi)
- (package piqi)
  (libraries unix piqilib))
