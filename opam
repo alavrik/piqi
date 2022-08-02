@@ -7,7 +7,7 @@ homepage: "http://piqi.org"
 bug-reports: "https://github.com/alavrik/piqi/issues"
 depends: [
   "ocaml" {>= "4.03"}
-  "ocamlfind" {build}
+  "dune" {>= "2.0.0"}
   "easy-format"
   "sedlex"
   "xmlm"
