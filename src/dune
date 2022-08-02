@@ -1,4 +1,32 @@
 (executable
  (name run)
  (public_name piqi)
- (libraries unix piqilib))
+ (libraries commands unix piqilib)
+ (modules run)
+ (flags -linkall))
+
+(library
+ (name commands)
+ (wrapped false)
+ (libraries unix piqilib)
+ (preprocess (pps sedlex.ppx))
+ (modules
+   call
+   cc
+   check
+   compile
+   convert
+   descriptor_piqi
+   expand
+   getopt
+   json_pp
+   light
+   main
+   of_proto
+   piqi_http
+   piqi_rpc
+   piqi_rpc_piqi
+   piqi_tools_piqi
+   pp
+   server
+   to_proto))
