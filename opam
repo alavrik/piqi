@@ -6,10 +6,10 @@ maintainer: "Anton Lavrik <alavrik@piqi.org>"
 homepage: "http://piqi.org"
 bug-reports: "https://github.com/alavrik/piqi/issues"
 depends: [
-  "ocaml" {>= "4.03"}
+  "ocaml" {>= "4.03" & < "4.14.0"}
   "ocamlfind" {build}
   "easy-format"
-  "sedlex" {< "3.0.0"}
+  "sedlex" {< "3.0"}
   "xmlm"
   "base64" {>="3.1.0"}
 ]
