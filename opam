@@ -5,21 +5,6 @@ authors: "Anton Lavrik <alavrik@piqi.org>"
 maintainer: "Anton Lavrik <alavrik@piqi.org>"
 homepage: "http://piqi.org"
 bug-reports: "https://github.com/alavrik/piqi/issues"
-build: [
-  ["./configure" "--prefix" prefix]
-  [make]
-  [make "ocaml"]
-  [make "test"] {with-test}
-]
-install: [
-  [make "install"]
-  [make "ocaml-install"]
-]
-remove: [
-  ["rm" "-f" "%{prefix}%/bin/piqi"]
-  ["ocamlfind" "remove" "piqilib"]
-]
-flags: light-uninstall
 depends: [
   "ocaml" {>= "4.03"}
   "ocamlfind" {build}
@@ -28,4 +13,18 @@ depends: [
   "xmlm"
   "base64" {>="3.1.0"}
 ]
-dev-repo: "git://github.com/alavrik/piqi"
+dev-repo: "git+https://github.com/alavrik/piqi"
+build: [
+  ["dune" "subst"] {dev}
+  [
+    "dune"
+    "build"
+    "-p"
+    "piqilib"
+    "-j"
+    jobs
+    "@install"
+    "@runtest" {with-test}
+    "@doc" {with-doc}
+  ]
+]

@@ -1,0 +1,4 @@
+(executable
+ (name run)
+ (public_name piqi)
+ (libraries unix piqilib))

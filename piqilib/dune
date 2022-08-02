@@ -1,0 +1,82 @@
+(library
+ (name piqilib)
+ (public_name piqilib)
+ (wrapped false)
+ (libraries easy-format xmlm base64 sedlex)
+ (preprocess (pps sedlex.ppx))
+ (modules_without_implementation piqi_json_type piqi_xml_type)
+ (foreign_stubs (language c) (names piqi_c_impl))
+ (modules
+   piqi_version
+
+   piqi_piqirun
+   piqi_piqi
+
+   piqi_util
+   piqloc
+
+   piq_piqi
+   piq_ast
+
+   piqi_impl_piqi
+   piqi_boot
+
+   piqi_c
+
+   piqi_config
+   piqi_iolist
+   piqi_name
+   piqi_common
+   piqi_file
+   piqi_command
+   piqi_protobuf
+   piqi_db
+
+   piqi_utf8
+   piq_lexer
+   piq_parser
+   piq_gen
+
+   piqi_json_type
+   piqi_xml_type
+
+   piqi_objstore
+   piqobj
+   piqobj_common
+   piqobj_to_protobuf
+   piqobj_of_protobuf
+   piqobj_to_piq
+   piqobj_of_piq
+
+   piq
+   piqi
+
+   piqi_pp
+
+   piqi_json_parser
+   piqi_json_gen
+   piqi_json
+
+   piqi_base64
+   piqobj_to_json
+   piqobj_of_json
+
+   piqi_xml
+   piqobj_to_xml
+   piqobj_of_xml
+
+   piqi_convert
+   piqi_compile
+
+   piqi_light
+   piqi_getopt))
+
+(ocamllex piqi_json_parser)
+
+(rule
+ (target piqi_version.ml)
+ (deps
+  (file make_version.sh)
+  (file ../VERSION))
+ (action (with-stdout-to %{target}
+          (bash ./make_version.sh))))
