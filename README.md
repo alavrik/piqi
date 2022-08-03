@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/alavrik/piqi.png)](https://travis-ci.org/alavrik/piqi)
+[![build](https://github.com/alavrik/piqi/actions/workflows/build.yml/badge.svg)](https://github.com/alavrik/piqi/actions/workflows/build.yml)
 
 [Piqi](http://piqi.org) is a universal schema language and a collection of tools
 built around it.
