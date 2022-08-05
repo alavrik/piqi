@@ -1,3 +1,12 @@
+Piqi 0.6.16 (August 05, 2022)
+=============================
+
+Miscellaneous:
+
+  - Add support for the dune build system and use it from OPAM by default
+  - Switch CI setup from Travis to GH Actions
+
+
 Piqi 0.6.15 (September 28, 2018)
 ================================
 
