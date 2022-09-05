@@ -1,0 +1,13 @@
+(library
+  (name piqirun)
+  (public_name piqirun.pb)
+  (wrapped false)
+  (libraries piqilib stdlib-shims)
+  (modules piqirun))
+
+(library
+  (name piqirun_ext)
+  (public_name piqirun.ext)
+  (wrapped false)
+  (libraries piqilib stdlib-shims)
+  (modules piqirun_ext))

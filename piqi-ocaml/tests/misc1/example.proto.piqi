@@ -1,0 +1,12 @@
+.protobuf-package "test"
+
+.import [ .module id ]
+
+.record [
+    .name example
+    .field [
+        .name id
+        .type id/Id
+        .code 1
+    ]
+]

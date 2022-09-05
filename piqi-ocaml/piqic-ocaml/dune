@@ -1,0 +1,13 @@
+(executable
+ (name piqic_ocaml)
+ (public_name piqic-ocaml)
+ (package piqi)
+ (libraries piqilib piqirun bytes stdlib-shims))
+
+(rule
+ (target piqic_ocaml_version.ml)
+ (deps
+  (file make_version.sh)
+  (file ../VERSION))
+ (action (with-stdout-to %{target}
+          (bash ./make_version.sh))))
