@@ -1,6 +1,5 @@
 opam-version: "2.0"
-synopsis:
-  "The Piqi library -- runtime support for multi-format Protobuf/JSON/XML/Piq data serialization and conversion"
+synopsis: "Protocol Buffers, JSON and XML serialization system for OCaml"
 authors: "Anton Lavrik <alavrik@piqi.org>"
 maintainer: "Anton Lavrik <alavrik@piqi.org>"
 homepage: "http://piqi.org"
@@ -12,6 +11,7 @@ depends: [
   "sedlex" {< "3.0"}
   "xmlm"
   "base64" {>="3.1.0"}
+  "num" {with-test}
 ]
 dev-repo: "git+https://github.com/alavrik/piqi"
 build: [
@@ -19,8 +19,6 @@ build: [
   [
     "dune"
     "build"
-    "-p"
-    "piqilib"
     "-j"
     jobs
     "@install"
