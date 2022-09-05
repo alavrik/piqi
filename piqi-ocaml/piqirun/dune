@@ -1,0 +1,12 @@
+(library
+  (name piqirun)
+  (public_name piqirun.pb)
+  (wrapped false)
+  (modules piqirun))
+
+(library
+  (name piqirun_ext)
+  (public_name piqirun.ext)
+  (wrapped false)
+  (libraries piqilib)
+  (modules piqirun_ext))

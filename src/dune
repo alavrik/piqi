@@ -1,4 +1,5 @@
 (executable
+ (package piqi)
  (name run)
  (public_name piqi)
  (libraries commands unix piqilib)
@@ -6,6 +7,7 @@
  (flags -linkall))
 
 (library
+ (package piqi)
  (name commands)
  (wrapped false)
  (libraries unix piqilib)

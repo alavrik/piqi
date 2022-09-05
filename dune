@@ -4,4 +4,4 @@
                    -warn-error -A
                    -w -6-9-27-32..34-37-50-58))))
 
-(data_only_dirs tests)
+(data_only_dirs tests deps)

@@ -1,0 +1,10 @@
+.protobuf-package "test"
+
+.record [
+    .name Id
+    .field [
+        .name id
+        .type protobuf-int64
+        .code 1
+    ]
+]
